@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+    <rep:responsibleOrgName>EOX</rep:responsibleOrgName>
+    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
+    <rep:browseType>BRWTYPE</rep:browseType>
+    <rep:browse>
+        <rep:browseIdentifier>b_id_1</rep:browseIdentifier>
+        <rep:fileName>b_id_1.png</rep:fileName>
+        <rep:imageType>PNG</rep:imageType>
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:footprint nodeNumber="7">
+            <rep:colRowList>0 0 7 0 7 3 7 6 0 6 0 3 0 0</rep:colRowList>
+            <rep:coordList>16.1001 48.46 16.1 48.48 16.1 48.5 16.168 48.5033 16.168035 48.4835 16.16804 48.4636 16.1001 48.46</rep:coordList>
+        </rep:footprint>
+        <rep:startTime>2012-10-02T09:20:00Z</rep:startTime>
+        <rep:endTime>2012-10-02T09:20:00Z</rep:endTime>
+    </rep:browse>
+</rep:browseReport>

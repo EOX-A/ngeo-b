@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2006 sp2 U (http://www.altova.com) by Magellium (MAGELLIUM) -->
+<xs:schema xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:gml="http://www.opengis.net/gml/3.2" xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="http://ngeo.eo.esa.int/schema/browseReport" elementFormDefault="qualified" attributeFormDefault="unqualified" version="1.1">
+    <xs:import namespace="http://www.opengis.net/gml/3.2" schemaLocation="http://schemas.opengis.net/gml/3.2.1/gml.xsd"/>
+    <!--======================================-->
+    <!--==== ngEO Root Elements ===============-->
+    <!--======================================-->
+    <xs:element name="browseReport" type="rep:browseReportType">
+        <xs:annotation>
+            <xs:documentation>ngEO Browse Report Type</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+    <xs:complexType name="browseReportType">
+        <xs:sequence>
+            <xs:element name="responsibleOrgName" type="xs:string" nillable="false" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Entity issuing the report file</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dateTime" type="xs:dateTime">
+                <xs:annotation>
+                    <xs:documentation>Report Date Time</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="browseType" type="xs:string">
+                <xs:annotation>
+                    <xs:documentation>Browse type</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="browse" type="rep:browseType" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>Every browse file accompanying this browse report must be declared here.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="version" type="xs:string" use="required" fixed="1.1">
+            <xs:annotation>
+                <xs:documentation>Schema version. Fixed 1.1. value</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+    <xs:complexType name="browseType">
+        <xs:sequence>
+            <xs:element name="browseIdentifier" type="xs:string" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>If provided, allows the possible update of Browse based on this identifier.
+Format is unconstrained and ProductFacility dependant.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="fileName" type="xs:string">
+                <xs:annotation>
+                    <xs:documentation>This field gives the physical name of the browse image file (provided in the same ZIP). 
+The existence of this file is checked by the Feed.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="imageType">
+                <xs:annotation>
+                    <xs:documentation>Image type (e.g. Jpeg)</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:pattern value="Jpeg"/>
+                        <xs:pattern value="Jpeg2000"/>
+                        <xs:pattern value="TIFF"/>
+                        <xs:pattern value="GeoTIFF"/>
+                        <xs:pattern value="PNG"/>
+                        <xs:pattern value="BMP"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            <xs:sequence>
+                <xs:element name="referenceSystemIdentifier">
+                    <xs:annotation>
+                        <xs:documentation>Reference system. 
+Expected to be 'EPSG:code' or 'RAW'</xs:documentation>
+                    </xs:annotation>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:pattern value="EPSG:[0-9]+|RAW"/>
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:element>
+                <xs:choice>
+                    <xs:element name="rectifiedBrowse">
+                        <xs:annotation>
+                            <xs:documentation>Provides the coordinates, in the reference system, of the first and last pixels of the image.
+Cannot be used if referenceSystemIdentifier=RAW</xs:documentation>
+                        </xs:annotation>
+                        <xs:complexType>
+                            <xs:sequence>
+                                <xs:element name="coordList">
+                                    <xs:annotation>
+                                        <xs:documentation>list of 4 double values, separated by space, forming 2 pairs providing the x/y or lat/lon coordinates for first pair  and last pixel of the browse</xs:documentation>
+                                    </xs:annotation>
+                                    <xs:simpleType>
+                                        <xs:annotation>
+                                            <xs:documentation>A type for a list of values of the respective simple type.</xs:documentation>
+                                        </xs:annotation>
+                                        <xs:list itemType="xs:double"/>
+                                    </xs:simpleType>
+                                </xs:element>
+                            </xs:sequence>
+                        </xs:complexType>
+                    </xs:element>
+                    <xs:element name="footprint">
+                        <xs:annotation>
+                            <xs:documentation>footprint is a polygon composed of several nodes expressed as tie points.
+Last node must have the same coordinates than the first one (i.e. closing the polygon).</xs:documentation>
+                        </xs:annotation>
+                        <xs:complexType>
+                            <xs:sequence>
+                                <xs:element name="colRowList">
+                                    <xs:annotation>
+                                        <xs:documentation>list of integer values, separated by space, forming pairs corresponding, for every footprint node, to the col/row position in the image</xs:documentation>
+                                    </xs:annotation>
+                                    <xs:simpleType>
+                                        <xs:annotation>
+                                            <xs:documentation>A type for a list of values of the respective simple type.</xs:documentation>
+                                        </xs:annotation>
+                                        <xs:list itemType="xs:int"/>
+                                    </xs:simpleType>
+                                </xs:element>
+                                <xs:element name="coordList">
+                                    <xs:annotation>
+                                        <xs:documentation>list of double values, separated by space, forming pairs corresponding, for every footprint node, to the x/y or lat/lon coordinates</xs:documentation>
+                                    </xs:annotation>
+                                    <xs:simpleType>
+                                        <xs:annotation>
+                                            <xs:documentation>A type for a list of values of the respective simple type.</xs:documentation>
+                                        </xs:annotation>
+                                        <xs:list itemType="xs:double"/>
+                                    </xs:simpleType>
+                                </xs:element>
+                            </xs:sequence>
+                            <xs:attribute name="nodeNumber" type="xs:int" use="required">
+                                <xs:annotation>
+                                    <xs:documentation>Number of nodes.
+colRowLost and coordList elements have nodeNumber*2  values</xs:documentation>
+                                </xs:annotation>
+                            </xs:attribute>
+                        </xs:complexType>
+                    </xs:element>
+                    <xs:element name="regularGrid">
+                        <xs:annotation>
+                            <xs:documentation>Provides coordinates, in the reference system, of every node of a regular grid covering the image.
+Nodes of the grid can have positions in the image not expressed with integers (e.g. 2.4/3.8)
+</xs:documentation>
+                        </xs:annotation>
+                        <xs:complexType>
+                            <xs:sequence>
+                                <xs:element name="colNodeNumber" type="xs:int">
+                                    <xs:annotation>
+                                        <xs:documentation>Number of regularly spaced nodes over the column axis</xs:documentation>
+                                    </xs:annotation>
+                                </xs:element>
+                                <xs:element name="rowNodeNumber" type="xs:int">
+                                    <xs:annotation>
+                                        <xs:documentation>Number of regularly spaced nodes over the row axis</xs:documentation>
+                                    </xs:annotation>
+                                </xs:element>
+                                <xs:element name="colStep" type="xs:double">
+                                    <xs:annotation>
+                                        <xs:documentation>incremental step on column axis</xs:documentation>
+                                    </xs:annotation>
+                                </xs:element>
+                                <xs:element name="rowStep" type="xs:double">
+                                    <xs:annotation>
+                                        <xs:documentation>incremental step on row axis</xs:documentation>
+                                    </xs:annotation>
+                                </xs:element>
+                                <xs:element name="coordList" maxOccurs="unbounded">
+                                    <xs:annotation>
+                                        <xs:documentation>list of double pairs separated by space providing, for one node of one line of the grid, its x/y or lat/lon coordinates
+
+The number of coordList elements must be equal to rowNodeNumber.
+The number of coordinates in every coordList must be equal to colNodeNumber.</xs:documentation>
+                                    </xs:annotation>
+                                    <xs:simpleType>
+                                        <xs:annotation>
+                                            <xs:documentation>A type for a list of values of the respective simple type.</xs:documentation>
+                                        </xs:annotation>
+                                        <xs:list itemType="xs:double"/>
+                                    </xs:simpleType>
+                                </xs:element>
+                            </xs:sequence>
+                        </xs:complexType>
+                    </xs:element>
+                    <xs:element name="verticalCurtainFootprint">
+                        <xs:annotation>
+                            <xs:documentation>Used for vertical curtain browses.
+Footprint is a line composed of several nodes expressed as tie points.</xs:documentation>
+                        </xs:annotation>
+                        <xs:complexType>
+                            <xs:sequence>
+                                <xs:element name="colRowList">
+                                    <xs:annotation>
+                                        <xs:documentation>list of integer values, separated by space, forming pairs corresponding, for every footprint node, to the col/row position in the image</xs:documentation>
+                                    </xs:annotation>
+                                    <xs:simpleType>
+                                        <xs:annotation>
+                                            <xs:documentation>A type for a list of values of the respective simple type.</xs:documentation>
+                                        </xs:annotation>
+                                        <xs:list itemType="xs:int"/>
+                                    </xs:simpleType>
+                                </xs:element>
+                                <xs:element name="coordList">
+                                    <xs:annotation>
+                                        <xs:documentation>list of double values, separated by space, forming pairs corresponding, for every footprint node, to the x/y or lat/lon coordinates</xs:documentation>
+                                    </xs:annotation>
+                                    <xs:simpleType>
+                                        <xs:annotation>
+                                            <xs:documentation>A type for a list of values of the respective simple type.</xs:documentation>
+                                        </xs:annotation>
+                                        <xs:list itemType="xs:double"/>
+                                    </xs:simpleType>
+                                </xs:element>
+                            </xs:sequence>
+                            <xs:attribute name="nodeNumber" type="xs:int" use="required">
+                                <xs:annotation>
+                                    <xs:documentation>Number of nodes.
+colRowLost and coordList elements have nodeNumber*2  values</xs:documentation>
+                                </xs:annotation>
+                            </xs:attribute>
+                        </xs:complexType>
+                    </xs:element>
+                    <xs:element name="modelInGeotiff" type="xs:boolean" fixed="true">
+                        <xs:annotation>
+                            <xs:documentation>Fixed 'true' value.
+To be used whenever the browse format is Geotiff, and whenever the geolocation provided by the Geotiff is to be used by the Browse Server </xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                </xs:choice>
+                <xs:sequence>
+                    <xs:annotation>
+                        <xs:documentation>Time period of the browse</xs:documentation>
+                    </xs:annotation>
+                    <xs:element name="startTime" type="xs:dateTime"/>
+                    <xs:element name="endTime" type="xs:dateTime"/>
+                </xs:sequence>
+            </xs:sequence>
+        </xs:sequence>
+    </xs:complexType>
+    <!--===========================================-->
+    <!--==== Simple Types Section   =====-->
+    <!--===========================================-->
+    <xs:simpleType name="reportEnumType">
+        <xs:annotation>
+            <xs:documentation>Type of Report</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="PLANNING"/>
+            <xs:enumeration value="ARCHIVING"/>
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:simpleType name="nonNullStringType">
+        <xs:annotation>
+            <xs:documentation>This represents a non null string type.</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1"/>
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:element name="originatorIdentifier" type="xs:string">
+        <xs:annotation>
+            <xs:documentation>Identifier for metadata item. urn:eop:GS:CollectionId:ProductId:Version</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+    <xs:simpleType name="orgNameType">
+        <xs:annotation>
+            <xs:documentation>This represents the Organization Type based on a non null string</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="rep:nonNullStringType">
+            <xs:minLength value="1"/>
+        </xs:restriction>
+    </xs:simpleType>
+</xs:schema>
