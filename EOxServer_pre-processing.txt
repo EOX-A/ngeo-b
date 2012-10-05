@@ -89,7 +89,7 @@ eoxserver_preprocess.py
 
     [--compression {JPEG [--jpeg-quality quality]|LZW|PACKBITS|DEFLATE [--zlevel level]|CCITTRLE|CCITTFAX3|CCITTFAX4|NONE}]
 
-    [--indexed [--color]]
+    [--indexed [--pct palette_file]] Defaults to computing a color palette like rgb2pct.py or use the one supplied in palette_file e.g. as VRT.
     [--no-data value]
 
     [--co "NAME=VALUE"]* Provide GDAL GeoTIFF format options (see http://www.gdal.org/frmt_gtiff.html).
@@ -136,7 +136,7 @@ ngeo_preprocess.py
 
     [--compression {JPEG [--jpeg-quality quality]|LZW|PACKBITS|DEFLATE [--zlevel level]|CCITTRLE|CCITTFAX3|CCITTFAX4|NONE}]
 
-    [--indexed [--color]]
+    [--indexed [--pct palette_file]] Defaults to computing a color palette like rgb2pct.py or use the one supplied in palette_file e.g. as VRT.
     [--no-data value]
 
     [--co "NAME=VALUE"]* Provide GDAL GeoTIFF format options (see http://www.gdal.org/frmt_gtiff.html).
