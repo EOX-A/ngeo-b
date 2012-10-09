@@ -1,2 +1,10 @@
+# Python
+*.pyc
+
+# Django
 manage.py
 autotest/settings.py
+autotest/data/data.sqlite
+
+# Custom
+init.sh
