@@ -45,7 +45,7 @@ ReferenceSystemIdentifierValidator = RegexValidator(
 )
 NameValidator = RegexValidator(
     re.compile(r'^[a-zA-z_:][a-zA-Z0-9.-_:]*$'),
-    message="This field must contain a valid Name."
+    message="This field must contain a valid Name i.e. beginning with a letter, an underscore, or a colon, and continuing with letters, digits, hyphens, underscores, colons, or full stops."
 )
 
 class BrowseType(models.Model):
@@ -80,13 +80,13 @@ class BrowseLayer(models.Model):
         )
     )
     contains_vertical_curtains = models.BooleanField(default=False) # TODO: Fixed to False for now as vertical curtains are not supported.
-    r_band = models.IntegerField()
-    g_band = models.IntegerField()
-    b_band = models.IntegerField()
-    radiometric_interval_min = models.IntegerField()
-    radiometric_interval_max = models.IntegerField()
-    highest_map_level = models.IntegerField()
-    lowest_map_level = models.IntegerField()
+    r_band = models.IntegerField(null=True, blank=True, default=None)
+    g_band = models.IntegerField(null=True, blank=True, default=None)
+    b_band = models.IntegerField(null=True, blank=True, default=None)
+    radiometric_interval_min = models.IntegerField(null=True, blank=True, default=None)
+    radiometric_interval_max = models.IntegerField(null=True, blank=True, default=None)
+    highest_map_level = models.IntegerField(null=True, blank=True, default=None)
+    lowest_map_level = models.IntegerField(null=True, blank=True, default=None)
     
     def __unicode__(self):
         return self.id
