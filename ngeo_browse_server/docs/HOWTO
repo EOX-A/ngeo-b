@@ -1,0 +1,1 @@
+python manage.py graph_models --output=docs/model_config.png -e config
