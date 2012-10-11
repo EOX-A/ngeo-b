@@ -67,9 +67,6 @@ setup(
     packages=packages,
     data_files=data_files,
     include_package_data=True,
-    scripts=[
-        "ngeo_browse_server/scripts/ngeo_browse_server-admin.py",
-    ],
     
     install_requires=[
         'django>=1.4.1',

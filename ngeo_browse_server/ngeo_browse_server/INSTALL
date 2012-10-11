@@ -32,8 +32,8 @@ THE SOFTWARE.
 # Quick installation guide for the impatient #
 ##############################################
 
-sudo pip install ngEO_Browse_Server-<version>.tar.gz
-ngeo_browse_server-admin.py create_instance YOUR_INSTANCE_ID --init_spatialite
+sudo pip install ngEO_Browse_Server-<VERSION>.tar.gz
+django-admin.py startproject --template=<PATH_TO_ngEO_Browse_Server>/project_template/ <YOUR_INSTANCE_ID>
 cd YOUR_INSTANCE_ID
 python manage.py syncdb
 
@@ -57,9 +57,9 @@ python manage.py collectstatic --noinput
 # Add the following to your Apache web server configuration 
 # (e.g. /etc/apache2/sites-enabled/ngeo_browse_server):
 -----------------------------------------------------------------
-Alias /static "<path_to_ngeo_browse_server_instance>/static"
-Alias /ngeo_browse_server "<path_to_ngeo_browse_server_instance>/wsgi.py"
-<Directory "<path_to_ngeo_browse_server_instance>">
+Alias /static "<PATH_TO_ngEO_Browse_Server_INSTANCE>/static"
+Alias /ngeo_browse_server "<PATH_TO_ngEO_Browse_Server_INSTANCE>/wsgi.py"
+<Directory "<PATH_TO_ngEO_Browse_Server_INSTANCE>">
     AllowOverride None
     Options +ExecCGI -MultiViews +SymLinksIfOwnerMatch
     AddHandler wsgi-script .py
@@ -68,7 +68,7 @@ Alias /ngeo_browse_server "<path_to_ngeo_browse_server_instance>/wsgi.py"
 </Directory>
 -----------------------------------------------------------------
 # Restart Apache web server and point your browser to: 
-# "http://<url-to-your-server/ngeo_browse_server/"
+# "http://<URL_TO_YOUR_SERVER>/ngeo_browse_server/"
 
 
 ##############################################
