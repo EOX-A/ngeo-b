@@ -10,7 +10,6 @@ autotest/data/data.sqlite
 autotest/conf/eoxserver.conf
 autotest/conf/formats.conf
 autotest/conf/template.map
-autotest/data/init_spatialite-2.3.sql
 autotest/logs/eoxserver.log
 autotest/wcst_perm
 autotest/wcst_temp

@@ -58,7 +58,6 @@ DATABASES = {
         'PORT': '',                                                             # Set to empty string for default. Not used with spatialite.
     }
 }
-SPATIALITE_SQL='{{ project_directory }}/{{ project_name }}/data/init_spatialite-2.3.sql'
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
