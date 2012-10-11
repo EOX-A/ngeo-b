@@ -1,4 +1,3 @@
-#!/usr/bin/python
 #-------------------------------------------------------------------------------
 #
 # Project: ngEO Browse Server <http://ngeo.eox.at>
@@ -28,7 +27,27 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
-from ngeo_browse_server.control.management import execute_from_commandline
+"""
+URLs config for ngEO Browse Server's {{ project_name }} instance.
 
-if __name__ == "__main__":
-    execute_from_commandline()
+"""
+from django.conf.urls import patterns, include, url
+
+# Enable the admin:
+from django.contrib import admin
+admin.autodiscover()
+
+urlpatterns = patterns('',
+    (r'^$', 'ngeo_browse_server.views.index'),
+    (r'^eoxserver', 'eoxserver.views.index'),
+    (r'^ows', 'eoxserver.services.views.ows'),
+    (r'^logview', 'eoxserver.logging.views.logview'),
+    (r'^client/$', 'eoxserver.webclient.views.index'),
+    (r'^client/(.*)', 'eoxserver.webclient.views.webclient'),
+
+    # Enable admin documentation:
+    url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
+
+    # Enable the admin:
+    url(r'^admin/', include(admin.site.urls)),
+)
