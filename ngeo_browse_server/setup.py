@@ -72,6 +72,7 @@ setup(
         'django>=1.4.1',
         'pysqlite>=2.5',
         'eoxserver>=0.2.1',
+        'pytz',
     ],
     
     # Metadata
