@@ -33,7 +33,7 @@ Django settings for ngEO Browse Server's {{ project_name }} instance.
 """
 from os.path import join
 
-PROJECT_DIR = '{{ project_name }}'
+PROJECT_DIR = '{{ project_directory }}/{{ project_name }}'
 PROJECT_URL_PREFIX = ''
 
 TEST_RUNNER = 'eoxserver.testing.core.EOxServerTestRunner'
@@ -101,7 +101,7 @@ MEDIA_URL = ''
 # Don't put anything in this directory yourself; store your static files
 # in apps' "static/" subdirectories and in STATICFILES_DIRS.
 # Example: "/home/media/media.lawrence.com/static/"
-STATIC_ROOT = ''
+STATIC_ROOT = '{{ project_directory }}/{{ project_name }}/static/'
 
 # URL prefix for static files.
 # Example: "http://media.lawrence.com/static/"
