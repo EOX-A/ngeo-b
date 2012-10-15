@@ -166,7 +166,7 @@ INSTALLED_APPS = (
     # Enable admin documentation:
     'django.contrib.admindocs',
 #    'django.contrib.databrowse',
-    'django_extensions',
+#    'django_extensions',
     # Enable EOxServer:
     'eoxserver.core',
     'eoxserver.services',
