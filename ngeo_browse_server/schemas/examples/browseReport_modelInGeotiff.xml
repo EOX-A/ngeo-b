@@ -7,7 +7,7 @@
         <rep:browseIdentifier>b_id_2</rep:browseIdentifier>
         <rep:fileName>b_id_2.tiff</rep:fileName>
         <rep:imageType>GeoTIFF</rep:imageType>
-        <rep:referenceSystemIdentifier>EPSG:3857</rep:referenceSystemIdentifier>
+        <rep:referenceSystemIdentifier>EPSG:3857</rep:referenceSystemIdentifier> <!-- Ignored because of usage of <rep:modelInGeotiff>. -->
         <rep:modelInGeotiff>true</rep:modelInGeotiff>
         <rep:startTime>2012-10-02T09:20:00Z</rep:startTime>
         <rep:endTime>2012-10-02T09:20:00Z</rep:endTime>

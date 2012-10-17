@@ -9,7 +9,7 @@
         <rep:imageType>PNG</rep:imageType>
         <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
         <rep:rectifiedBrowse>
-            <rep:coordList>16.1 48.5 16.16804 48.4636</rep:coordList>
+            <rep:coordList>48.5 16.1 48.4636 16.16804</rep:coordList>
         </rep:rectifiedBrowse>
         <rep:startTime>2012-10-02T09:20:00Z</rep:startTime>
         <rep:endTime>2012-10-02T09:20:00Z</rep:endTime>

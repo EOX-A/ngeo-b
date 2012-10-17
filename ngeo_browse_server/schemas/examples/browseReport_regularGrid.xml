@@ -13,9 +13,9 @@
             <rep:rowNodeNumber>3</rep:rowNodeNumber>
             <rep:colStep>2</rep:colStep>
             <rep:rowStep>2.5</rep:rowStep>
-            <rep:coordList>16.1 48.5 16.12 48.501 16.145 48.5022 16.168 48.5033</rep:coordList>
-            <rep:coordList>16.1 48.48 16.1201 48.481 16.14502 48.4823 16.168035 48.4835</rep:coordList>
-            <rep:coordList>16.1001 48.46 16.12012 48.461 16.14503 48.4623 16.16804 48.4636</rep:coordList>
+            <rep:coordList>48.5 16.1 48.501 16.12 48.5022 16.145 48.5033 16.168</rep:coordList>
+            <rep:coordList>48.48 16.1 48.481 16.1201 48.4823 16.14502 48.4835 16.168035</rep:coordList>
+            <rep:coordList>48.46 16.1001 48.461 16.12012 48.4623 16.14503 48.4636 16.16804</rep:coordList>
         </rep:regularGrid>
         <rep:startTime>2012-10-02T09:20:00Z</rep:startTime>
         <rep:endTime>2012-10-02T09:20:00Z</rep:endTime>
