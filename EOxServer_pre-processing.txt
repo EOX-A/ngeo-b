@@ -78,7 +78,10 @@ eoxserver_preprocess.py
 
     --begin-time time --end-time time --coverage-id id | --no-metadata
 
-    [--extent minx,miny,maxx,maxy | --footprint polygon_wkt | --gcp pixel,line,easting,northing[,elevation]*]
+    
+    [--extent minx,miny,maxx,maxy[,srid] | --footprint polygon_wkt | --gcp pixel,line,easting,northing[,elevation]* ]
+    --georef-srid ...
+
 
     [--crs CRS] CRS used for outfile. Default same as used in geo-referencing information.
     [--no-tiling]

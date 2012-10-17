@@ -16,3 +16,5 @@
 
 # Custom
 /init.sh
+/.pydevproject
+/.project
