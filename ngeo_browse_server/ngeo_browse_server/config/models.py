@@ -33,10 +33,10 @@ configuration, mainly Browse Layers and Browses.
 .. moduleauthor:: Stephan Meissl <stephan.meissl@eox.at>
 """
 
+import re
+
 from django.db import models
 from django.core.validators import RegexValidator
-from django.core.exceptions import ValidationError
-import re
 
 
 ReferenceSystemIdentifierValidator = RegexValidator( 
@@ -129,15 +129,14 @@ class BrowseIdentifier(models.Model):
     
     """
     id = models.CharField("Browse Identifier", max_length=1024, primary_key=True, validators=[NameValidator])
-
+    browse_identifier = models.OneToOneField("BrowseIdentifier", related_name="browse_identifier")
 
 class Browse(models.Model):
     """This is the NOT abstract base class for Browses which have one of the 
     defined five types that inherit from this class.
     
     """
-    browse_report = models.ForeignKey(BrowseReport, verbose_name="Browse Report")
-    browse_identifier = models.OneToOneField(BrowseIdentifier, null=True, blank=True, default=None)
+    browse_report = models.ForeignKey(BrowseReport, related_name="browses", verbose_name="Browse Report")
     file_name = models.CharField(max_length=1024, validators=[NameValidator])
     image_type = models.CharField(max_length=8, default="GeoTIFF", 
         choices = (
@@ -153,7 +152,7 @@ class Browse(models.Model):
     geo_type = models.CharField(max_length=24, default="modelInGeotiff", 
         choices = (
             ("rectifiedBrowse", "Browse is rectified and the corner coordinates are given"),
-            ("Footprint", "Browse is non-rectified and a polygon delimiting boundary is given"),
+            ("footprint", "Browse is non-rectified and a polygon delimiting boundary is given"),
             ("regularGrid", "Browse is non-rectified and a grid of tie-points is provided"),
             ("verticalCurtainFootprint", "Browse is vertical curtain and a suitable footprint object is supplied"), # TODO: Vertical curtains are not supported for now.
             ("modelInGeotiff", "Browse is a rectified GeoTIFF"),
@@ -194,7 +193,7 @@ class RegularGridCoordList(models.Model):
     """Coordinate Lists used in RegularGridBrowses.
     
     """
-    regular_grid_browse = models.ForeignKey(RegularGridBrowse, verbose_name="RegularGrid Browse")
+    regular_grid_browse = models.ForeignKey(RegularGridBrowse, related_name="coord_lists", verbose_name="RegularGrid Browse", on_delete=models.CASCADE)
     coord_list = models.CharField(max_length=2048) # We just store this information, no need for a usable representation.
 
 # TODO: Vertical curtains are not supported for now.

@@ -15,6 +15,7 @@ from ngeo_browse_server.control.ingest.parsing import (
 from ngeo_browse_server.config.models import (
     RectifiedBrowse, FootprintBrowse, RegularGridBrowse
 )
+from eoxserver.resources.coverages.metadata import EOMetadata
 
 
 def ingest_browse_report(document):
@@ -71,8 +72,13 @@ def ingest_browse_report(document):
             }
         )
         
+        eo_metadata = EOMetadata( # TODO: eoid?
+            browse.browse_identifier.id, browse.start_time, browse.end_time,
+            result.footprint_geom
+        )
+        
         rect_mgr.create(obj_id="TODO", range_type_name="RGB", default_srid="TODO",
                         visible=False, local_path=result.output_filename, 
-                        eo_metadata="")
+                        eo_metadata=eo_metadata)
         
     # TODO: add browses to browse report and save all

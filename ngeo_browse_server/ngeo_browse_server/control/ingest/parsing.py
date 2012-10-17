@@ -94,6 +94,7 @@ def parse_browse(browse, browse_report=None):
         return ModelInGeotiffBrowse(**kwargs)
     
     elif vertical_curtain_footprint is not None:
+        VerticalCurtainBrowse
         # TODO
         raise NotImplementedError
 
