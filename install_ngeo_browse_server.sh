@@ -36,6 +36,22 @@
 # =======
 # sudo ./install_ngeo_browse_server.sh
 
+################################################################################
+# Adjust the variables to your liking.                                         #
+################################################################################
+
+INSTALL_DIR="/var/www/ngeo/"
+
+# Apache HTTPD
+APACHE_CONF="/etc/httpd/conf.d/010_ngeo_browse_server.conf"
+APACHE_ServerName="ngeo.eox.at"
+APACHE_ServerAdmin="webmaster@eox.at"
+APACHE_NGEO_BROWSE_ALIAS="/b"
+
+################################################################################
+# Usually there should be no need to change anything below.                    #
+################################################################################
+
 echo "==============================================================="
 echo "install_ngeo_browse_server.sh"
 echo "==============================================================="
@@ -48,10 +64,6 @@ if [ "`uname -m`" != "x86_64" ] ; then
          implemented for x86_64 only."
    exit 1
 fi
-
-#INSTALL_DIR="/home/meissls/eox/projects/ESA_ngEO/Task4/git/deliverables/developments/ngeo_browse_server/" # TODO: Remove this line
-INSTALL_DIR="/var/www/ngeo/"
-APACHE_CONF="/etc/httpd/conf.d/010_ngeo_browse_server.conf"
 
 # Check required tools are installed
 if [ ! -x "`which sed`" ] ; then
@@ -87,8 +99,6 @@ fi
 
 [ -d "$INSTALL_DIR" ] || mkdir -p "$INSTALL_DIR"
 cd "$INSTALL_DIR"
-chmod g+w .
-chown apache:apache .
 
 
 # Configure ngeo_browse_server_instance
@@ -123,19 +133,19 @@ fi
 # Add Apache configuration
 cat << EOF > "$APACHE_CONF"
 <VirtualHost *:80>
-    ServerName ngeo.eox.at
-    ServerAdmin webmaster@eox.at
+    ServerName $APACHE_ServerName
+    ServerAdmin $APACHE_ServerAdmin
 
-    DocumentRoot /var/www/html
-    <Directory "/var/www/html/">
+    DocumentRoot $INSTALL_DIR
+    <Directory "$INSTALL_DIR">
             Options Indexes FollowSymLinks
             AllowOverride None
-            Order allow,deny
-            Allow from all
+            Order deny,allow
+            Deny from all
     </Directory>
 
     Alias /static "$INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/static"
-    Alias /b "$INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/wsgi.py"
+    Alias $APACHE_NGEO_BROWSE_ALIAS "$INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/wsgi.py"
 
     <Directory "$INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance">
         AllowOverride None
