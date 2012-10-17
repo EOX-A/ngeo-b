@@ -43,6 +43,11 @@ framework.
 
 """
 import os
+import sys
+
+path = "{{ project_directory }}"
+if path not in sys.path:
+    sys.path.append(path)
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "{{ project_name }}.settings")
 
