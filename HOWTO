@@ -1,0 +1,2 @@
+# Build ngEO Browse Server:
+python setup.py bdist_rpm --requires "EOxServer mapache httpd" --release 1
