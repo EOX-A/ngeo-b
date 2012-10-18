@@ -33,7 +33,7 @@ THE SOFTWARE.
 ##############################################
 
 sudo pip install ngEO_Browse_Server-<VERSION>.tar.gz
-django-admin.py startproject --extension=conf --template=<PATH_TO_ngEO_Browse_Server>/project_template/ <YOUR_INSTANCE_ID>
+django-admin.py startproject --extension=conf --template=`python -c "import os.path; import ngeo_browse_server; print(os.path.join(os.path.dirname(ngeo_browse_server.__file__), 'project_template/'))"`/project_template/ YOUR_INSTANCE_ID
 cd YOUR_INSTANCE_ID
 spatialite YOUR_INSTANCE_ID/data/data.sqlite "SELECT InitSpatialMetaData();"
 python manage.py syncdb
