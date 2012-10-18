@@ -129,7 +129,7 @@ class BrowseIdentifier(models.Model):
     
     """
     id = models.CharField("Browse Identifier", max_length=1024, primary_key=True, validators=[NameValidator])
-    browse_identifier = models.OneToOneField("BrowseIdentifier", related_name="browse_identifier")
+    browse = models.OneToOneField("Browse", related_name="browse_identifier")
 
 class Browse(models.Model):
     """This is the NOT abstract base class for Browses which have one of the 
