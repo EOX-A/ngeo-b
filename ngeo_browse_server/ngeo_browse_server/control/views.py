@@ -27,4 +27,33 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
-# Create your views here.
+from lxml import etree
+
+from django.db import transaction
+from django.http import HttpResponse, HttpResponseNotAllowed, HttpResponseBadRequest
+
+from ngeo_browse_server.control.ingest import ingest_browse_report
+
+
+
+@transaction.commit_on_success
+def ingest(request):
+    """ View to ingest a browse report delivered via HTTP-POST. The XML file is
+        expected to be included within the POST data.
+    """
+    if request.method != "POST":
+        raise HttpResponseNotAllowed(["POST"])
+    
+    try:
+        document = etree.parse(request) 
+        ingest_browse_report(document)
+    except Exception, e:
+        return HttpResponseBadRequest(str(e))
+    
+    
+    return HttpResponse()
+    
+
+
+def store(request):
+    pass
