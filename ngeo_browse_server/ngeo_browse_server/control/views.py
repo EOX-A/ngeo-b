@@ -30,7 +30,8 @@
 from lxml import etree
 
 from django.db import transaction
-from django.http import HttpResponse, HttpResponseNotAllowed, HttpResponseBadRequest
+from django.http import HttpResponseNotAllowed
+from django.shortcuts import render_to_response
 
 from ngeo_browse_server.control.ingest import ingest_browse_report
 
@@ -41,19 +42,22 @@ def ingest(request):
     """ View to ingest a browse report delivered via HTTP-POST. The XML file is
         expected to be included within the POST data.
     """
-    if request.method != "POST":
-        raise HttpResponseNotAllowed(["POST"])
     
     try:
+        if request.method != "POST":
+            raise Exception("Method '%s' is not allowed, use 'POST' only." % 
+                            request.method.upper())
+        
         document = etree.parse(request) 
-        ingest_browse_report(document)
+        result = ingest_browse_report(document)
+        return render_to_response("control/ingest_response.xml", 
+                              {"result": result}, 
+                              mime_type="text/xml")
     except Exception, e:
-        return HttpResponseBadRequest(str(e))
+        return render_to_response("control/ingest_exception.xml",
+                                  {"code": type(e).__name__,
+                                   "message": str(e)},
+                                  mime_type="text/xml")
     
     
-    return HttpResponse()
     
-
-
-def store(request):
-    pass
