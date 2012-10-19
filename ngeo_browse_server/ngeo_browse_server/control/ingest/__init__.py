@@ -183,7 +183,9 @@ class IngestResult(object):
     
     def add_failure(self, identifier, code, message):
         self._records.append((identifier, "failure", code, message))
-    
+
+    def __iter__(self):
+        return iter(self._records)
     
     @property
     def status(self):
@@ -196,6 +198,5 @@ class IngestResult(object):
     to_be_replaced = property(lambda self: len(self._records)) # TODO: sure?    
     actually_inserted = property(lambda self: self._inserted)
     actually_replaced = property(lambda self: self._replaced)
-    
-        
+
     
