@@ -2,14 +2,9 @@
 *.pyc
 
 # Django
-/manage.py
-/autotest/settings.py
 /autotest/data/data.sqlite
 
 # EOxServer
-/autotest/conf/eoxserver.conf
-/autotest/conf/formats.conf
-/autotest/conf/template.map
 /autotest/logs/eoxserver.log
 /autotest/wcst_perm
 /autotest/wcst_temp
