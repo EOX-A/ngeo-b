@@ -9,7 +9,7 @@ class Browse(object):
 
     def __init__(self, browse_identifier, file_name, image_type,
                  reference_system_identifier, start_time, end_time):
-        self._browse_id = browse_identifier
+        self._browse_identifier = browse_identifier
         self._file_name = file_name
         self._image_type = image_type
         self._reference_system_identifier = reference_system_identifier

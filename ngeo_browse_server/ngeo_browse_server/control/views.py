@@ -30,10 +30,10 @@
 from lxml import etree
 
 from django.db import transaction
-from django.http import HttpResponseNotAllowed
 from django.shortcuts import render_to_response
 
 from ngeo_browse_server.control.ingest import ingest_browse_report
+from ngeo_browse_server.control.ingest.parsing import parse_browse_report
 
 
 
@@ -45,19 +45,23 @@ def ingest(request):
     
     try:
         if request.method != "POST":
-            raise Exception("Method '%s' is not allowed, use 'POST' only." % 
-                            request.method.upper())
+            e = Exception("Method '%s' is not allowed, use 'POST' only." % 
+                          request.method.upper())
+            e.code = "MethodNotAllowed"
         
-        document = etree.parse(request) 
-        result = ingest_browse_report(document)
+        document = etree.parse(request)
+        parsed_browse_report = parse_browse_report(document.getroot())
+        result = ingest_browse_report(parsed_browse_report, True)
         return render_to_response("control/ingest_response.xml", 
                               {"result": result}, 
-                              mime_type="text/xml")
+                              mimetype="text/xml")
     except Exception, e:
+        raise
         return render_to_response("control/ingest_exception.xml",
-                                  {"code": type(e).__name__,
+                                  {"code": getattr(e, "code", None)
+                                           or type(e).__name__,
                                    "message": str(e)},
-                                  mime_type="text/xml")
+                                  mimetype="text/xml")
     
     
     

@@ -24,7 +24,7 @@ def _model_from_parsed(parsed_browse, browse_report, model_cls):
                                     **parsed_browse.get_kwargs())
 
 
-def ingest_browse_report(parsed_browse_report, path_prefix, 
+def ingest_browse_report(parsed_browse_report, 
                          reraise_exceptions=False):
     """ Ingests a browse report. reraise_exceptions if errors shall be handled 
     externally
@@ -44,7 +44,7 @@ def ingest_browse_report(parsed_browse_report, path_prefix,
     format_selection = get_format_selection("GTiff") # TODO: use more options
     preprocessor = WMSPreProcessor(format_selection, bandmode=RGB) # TODO: use options
     
-    browse_type = models.BrowseType.objects.get_or_create(id=parse_browse_report.browse_type)
+    browse_type, _ = models.BrowseType.objects.get_or_create(id=parsed_browse_report.browse_type)
     browse_report = models.BrowseReport.objects.create(browse_type=browse_type,
                                                        **parsed_browse_report.get_kwargs())
     
@@ -57,7 +57,8 @@ def ingest_browse_report(parsed_browse_report, path_prefix,
             result.add(parsed_browse.browse_identifier, replaced)
         except Exception, e:
             if reraise_exceptions:
-                raise sys.exc_info()
+                info = sys.exc_info()
+                raise info[0], info[1], info[2]
             else:
                 # TODO: use transaction savepoints to keep the DB in a 
                 # consistent state
@@ -152,7 +153,7 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, opt_dir):
     )
     
     # register the optimized dataset
-    rect_mgr.create(obj_id=parsed_browse.browse_identifier.id, 
+    rect_mgr.create(obj_id=parsed_browse.browse_identifier, 
                     range_type_name="RGB", default_srid=srid, visible=False,
                     local_path=result.output_filename,
                     eo_metadata=eo_metadata, force=False)
