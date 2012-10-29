@@ -1,7 +1,8 @@
 import sys
-from os.path import isabs, isdir, join, basename
+from os.path import isabs, isdir, join, basename, splitext
 from itertools import product
 from numpy import arange
+from ConfigParser import NoSectionError, NoOptionError
 
 from django.conf import settings
 from eoxserver.core.system import System
@@ -19,12 +20,40 @@ from ngeo_browse_server.control.ingest import data
 from ngeo_browse_server.config import models
 
 
+
 def _model_from_parsed(parsed_browse, browse_report, model_cls):
     return model_cls.objects.create(browse_report=browse_report,
                                     **parsed_browse.get_kwargs())
 
 
-def ingest_browse_report(parsed_browse_report, 
+def get_optimized_filename(file_name, path_prefix=None):
+    """ Returns an absolute path to a filename within the storage directory for
+    optimized raster files. Uses the path prefix if given, otherwise uses the
+    'control.ingest.optimized_files_dir' setting from the ngEO configuration.
+    
+    Also tries to get the postfix for optimized files from the 
+    'control.ingest.optimized_files_postfix' setting from the ngEO configuration.
+    """
+    file_name = basename(file_name)
+    config = get_ngeo_config()
+    if not path_prefix:
+        opt_dir = config.get("control.ingest", "optimized_files_dir")
+        
+        if not isabs(opt_dir):
+            opt_dir = join(settings.PROJECT_DIR, opt_dir)
+    else:
+        opt_dir = path_prefix
+    
+    try:
+        postfix = config.get("control.ingest", "optimized_files_postfix")
+    except NoSectionError, NoOptionError:
+        postfix = ""
+    
+    root, ext = splitext(file_name)
+    return join(opt_dir, root + postfix + ext)
+
+
+def ingest_browse_report(parsed_browse_report, path_prefix=None,
                          reraise_exceptions=False):
     """ Ingests a browse report. reraise_exceptions if errors shall be handled 
     externally
@@ -32,12 +61,6 @@ def ingest_browse_report(parsed_browse_report,
     
     # initialize the EOxServer system/registry/configuration
     System.init()
-    
-    config = get_ngeo_config()
-    opt_dir = config.get("control.ingest", "optimized_files_dir")
-    
-    if not isabs(opt_dir):
-        opt_dir = join(settings.PROJECT_DIR, opt_dir)
     
     format_selection = get_format_selection("GTiff") # TODO: use more options
     preprocessor = WMSPreProcessor(format_selection, bandmode=RGB) # TODO: use options
@@ -51,7 +74,7 @@ def ingest_browse_report(parsed_browse_report,
     for parsed_browse in parsed_browse_report:
         try:
             replaced = ingest_browse(parsed_browse, browse_report, preprocessor,
-                                     opt_dir)
+                                     path_prefix)
             result.add(parsed_browse.browse_identifier, replaced)
         except Exception, e:
             if reraise_exceptions:
@@ -66,9 +89,15 @@ def ingest_browse_report(parsed_browse_report,
     return result
     
 
-def ingest_browse(parsed_browse, browse_report, preprocessor, opt_dir):
+def ingest_browse(parsed_browse, browse_report, preprocessor, path_prefix=None):
+    """ Ingests a single browse report, performs the preprocessing of the data
+    file and adds the generated browse model to the browse report model. Returns
+    a boolean value, indicating whether or not the browse has been inserted or
+    replaced a previous browse entry.
+    """
     replaced = False
-    output_filename = join(opt_dir, basename(parsed_browse.file_name))
+    output_filename = get_optimized_filename(parsed_browse.file_name,
+                                             path_prefix) 
     
     srid = fromShortCode(parsed_browse.reference_system_identifier)
     swap_axes = hasSwappedAxes(srid)
@@ -102,13 +131,15 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, opt_dir):
                                    models.FootprintBrowse)
         
     elif type(parsed_browse) is data.RegularGridBrowse:
+        # calculate a list of pixel coordinates according to the values of the
+        # parsed browse report (col_node_number * row_node_number)
         range_x = arange(0.0, parsed_browse.col_node_number * parsed_browse.col_step, parsed_browse.col_step)
         range_y = arange(0.0, parsed_browse.row_node_number * parsed_browse.row_step, parsed_browse.row_step)
         
         # Python is cool!
         pixels = [(x, y) for y in range_y for x in range_x]
         
-        # get the coordinates as tuple-lists
+        # get the lat-lon coordinates as tuple-lists
         coords = []
         for coord_list in parsed_browse.coord_lists:
             coords.extend(parse_coord_list(coord_list, swap_axes))
@@ -158,6 +189,9 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, opt_dir):
     
     return replaced
 
+#===============================================================================
+# ingestion results
+#===============================================================================
 
 class IngestResult(object):
     """ Result object for ingestion operations. """
@@ -170,6 +204,9 @@ class IngestResult(object):
     
     
     def add(self, identifier, replaced=False, status="success"):
+        """ Adds a single browse ingestion result, where the status is either
+        success or failure.
+        """
         if replaced:
             self._replaced += 1
         else:
@@ -181,14 +218,22 @@ class IngestResult(object):
     
     
     def add_failure(self, identifier, code, message):
+        """ Add a single browse ingestion failure result, whith an according 
+        error code and message.
+        """
         self._records.append((identifier, "failure", code, message))
 
+
     def __iter__(self):
+        "Helper for easy iteration of browse ingest results."
         return iter(self._records)
+    
     
     @property
     def status(self):
-        # TODO: count errors. if errors == 0 return "success"
+        """Returns 'partial' if any failure results where registered, else 
+        'success'.
+        """
         if len(filter(lambda record: record[1] == "failure", self._records)):
             return "partial"
         else:

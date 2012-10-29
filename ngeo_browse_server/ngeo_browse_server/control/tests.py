@@ -28,17 +28,15 @@
 #-------------------------------------------------------------------------------
 
 from os import remove
-from os.path import join, basename, isabs
 from lxml import etree
 
-from django.conf import settings
 from django.test import TestCase
 from django.test.client import Client
 from eoxserver.core.system import System
 
 from ngeo_browse_server.config.models import Browse
 from ngeo_browse_server.control.ingest.parsing import parse_browse_report
-from ngeo_browse_server.config import get_ngeo_config
+from ngeo_browse_server.control.ingest import get_optimized_filename
 
 
 class ngEOTestCaseMixIn(object):
@@ -95,16 +93,10 @@ class ngEOIngestTestCaseMixIn(ngEOTestCaseMixIn):
         document = etree.fromstring(self.request)
         parsed_browse_report = parse_browse_report(document)
         
-        config = get_ngeo_config()
-        opt_dir = config.get("control.ingest", "optimized_files_dir")
-        
-        if not isabs(opt_dir):
-            opt_dir = join(settings.PROJECT_DIR, opt_dir)
-        
         # delete optimized files
         for browse_report in parsed_browse_report:
             try:
-                remove(join(opt_dir, basename(browse_report.file_name)))
+                remove(get_optimized_filename(browse_report.file_name))
             except OSError:
                 pass
 

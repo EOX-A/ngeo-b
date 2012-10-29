@@ -51,7 +51,9 @@ def ingest(request):
         
         document = etree.parse(request)
         parsed_browse_report = parse_browse_report(document.getroot())
-        result = ingest_browse_report(parsed_browse_report, True)
+        result = ingest_browse_report(parsed_browse_report, 
+                                      reraise_exceptions=True)
+        
         return render_to_response("control/ingest_response.xml", 
                               {"result": result}, 
                               mimetype="text/xml")
