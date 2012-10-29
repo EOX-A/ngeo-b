@@ -1,5 +1,5 @@
 import sys
-from os.path import isabs, isdir, join
+from os.path import isabs, isdir, join, basename
 from itertools import product
 from numpy import arange
 
@@ -36,10 +36,8 @@ def ingest_browse_report(parsed_browse_report,
     config = get_ngeo_config()
     opt_dir = config.get("control.ingest", "optimized_files_dir")
     
-    
     if not isabs(opt_dir):
         opt_dir = join(settings.PROJECT_DIR, opt_dir)
-    
     
     format_selection = get_format_selection("GTiff") # TODO: use more options
     preprocessor = WMSPreProcessor(format_selection, bandmode=RGB) # TODO: use options
@@ -70,8 +68,8 @@ def ingest_browse_report(parsed_browse_report,
 
 def ingest_browse(parsed_browse, browse_report, preprocessor, opt_dir):
     replaced = False
-    output_filename = join(opt_dir, parsed_browse.file_name)
-        
+    output_filename = join(opt_dir, basename(parsed_browse.file_name))
+    
     srid = fromShortCode(parsed_browse.reference_system_identifier)
     swap_axes = hasSwappedAxes(srid)
     
