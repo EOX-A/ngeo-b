@@ -27,11 +27,18 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
+from os import remove
+from os.path import join, basename, isabs
+from lxml import etree
+
+from django.conf import settings
 from django.test import TestCase
 from django.test.client import Client
 from eoxserver.core.system import System
 
 from ngeo_browse_server.config.models import Browse
+from ngeo_browse_server.control.ingest.parsing import parse_browse_report
+from ngeo_browse_server.config import get_ngeo_config
 
 
 class ngEOTestCaseMixIn(object):
@@ -79,7 +86,28 @@ class ngEOIngestTestCaseMixIn(ngEOTestCaseMixIn):
                 {"obj_id": browse_id}
             )
             self.assertTrue(coverage_wrapper is not None)
-     
+            
+    def tearDown(self):
+        # perform some cleanup, sweep through optimized files directory and
+        # remove all generated optimized files which are addressed in the browse
+        # report
+        super(ngEOIngestTestCaseMixIn, self).tearDown()
+        document = etree.fromstring(self.request)
+        parsed_browse_report = parse_browse_report(document)
+        
+        config = get_ngeo_config()
+        opt_dir = config.get("control.ingest", "optimized_files_dir")
+        
+        if not isabs(opt_dir):
+            opt_dir = join(settings.PROJECT_DIR, opt_dir)
+        
+        # delete optimized files
+        for browse_report in parsed_browse_report:
+            try:
+                remove(join(opt_dir, basename(browse_report.file_name)))
+            except OSError:
+                pass
+
 
 #===============================================================================
 # actual test cases
@@ -95,7 +123,7 @@ class IngestRegularGrid(ngEOIngestTestCaseMixIn, TestCase):
     <rep:browseType>BRWTYPE</rep:browseType>
     <rep:browse>
         <rep:browseIdentifier>ASAR</rep:browseIdentifier>
-        <rep:fileName>ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775.tiff</rep:fileName>
+        <rep:fileName>autotest/data/ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775.tiff</rep:fileName>
         <rep:imageType>TIFF</rep:imageType>
         <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
         <rep:regularGrid>
