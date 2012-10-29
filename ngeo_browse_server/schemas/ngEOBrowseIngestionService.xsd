@@ -1,0 +1,89 @@
+<xs:schema xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:tns="http://earth.esa.int/ngEO/browse/ingestion" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:eop="http://www.opengis.net/eop/2.0" xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" targetNamespace="http://ngeo.eo.esa.int/schema/browse/ingestion" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:import namespace="http://ngeo.eo.esa.int/schema/browseReport" schemaLocation="BRGICD_20111209\browseReport\IF-ngEO-BrowseReport-1.1.xsd"/>
+	<xs:import namespace="http://schemas.xmlsoap.org/soap/encoding/" schemaLocation="http://schemas.xmlsoap.org/soap/encoding/"/>
+	<xs:element name="ingestBrowse" type="rep:browseReportType"/>
+	<xs:element name="ingestBrowseResponse" type="bsi:IngestBrowseResponseType"/>
+	<xs:complexType name="BaseResponseType">
+		<xs:sequence>
+			<xs:element name="status" type="bsi:ResponseStatusType"/>
+			<xs:element name="message" minOccurs="0">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="1024"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="ingestionSummary" type="bsi:IngestionSummaryType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:simpleType name="ResponseStatusType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="success"/>
+			<xs:enumeration value="partial"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="IngestionSummaryType">
+		<xs:sequence>
+			<xs:element name="toBeReplaced" type="xs:int"/>
+			<xs:element name="actuallyInserted" type="xs:int"/>
+			<xs:element name="actuallyReplaced" type="xs:int"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="RecordsResultType">
+		<xs:sequence>
+			<xs:element name="briefRecord" minOccurs="0" maxOccurs="unbounded">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="identifier">
+							<xs:simpleType>
+								<xs:restriction base="xs:string">
+									<xs:maxLength value="1024"/>
+								</xs:restriction>
+							</xs:simpleType>
+						</xs:element>
+						<xs:element name="status" type="bsi:IngestRecordStatusType"/>
+						<xs:element name="error" type="bsi:ExceptionType" minOccurs="0"/>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:simpleType name="IngestRecordStatusType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="success"/>
+			<xs:enumeration value="partial"/>
+			<xs:enumeration value="failure"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="IngestBrowseResponseType">
+		<xs:complexContent>
+			<xs:extension base="bsi:BaseResponseType">
+				<xs:sequence>
+					<xs:element name="ingestionResult" type="bsi:RecordsResultType"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--######################################################################-->
+	<!--Exceptions-->
+	<!--######################################################################-->
+	<xs:element name="ExceptionElement" type="bsi:ExceptionType"/>
+	<xs:complexType name="ExceptionType">
+		<xs:sequence>
+			<xs:element name="exceptionCode">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="80"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="exceptionMessage">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="1024"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+</xs:schema>
