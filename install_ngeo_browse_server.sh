@@ -79,6 +79,7 @@ if [ ! -f /etc/yum.repos.d/eox.repo ] ; then
     rpm --import http://packages.eox.at/eox-package-maintainers.gpg
     cd -
 fi
+# TODO: Set includepkgs
 # EPEL
 rpm -Uvh http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-7.noarch.rpm
 # ELGIS
@@ -88,8 +89,10 @@ rpm -Uvh http://elgis.argeo.org/repos/6/elgis-release-6-6_0.noarch.rpm
 yum update -y
 
 # Install packages
-yum install -y gdal gdal-python mapserver mapserver-python pyspatialite \
-    pysqlite Django mod_wsgi EOxServer ngEO_Browse_Server
+yum install -y gdal gdal-python mapserver mapserver-python postgis \
+    postgresql-server python-psycopg2 Django httpd mod_wsgi libxml2 \
+    libxml2-python python-lxml pytz mapcache \
+    EOxServer ngEO_Browse_Server
 
 if [ $? -ne 0 ] ; then
     echo "ERROR: Package installation failed! Aborting."
