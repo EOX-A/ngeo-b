@@ -1,0 +1,172 @@
+from itertools import izip
+
+from eoxserver.core.util.timetools import getDateTime
+
+from ngeo_browse_server.control.ingest import data  
+
+
+def ns_rep(tag):
+    "Namespacify a given tag name for the use with etree"
+    return "{http://ngeo.eo.esa.int/schema/browseReport}" + tag
+
+
+def pairwise(iterable):
+    "s -> (s0,s1), (s2,s3), (s4, s5), ..."
+    a = iter(iterable)
+    return izip(a, a)
+
+
+def parse_browse_report(browse_report):
+    """ Parsing function to return a BrowseReport object from an 
+        ElementTree.Element node.
+    """
+    
+    return data.BrowseReport(
+        date_time=getDateTime(browse_report.find(ns_rep("dateTime")).text),
+        browse_type=browse_report.find(ns_rep("browseType")).text,
+        responsible_org_name=browse_report.find(ns_rep("responsibleOrgName")).text,
+        browses=[parse_browse(browse_elem)
+                 for browse_elem in browse_report.iter(ns_rep("browse"))]
+    )
+    
+    """
+    date_time = getDateTime(browse_report.find(ns_rep("dateTime")).text)
+    browse_type_txt = browse_report.find(ns_rep("browseType")).text
+    responsible_org_name = browse_report.find(ns_rep("responsibleOrgName")).text
+    
+    #browses = [parse_browse(browse) 
+    #           for browse in browse_report.iter(ns_rep("browse"))]
+
+    browse_type, _ = BrowseType.objects.get_or_create(id=browse_type_txt)
+    report = BrowseReport(browse_type=browse_type,
+                          date_time=date_time,
+                          responsible_org_name=responsible_org_name)
+    
+    report.save()
+    
+    browses = [parse_browse(browse_elem, report) for browse_elem in browse_report.iter(ns_rep("browse"))]
+        
+    return report, browses
+    """
+
+
+def parse_browse(browse_elem, browse_report=None):
+    """ Parsing function to return a Browse object from an ElementTree.Element
+        node.
+    """
+    
+    # general args
+    
+    kwargs = {
+        "file_name": browse_elem.find(ns_rep("fileName")).text,
+        "image_type": browse_elem.find(ns_rep("imageType")).text,
+        "reference_system_identifier": browse_elem.find(ns_rep("referenceSystemIdentifier")).text,
+        "start_time": getDateTime(browse_elem.find(ns_rep("startTime")).text),
+        "end_time": getDateTime(browse_elem.find(ns_rep("endTime")).text),
+    }
+    
+    browse_identifier = browse_elem.find(ns_rep("browseIdentifier"))
+    if browse_identifier is not None:
+        kwargs["browse_identifier"] = browse_identifier.text
+    
+    # check type of geo reference
+    rectified_browse = browse_elem.find(ns_rep("rectifiedBrowse"))
+    footprint = browse_elem.find(ns_rep("footprint"))
+    regular_grid = browse_elem.find(ns_rep("regularGrid"))
+    model_in_geotiff = browse_elem.find(ns_rep("modelInGeotiff"))
+    vertical_curtain_footprint = browse_elem.find(ns_rep("verticalCurtainFootprint"))
+    
+    if rectified_browse is not None:
+        extent = parse_coord_list(footprint.find(ns_rep("coordList")))
+        return data.RectifiedBrowse(*extent, **kwargs)
+    
+    elif footprint is not None:
+        kwargs["node_number"] = int(footprint.attr["nodeNumber"])
+        kwargs["col_row_list"] = footprint.find(ns_rep("colRowList")).text
+        kwargs["coord_list"] = footprint.find(ns_rep("coordList")).text
+        
+        return data.FootprintBrowse(**kwargs)
+    
+    elif regular_grid is not None:
+        kwargs["col_node_number"] = int(regular_grid.find(ns_rep("colNodeNumber")).text)
+        kwargs["row_node_number"] = int(regular_grid.find(ns_rep("rowNodeNumber")).text)
+        kwargs["col_step"] = float(regular_grid.find(ns_rep("colStep")).text)
+        kwargs["row_step"] = float(regular_grid.find(ns_rep("rowStep")).text)
+        kwargs["coord_lists"] = [coord_list.text 
+                                 for coord_list in regular_grid.findall(ns_rep("coordList"))]
+        
+        return data.RegularGridBrowse(**kwargs)
+        
+    elif model_in_geotiff is not None:
+        return data.ModelInGeotiffBrowse(**kwargs)
+    
+    elif vertical_curtain_footprint is not None:
+        return data.VerticalCurtainBrowse(**kwargs)
+    
+    """
+    kwargs = {
+        "browse_report": browse_report,
+        "file_name": browse_elem.find(ns_rep("fileName")).text,
+        "image_type": browse_elem.find(ns_rep("imageType")).text,
+        "reference_system_identifier": browse_elem.find(ns_rep("referenceSystemIdentifier")).text,
+        "start_time": getDateTime(browse_elem.find(ns_rep("startTime")).text),
+        "end_time": getDateTime(browse_elem.find(ns_rep("endTime")).text),
+    }
+    
+    # check type of geo reference
+    rectified_browse = browse_elem.find(ns_rep("rectifiedBrowse"))
+    footprint = browse_elem.find(ns_rep("footprint"))
+    regular_grid = browse_elem.find(ns_rep("regularGrid"))
+    model_in_geotiff = browse_elem.find(ns_rep("modelInGeotiff"))
+    vertical_curtain_footprint = browse_elem.find(ns_rep("verticalCurtainFootprint"))
+    
+    if rectified_browse is not None:
+        (minx, miny), (maxx, maxy) = parse_coord_list(footprint.find(ns_rep("coordList")))
+        browse = RectifiedBrowse(minx=minx, miny=miny, maxx=maxx, maxy=maxy, **kwargs)
+    
+    elif footprint is not None:
+        kwargs["node_number"] = int(footprint.attr["nodeNumber"])
+        kwargs["col_row_list"] = footprint.find(ns_rep("colRowList")).text
+        kwargs["coord_list"] = footprint.find(ns_rep("coordList")).text
+        
+        browse = FootprintBrowse(**kwargs)
+    
+    elif regular_grid is not None:
+        kwargs["col_node_number"] = int(regular_grid.find(ns_rep("colNodeNumber")).text)
+        kwargs["row_node_number"] = int(regular_grid.find(ns_rep("rowNodeNumber")).text)
+        kwargs["col_step"] = float(regular_grid.find(ns_rep("colStep")).text)
+        kwargs["row_step"] = float(regular_grid.find(ns_rep("rowStep")).text)
+        
+        browse = RegularGridBrowse(**kwargs)
+        browse.save()
+        
+        # add coord lists for each row
+        for coord_list in regular_grid.findall(ns_rep("coordList")):
+            browse.coord_lists.add(RegularGridCoordList(regular_grid_browse=browse, coord_list=coord_list.text))
+    
+    elif model_in_geotiff is not None:
+        browse = ModelInGeotiffBrowse(**kwargs)
+    
+    elif vertical_curtain_footprint is not None:
+        browse = VerticalCurtainBrowse()
+        raise NotImplementedError
+    
+    # check if an identifier was specified
+    browse_identifier = browse_elem.find(ns_rep("browseIdentifier"))
+    if browse_identifier is not None:
+        BrowseIdentifier.objects.create(id=browse_identifier.text, browse=browse)
+    
+    return browse
+    """
+
+
+def parse_coord_list(coord_list, swap_axes=False):
+    if not swap_axes:
+        return list(pairwise(map(float, coord_list.split())))
+    else:
+        coords = list(pairwise(map(float, coord_list.split())))
+        return [(y, x) for (x, y) in coords]
+        
+
+
+# TODO: in the parsing module don't actually use the models
