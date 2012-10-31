@@ -1,2 +1,27 @@
-# Build ngEO Browse Server:
-python setup.py bdist_rpm --requires "EOxServer mapache httpd" --release 1
+########################################################################
+# How to use vagrant                                                   #
+########################################################################
+
+# Prepare local environment:
+ln -s <eoxserver_trunk> share/eoxserver
+ln -s <ngeo_browse_server> ngeo_browse_server
+
+# Run vagrant:
+vagrant up
+vagrant ssh
+
+# Install:
+cd /var/eoxserver/
+sudo python setup.py develop
+cd /var/ngeob/
+sudo python setup.py develop
+
+
+########################################################################
+# How to build ngEO Browse Server                                      #
+########################################################################
+
+vagrant up
+vagrant ssh
+cd /var/ngeo/
+python setup.py bdist_rpm --requires "EOxServer mapache httpd" --release <NO>
