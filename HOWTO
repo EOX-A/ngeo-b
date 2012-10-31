@@ -25,3 +25,12 @@ vagrant up
 vagrant ssh
 cd /var/ngeo/
 python setup.py bdist_rpm --requires "EOxServer mapache httpd" --release <NO>
+
+########################################################################
+# How to build EOxServer                                               #
+########################################################################
+
+vagrant up
+vagrant ssh
+cd /var/eoxserver/
+python setup.py bdist_rpm --requires "Django >= 1.4.1 gdal-python mapserver" --release <NO>
