@@ -81,7 +81,7 @@ def parse_browse(browse_elem, browse_report=None):
         return data.RectifiedBrowse(*extent, **kwargs)
     
     elif footprint is not None:
-        kwargs["node_number"] = int(footprint.attr["nodeNumber"])
+        kwargs["node_number"] = int(footprint.attrib["nodeNumber"])
         kwargs["col_row_list"] = footprint.find(ns_rep("colRowList")).text
         kwargs["coord_list"] = footprint.find(ns_rep("coordList")).text
         
@@ -102,62 +102,6 @@ def parse_browse(browse_elem, browse_report=None):
     
     elif vertical_curtain_footprint is not None:
         return data.VerticalCurtainBrowse(**kwargs)
-    
-    """
-    kwargs = {
-        "browse_report": browse_report,
-        "file_name": browse_elem.find(ns_rep("fileName")).text,
-        "image_type": browse_elem.find(ns_rep("imageType")).text,
-        "reference_system_identifier": browse_elem.find(ns_rep("referenceSystemIdentifier")).text,
-        "start_time": getDateTime(browse_elem.find(ns_rep("startTime")).text),
-        "end_time": getDateTime(browse_elem.find(ns_rep("endTime")).text),
-    }
-    
-    # check type of geo reference
-    rectified_browse = browse_elem.find(ns_rep("rectifiedBrowse"))
-    footprint = browse_elem.find(ns_rep("footprint"))
-    regular_grid = browse_elem.find(ns_rep("regularGrid"))
-    model_in_geotiff = browse_elem.find(ns_rep("modelInGeotiff"))
-    vertical_curtain_footprint = browse_elem.find(ns_rep("verticalCurtainFootprint"))
-    
-    if rectified_browse is not None:
-        (minx, miny), (maxx, maxy) = parse_coord_list(footprint.find(ns_rep("coordList")))
-        browse = RectifiedBrowse(minx=minx, miny=miny, maxx=maxx, maxy=maxy, **kwargs)
-    
-    elif footprint is not None:
-        kwargs["node_number"] = int(footprint.attr["nodeNumber"])
-        kwargs["col_row_list"] = footprint.find(ns_rep("colRowList")).text
-        kwargs["coord_list"] = footprint.find(ns_rep("coordList")).text
-        
-        browse = FootprintBrowse(**kwargs)
-    
-    elif regular_grid is not None:
-        kwargs["col_node_number"] = int(regular_grid.find(ns_rep("colNodeNumber")).text)
-        kwargs["row_node_number"] = int(regular_grid.find(ns_rep("rowNodeNumber")).text)
-        kwargs["col_step"] = float(regular_grid.find(ns_rep("colStep")).text)
-        kwargs["row_step"] = float(regular_grid.find(ns_rep("rowStep")).text)
-        
-        browse = RegularGridBrowse(**kwargs)
-        browse.save()
-        
-        # add coord lists for each row
-        for coord_list in regular_grid.findall(ns_rep("coordList")):
-            browse.coord_lists.add(RegularGridCoordList(regular_grid_browse=browse, coord_list=coord_list.text))
-    
-    elif model_in_geotiff is not None:
-        browse = ModelInGeotiffBrowse(**kwargs)
-    
-    elif vertical_curtain_footprint is not None:
-        browse = VerticalCurtainBrowse()
-        raise NotImplementedError
-    
-    # check if an identifier was specified
-    browse_identifier = browse_elem.find(ns_rep("browseIdentifier"))
-    if browse_identifier is not None:
-        BrowseIdentifier.objects.create(id=browse_identifier.text, browse=browse)
-    
-    return browse
-    """
 
 
 def parse_coord_list(coord_list, swap_axes=False):
