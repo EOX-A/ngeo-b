@@ -102,8 +102,6 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, path_prefix=None):
     srid = fromShortCode(parsed_browse.reference_system_identifier)
     swap_axes = hasSwappedAxes(srid)
     
-    # TODO: maybe we need to wrap this in a transaction savepoint
-    
     # check if a browse already exists and delete it in order to replace it
     try:
         browse = models.Browse.objects.get(browse_identifier__id=parsed_browse.browse_identifier)
@@ -181,11 +179,18 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, path_prefix=None):
         }
     )
     
+    # get dataset series ID from browse layer, if available
+    container_ids = []
+    browse_layer = browse_report.browse_type.browse_layer
+    if browse_report.browse_type.browse_layer:
+        container_ids.append(browse_layer.id)
+    
     # register the optimized dataset
     rect_mgr.create(obj_id=parsed_browse.browse_identifier, 
                     range_type_name="RGB", default_srid=srid, visible=False,
                     local_path=result.output_filename,
-                    eo_metadata=eo_metadata, force=False)
+                    eo_metadata=eo_metadata, force=False, 
+                    container_ids=container_ids)
     
     return replaced
 
