@@ -186,7 +186,7 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print):
 
         assert(len(right) == len(left))
 
-        pixel_coords = []
+        pixel_coords = [0, 0]
         # TODO: start with the right
         for y in numpy.linspace(0, sizey, len(right)):
             pixel_coords.extend((sizex, y))
@@ -196,6 +196,8 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print):
 
         ll_coords = [coord for pair in right for coord in pair] + \
                     [coord for pair in left for coord in pair]
+        ll_coords.insert(0, ll_coords[-2])
+        ll_coords.insert(1, ll_coords[-1])
         
         filename = relpath(filename, dirname(browse_filename))
         base, ext = splitext(filename)
