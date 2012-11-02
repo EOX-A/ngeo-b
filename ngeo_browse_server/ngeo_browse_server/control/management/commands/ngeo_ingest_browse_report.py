@@ -33,6 +33,11 @@ class Command(CommandOutputMixIn, BaseCommand):
             help=("Use this option to set a path to a custom directory "
                   "entailing the browse raster files to be processed. Mutually "
                   "exclusive with '--use-store-path'.")
+        ),
+        make_option('--create-result', action="store_true",
+            dest='create_result', default=False,
+            help=("Use this option to generate an ingestion result instead of " 
+                  "the usual command line output.")
         )
     )
     
@@ -52,6 +57,7 @@ class Command(CommandOutputMixIn, BaseCommand):
         delete_original = kwargs["delete_original"]
         use_store_path = kwargs["use_store_path"]
         path_prefix = kwargs.get("path_prefix")
+        create_result = kwargs["create_result"]
         
         # check consistency
         if not len(filenames):
@@ -80,7 +86,7 @@ class Command(CommandOutputMixIn, BaseCommand):
                 sid = transaction.savepoint()
                 try:
                     # handle each browse report
-                    self._handle_file(filename, path_prefix, delete_original)
+                    self._handle_file(filename, path_prefix, delete_original, create_result)
                 except Exception, e:
                     # handle exceptions
                     if on_error == "continue":
@@ -105,7 +111,7 @@ class Command(CommandOutputMixIn, BaseCommand):
             transaction.commit()
 
 
-    def _handle_file(self, filename, path_prefix, delete_original):
+    def _handle_file(self, filename, path_prefix, delete_original, create_result):
         # parse the xml file and obtain its data structures as a 
         # parsed browse report.
         self.print_msg("Parsing XML file '%s'." % filename, 1)
@@ -114,10 +120,17 @@ class Command(CommandOutputMixIn, BaseCommand):
         
         # ingest the parsed browse report
         self.print_msg("Ingesting browse report with %d browses.", 1)
-        result = ingest_browse_report(parsed_browse_report,
-                                      path_prefix=path_prefix,
-                                      browse_path=os.path.dirname(filename),
-                                      reraise_exceptions=True)
+        
+        if not create_result:
+            result = ingest_browse_report(parsed_browse_report,
+                                          path_prefix=path_prefix,
+                                          browse_path=os.path.dirname(filename),
+                                          reraise_exceptions=True)
+        else:
+            result = ingest_browse_report(parsed_browse_report,
+                                          path_prefix=path_prefix,
+                                          browse_path=os.path.dirname(filename),
+                                          reraise_exceptions=False)
         
         self.print_msg("%d browses have been successfully ingested. %d "
                        "replaced, %d inserted." % (result.to_be_replaced,
