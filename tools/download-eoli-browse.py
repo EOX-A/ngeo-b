@@ -1,12 +1,19 @@
 import sys
-from os.path import basename, join, exists, isdir
+from os.path import basename, dirname, join, exists, isdir, relpath, splitext
 import csv
 import argparse
 from urlparse import urlparse
 import urllib
 from datetime import datetime
+from itertools import izip
 import threading
 import Queue
+import numpy
+
+from lxml import etree
+from osgeo import gdal
+
+gdal.UseExceptions()
 
 
 def main(args):
@@ -17,10 +24,14 @@ def main(args):
     parser.add_argument("--num-concurrent", dest="num_concurrent", default=4)
     parser.add_argument("--skip-existing", dest="skip_existing",
                         action="store_true", default=False)
+    parser.add_argument("--browse-type", dest="browse_type", default=None)
+    parser.add_argument("--pretty-print", dest="pretty_print",
+                        action="store_true", default=False)
     parser.add_argument("input_filename", metavar="infile", nargs=1)
     parser.add_argument("output_directory", metavar="outdir", nargs=1)
 
     args = parser.parse_args(args)
+    
     browse_report = args.browse_report
     input_filename = args.input_filename[0]
     output_dir = args.output_directory[0]
@@ -36,13 +47,15 @@ def main(args):
 
     datasets = parse_browse_csv(input_filename)
 
-    urls_and_path_list = [(url, join(output_dir, filename)
-                          for _, _, _, _, url, filename in datasets]
+    urls_and_path_list = [(url, join(output_dir, filename))
+                          for _, _, _, url, filename in datasets]
     download_urls(urls_and_path_list, args.num_concurrent, args.skip_existing)
 
     if browse_report is not None:
-        write_browse_report(browse_report)
-
+        report_data = [(start, stop, footprint, join(output_dir, filename))
+                       for start, stop, footprint, _, filename in datasets]
+        write_browse_report(browse_report, report_data, args.browse_type,
+                            args.pretty_print)
 
 
 def error(message, exit=True):
@@ -51,45 +64,49 @@ def error(message, exit=True):
         sys.exit(1)
 
 
+def pairwise(iterable):
+    "s -> (s0,s1), (s2,s3), (s4, s5), ..."
+    a = iter(iterable)
+    return izip(a, a)
+
+
 def parse_browse_csv(input_filename):
     """ returns a list of tuples in the form (collection, start, stop,
     footprint, url, filename) """
+    
     result = []
     with open(input_filename, "rb") as csvfile:
         reader = csv.reader(csvfile, delimiter=',', quotechar='"')
         first = True
-
         dt_frmt = "%Y-%m-%d %H:%M:%S.%f"
         
         for line in reader:
+            # skip first line, as it is only a header
             if first:
                 first = False
                 continue
+
+            footprint = pairwise(map(lambda c: float(c), line[16].split(" ")))
             
-            result.append((line[4],                             # collection
-                           datetime.strptime(line[6], dt_frmt), # start
+            result.append((datetime.strptime(line[6], dt_frmt), # start
                            datetime.strptime(line[7], dt_frmt), # stop
-                           line[16],                            # footprint
+                           footprint,                           # footprint
                            line[18],                            # url
                            basename(urlparse(line[18]).path)    # filename
                           ))
-            
-
+    
     return result
 
 
 def download_urls(url_and_path_list, num_concurrent, skip_existing):
-    print "num concurrent ", num_concurrent
+    # prepare the queue
     queue = Queue.Queue()
-    
     for url_and_path in url_and_path_list:
         queue.put(url_and_path)
 
-    print "size", queue.qsize()
-
+    # start the requested number of download threads to download the files
     threads = []
     for _ in range(num_concurrent):
-        print "Starting thread"
         t = DownloadThread(queue, skip_existing)
         t.daemon = True
         t.start()
@@ -127,14 +144,67 @@ class DownloadThread(threading.Thread):
             #signals to queue job is done
             self.queue.task_done()
 
-def write_browse_report(filename, datasets):
+def write_browse_report(browse_filename, datasets, browse_type, pretty_print):
+    """"""
+    def ns_rep(tag):
+        return "{http://ngeo.eo.esa.int/schema/browseReport}" + tag
+    nsmap = {"rep": "http://ngeo.eo.esa.int/schema/browseReport"}
+    
+    root = etree.Element(ns_rep("browseReport"), nsmap=nsmap)
+    etree.SubElement(root, ns_rep("responsibleOrgName")).text = "EOX"
+    etree.SubElement(root, ns_rep("dateTime")).text = datetime.now().isoformat()
+    if browse_type:
+        etree.SubElement(root, ns_rep("browseType")).text = browse_type
+    
+    for start, stop, footprint, filename in datasets:
+        # open the browse image and retrieve width and height
+        try:
+            ds = gdal.Open(filename)
+            sizex, sizey = ds.RasterXSize, ds.RasterYSize
+            ds = None
+        except RuntimeError:
+            # skip files which cannot be opened
+            continue
+
+        footprint = list(footprint)
+        length = len(footprint) - 1
+        right = footprint[1:length / 2 + 1]
+        left = footprint[length / 2 + 1:]
+
+        assert(len(right) == len(left))
+
+        pixel_coords = []
+        # TODO: start with the right
+        for y in numpy.linspace(0, sizey, len(right)):
+            pixel_coords.extend((sizex, y))
+
+        for y in numpy.linspace(sizey, 0, len(left)):
+            pixel_coords.extend((0, y))
+
+        ll_coords = [coord for pair in right for coord in pair] + \
+                    [coord for pair in left for coord in pair]
+        
+        filename = relpath(filename, dirname(browse_filename))
+        base, ext = splitext(filename)
+        base = basename(base)
+        ext = ext[1:].upper()
+        
+        browse = etree.SubElement(root, ns_rep("browse"))
+        etree.SubElement(browse, ns_rep("browseIdentifier")).text = base
+        etree.SubElement(browse, ns_rep("fileName")).text = filename
+        etree.SubElement(browse, ns_rep("imageType")).text = ext
+        etree.SubElement(browse, ns_rep("referenceSystemIdentifier")).text = "EPSG:4326"
+        footprint = etree.SubElement(browse, ns_rep("footprint"))
+        footprint.attrib["nodeNumber"] = str(len(ll_coords) / 2)
+        etree.SubElement(footprint, ns_rep("colRowList")).text = " ".join(map(str, pixel_coords))
+        etree.SubElement(footprint, ns_rep("coordList")).text = " ".join(map(str, ll_coords))
+        
+        etree.SubElement(browse, ns_rep("startTime")).text = start.isoformat()
+        etree.SubElement(browse, ns_rep("endTime")).text = stop.isoformat()
     
 
-    
-
-
-    
-    pass
+    with open(browse_filename, "wb") as f:
+        f.write(etree.tostring(root, pretty_print=pretty_print))
 
 
 if __name__ == "__main__":
