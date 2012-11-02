@@ -6,8 +6,14 @@
 vagrant up
 vagrant ssh
 
-cd /var/ngeob/
+# Reset entire database:
 dropdb ngeo
 createdb -O vagrant -T template_postgis ngeo
+cd /var/ngeob/
 python manage.py syncdb --noinput
 python manage.py loaddata auth_data.json
+
+# Reset just some apps:
+cd /var/ngeob/
+python manage.py reset conf control
+python manage.py syncdb

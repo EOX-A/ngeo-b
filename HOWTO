@@ -16,6 +16,11 @@ sudo python setup.py develop
 cd /var/ngeob/
 sudo python setup.py develop
 
+# Run development server:
+cd /var/ngeob/
+python manage.py runserver 0.0.0.0:8000
+# Access on host at http://localhost:38000/
+
 
 ########################################################################
 # How to build ngEO Browse Server                                      #
