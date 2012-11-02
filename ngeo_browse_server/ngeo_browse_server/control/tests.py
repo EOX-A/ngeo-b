@@ -71,7 +71,8 @@ class ngEOIngestTestCaseMixIn(ngEOTestCaseMixIn):
     the specified IDs have been correctly registered.  
     """
     
-    fixtures = ["initial_rangetypes.json"]
+    fixtures = ["initial_rangetypes.json", "ngeo_browse_layer.json", 
+                "eoxs_dataset_series.json"]
     expected_ingested_browse_ids = ()
     
     
@@ -112,7 +113,7 @@ class IngestRegularGrid(ngEOIngestTestCaseMixIn, TestCase):
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
     <rep:responsibleOrgName>EOX</rep:responsibleOrgName>
     <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
-    <rep:browseType>BRWTYPE</rep:browseType>
+    <rep:browseType>TESTTYPE</rep:browseType>
     <rep:browse>
         <rep:browseIdentifier>ASAR</rep:browseIdentifier>
         <rep:fileName>autotest/data/ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775.tiff</rep:fileName>
@@ -158,6 +159,15 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
     </bsi:ingestionResult>
 </bsi:ingestBrowseResponse>
 """
-    
+
+    def test_is_inserted(self):
+        dataset_series = System.getRegistry().getFromFactory(
+            "resources.coverages.wrappers.DatasetSeriesFactory",
+            {"obj_id": "TEST"}
+        )
+        
+        self.assertTrue(dataset_series is not None)
+        self.assertEqual(len(dataset_series.getEOCoverages()), 1)
+        
     
     
