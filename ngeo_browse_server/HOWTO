@@ -15,5 +15,14 @@ python manage.py loaddata auth_data.json
 
 # Reset just some apps:
 cd /var/ngeob/
-python manage.py reset conf control
+python manage.py reset config control
 python manage.py syncdb
+python manage.py loaddata auth_data.json ngeo_browse_layer.json eoxs_dataset_series.json
+
+
+########################################################################
+# How to generate test data                                            #
+########################################################################
+
+python ../tools/download-eoli-browse.py --browse-type TESTTYPE --skip-existing --browse-report tmp_report.xml ../tools/eoli.csv tmp/
+xmllint --noout --schema schemas/IF-ngEO-BrowseReport-1.1.xsd tmp_report.xml
