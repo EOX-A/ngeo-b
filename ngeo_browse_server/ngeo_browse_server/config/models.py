@@ -87,7 +87,7 @@ class BrowseType(models.Model):
     
     """
     id = models.CharField("Browse Type ID", max_length=1024, primary_key=True, validators=[NameValidator])
-    browse_layer = models.OneToOneField(BrowseLayer, verbose_name="Browse Type")
+    browse_layer = models.OneToOneField(BrowseLayer, verbose_name="Browse Layer")
     
     def __unicode__(self):
         return self.id
