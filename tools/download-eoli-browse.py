@@ -179,6 +179,7 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print):
             # skip files which cannot be opened
             continue
 
+        # caöculate the pixel values to the according latlon coordinates
         footprint = list(footprint)
         length = len(footprint) - 1
         right = footprint[1:length / 2 + 1]
@@ -187,7 +188,6 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print):
         assert(len(right) == len(left))
 
         pixel_coords = [0, 0]
-        # TODO: start with the right
         for y in numpy.linspace(0, sizey, len(right)):
             pixel_coords.extend((sizex, y))
 
@@ -198,6 +198,10 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print):
                     [coord for pair in left for coord in pair]
         ll_coords.insert(0, ll_coords[-2])
         ll_coords.insert(1, ll_coords[-1])
+
+        # convert to string
+        pixel_coords = " ".join(map(str, map(int, pixel_coords)))
+        ll_coords = " ".join(map(str, ll_coords))
         
         filename = relpath(filename, dirname(browse_filename))
         base, ext = splitext(filename)
@@ -210,8 +214,8 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print):
         etree.SubElement(browse, ns_rep("referenceSystemIdentifier")).text = "EPSG:4326"
         footprint = etree.SubElement(browse, ns_rep("footprint"))
         footprint.attrib["nodeNumber"] = str(len(ll_coords) / 2)
-        etree.SubElement(footprint, ns_rep("colRowList")).text = " ".join(map(str, map(int, pixel_coords)))
-        etree.SubElement(footprint, ns_rep("coordList")).text = " ".join(map(str, ll_coords))
+        etree.SubElement(footprint, ns_rep("colRowList")).text = pixel_coords
+        etree.SubElement(footprint, ns_rep("coordList")).text = ll_coords
         
         etree.SubElement(browse, ns_rep("startTime")).text = start.isoformat()
         etree.SubElement(browse, ns_rep("endTime")).text = stop.isoformat()
