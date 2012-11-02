@@ -1,0 +1,13 @@
+########################################################################
+# How to reset autotest database                                       #
+########################################################################
+
+# Run vagrant:
+vagrant up
+vagrant ssh
+
+cd /var/ngeob/
+dropdb ngeo
+createdb -O vagrant -T template_postgis ngeo
+python manage.py syncdb --noinput
+python manage.py loaddata auth_data.json
