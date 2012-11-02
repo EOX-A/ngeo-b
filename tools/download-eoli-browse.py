@@ -200,7 +200,7 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print):
         ll_coords.insert(1, ll_coords[-1])
 
         # convert to string
-        pixel_coords = (map(str, map(int, pixel_coords))
+        pixel_coords = map(str, map(int, pixel_coords))
         ll_coords = map(str, ll_coords)
         
         filename = relpath(filename, dirname(browse_filename))
