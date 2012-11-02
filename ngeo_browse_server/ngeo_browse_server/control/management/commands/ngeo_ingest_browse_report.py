@@ -114,7 +114,9 @@ class Command(CommandOutputMixIn, BaseCommand):
         
         # ingest the parsed browse report
         self.print_msg("Ingesting browse report with %d browses.", 1)
-        result = ingest_browse_report(parsed_browse_report, path_prefix,
+        result = ingest_browse_report(parsed_browse_report,
+                                      path_prefix=path_prefix,
+                                      browse_path=os.path.dirname(filename),
                                       reraise_exceptions=True)
         
         self.print_msg("%d browses have been successfully ingested. %d "

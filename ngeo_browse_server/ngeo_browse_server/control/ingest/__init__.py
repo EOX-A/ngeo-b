@@ -53,8 +53,8 @@ def get_optimized_filename(file_name, path_prefix=None):
     return join(opt_dir, root + postfix + ext)
 
 
-def ingest_browse_report(parsed_browse_report, path_prefix=None,
-                         reraise_exceptions=False):
+def ingest_browse_report(parsed_browse_report, path_prefix=None, 
+                         browse_path=None, reraise_exceptions=False):
     """ Ingests a browse report. reraise_exceptions if errors shall be handled 
     externally
     """
@@ -74,7 +74,7 @@ def ingest_browse_report(parsed_browse_report, path_prefix=None,
     for parsed_browse in parsed_browse_report:
         try:
             replaced = ingest_browse(parsed_browse, browse_report, preprocessor,
-                                     path_prefix)
+                                     path_prefix, browse_path)
             result.add(parsed_browse.browse_identifier, replaced)
         except Exception, e:
             if reraise_exceptions:
@@ -89,7 +89,8 @@ def ingest_browse_report(parsed_browse_report, path_prefix=None,
     return result
     
 
-def ingest_browse(parsed_browse, browse_report, preprocessor, path_prefix=None):
+def ingest_browse(parsed_browse, browse_report, preprocessor, 
+                  path_prefix=None, browse_path=None):
     """ Ingests a single browse report, performs the preprocessing of the data
     file and adds the generated browse model to the browse report model. Returns
     a boolean value, indicating whether or not the browse has been inserted or
@@ -123,7 +124,9 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, path_prefix=None):
     elif type(parsed_browse) is data.FootprintBrowse:
         pixels = parse_coord_list(parsed_browse.col_row_list)
         coords = parse_coord_list(parsed_browse.coord_list, swap_axes)
-        geo_reference = GCPList(zip(pixels, coords), srid)
+        gcps = [(x, y, pixel, line) 
+                for (x, y), (pixel, line) in zip(coords, pixels)]
+        geo_reference = GCPList(gcps, srid)
         
         model = _model_from_parsed(parsed_browse, browse_report,
                                    models.FootprintBrowse)
@@ -160,8 +163,12 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, path_prefix=None):
         models.BrowseIdentifier.objects.create(id=parsed_browse.browse_identifier, 
                                                browse=model) 
 
+    
     # start the preprocessor
-    result = preprocessor.process(parsed_browse.file_name, output_filename,
+    filename = parsed_browse.file_name
+    if browse_path:
+        filename = join(browse_path, filename)
+    result = preprocessor.process(filename, output_filename,
                                   geo_reference, generate_metadata=True)
     
     # create EO metadata necessary for registration
