@@ -16,21 +16,24 @@ sudo python setup.py develop
 cd /var/ngeob/
 sudo python setup.py develop
 
+# Run development server:
+cd /var/ngeob/
+python manage.py runserver 0.0.0.0:8000
+# Access on host at http://localhost:38000/
+
 
 ########################################################################
 # How to build ngEO Browse Server                                      #
 ########################################################################
 
-vagrant up
-vagrant ssh
-cd /var/ngeo/
+ssh ngeo.eox.at
+# Get ngEO Browse Server source.
 python setup.py bdist_rpm --requires "EOxServer mapache httpd" --release <NO>
 
 ########################################################################
 # How to build EOxServer                                               #
 ########################################################################
 
-vagrant up
-vagrant ssh
-cd /var/eoxserver/
+ssh ngeo.eox.at
+# Get EOxServer source.
 python setup.py bdist_rpm --requires "Django >= 1.4.1 gdal-python mapserver" --release <NO>
