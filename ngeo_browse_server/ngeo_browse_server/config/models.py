@@ -48,20 +48,6 @@ NameValidator = RegexValidator(
     message="This field must contain a valid Name i.e. beginning with a letter, an underscore, or a colon, and continuing with letters, digits, hyphens, underscores, colons, or full stops."
 )
 
-class BrowseType(models.Model):
-    """The Browse Type is used to determine the Browse Layer(s) to which the 
-    Browses contained in a Browse Report belong to.
-    
-    """
-    id = models.CharField("Browse Type ID", max_length=1024, primary_key=True, validators=[NameValidator])
-    
-    def __unicode__(self):
-        return self.id
-    
-    class Meta:
-        verbose_name = "Browse Type"
-        verbose_name_plural = "Browse Types"
-
 
 class BrowseLayer(models.Model):
     """The Browse Layers are available as WMS and WMTS layers and are mapped 
@@ -69,7 +55,6 @@ class BrowseLayer(models.Model):
     
     """
     id = models.CharField("Browse Layer ID", max_length=1024, primary_key=True, validators=[NameValidator])
-    browse_type = models.ForeignKey(BrowseType, verbose_name="Browse Type")
     title = models.CharField(max_length=1024)
     description = models.CharField(max_length=1024, blank=True)
     browse_access_policy = models.CharField(max_length=10, default="OPEN", 
@@ -94,6 +79,22 @@ class BrowseLayer(models.Model):
     class Meta:
         verbose_name = "Browse Layer"
         verbose_name_plural = "Browse Layers"
+
+
+class BrowseType(models.Model):
+    """The Browse Type is used to determine the Browse Layer(s) to which the 
+    Browses contained in a Browse Report belong to.
+    
+    """
+    id = models.CharField("Browse Type ID", max_length=1024, primary_key=True, validators=[NameValidator])
+    browse_layer = models.OneToOneField(BrowseLayer, verbose_name="Browse Type")
+    
+    def __unicode__(self):
+        return self.id
+    
+    class Meta:
+        verbose_name = "Browse Type"
+        verbose_name_plural = "Browse Types"
 
 
 # TODO: Clarify, when and where are these needed? Do we really need to save these?
@@ -122,14 +123,6 @@ class BrowseReport(models.Model):
         verbose_name = "Browse Report"
         verbose_name_plural = "Browse Reports"
 
-
-class BrowseIdentifier(models.Model):
-    """A Product Facility may define an identifier for a Browse which may be 
-    used later to update the browse data.
-    
-    """
-    id = models.CharField("Browse Identifier", max_length=1024, primary_key=True, validators=[NameValidator])
-    browse = models.OneToOneField("Browse", related_name="browse_identifier")
 
 class Browse(models.Model):
     """This is the NOT abstract base class for Browses which have one of the 
@@ -160,6 +153,15 @@ class Browse(models.Model):
     )
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
+
+
+class BrowseIdentifier(models.Model):
+    """A Product Facility may define an identifier for a Browse which may be 
+    used later to update the browse data.
+    
+    """
+    id = models.CharField("Browse Identifier", max_length=1024, primary_key=True, validators=[NameValidator])
+    browse = models.OneToOneField(Browse, related_name="browse_identifier")
 
 
 class RectifiedBrowse(Browse):
