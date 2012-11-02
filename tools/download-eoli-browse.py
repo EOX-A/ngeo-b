@@ -200,8 +200,8 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print):
         ll_coords.insert(1, ll_coords[-1])
 
         # convert to string
-        pixel_coords = " ".join(map(str, map(int, pixel_coords)))
-        ll_coords = " ".join(map(str, ll_coords))
+        pixel_coords = (map(str, map(int, pixel_coords))
+        ll_coords = map(str, ll_coords)
         
         filename = relpath(filename, dirname(browse_filename))
         base, ext = splitext(filename)
@@ -214,8 +214,8 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print):
         etree.SubElement(browse, ns_rep("referenceSystemIdentifier")).text = "EPSG:4326"
         footprint = etree.SubElement(browse, ns_rep("footprint"))
         footprint.attrib["nodeNumber"] = str(len(ll_coords) / 2)
-        etree.SubElement(footprint, ns_rep("colRowList")).text = pixel_coords
-        etree.SubElement(footprint, ns_rep("coordList")).text = ll_coords
+        etree.SubElement(footprint, ns_rep("colRowList")).text = " ".join(pixel_coords)
+        etree.SubElement(footprint, ns_rep("coordList")).text = " ".join(ll_coords)
         
         etree.SubElement(browse, ns_rep("startTime")).text = start.isoformat()
         etree.SubElement(browse, ns_rep("endTime")).text = stop.isoformat()
