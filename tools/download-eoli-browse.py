@@ -144,13 +144,26 @@ class DownloadThread(threading.Thread):
             #signals to queue job is done
             self.queue.task_done()
 
+
+
 def write_browse_report(browse_filename, datasets, browse_type, pretty_print):
     """"""
+    ext_to_image_type = {
+        ".jpg": "Jpeg",
+        ".jpeg": "Jpeg",
+        ".jp2": "Jpeg2000",
+        ".tif": "TIFF",
+        ".tiff": "TIFF",
+        ".png": "PNG",
+        ".bmp": "BMP"
+    }
+    
     def ns_rep(tag):
         return "{http://ngeo.eo.esa.int/schema/browseReport}" + tag
     nsmap = {"rep": "http://ngeo.eo.esa.int/schema/browseReport"}
     
     root = etree.Element(ns_rep("browseReport"), nsmap=nsmap)
+    root.attrib["version"] = "1.1"
     etree.SubElement(root, ns_rep("responsibleOrgName")).text = "EOX"
     etree.SubElement(root, ns_rep("dateTime")).text = datetime.now().isoformat()
     if browse_type:
@@ -187,16 +200,15 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print):
         filename = relpath(filename, dirname(browse_filename))
         base, ext = splitext(filename)
         base = basename(base)
-        ext = ext[1:].upper()
         
         browse = etree.SubElement(root, ns_rep("browse"))
         etree.SubElement(browse, ns_rep("browseIdentifier")).text = base
         etree.SubElement(browse, ns_rep("fileName")).text = filename
-        etree.SubElement(browse, ns_rep("imageType")).text = ext
+        etree.SubElement(browse, ns_rep("imageType")).text = ext_to_image_type[ext]
         etree.SubElement(browse, ns_rep("referenceSystemIdentifier")).text = "EPSG:4326"
         footprint = etree.SubElement(browse, ns_rep("footprint"))
         footprint.attrib["nodeNumber"] = str(len(ll_coords) / 2)
-        etree.SubElement(footprint, ns_rep("colRowList")).text = " ".join(map(str, pixel_coords))
+        etree.SubElement(footprint, ns_rep("colRowList")).text = " ".join(map(str, map(int, pixel_coords)))
         etree.SubElement(footprint, ns_rep("coordList")).text = " ".join(map(str, ll_coords))
         
         etree.SubElement(browse, ns_rep("startTime")).text = start.isoformat()
