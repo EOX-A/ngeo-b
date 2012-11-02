@@ -179,7 +179,7 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print):
             # skip files which cannot be opened
             continue
 
-        # caöculate the pixel values to the according latlon coordinates
+        # calculate the pixel values to the according latlon coordinates
         footprint = list(footprint)
         length = len(footprint) - 1
         right = footprint[1:length / 2 + 1]
