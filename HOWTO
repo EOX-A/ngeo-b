@@ -36,4 +36,4 @@ python setup.py bdist_rpm --requires "EOxServer mapache httpd" --release <NO>
 
 ssh ngeo.eox.at
 # Get EOxServer source.
-python setup.py bdist_rpm --requires "Django >= 1.4.1 gdal-python mapserver" --release <NO>
+python setup.py bdist_rpm --requires "Django14 >= 1.4.2 gdal-python mapserver" --release <NO>
