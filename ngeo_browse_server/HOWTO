@@ -6,18 +6,18 @@
 vagrant up
 vagrant ssh
 
-# Reset entire database:
+# Reset with PostgreSQL:
 dropdb ngeo
 createdb -O vagrant -T template_postgis ngeo
 cd /var/ngeob/
 python manage.py syncdb --noinput
 python manage.py loaddata auth_data.json
 
-# Reset just some apps:
+# Reset with Django:
+# Note, schema changes are not applied.
 cd /var/ngeob/
-python manage.py reset config control
-python manage.py syncdb
-python manage.py loaddata auth_data.json ngeo_browse_layer.json eoxs_dataset_series.json
+python manage.py flush
+python manage.py loaddata auth_data.json ngeo_browse_layer.json eoxs_dataset_series.json initial_rangetypes.json
 
 
 ########################################################################
