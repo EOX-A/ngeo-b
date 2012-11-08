@@ -28,16 +28,21 @@
 #-------------------------------------------------------------------------------
 
 from os import remove
+from os.path import join
 from lxml import etree
 
+from django.conf import settings
 from django.test import TestCase
 from django.test.client import Client
 from eoxserver.core.system import System
 
+from ngeo_browse_server.config import get_ngeo_config
 from ngeo_browse_server.config.models import Browse
 from ngeo_browse_server.control.ingest.parsing import parse_browse_report
 from ngeo_browse_server.control.ingest import get_optimized_filename
 
+
+get_ngeo_config().set("control.ingest", "storage_dir", "data/reference_test_data")
 
 class ngEOTestCaseMixIn(object):
     """ Base Mixin for ngEO test cases using the http interface. Compares the 
@@ -45,6 +50,7 @@ class ngEOTestCaseMixIn(object):
     """
     
     request = None
+    request_file = None
     url = None
     
     expected_status = 200
@@ -53,9 +59,22 @@ class ngEOTestCaseMixIn(object):
     
     def setUp(self):
         super(ngEOTestCaseMixIn, self).setUp()
+        self.response = self.dispatch()
+        
+    
+    def dispatch(self, request=None, url=None):
+        if not url:
+            url = self.url
+        
+        if not request:
+            request = self.request
+        if not request and self.request_file:
+            filename = join(settings.PROJECT_DIR, "data", self.request_file);
+            with open(filename) as f:
+                request = f.read()
         
         client = Client()        
-        self.response = client.post(self.url, self.request, "text/xml")
+        return client.post(url, request, "text/xml")
 
     
     def test_expected_status(self):
@@ -71,21 +90,44 @@ class ngEOIngestTestCaseMixIn(ngEOTestCaseMixIn):
     the specified IDs have been correctly registered.  
     """
     
+    url = "/ingest/"
     fixtures = ["initial_rangetypes.json", "ngeo_browse_layer.json", 
                 "eoxs_dataset_series.json"]
     expected_ingested_browse_ids = ()
+    expected_inserted_into_series = None
     
     
     def test_expected_ingested_browses(self):
+        if not self.expected_ingested_browse_ids:
+            self.skipTest()
+        
         System.init()
         for browse_id in self.expected_ingested_browse_ids:
-            self.assertTrue(Browse.objects.exists(id=browse_id))
+            self.assertTrue(Browse.objects.filter(browse_identifier__id=browse_id).exists())
             coverage_wrapper = System.getRegistry().getFromFactory(
                 "resources.coverages.wrappers.EOCoverageFactory",
                 {"obj_id": browse_id}
             )
             self.assertTrue(coverage_wrapper is not None)
-            
+    
+    
+    def test_expected_inserted_into_series(self):
+        if (not self.expected_inserted_into_series or
+            not self.expected_ingested_browse_ids):
+            self.skipTest()
+        
+        dataset_series = System.getRegistry().getFromFactory(
+            "resources.coverages.wrappers.DatasetSeriesFactory",
+            {"obj_id": self.expected_inserted_into_series}
+        )
+        
+        self.assertTrue(dataset_series is not None)
+        
+        ids = set([c.getCoverageId() for c in dataset_series.getEOCoverages()])
+        
+        self.assertEqual(len(ids.difference(self.expected_ingested_browse_ids)), 0)
+        
+    
     def tearDown(self):
         # perform some cleanup, sweep through optimized files directory and
         # remove all generated optimized files which are addressed in the browse
@@ -101,19 +143,45 @@ class ngEOIngestTestCaseMixIn(ngEOTestCaseMixIn):
             except OSError:
                 pass
 
+class ngEOIngestReplaceTestCaseMixIn(ngEOIngestTestCaseMixIn):
+    request_before_replace = None
+    request_before_replace_file = None
+    
+    expected_num_replaced = 1
+    
+    def setUp(self):
+        request_before_replace = self.request_before_replace
+        if not request_before_replace and self.request_before_replace_file:
+            filename = join(settings.PROJECT_DIR, "data", self.request_before_replace_file);
+            with open(filename) as f:
+                request_before_replace = f.read()
+        
+        self.response_before_replace = self.dispatch(request_before_replace)
+        super(ngEOIngestReplaceTestCaseMixIn, self).setUp()
+    
+    
+    def test_expected_num_replaced(self):
+        
+        def ns_bsi(tag):
+            return "{http://ngeo.eo.esa.int/schema/browse/ingestion}" + tag
+        
+        document = etree.fromstring(self.request)
+        actually_replaced = int(document.find(".//" + ns_bsi("actuallyReplaced")).tag)
+        self.assertEqual(self.expected_num_replaced, actually_replaced)
 
 #===============================================================================
 # actual test cases
 #===============================================================================
 
 class IngestRegularGrid(ngEOIngestTestCaseMixIn, TestCase):
-    url = "/ingest/"
+    expected_ingested_browse_ids = ("ASAR",)
+    expected_inserted_into_series = "TEST_SAR"
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
     <rep:responsibleOrgName>EOX</rep:responsibleOrgName>
     <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
-    <rep:browseType>TESTTYPE</rep:browseType>
+    <rep:browseType>SAR</rep:browseType>
     <rep:browse>
         <rep:browseIdentifier>ASAR</rep:browseIdentifier>
         <rep:fileName>autotest/data/ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775.tiff</rep:fileName>
@@ -160,14 +228,26 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 </bsi:ingestBrowseResponse>
 """
 
-    def test_is_inserted(self):
-        dataset_series = System.getRegistry().getFromFactory(
-            "resources.coverages.wrappers.DatasetSeriesFactory",
-            {"obj_id": "TEST"}
-        )
-        
-        self.assertTrue(dataset_series is not None)
-        self.assertEqual(len(dataset_series.getEOCoverages()), 1)
-        
     
+class InsertFootprintBrowse(ngEOIngestTestCaseMixIn, TestCase):
+    request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     
+    expected_ingested_browse_ids = ("b_id_1",)
+    expected_inserted_into_series = "TEST_SAR"
+
+
+class InsertFootprintBrowseGroup(ngEOIngestTestCaseMixIn, TestCase):
+    request_file = "reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"
+    
+    expected_ingested_browse_ids = ("b_id_6", "b_id_7", "b_id_8")
+    expected_inserted_into_series = "TEST_SAR"
+
+
+class InsertFootprintBrowseReplace(ngEOIngestReplaceTestCaseMixIn, TestCase):
+    request_before_replace_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327.xml"
+    request_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_new.xml"
+    
+    expected_num_replaced = 1
+    
+    expected_ingested_browse_ids = ("b_id_6", "b_id_7", "b_id_8")
+    expected_inserted_into_series = "TEST_SAR"
