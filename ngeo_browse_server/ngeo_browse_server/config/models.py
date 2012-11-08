@@ -53,8 +53,12 @@ class BrowseLayer(models.Model):
     """The Browse Layers are available as WMS and WMTS layers and are mapped 
     to DatasetSeries in EOxServer.
     
+    Browse Layers have a unique Browse Type which is used in Browse Reports 
+    to associate Browses with Browse Layers.
+    
     """
     id = models.CharField("Browse Layer ID", max_length=1024, primary_key=True, validators=[NameValidator])
+    browse_type = models.CharField("Browse Type", max_length=1024, unique=True, validators=[NameValidator])
     title = models.CharField(max_length=1024)
     description = models.CharField(max_length=1024, blank=True)
     browse_access_policy = models.CharField(max_length=10, default="OPEN", 
@@ -64,16 +68,25 @@ class BrowseLayer(models.Model):
             ("PRIVATE", "Private"),
         )
     )
-    contains_vertical_curtains = models.BooleanField(default=False) # TODO: Fixed to False for now as vertical curtains are not supported.
+    contains_vertical_curtains = models.BooleanField(default=False) # TODO: Fixed to False as vertical curtains are not supported for now.
     r_band = models.IntegerField(null=True, blank=True, default=None)
     g_band = models.IntegerField(null=True, blank=True, default=None)
     b_band = models.IntegerField(null=True, blank=True, default=None)
     radiometric_interval_min = models.IntegerField(null=True, blank=True, default=None)
     radiometric_interval_max = models.IntegerField(null=True, blank=True, default=None)
+    grid = models.CharField(max_length=45, default="urn:ogc:def:wkss:OGC:1.0:GoogleCRS84Quad", 
+        choices = (
+            ("urn:ogc:def:wkss:OGC:1.0:GoogleMapsCompatible", "GoogleMapsCompatible using EPSG:3857"),
+            ("urn:ogc:def:wkss:OGC:1.0:GoogleCRS84Quad", "GoogleCRS84Quad using EPSG:4326")
+        )
+    )
     highest_map_level = models.IntegerField(null=True, blank=True, default=None)
     lowest_map_level = models.IntegerField(null=True, blank=True, default=None)
     
     def __unicode__(self):
+        return "Browse Layer %s with Browse Type %s" % (
+            self.id, self.browse_type
+        )
         return self.id
     
     class Meta:
@@ -81,25 +94,11 @@ class BrowseLayer(models.Model):
         verbose_name_plural = "Browse Layers"
 
 
-class BrowseType(models.Model):
-    """The Browse Type is used to determine the Browse Layer(s) to which the 
-    Browses contained in a Browse Report belong to.
-    
-    """
-    id = models.CharField("Browse Type ID", max_length=1024, primary_key=True, validators=[NameValidator])
-    browse_layer = models.OneToOneField(BrowseLayer, verbose_name="Browse Type")
-    
-    def __unicode__(self):
-        return self.id
-    
-    class Meta:
-        verbose_name = "Browse Type"
-        verbose_name_plural = "Browse Types"
-
-
-# TODO: Clarify, when and where are these needed? Do we really need to save these?
 class RelatedDataset(models.Model):
     """The Browse Layer configuration contains Related Datasets.
+    
+    Note that this information is no needed by the Browse Server but stored 
+    for completeness.
     
     """
     dataset_id = models.CharField(max_length=1024, unique=True, validators=[NameValidator])
@@ -114,8 +113,11 @@ class BrowseReport(models.Model):
     """Browse Reports contain the metadata of some Browses, i.e. browse 
     images, and are received from the ngEO Feed.
     
+    Note that Browse Reports contain a Browse Type which is unique among 
+    Browse Layers. Thus we directly use Browse Layer as foreign key.
+    
     """
-    browse_type = models.ForeignKey(BrowseType, verbose_name="Browse Type")
+    browse_layer = models.ForeignKey(BrowseLayer, verbose_name="Browse Layer")
     responsible_org_name = models.CharField(max_length=1024, blank=True)
     date_time = models.DateTimeField()
     

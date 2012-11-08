@@ -29,12 +29,11 @@
 
 from django.contrib import admin
 from ngeo_browse_server.config.models import (
-    BrowseType, BrowseLayer, RelatedDataset, BrowseReport, BrowseIdentifier, 
+    BrowseLayer, RelatedDataset, BrowseReport, BrowseIdentifier, 
     Browse, RectifiedBrowse, FootprintBrowse, RegularGridBrowse, 
     RegularGridCoordList, VerticalCurtainBrowse, ModelInGeotiffBrowse
 )
 
-admin.site.register(BrowseType)
 admin.site.register(BrowseLayer)
 admin.site.register(RelatedDataset)
 admin.site.register(BrowseReport)
