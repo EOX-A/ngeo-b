@@ -107,7 +107,7 @@ cd "$INSTALL_DIR"
 # Configure ngeo_browse_server_instance
 if [ ! -d ngeo_browse_server_instance ] ; then
 
-    django-admin.py startproject --extension=conf --template=/usr/lib/python2.6/site-packages/ngeo_browse_server/project_template/ ngeo_browse_server_instance # TODO: Adjust template path
+    django-admin.py startproject --extension=conf --template=`python -c "import ngeo_browse_server, os; from os.path import dirname, abspath, join; print(join(dirname(abspath(ngeo_browse_server.__file__)), 'project_template'))"` ngeo_browse_server_instance
     cd ngeo_browse_server_instance
     
 #    spatialite ngeo_browse_server_instance/data/data.sqlite "SELECT InitSpatialMetaData();" # TODO
