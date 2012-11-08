@@ -47,10 +47,6 @@ NameValidator = RegexValidator(
     re.compile(r'^[a-zA-z_:][a-zA-Z0-9.-_:]*$'),
     message="This field must contain a valid Name i.e. beginning with a letter, an underscore, or a colon, and continuing with letters, digits, hyphens, underscores, colons, or full stops."
 )
-LocationValidator = RegexValidator(
-    re.compile(r'^[a-zA-z_:/][a-zA-Z0-9.-_:/]*$'),
-    message="This field must contain a valid Location i.e. beginning with a letter, an underscore, a colon, or a slash, and continuing with letters, digits, hyphens, underscores, colons, full stops, or slashes."
-)
 
 
 class BrowseLayer(models.Model):
@@ -91,7 +87,7 @@ class BrowseType(models.Model):
     
     """
     id = models.CharField("Browse Type ID", max_length=1024, primary_key=True, validators=[NameValidator])
-    browse_layer = models.OneToOneField(BrowseLayer, verbose_name="Browse Layer")
+    browse_layer = models.OneToOneField(BrowseLayer, verbose_name="Browse Type")
     
     def __unicode__(self):
         return self.id
@@ -134,7 +130,7 @@ class Browse(models.Model):
     
     """
     browse_report = models.ForeignKey(BrowseReport, related_name="browses", verbose_name="Browse Report")
-    file_name = models.CharField(max_length=1024, validators=[LocationValidator])
+    file_name = models.CharField(max_length=1024, validators=[NameValidator])
     image_type = models.CharField(max_length=8, default="GeoTIFF", 
         choices = (
             ("Jpeg", "Jpeg"),
