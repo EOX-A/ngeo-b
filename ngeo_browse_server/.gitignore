@@ -3,6 +3,7 @@
 
 # Django
 /autotest/data/data.sqlite
+/autotest/data/mapcache.sqlite
 
 # EOxServer
 /autotest/logs/eoxserver.log
