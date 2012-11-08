@@ -8,16 +8,21 @@ vagrant ssh
 
 # Reset with PostgreSQL:
 dropdb ngeo
+rm /var/ngeob/autotest/data/mapcache.sqlite
 createdb -O vagrant -T template_postgis ngeo
 cd /var/ngeob/
 python manage.py syncdb --noinput
-python manage.py loaddata auth_data.json
+python manage.py syncdb --database=mapcache --noinput
+python manage.py loaddata auth_data.json ngeo_browse_layer.json eoxs_dataset_series.json initial_rangetypes.json
+python manage.py loaddata --database=mapcache ngeo_mapcache.json
 
 # Reset with Django:
 # Note, schema changes are not applied.
 cd /var/ngeob/
 python manage.py flush
+python manage.py flush --database=mapcache
 python manage.py loaddata auth_data.json ngeo_browse_layer.json eoxs_dataset_series.json initial_rangetypes.json
+python manage.py loaddata --database=mapcache ngeo_mapcache.json
 
 
 ########################################################################
