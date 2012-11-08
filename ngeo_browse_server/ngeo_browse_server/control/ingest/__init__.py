@@ -1,7 +1,8 @@
 import sys
-from os.path import isabs, isdir, join, basename, splitext
+from os.path import isabs, isdir, join, basename, splitext, abspath
 from itertools import product
 from numpy import arange
+import logging
 from ConfigParser import NoSectionError, NoOptionError
 
 from django.conf import settings
@@ -20,10 +21,22 @@ from ngeo_browse_server.control.ingest import data
 from ngeo_browse_server.config import models
 
 
+logger = logging.getLogger(__name__)
 
 def _model_from_parsed(parsed_browse, browse_report, model_cls):
     return model_cls.objects.create(browse_report=browse_report,
                                     **parsed_browse.get_kwargs())
+
+def get_storage_path(file_name):
+    """ Returns an absolute path to a filename within the intermediary storage
+    directory for uploaded but unprocessed files. 
+    """
+    
+    storage_dir = get_ngeo_config().get("control.ingest", "storage_dir")
+    if not isabs(storage_dir):
+        storage_dir = join(settings.PROJECT_DIR, storage_dir)
+    
+    return abspath(join(storage_dir, file_name))
 
 
 def get_optimized_filename(file_name, path_prefix=None):
@@ -53,8 +66,8 @@ def get_optimized_filename(file_name, path_prefix=None):
     return join(opt_dir, root + postfix + ext)
 
 
-def ingest_browse_report(parsed_browse_report, path_prefix=None, 
-                         browse_path=None, reraise_exceptions=False):
+def ingest_browse_report(parsed_browse_report, path_prefix=None,  
+                         reraise_exceptions=False):
     """ Ingests a browse report. reraise_exceptions if errors shall be handled 
     externally
     """
@@ -65,6 +78,9 @@ def ingest_browse_report(parsed_browse_report, path_prefix=None,
     format_selection = get_format_selection("GTiff") # TODO: use more options
     preprocessor = WMSPreProcessor(format_selection, bandmode=RGB) # TODO: use options
     
+    # TODO: get band selection from browse layer
+    # TODO: get projection from browse layer
+    
     browse_type, _ = models.BrowseType.objects.get_or_create(id=parsed_browse_report.browse_type)
     browse_report = models.BrowseReport.objects.create(browse_type=browse_type,
                                                        **parsed_browse_report.get_kwargs())
@@ -74,9 +90,11 @@ def ingest_browse_report(parsed_browse_report, path_prefix=None,
     for parsed_browse in parsed_browse_report:
         try:
             replaced = ingest_browse(parsed_browse, browse_report, preprocessor,
-                                     path_prefix, browse_path)
+                                     path_prefix)
             result.add(parsed_browse.browse_identifier, replaced)
         except Exception, e:
+            logger.error("Failure during ingestion of browse '%s'." %
+                         parsed_browse.browse_identifier)
             if reraise_exceptions:
                 info = sys.exc_info()
                 raise info[0], info[1], info[2]
@@ -90,7 +108,7 @@ def ingest_browse_report(parsed_browse_report, path_prefix=None,
     
 
 def ingest_browse(parsed_browse, browse_report, preprocessor, 
-                  path_prefix=None, browse_path=None):
+                  path_prefix=None):
     """ Ingests a single browse report, performs the preprocessing of the data
     file and adds the generated browse model to the browse report model. Returns
     a boolean value, indicating whether or not the browse has been inserted or
@@ -108,8 +126,11 @@ def ingest_browse(parsed_browse, browse_report, preprocessor,
         browse = models.Browse.objects.get(browse_identifier__id=parsed_browse.browse_identifier)
         browse.delete()
         replaced = True
+        logger.info("Replacing browse '%s'." % 
+                    parsed_browse.browse_identifier)
     except models.Browse.DoesNotExist:
-        pass
+        logger.info("Creating new browse '%s'." % 
+                    parsed_browse.browse_identifier)
     
     
     # initialize a GeoReference for the preprocessor
@@ -163,11 +184,9 @@ def ingest_browse(parsed_browse, browse_report, preprocessor,
         models.BrowseIdentifier.objects.create(id=parsed_browse.browse_identifier, 
                                                browse=model) 
 
-    
     # start the preprocessor
-    filename = parsed_browse.file_name
-    if browse_path:
-        filename = join(browse_path, filename)
+    filename = get_storage_path(parsed_browse.file_name)
+    logger.info("Starting preprocessing on file '%s'." % filename)
     result = preprocessor.process(filename, output_filename,
                                   geo_reference, generate_metadata=True)
     
@@ -186,6 +205,7 @@ def ingest_browse(parsed_browse, browse_report, preprocessor,
         }
     )
     
+    logging.info("Creating Rectified Dataset.")
     # get dataset series ID from browse layer, if available
     container_ids = []
     browse_layer = browse_report.browse_type.browse_layer

@@ -34,7 +34,7 @@ from django.shortcuts import render_to_response
 
 from ngeo_browse_server.control.ingest import ingest_browse_report
 from ngeo_browse_server.control.ingest.parsing import parse_browse_report
-
+from ngeo_browse_server.config import get_ngeo_config
 
 
 @transaction.commit_on_success

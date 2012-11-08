@@ -1,4 +1,5 @@
 import os
+import logging
 from lxml import etree
 from optparse import make_option
 
@@ -9,6 +10,8 @@ from eoxserver.resources.coverages.management.commands import CommandOutputMixIn
 from ngeo_browse_server.control.ingest import ingest_browse_report
 from ngeo_browse_server.control.ingest.parsing import parse_browse_report
 
+
+logger = logging.getLogger(__name__)
 
 class Command(CommandOutputMixIn, BaseCommand):
     
@@ -69,7 +72,7 @@ class Command(CommandOutputMixIn, BaseCommand):
         
         # get the input path prefix
         if use_store_path:
-            # TODO: get store path from ngeo.conf
+            # default, use path from config
             pass
         
         elif path_prefix:
@@ -112,6 +115,8 @@ class Command(CommandOutputMixIn, BaseCommand):
 
 
     def _handle_file(self, filename, path_prefix, delete_original, create_result):
+        logger.info("Processing input file '%s'." % filename)
+        
         # parse the xml file and obtain its data structures as a 
         # parsed browse report.
         self.print_msg("Parsing XML file '%s'." % filename, 1)
@@ -139,9 +144,13 @@ class Command(CommandOutputMixIn, BaseCommand):
         
         # if requested delete the original raster files.
         if delete_original:
+            
             for parsed_browse in parsed_browse_report:
                 original_filename = os.path.join(path_prefix, 
                                                  parsed_browse.file_name)
+                
+                logger.info("Removing original raster file '%s'."
+                            % original_filename)
                 self.print_msg("Removing original raster file '%s'."
                                % original_filename, 1)
                 os.remove(original_filename)
