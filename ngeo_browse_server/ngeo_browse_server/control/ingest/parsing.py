@@ -1,9 +1,12 @@
+import logging
 from itertools import izip
 
 from eoxserver.core.util.timetools import getDateTime
 
 from ngeo_browse_server.control.ingest import data  
 
+
+logger = logging.getLogger(__name__)
 
 def ns_rep(tag):
     "Namespacify a given tag name for the use with etree"
@@ -21,7 +24,9 @@ def parse_browse_report(browse_report):
         ElementTree.Element node.
     """
     
-    return data.BrowseReport(
+    logger.info("Start parsing browse report.")
+    
+    browse_report = data.BrowseReport(
         date_time=getDateTime(browse_report.find(ns_rep("dateTime")).text),
         browse_type=browse_report.find(ns_rep("browseType")).text,
         responsible_org_name=browse_report.find(ns_rep("responsibleOrgName")).text,
@@ -29,25 +34,9 @@ def parse_browse_report(browse_report):
                  for browse_elem in browse_report.iter(ns_rep("browse"))]
     )
     
-    """
-    date_time = getDateTime(browse_report.find(ns_rep("dateTime")).text)
-    browse_type_txt = browse_report.find(ns_rep("browseType")).text
-    responsible_org_name = browse_report.find(ns_rep("responsibleOrgName")).text
-    
-    #browses = [parse_browse(browse) 
-    #           for browse in browse_report.iter(ns_rep("browse"))]
+    logger.info("Finished parsing browse report.")
 
-    browse_type, _ = BrowseType.objects.get_or_create(id=browse_type_txt)
-    report = BrowseReport(browse_type=browse_type,
-                          date_time=date_time,
-                          responsible_org_name=responsible_org_name)
-    
-    report.save()
-    
-    browses = [parse_browse(browse_elem, report) for browse_elem in browse_report.iter(ns_rep("browse"))]
-        
-    return report, browses
-    """
+    return browse_report
 
 
 def parse_browse(browse_elem, browse_report=None):
@@ -56,7 +45,6 @@ def parse_browse(browse_elem, browse_report=None):
     """
     
     # general args
-    
     kwargs = {
         "file_name": browse_elem.find(ns_rep("fileName")).text,
         "image_type": browse_elem.find(ns_rep("imageType")).text,
@@ -77,10 +65,12 @@ def parse_browse(browse_elem, browse_report=None):
     vertical_curtain_footprint = browse_elem.find(ns_rep("verticalCurtainFootprint"))
     
     if rectified_browse is not None:
+        logger.info("Parsing Rectified Browse.")
         extent = parse_coord_list(footprint.find(ns_rep("coordList")))
         return data.RectifiedBrowse(*extent, **kwargs)
     
     elif footprint is not None:
+        logger.info("Parsing Footprint Browse.")
         kwargs["node_number"] = int(footprint.attrib["nodeNumber"])
         kwargs["col_row_list"] = footprint.find(ns_rep("colRowList")).text
         kwargs["coord_list"] = footprint.find(ns_rep("coordList")).text
@@ -88,6 +78,7 @@ def parse_browse(browse_elem, browse_report=None):
         return data.FootprintBrowse(**kwargs)
     
     elif regular_grid is not None:
+        logger.info("Parsing Regular Grid Browse.")
         kwargs["col_node_number"] = int(regular_grid.find(ns_rep("colNodeNumber")).text)
         kwargs["row_node_number"] = int(regular_grid.find(ns_rep("rowNodeNumber")).text)
         kwargs["col_step"] = float(regular_grid.find(ns_rep("colStep")).text)
@@ -98,9 +89,11 @@ def parse_browse(browse_elem, browse_report=None):
         return data.RegularGridBrowse(**kwargs)
         
     elif model_in_geotiff is not None:
+        logger.info("Parsing GeoTIFF Browse.")
         return data.ModelInGeotiffBrowse(**kwargs)
     
     elif vertical_curtain_footprint is not None:
+        logger.info("Parsing Vertical Curtain Browse.")
         return data.VerticalCurtainBrowse(**kwargs)
 
 
@@ -110,7 +103,3 @@ def parse_coord_list(coord_list, swap_axes=False):
     else:
         coords = list(pairwise(map(float, coord_list.split())))
         return [(y, x) for (x, y) in coords]
-        
-
-
-# TODO: in the parsing module don't actually use the models
