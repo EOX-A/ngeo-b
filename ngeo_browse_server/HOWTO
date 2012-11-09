@@ -31,3 +31,11 @@ python manage.py loaddata --database=mapcache ngeo_mapcache.json
 
 python ../tools/download-eoli-browse.py --browse-type TESTTYPE --skip-existing --browse-report tmp_report.xml ../tools/eoli.csv tmp/
 xmllint --noout --schema schemas/IF-ngEO-BrowseReport-1.1.xsd tmp_report.xml
+
+
+########################################################################
+# How to warp browse image                                             #
+########################################################################
+
+gdal_translate -gcp 0 0 -2.79 52.86 -gcp 487 0 -1.22 53.08 -gcp 487 1728 -0.03 49.68 -gcp 0 1728 -1.49 49.46 ASA_IM__0P_20100722_213840.jpg tmp.tif
+gdalwarp tmp.tif ASA_IM__0P_20100722_213840.tif

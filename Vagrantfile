@@ -36,6 +36,9 @@ Vagrant::Config.run do |config|
   config.vm.customize ["setextradata", :id, "VBoxInternal2/SharedFoldersEnableSymlinksCreate/eoxserver", "1"]
   config.vm.customize ["setextradata", :id, "VBoxInternal2/SharedFoldersEnableSymlinksCreate/ngeob", "1"]
 
+  # Increase memory
+  config.vm.customize ["modifyvm", :id, "--memory", 1024]
+
   # Enable provisioning with Puppet stand alone.
   #config.vm.provision :puppet do |puppet|
   #  puppet.manifests_path = "puppet/manifests"
