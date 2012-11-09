@@ -1,5 +1,8 @@
 import sys
-from os.path import isabs, isdir, join, basename, splitext, abspath
+from os import remove
+from os.path import isabs, isdir, join, basename, splitext, abspath, exists
+import shutil
+import tempfile
 from itertools import product
 from numpy import arange
 import logging
@@ -75,15 +78,30 @@ def ingest_browse_report(parsed_browse_report, path_prefix=None,
     # initialize the EOxServer system/registry/configuration
     System.init()
     
-    format_selection = get_format_selection("GTiff") # TODO: use more options
-    preprocessor = WMSPreProcessor(format_selection, bandmode=RGB) # TODO: use options
     
-    # TODO: get band selection from browse layer
-    # TODO: get projection from browse layer
     
-    browse_type, _ = models.BrowseType.objects.get_or_create(id=parsed_browse_report.browse_type)
-    browse_report = models.BrowseReport.objects.create(browse_type=browse_type,
+    try:
+        browse_layer = models.BrowseLayer.objects.get(browse_type=parsed_browse_report.browse_type)
+    except models.BrowseLayer.DoesNotExist:
+        raise Exception("Browse layer with browse type '%s' does not exist."
+                        % parsed_browse_report.browse_type) # TODO: raise better exception type?
+    
+    browse_report = models.BrowseReport.objects.create(browse_layer=browse_layer,
                                                        **parsed_browse_report.get_kwargs())
+    
+    
+    # initialize the preprocessor with configuration values
+    crs = None
+    if browse_layer.grid == "urn:ogc:def:wkss:OGC:1.0:GoogleMapsCompatible":
+        crs = "EPSG:3857"
+    elif browse_layer.grid == "urn:ogc:def:wkss:OGC:1.0:GoogleCRS84Quad":
+        crs = "EPSG:4326"
+        
+    logger.debug("Using CRS '%s'." % crs)
+    
+    format_selection = get_format_selection("GTiff", tiling=True, compression=None)
+    preprocessor = WMSPreProcessor(format_selection, crs=crs, overviews=True,
+                                   bandmode=RGB)
     
     result = IngestResult()
     
@@ -116,21 +134,21 @@ def ingest_browse(parsed_browse, browse_report, preprocessor,
     """
     replaced = False
     output_filename = get_optimized_filename(parsed_browse.file_name,
-                                             path_prefix) 
+                                             path_prefix)
     
     srid = fromShortCode(parsed_browse.reference_system_identifier)
     swap_axes = hasSwappedAxes(srid)
     
+    identifier = parsed_browse.browse_identifier
+    
     # check if a browse already exists and delete it in order to replace it
     try:
-        browse = models.Browse.objects.get(browse_identifier__id=parsed_browse.browse_identifier)
+        browse = models.Browse.objects.get(browse_identifier__id=identifier)
         browse.delete()
         replaced = True
-        logger.info("Replacing browse '%s'." % 
-                    parsed_browse.browse_identifier)
+        logger.info("Replacing browse '%s'." % identifier)
     except models.Browse.DoesNotExist:
-        logger.info("Creating new browse '%s'." % 
-                    parsed_browse.browse_identifier)
+        logger.info("Creating new browse '%s'." % identifier)
     
     
     # initialize a GeoReference for the preprocessor
@@ -187,39 +205,101 @@ def ingest_browse(parsed_browse, browse_report, preprocessor,
     # start the preprocessor
     filename = get_storage_path(parsed_browse.file_name)
     logger.info("Starting preprocessing on file '%s'." % filename)
-    result = preprocessor.process(filename, output_filename,
-                                  geo_reference, generate_metadata=True)
     
-    # create EO metadata necessary for registration
-    eo_metadata = EOMetadata(
-        parsed_browse.browse_identifier, parsed_browse.start_time, 
-        parsed_browse.end_time, result.footprint_geom
-    )
+    # wrap all file operations with 
+    with IngestionTransaction(output_filename):
+        
+        result = preprocessor.process(filename, output_filename,
+                                      geo_reference, generate_metadata=True)
+        
+        # create EO metadata necessary for registration
+        eo_metadata = EOMetadata(
+            identifier, parsed_browse.start_time, parsed_browse.end_time,
+            result.footprint_geom
+        )
+        
+        # initialize the Coverage Manager for Rectified Datasets to register the
+        # datasets in the database
+        rect_mgr = System.getRegistry().findAndBind(
+            intf_id="resources.coverages.interfaces.Manager",
+            params={
+                "resources.coverages.interfaces.res_type": "eo.rect_dataset"
+            }
+        )
+        
+        logging.info("Creating Rectified Dataset.")
+        # get dataset series ID from browse layer, if available
+        container_ids = []
+        browse_layer = browse_report.browse_layer
+        if browse_layer:
+            container_ids.append(browse_layer.id)
+        
+        # register the optimized dataset
+        rect_mgr.create(obj_id=identifier, range_type_name="RGB", 
+                        default_srid=srid, visible=False, 
+                        local_path=result.output_filename,
+                        eo_metadata=eo_metadata, force=False, 
+                        container_ids=container_ids)
+        
+        return replaced
+
+
+#===============================================================================
+# Ingestion Transaction
+#===============================================================================
+
+class IngestionTransaction(object):
+    """ File Transaction guard to save previous files for a critical section to
+    be used with the "with"-statement.
+    """
     
-    # initialize the Coverage Manager for Rectified Datasets to register the
-    # datasets in the database
-    rect_mgr = System.getRegistry().findAndBind(
-        intf_id="resources.coverages.interfaces.Manager",
-        params={
-            "resources.coverages.interfaces.res_type": "eo.rect_dataset"
-        }
-    )
+    def __init__(self, subject_filename, safe_filename=None):
+        self._subject_filename = subject_filename
+        self._safe_filename = safe_filename
     
-    logging.info("Creating Rectified Dataset.")
-    # get dataset series ID from browse layer, if available
-    container_ids = []
-    browse_layer = browse_report.browse_type.browse_layer
-    if browse_report.browse_type.browse_layer:
-        container_ids.append(browse_layer.id)
     
-    # register the optimized dataset
-    rect_mgr.create(obj_id=parsed_browse.browse_identifier, 
-                    range_type_name="RGB", default_srid=srid, visible=False,
-                    local_path=result.output_filename,
-                    eo_metadata=eo_metadata, force=False, 
-                    container_ids=container_ids)
+    def __enter__(self):
+        " Start of critical block. "
+        
+        # check if the file in question exists. If it does, move it to a safe 
+        # location 
+        self._exists = exists(self._subject_filename)
+        if not self._exists:
+            # file does not exist, do nothing
+            return
+        
+        # create a temporary file if no path was given
+        if not self._safe_filename:
+            _, self._safe_filename = tempfile.mkstemp()
+        
+        logger.debug("Moving '%s' to '%s'." % (self._subject_filename,
+                                               self._safe_filename))
+        
+        # move the old file to a safe location
+        shutil.move(self._subject_filename, self._safe_filename)
     
-    return replaced
+    
+    def __exit__(self, etype, value, traceback):
+        " End of critical block. "
+        # no error
+        if (etype, value, traceback) == (None, None, None):
+            # no error occurred
+            if self._exists:
+                # delete the saved old file, if it existed
+                remove(self._safe_filename)
+        
+        # on error
+        else:
+            # an error occurred, try removing the new file. It may not exist.
+            try:
+                remove(self._subject_filename)
+            except OSError:
+                pass
+            
+            # move the backup file back to restore the initial condition
+            if self._exists:
+                shutil.move(self._safe_filename, self._subject_filename)
+            
 
 #===============================================================================
 # ingestion results
