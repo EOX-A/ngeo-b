@@ -44,6 +44,14 @@
 NGEOB_INSTALL_DIR="/var/www/ngeo"
 NGEOB_URL="http://ngeo.eox.at/"
 
+# PostgreSQL/PostGIS database
+DB_NAME="ngeo_browse_server_db"
+DB_USER="ngeo_user"
+DB_PASSWORD="oi4Zuush"
+
+# MapCache
+MAPCACHE_DIR="/var/www/cache"
+
 # Apache HTTPD
 APACHE_CONF="/etc/httpd/conf.d/010_ngeo_browse_server.conf"
 APACHE_ServerName="ngeo.eox.at"
@@ -138,7 +146,7 @@ service postgresql force-reload
 if [ -f db_config_ngeo_browse_server.sh ] ; then
     chgrp postgres db_config_ngeo_browse_server.sh
     chmod g+x db_config_ngeo_browse_server.sh
-    su postgres -c ./db_config_ngeo_browse_server.sh
+    su postgres -c "./db_config_ngeo_browse_server.sh $DB_NAME $DB_USER  $DB_PASSWORD"
 else
     echo "Script db_config_ngeo_browse_server.sh to configure DB not found."
 fi
@@ -158,6 +166,16 @@ if [ ! -d ngeo_browse_server_instance ] ; then
 #    sed -e 's/#logging_level=/logging_level=INFO/' -i ngeo_browse_server_instance/conf/eoxserver.conf # TODO enable in production
 #    sed -e 's/DEBUG = True/DEBUG = False/' -i ngeo_browse_server_instance/settings.py # TODO enable in production
 
+    # Configure DBs
+    NGEOB_INSTALL_DIR_ESCAPED=`echo $NGEOB_INSTALL_DIR | sed -e 's/\//\\\&/g'`
+    sed -e "s/'ENGINE': 'django.contrib.gis.db.backends.spatialite',                  # Use 'spatialite' or change to 'postgis'./'ENGINE': 'django.contrib.gis.db.backends.postgis',/" -i ngeo_browse_server_instance/settings.py
+    sed -e "s/'NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/data.sqlite',  # Or path to database file if using spatialite./'NAME': '$DB_NAME',/" -i ngeo_browse_server_instance/settings.py
+    sed -e "s/'USER': '',                                                             # Not used with spatialite./'USER': '$DB_USER',/" -i ngeo_browse_server_instance/settings.py
+    sed -e "s/'PASSWORD': '',                                                         # Not used with spatialite./'PASSWORD': '$DB_PASSWORD',/" -i ngeo_browse_server_instance/settings.py
+    sed -e "/#'TEST_NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/test-config.sqlite', # Required for certain test cases, but slower!/d" -i ngeo_browse_server_instance/settings.py
+    sed -e "/'HOST': '',                                                             # Set to empty string for localhost. Not used with spatialite./d" -i ngeo_browse_server_instance/settings.py
+    sed -e "/'PORT': '',                                                             # Set to empty string for default. Not used with spatialite./d" -i ngeo_browse_server_instance/settings.py
+
     python manage.py syncdb --noinput
     python manage.py syncdb --database=mapcache --noinput
     python manage.py loaddata initial_rangetypes.json
@@ -175,6 +193,16 @@ if [ ! -d ngeo_browse_server_instance ] ; then
 
     cd ..
 fi
+
+
+# Configure MapCache
+[ -d "$MAPCACHE_DIR" ] || mkdir -p "$MAPCACHE_DIR"
+cd "$MAPCACHE_DIR"
+
+#TODO
+
+# Make the cache read- and editable by apache
+chown -R apache:apache .
 
 
 # Configure WebDAV
@@ -206,7 +234,10 @@ cat << EOF > "$APACHE_CONF"
         allow from all
     </Directory>
 
-    # TODO
+    # TODO finish
+    # Alias /c "$MAPCACHE_DIR"
+
+    # TODO use vars in beginning of script
     DavLockDB /var/www/dav/DavLock
     Alias /store "$NGEOB_INSTALL_DIR/store"
     <Directory $NGEOB_INSTALL_DIR/store>
@@ -215,12 +246,10 @@ cat << EOF > "$APACHE_CONF"
         Dav On
         Options +Indexes
 
-        # TODO
         AuthType Digest
         AuthName "dav@ngeo.eox.at"
         AuthDigestDomain /store/ http://ngeo.eox.at/store/
 
-        # TODO
         AuthDigestProvider file
         AuthUserFile /var/www/dav/DavUsers
         Require valid-user

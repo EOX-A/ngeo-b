@@ -35,18 +35,20 @@
 # Its usually run form the install_ngeo_browse_server.sh script.
 
 ################################################################################
-# Adjust the variables to your liking.                                         #
-################################################################################
-
-# PostgreSQL/PostGIS database
-DB_NAME="ngeo_browse_server_db"
-DB_USER="ngeo_user"
-
-################################################################################
 # Usually there should be no need to change anything below.                    #
 ################################################################################
 
+DB_NAME=$1
+DB_USER=$2
+DB_PASSWORD=$3
+
+if [ $# -ne 3 ] ; then
+    echo "db_config_ngeo_browse_server.sh Not enough arguments are given."
+    exit
+fi
+
 if [ "`psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='template_postgis'"`" != 1 ] ; then
+    echo "Creating template database."
     createdb -E UTF8 template_postgis
     createlang plpgsql -d template_postgis
     psql postgres -c "UPDATE pg_database SET datistemplate='true' WHERE datname='template_postgis';"
@@ -57,8 +59,10 @@ if [ "`psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='template_pos
     psql -d template_postgis -c "GRANT ALL ON spatial_ref_sys TO PUBLIC;"
 fi
 if [ "`psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'"`" != 1 ] ; then
-    createuser -SDREP "$DB_USER"
+    echo "Creating ngEO database user."
+    psql postgres -tAc "CREATE USER $DB_USER NOSUPERUSER NOCREATEDB NOCREATEROLE ENCRYPTED PASSWORD '$DB_PASSWORD'"
 fi
 if [ "`psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'"`" != 1 ] ; then
-    createdb -O ngeo_user -T template_postgis "$DB_NAME"
+    echo "Creating ngEO Browse Server database."
+    createdb -O $DB_USER -T template_postgis $DB_NAME
 fi
