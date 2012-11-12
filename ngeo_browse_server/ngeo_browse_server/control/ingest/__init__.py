@@ -212,6 +212,17 @@ def ingest_browse(parsed_browse, browse_report, preprocessor,
         result = preprocessor.process(filename, output_filename,
                                       geo_reference, generate_metadata=True)
         
+        rect_mgr = System.getRegistry().findAndBind(
+            intf_id="resources.coverages.interfaces.Manager",
+            params={
+                "resources.coverages.interfaces.res_type": "eo.rect_dataset"
+            }
+        )
+        
+        # unregister the previous coverage first
+        if replaced:
+            rect_mgr.delete(obj_id=identifier)
+        
         # create EO metadata necessary for registration
         eo_metadata = EOMetadata(
             identifier, parsed_browse.start_time, parsed_browse.end_time,
@@ -220,12 +231,7 @@ def ingest_browse(parsed_browse, browse_report, preprocessor,
         
         # initialize the Coverage Manager for Rectified Datasets to register the
         # datasets in the database
-        rect_mgr = System.getRegistry().findAndBind(
-            intf_id="resources.coverages.interfaces.Manager",
-            params={
-                "resources.coverages.interfaces.res_type": "eo.rect_dataset"
-            }
-        )
+        
         
         logging.info("Creating Rectified Dataset.")
         # get dataset series ID from browse layer, if available
