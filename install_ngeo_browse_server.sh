@@ -40,13 +40,15 @@
 # Adjust the variables to your liking.                                         #
 ################################################################################
 
-INSTALL_DIR="/var/www/ngeo/"
+# ngEO Browse Server
+NGEOB_INSTALL_DIR="/var/www/ngeo"
+NGEOB_URL="http://ngeo.eox.at/"
 
 # Apache HTTPD
 APACHE_CONF="/etc/httpd/conf.d/010_ngeo_browse_server.conf"
 APACHE_ServerName="ngeo.eox.at"
 APACHE_ServerAdmin="webmaster@eox.at"
-APACHE_NGEO_BROWSE_ALIAS="/b"
+APACHE_NGEO_BROWSE_ALIAS="/browse"
 
 ################################################################################
 # Usually there should be no need to change anything below.                    #
@@ -75,15 +77,36 @@ fi
 # EOX
 if [ ! -f /etc/yum.repos.d/eox.repo ] ; then
     cd /etc/yum.repos.d/
-    wget http://packages.eox.at/eox.repo
+    wget -c --progress=dot:mega \
+        "http://packages.eox.at/eox.repo"
     rpm --import http://packages.eox.at/eox-package-maintainers.gpg
     cd -
 fi
-# TODO: Set includepkgs
+# Set includepkgs
+if ! grep -Fxq "includepkgs=EOxServer pyspatialite pysqlite libxml2 libxml2-python" /etc/yum.repos.d/eox.repo ; then
+    sed -e 's/^\[eox\]$/&\nincludepkgs=EOxServer pyspatialite pysqlite libxml2 libxml2-python/' -i /etc/yum.repos.d/eox.repo
+fi
+if ! grep -Fxq "includepkgs=ngEO_Browse_Server" /etc/yum.repos.d/eox.repo ; then
+    sed -e 's/^\[eox-noarch\]$/&\nincludepkgs=ngEO_Browse_Server/' -i /etc/yum.repos.d/eox.repo
+fi
+# Set exclude
+if ! grep -Fxq "exclude=libxml2 libxml2-python" /etc/yum.repos.d/CentOS-Base.repo ; then
+    sed -e 's/^\[base\]$/&\nexclude=libxml2 libxml2-python/' -i /etc/yum.repos.d/CentOS-Base.repo
+    sed -e 's/^\[updates\]$/&\nexclude=libxml2 libxml2-python/' -i /etc/yum.repos.d/CentOS-Base.repo
+fi
 # EPEL
 rpm -Uvh http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-7.noarch.rpm
 # ELGIS
 rpm -Uvh http://elgis.argeo.org/repos/6/elgis-release-6-6_0.noarch.rpm
+
+# TODO MapServer 6.0.3 dependencies
+wget -c --progress=dot:mega \
+    "http://dl.atrpms.net/all/bitstream-vera-fonts-common-1.10-18.el6.noarch.rpm"
+wget -c --progress=dot:mega \
+    "http://dl.atrpms.net/all/bitstream-vera-sans-fonts-1.10-18.el6.noarch.rpm"
+yum install fontpackages-filesystem
+rpm -Uhv bitstream-vera-fonts-common-1.10-18.el6.noarch.rpm \
+    bitstream-vera-sans-fonts-1.10-18.el6.noarch.rpm
 
 # Apply available upgrades
 yum update -y
@@ -100,8 +123,29 @@ if [ $? -ne 0 ] ; then
 fi
 
 
-[ -d "$INSTALL_DIR" ] || mkdir -p "$INSTALL_DIR"
-cd "$INSTALL_DIR"
+# Permanently start PostgreSQL
+chkconfig postgresql on
+
+# Init PostgreSQL
+if [ ! -f "/var/lib/pgsql/data/PG_VERSION" ] ; then
+    service postgresql initdb
+fi
+
+# Reload PostgreSQL
+service postgresql force-reload
+
+# Configure PostgreSQL/PostGIS database
+if [ -f db_config_ngeo_browse_server.sh ] ; then
+    chgrp postgres db_config_ngeo_browse_server.sh
+    chmod g+x db_config_ngeo_browse_server.sh
+    su postgres -c ./db_config_ngeo_browse_server.sh
+else
+    echo "Script db_config_ngeo_browse_server.sh to configure DB not found."
+fi
+
+
+[ -d "$NGEOB_INSTALL_DIR" ] || mkdir -p "$NGEOB_INSTALL_DIR"
+cd "$NGEOB_INSTALL_DIR"
 
 
 # Configure ngeo_browse_server_instance
@@ -110,21 +154,21 @@ if [ ! -d ngeo_browse_server_instance ] ; then
     django-admin.py startproject --extension=conf --template=`python -c "import ngeo_browse_server, os; from os.path import dirname, abspath, join; print(join(dirname(abspath(ngeo_browse_server.__file__)), 'project_template'))"` ngeo_browse_server_instance
     cd ngeo_browse_server_instance
     
-#    spatialite ngeo_browse_server_instance/data/data.sqlite "SELECT InitSpatialMetaData();" # TODO
-
     # Configure logging
-#    sed -e 's/#logging_level=/logging_level=INFO/' -i ngeo_browse_server_instance/conf/eoxserver.conf
-#    sed -e 's/DEBUG = True/DEBUG = False/' -i ngeo_browse_server_instance/settings.py
+#    sed -e 's/#logging_level=/logging_level=INFO/' -i ngeo_browse_server_instance/conf/eoxserver.conf # TODO enable in production
+#    sed -e 's/DEBUG = True/DEBUG = False/' -i ngeo_browse_server_instance/settings.py # TODO enable in production
 
     python manage.py syncdb --noinput
+    python manage.py syncdb --database=mapcache --noinput
+    python manage.py loaddata initial_rangetypes.json
+    
+    python manage.py loaddata auth_data.json ngeo_browse_layer.json eoxs_dataset_series.json # TODO remove in production
+    python manage.py loaddata --database=mapcache ngeo_mapcache.json # TODO remove in production
 
-    python manage.py loaddata auth_data.json
-
-#    sed -e 's,http_service_url=http://localhost:8000/ows,http_service_url=http://localhost/eoxserver/ows,' -i ngeo_browse_server_instance/conf/eoxserver.conf # TODO
+    sed -e 's,http_service_url=http://localhost:8000/ows,http_service_url="$NGEOB_URL""$APACHE_NGEO_BROWSE_ALIAS",' -i ngeo_browse_server_instance/conf/eoxserver.conf
 
     # Collect static files
     python manage.py collectstatic --noinput
-
 
     # Make the instance read- and editable by apache
     chown -R apache:apache .
@@ -133,35 +177,62 @@ if [ ! -d ngeo_browse_server_instance ] ; then
 fi
 
 
+# Configure WebDAV
+[ -d "$NGEOB_INSTALL_DIR/store" ] || mkdir -p "$NGEOB_INSTALL_DIR/store"
+
+
 # Add Apache configuration
 cat << EOF > "$APACHE_CONF"
 <VirtualHost *:80>
     ServerName $APACHE_ServerName
     ServerAdmin $APACHE_ServerAdmin
 
-    DocumentRoot $INSTALL_DIR
-    <Directory "$INSTALL_DIR">
+    DocumentRoot $NGEOB_INSTALL_DIR
+    <Directory "$NGEOB_INSTALL_DIR">
             Options Indexes FollowSymLinks
             AllowOverride None
             Order deny,allow
             Deny from all
     </Directory>
 
-    Alias /static "$INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/static"
-    Alias $APACHE_NGEO_BROWSE_ALIAS "$INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/wsgi.py"
+    Alias /static "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/static"
+    Alias $APACHE_NGEO_BROWSE_ALIAS "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/wsgi.py"
 
-    <Directory "$INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance">
+    <Directory "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance">
         AllowOverride None
         Options +ExecCGI -MultiViews +SymLinksIfOwnerMatch
         AddHandler wsgi-script .py
         Order allow,deny
         allow from all
     </Directory>
+
+    # TODO
+    DavLockDB /var/www/dav/DavLock
+    Alias /store "$NGEOB_INSTALL_DIR/store"
+    <Directory $NGEOB_INSTALL_DIR/store>
+        Order Allow,Deny
+        Allow from all
+        Dav On
+        Options +Indexes
+
+        # TODO
+        AuthType Digest
+        AuthName "dav@ngeo.eox.at"
+        AuthDigestDomain /store/ http://ngeo.eox.at/store/
+
+        # TODO
+        AuthDigestProvider file
+        AuthUserFile /var/www/dav/DavUsers
+        Require valid-user
+    </Directory>
 </VirtualHost>
 EOF
 
+# Permanently start Apache
+chkconfig httpd on
+
 # Reload Apache
-service httpd force-reload
+service httpd graceful
 
 
 echo "Finished ngEO Browse Server installation"
