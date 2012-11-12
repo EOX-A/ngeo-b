@@ -129,12 +129,10 @@ class Command(CommandOutputMixIn, BaseCommand):
         if not create_result:
             result = ingest_browse_report(parsed_browse_report,
                                           path_prefix=path_prefix,
-                                          browse_path=os.path.dirname(filename),
                                           reraise_exceptions=True)
         else:
             result = ingest_browse_report(parsed_browse_report,
                                           path_prefix=path_prefix,
-                                          browse_path=os.path.dirname(filename),
                                           reraise_exceptions=False)
         
         self.print_msg("%d browses have been successfully ingested. %d "

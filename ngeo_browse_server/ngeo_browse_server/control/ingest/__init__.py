@@ -78,8 +78,6 @@ def ingest_browse_report(parsed_browse_report, path_prefix=None,
     # initialize the EOxServer system/registry/configuration
     System.init()
     
-    
-    
     try:
         browse_layer = models.BrowseLayer.objects.get(browse_type=parsed_browse_report.browse_type)
     except models.BrowseLayer.DoesNotExist:
