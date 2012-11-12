@@ -42,8 +42,6 @@ from ngeo_browse_server.control.ingest.parsing import parse_browse_report
 from ngeo_browse_server.control.ingest import get_optimized_filename
 
 
-get_ngeo_config().set("control.ingest", "storage_dir", "data/reference_test_data")
-
 class ngEOTestCaseMixIn(object):
     """ Base Mixin for ngEO test cases using the http interface. Compares the 
     expected response/status code with the actual results.
@@ -56,10 +54,37 @@ class ngEOTestCaseMixIn(object):
     expected_status = 200
     expected_response = ""
     
+    storage_dir = "data/reference_test_data"
+    
+    
+    @classmethod
+    def setUpClass(cls):
+        cls.saved_storage_dir = get_ngeo_config().get("control.ingest", "storage_dir")
+        get_ngeo_config().set("control.ingest", "storage_dir", cls.storage_dir)
+    
+    
+    @classmethod
+    def tearDownClass(cls):
+        get_ngeo_config().set("control.ingest", "storage_dir", cls.saved_storage_dir)
+    
     
     def setUp(self):
         super(ngEOTestCaseMixIn, self).setUp()
         self.response = self.dispatch()
+        
+    
+    def tearDown(self):
+        super(ngEOTestCaseMixIn, self).tearDown()
+    
+    
+    def get_request(self):
+        if self.request:
+            return self.request
+        
+        elif self.request_file:
+            filename = join(settings.PROJECT_DIR, "data", self.request_file);
+            with open(filename) as f:
+                return str(f.read())
         
     
     def dispatch(self, request=None, url=None):
@@ -67,11 +92,7 @@ class ngEOTestCaseMixIn(object):
             url = self.url
         
         if not request:
-            request = self.request
-        if not request and self.request_file:
-            filename = join(settings.PROJECT_DIR, "data", self.request_file);
-            with open(filename) as f:
-                request = f.read()
+            request = self.get_request()
         
         client = Client()        
         return client.post(url, request, "text/xml")
@@ -133,7 +154,7 @@ class ngEOIngestTestCaseMixIn(ngEOTestCaseMixIn):
         # remove all generated optimized files which are addressed in the browse
         # report
         super(ngEOIngestTestCaseMixIn, self).tearDown()
-        document = etree.fromstring(self.request)
+        document = etree.fromstring(self.get_request())
         parsed_browse_report = parse_browse_report(document)
         
         # delete optimized files
@@ -142,6 +163,7 @@ class ngEOIngestTestCaseMixIn(ngEOTestCaseMixIn):
                 remove(get_optimized_filename(browse_report.file_name))
             except OSError:
                 pass
+
 
 class ngEOIngestReplaceTestCaseMixIn(ngEOIngestTestCaseMixIn):
     request_before_replace = None
@@ -165,8 +187,8 @@ class ngEOIngestReplaceTestCaseMixIn(ngEOIngestTestCaseMixIn):
         def ns_bsi(tag):
             return "{http://ngeo.eo.esa.int/schema/browse/ingestion}" + tag
         
-        document = etree.fromstring(self.request)
-        actually_replaced = int(document.find(".//" + ns_bsi("actuallyReplaced")).tag)
+        document = etree.fromstring(self.response.content)
+        actually_replaced = int(document.find(".//" + ns_bsi("actuallyReplaced")).text)
         self.assertEqual(self.expected_num_replaced, actually_replaced)
 
 #===============================================================================
@@ -174,6 +196,8 @@ class ngEOIngestReplaceTestCaseMixIn(ngEOIngestTestCaseMixIn):
 #===============================================================================
 
 class IngestRegularGrid(ngEOIngestTestCaseMixIn, TestCase):
+    storage_dir = "data"
+    
     expected_ingested_browse_ids = ("ASAR",)
     expected_inserted_into_series = "TEST_SAR"
     request = """\
@@ -184,7 +208,7 @@ class IngestRegularGrid(ngEOIngestTestCaseMixIn, TestCase):
     <rep:browseType>SAR</rep:browseType>
     <rep:browse>
         <rep:browseIdentifier>ASAR</rep:browseIdentifier>
-        <rep:fileName>autotest/data/ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775.tiff</rep:fileName>
+        <rep:fileName>ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775.tiff</rep:fileName>
         <rep:imageType>TIFF</rep:imageType>
         <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
         <rep:regularGrid>
@@ -234,6 +258,25 @@ class InsertFootprintBrowse(ngEOIngestTestCaseMixIn, TestCase):
     
     expected_ingested_browse_ids = ("b_id_1",)
     expected_inserted_into_series = "TEST_SAR"
+    
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>b_id_1</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
 
 
 class InsertFootprintBrowseGroup(ngEOIngestTestCaseMixIn, TestCase):
@@ -242,6 +285,33 @@ class InsertFootprintBrowseGroup(ngEOIngestTestCaseMixIn, TestCase):
     expected_ingested_browse_ids = ("b_id_6", "b_id_7", "b_id_8")
     expected_inserted_into_series = "TEST_SAR"
 
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>3</bsi:toBeReplaced>
+        <bsi:actuallyInserted>3</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>b_id_6</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+        <bsi:briefRecord>
+            <bsi:identifier>b_id_7</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+        <bsi:briefRecord>
+            <bsi:identifier>b_id_8</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
 
 class InsertFootprintBrowseReplace(ngEOIngestReplaceTestCaseMixIn, TestCase):
     request_before_replace_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327.xml"
@@ -249,5 +319,26 @@ class InsertFootprintBrowseReplace(ngEOIngestReplaceTestCaseMixIn, TestCase):
     
     expected_num_replaced = 1
     
-    expected_ingested_browse_ids = ("b_id_6", "b_id_7", "b_id_8")
+    expected_ingested_browse_ids = ("b_id_3",)
     expected_inserted_into_series = "TEST_SAR"
+    
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>0</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>1</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>b_id_3</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+    
+
