@@ -27,7 +27,7 @@ class Command(CommandOutputMixIn, BaseCommand):
                   "deleted and only the optimized browse files will be kept.")
         ),
         make_option('--use-store-path', action="store_true",
-            dest='use_store_path', default=False,
+            dest='use_store_path', default=True,
             help=("If this option is set, the configured path to the storage "
                   "directory will be used instead of assuming a relative path.")
         ),
@@ -81,7 +81,7 @@ class Command(CommandOutputMixIn, BaseCommand):
         
         else:
             # TODO: set path prefix to a relative path
-            path_prefix = "."
+            path_prefix = None
         
         
         with transaction.commit_manually():
