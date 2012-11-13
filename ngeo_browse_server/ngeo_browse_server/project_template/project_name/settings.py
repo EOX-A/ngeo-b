@@ -51,13 +51,20 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.spatialite',                  # Use 'spatialite' or change to 'postgis'.
         'NAME': '{{ project_directory }}/{{ project_name }}/data/data.sqlite',  # Or path to database file if using spatialite.
-        #'TEST_NAME': '{{ project_directory }}/{{ project_name }}/data/test-config.sqlite', # Required for certain test cases, but slower!
+        #'TEST_NAME': '{{ project_directory }}/{{ project_name }}/data/test-data.sqlite', # Required for certain test cases, but slower!
         'USER': '',                                                             # Not used with spatialite.
         'PASSWORD': '',                                                         # Not used with spatialite.
         'HOST': '',                                                             # Set to empty string for localhost. Not used with spatialite.
         'PORT': '',                                                             # Set to empty string for default. Not used with spatialite.
+    },
+    'mapcache': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': '{{ project_directory }}/{{ project_name }}/data/mapcache.sqlite',
+        #'TEST_NAME': '{{ project_directory }}/{{ project_name }}/data/test-mapcache.sqlite',
     }
 }
+
+DATABASE_ROUTERS = ['ngeo_browse_server.dbrouters.MapCacheRouter', ]
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -178,6 +185,7 @@ INSTALLED_APPS = (
     # Enable ngEO Browse Server:
     'ngeo_browse_server.config',
     'ngeo_browse_server.control',
+    'ngeo_browse_server.mapcache',
 )
 
 # A sample logging configuration. The only tangible logging
@@ -198,12 +206,22 @@ LOGGING = {
             'level': 'ERROR',
             'filters': ['require_debug_false'],
             'class': 'django.utils.log.AdminEmailHandler'
+        },
+        'debug_file':{
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': 'debug.log'
         }
     },
     'loggers': {
-        'django.request': {
-            'handlers': ['mail_admins'],
-            'level': 'ERROR',
+        'eoxserver': {
+            'handlers': ['debug_file'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
+            'propagate': True,
+        },
+        'ngeo_browse_server': {
+            'handlers': ['debug_file'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
             'propagate': True,
         },
     }
