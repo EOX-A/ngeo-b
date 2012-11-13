@@ -5,9 +5,12 @@ from optparse import make_option
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from django.template.loader import render_to_string
 from eoxserver.resources.coverages.management.commands import CommandOutputMixIn
 
-from ngeo_browse_server.control.ingest import ingest_browse_report
+from ngeo_browse_server.control.ingest import (
+    ingest_browse_report, get_storage_path
+)
 from ngeo_browse_server.control.ingest.parsing import parse_browse_report
 
 
@@ -26,21 +29,24 @@ class Command(CommandOutputMixIn, BaseCommand):
             help=("If this option is set, the original browse files will be "
                   "deleted and only the optimized browse files will be kept.")
         ),
-        make_option('--use-store-path', action="store_true",
-            dest='use_store_path', default=True,
-            help=("If this option is set, the configured path to the storage "
-                  "directory will be used instead of assuming a relative path.")
-        ),
-        make_option('--path-prefix',
-            dest='path_prefix',
+        make_option('--storage-dir',
+            dest='storage_dir',
             help=("Use this option to set a path to a custom directory "
-                  "entailing the browse raster files to be processed. Mutually "
-                  "exclusive with '--use-store-path'.")
+                  "entailing the browse raster files to be processed. By "
+                  "default, the `storage_dir` option of the ngeo.conf will be "
+                  "used.")
+        ),
+        make_option('--optimized-dir',
+            dest='optimized_dir',
+            help=("Use this option to set a path to a custom directory "
+                  "to store the processed and optimized files. By default, the "
+                  "`optimized_files_dir` option of the ngeo.conf will be used.")
         ),
         make_option('--create-result', action="store_true",
             dest='create_result', default=False,
-            help=("Use this option to generate an ingestion result instead of " 
-                  "the usual command line output.")
+            help=("Use this option to generate an XML ingestion result instead " 
+                  "of the usual command line output. The result is printed on "
+                  "the standard output stream.")
         )
     )
     
@@ -58,38 +64,21 @@ class Command(CommandOutputMixIn, BaseCommand):
         
         on_error = kwargs["on_error"]
         delete_original = kwargs["delete_original"]
-        use_store_path = kwargs["use_store_path"]
-        path_prefix = kwargs.get("path_prefix")
+        storage_dir = kwargs.get("storage_dir")
+        optimized_dir = kwargs.get("optimized_dir")
         create_result = kwargs["create_result"]
         
         # check consistency
         if not len(filenames):
             raise CommandError("No input files given.")
         
-        if use_store_path and path_prefix:
-            raise CommandError("'--use-store-path' and '--path-prefix' are "
-                               "mutually exclusive.")
-        
-        # get the input path prefix
-        if use_store_path:
-            # default, use path from config
-            pass
-        
-        elif path_prefix:
-            # do nothing?
-            pass
-        
-        else:
-            # TODO: set path prefix to a relative path
-            path_prefix = None
-        
-        
         with transaction.commit_manually():
             for filename in filenames:
                 sid = transaction.savepoint()
                 try:
                     # handle each browse report
-                    self._handle_file(filename, path_prefix, delete_original, create_result)
+                    self._handle_file(filename, storage_dir, optimized_dir,
+                                      delete_original, create_result)
                 except Exception, e:
                     # handle exceptions
                     if on_error == "continue":
@@ -114,7 +103,8 @@ class Command(CommandOutputMixIn, BaseCommand):
             transaction.commit()
 
 
-    def _handle_file(self, filename, path_prefix, delete_original, create_result):
+    def _handle_file(self, filename, storage_dir, optimized_dir,
+                     delete_original, create_result):
         logger.info("Processing input file '%s'." % filename)
         
         # parse the xml file and obtain its data structures as a 
@@ -128,24 +118,31 @@ class Command(CommandOutputMixIn, BaseCommand):
         
         if not create_result:
             result = ingest_browse_report(parsed_browse_report,
-                                          path_prefix=path_prefix,
+                                          storage_dir=storage_dir,
+                                          optimized_dir=optimized_dir,
                                           reraise_exceptions=True)
+            
+            self.print_msg("%d browses have been successfully ingested. %d "
+                           "replaced, %d inserted."
+                           % (result.to_be_replaced, result.actually_replaced,
+                              result.actually_inserted), 1)    
+            
         else:
             result = ingest_browse_report(parsed_browse_report,
-                                          path_prefix=path_prefix,
+                                          storage_dir=storage_dir,
+                                          optimized_dir=optimized_dir,
                                           reraise_exceptions=False)
+            
+            # print ingest result
+            print(render_to_string("control/ingest_response.xml",
+                                   {"result": result}))
         
-        self.print_msg("%d browses have been successfully ingested. %d "
-                       "replaced, %d inserted." % (result.to_be_replaced,
-                                                   result.actually_replaced,
-                                                   result.actually_inserted), 1)
         
         # if requested delete the original raster files.
         if delete_original:
-            
             for parsed_browse in parsed_browse_report:
-                original_filename = os.path.join(path_prefix, 
-                                                 parsed_browse.file_name)
+                original_filename = get_storage_path(parsed_browse.file_name,
+                                                     storage_dir)
                 
                 logger.info("Removing original raster file '%s'."
                             % original_filename)

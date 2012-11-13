@@ -22,6 +22,7 @@ from ngeo_browse_server.control.ingest.parsing import (
 )
 from ngeo_browse_server.control.ingest import data
 from ngeo_browse_server.config import models
+from ngeo_browse_server.mapcache import models as mapcache_models
 
 
 logger = logging.getLogger(__name__)
@@ -30,35 +31,41 @@ def _model_from_parsed(parsed_browse, browse_report, model_cls):
     return model_cls.objects.create(browse_report=browse_report,
                                     **parsed_browse.get_kwargs())
 
-def get_storage_path(file_name):
+def get_project_relative_path(path):
+    if isabs(path):
+        return path
+    
+    return join(settings.PROJECT_DIR, path)
+
+
+def get_storage_path(file_name, storage_dir=None):
     """ Returns an absolute path to a filename within the intermediary storage
     directory for uploaded but unprocessed files. 
     """
     
-    storage_dir = get_ngeo_config().get("control.ingest", "storage_dir")
-    if not isabs(storage_dir):
-        storage_dir = join(settings.PROJECT_DIR, storage_dir)
+    if not storage_dir:
+        storage_dir = get_ngeo_config().get("control.ingest", "storage_dir")
     
-    return abspath(join(storage_dir, file_name))
+    return get_project_relative_path(join(storage_dir, file_name))
 
 
-def get_optimized_filename(file_name, path_prefix=None):
+def get_optimized_path(file_name, optimized_dir=None):
     """ Returns an absolute path to a filename within the storage directory for
-    optimized raster files. Uses the path prefix if given, otherwise uses the
-    'control.ingest.optimized_files_dir' setting from the ngEO configuration.
+    optimized raster files. Uses the optimized directory if given, otherwise 
+    uses the 'control.ingest.optimized_files_dir' setting from the ngEO
+    configuration.
     
     Also tries to get the postfix for optimized files from the 
     'control.ingest.optimized_files_postfix' setting from the ngEO configuration.
+    
+    All relative paths are treated relative to the PROJECT_DIR directory setting.
     """
     file_name = basename(file_name)
     config = get_ngeo_config()
-    if not path_prefix:
-        opt_dir = config.get("control.ingest", "optimized_files_dir")
+    if not optimized_dir:
+        optimized_dir = config.get("control.ingest", "optimized_files_dir")
         
-        if not isabs(opt_dir):
-            opt_dir = join(settings.PROJECT_DIR, opt_dir)
-    else:
-        opt_dir = path_prefix
+    optimized_dir = get_project_relative_path(optimized_dir)
     
     try:
         postfix = config.get("control.ingest", "optimized_files_postfix")
@@ -66,11 +73,34 @@ def get_optimized_filename(file_name, path_prefix=None):
         postfix = ""
     
     root, ext = splitext(file_name)
-    return join(opt_dir, root + postfix + ext)
+    return join(optimized_dir, root + postfix + ext)
 
 
-def ingest_browse_report(parsed_browse_report, path_prefix=None,  
-                         reraise_exceptions=False):
+def get_format_config():
+    values = {}
+    config = get_ngeo_config()
+    
+    def safe_get(config, section, option, default=None):
+        try:
+            return config.get(section, option)
+        except:
+            return default
+    
+    values["compression"] = safe_get(config, "control.ingest", "compression")
+    
+    if values["compression"] == "JPEG":
+        value = safe_get(config, "control.ingest", "jpeg_quality")
+        values["jpeg_quality"] = int(value) if value is not None else None
+    
+    elif values["compression"] == "DEFLATE":
+        value = safe_get(config, "control.ingest", "zlevel")
+        values["zlevel"] = int(value) if value is not None else None
+    
+    return values
+
+
+def ingest_browse_report(parsed_browse_report, storage_dir=None, 
+                         optimized_dir=None, reraise_exceptions=False):
     """ Ingests a browse report. reraise_exceptions if errors shall be handled 
     externally
     """
@@ -95,9 +125,10 @@ def ingest_browse_report(parsed_browse_report, path_prefix=None,
     elif browse_layer.grid == "urn:ogc:def:wkss:OGC:1.0:GoogleCRS84Quad":
         crs = "EPSG:4326"
         
-    logger.debug("Using CRS '%s'." % crs)
+    logger.debug("Using CRS '%s' ('%s')." % (crs, browse_layer.grid))
     
-    format_selection = get_format_selection("GTiff", tiling=True, compression=None)
+    format_selection = get_format_selection("GTiff", tiling=True,
+                                            **get_format_config())
     preprocessor = WMSPreProcessor(format_selection, crs=crs, overviews=True,
                                    bandmode=RGB)
     
@@ -106,7 +137,7 @@ def ingest_browse_report(parsed_browse_report, path_prefix=None,
     for parsed_browse in parsed_browse_report:
         try:
             replaced = ingest_browse(parsed_browse, browse_report, preprocessor,
-                                     path_prefix)
+                                     crs, storage_dir, optimized_dir)
             result.add(parsed_browse.browse_identifier, replaced)
         except Exception, e:
             logger.error("Failure during ingestion of browse '%s'." %
@@ -123,16 +154,14 @@ def ingest_browse_report(parsed_browse_report, path_prefix=None,
     return result
     
 
-def ingest_browse(parsed_browse, browse_report, preprocessor, 
-                  path_prefix=None):
+def ingest_browse(parsed_browse, browse_report, preprocessor, crs, 
+                  storage_dir=None, optimized_dir=None):
     """ Ingests a single browse report, performs the preprocessing of the data
     file and adds the generated browse model to the browse report model. Returns
     a boolean value, indicating whether or not the browse has been inserted or
     replaced a previous browse entry.
     """
     replaced = False
-    output_filename = get_optimized_filename(parsed_browse.file_name,
-                                             path_prefix)
     
     srid = fromShortCode(parsed_browse.reference_system_identifier)
     swap_axes = hasSwappedAxes(srid)
@@ -196,18 +225,21 @@ def ingest_browse(parsed_browse, browse_report, preprocessor,
     else:
         raise NotImplementedError
     
+    # if the browse contains an identifier, create the according model
     if parsed_browse.browse_identifier is not None:
         models.BrowseIdentifier.objects.create(id=parsed_browse.browse_identifier, 
-                                               browse=model) 
+                                               browse=model)
 
     # start the preprocessor
-    filename = get_storage_path(parsed_browse.file_name)
-    logger.info("Starting preprocessing on file '%s'." % filename)
+    input_filename = get_storage_path(parsed_browse.file_name, storage_dir)
+    output_filename = get_optimized_path(parsed_browse.file_name, optimized_dir)
     
     # wrap all file operations with 
     with IngestionTransaction(output_filename):
-        
-        result = preprocessor.process(filename, output_filename,
+        logger.info("Starting preprocessing on file '%s' to create '%s'."
+                    % (input_filename, output_filename))
+             
+        result = preprocessor.process(input_filename, output_filename,
                                       geo_reference, generate_metadata=True)
         
         rect_mgr = System.getRegistry().findAndBind(
@@ -239,11 +271,25 @@ def ingest_browse(parsed_browse, browse_report, preprocessor,
             container_ids.append(browse_layer.id)
         
         # register the optimized dataset
-        rect_mgr.create(obj_id=identifier, range_type_name="RGB", 
-                        default_srid=srid, visible=False, 
-                        local_path=result.output_filename,
-                        eo_metadata=eo_metadata, force=False, 
-                        container_ids=container_ids)
+        coverage = rect_mgr.create(obj_id=identifier, range_type_name="RGB", 
+                                   default_srid=srid, visible=False, 
+                                   local_path=result.output_filename,
+                                   eo_metadata=eo_metadata, force=False, 
+                                   container_ids=container_ids)
+        
+        extent = coverage.getExtent()
+        
+        # TODO: mapcache model replacements??
+        # create mapcache models
+        source, _ = mapcache_models.Source.objects.get_or_create(name=browse_layer.id)
+        time = mapcache_models.Time.objects.create(start_time=parsed_browse.start_time,
+                                                   end_time=parsed_browse.end_time,
+                                                   source=source)
+        
+        mapcache_models.Extent.objects.create(srs=crs,
+                                              minx=extent[0], miny=extent[1],
+                                              maxx=extent[2], maxy=extent[3],
+                                              time=time)
         
         return replaced
 
@@ -316,7 +362,6 @@ class IngestResult(object):
         self._inserted = 0
         self._replaced = 0
         self._records = []
-        self._message = "" # TODO: automatically generate error message?
     
     
     def add(self, identifier, replaced=False, status="success"):
@@ -355,7 +400,7 @@ class IngestResult(object):
         else:
             return "success"
     
-    to_be_replaced = property(lambda self: len(self._records)) # TODO: sure?    
+    to_be_replaced = property(lambda self: len(self._records))  
     actually_inserted = property(lambda self: self._inserted)
     actually_replaced = property(lambda self: self._replaced)
 

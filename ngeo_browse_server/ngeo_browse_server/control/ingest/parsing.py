@@ -26,6 +26,9 @@ def parse_browse_report(browse_report):
     
     logger.info("Start parsing browse report.")
     
+    assert(browse_report.tag in (ns_rep("ingestBrowse"), 
+                                 ns_rep("browseReport")))
+    
     browse_report = data.BrowseReport(
         date_time=getDateTime(browse_report.find(ns_rep("dateTime")).text),
         browse_type=browse_report.find(ns_rep("browseType")).text,
