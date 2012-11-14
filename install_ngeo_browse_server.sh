@@ -42,7 +42,7 @@
 
 # ngEO Browse Server
 NGEOB_INSTALL_DIR="/var/www/ngeo"
-NGEOB_URL="http://ngeo.eox.at/"
+NGEOB_URL="http://ngeo.eox.at"
 
 # PostgreSQL/PostGIS database
 DB_NAME="ngeo_browse_server_db"
@@ -80,6 +80,14 @@ if [ ! -x "`which sed`" ] ; then
     echo "ERROR: sed is required, please install it and try again" 
     exit 1
 fi
+
+
+# Disable SELinux
+setenforce 0
+if ! grep -Fxq "^SELINUX=enforcing$" /etc/selinux/config ; then
+    sed -e 's/^SELINUX=enforcing$/SELINUX=disabled/' -i /etc/selinux/config
+fi
+
 
 # Install needed yum repositories
 # EOX
@@ -121,7 +129,7 @@ yum update -y
 
 # Install packages
 yum install -y gdal gdal-python mapserver mapserver-python postgis \
-    postgresql-server python-psycopg2 Django httpd mod_wsgi libxml2 \
+    postgresql-server python-psycopg2 Django14 httpd mod_wsgi libxml2 \
     libxml2-python python-lxml pytz mapcache \
     EOxServer ngEO_Browse_Server
 
@@ -137,6 +145,11 @@ chkconfig postgresql on
 # Init PostgreSQL
 if [ ! -f "/var/lib/pgsql/data/PG_VERSION" ] ; then
     service postgresql initdb
+fi
+
+# Allow DB_USER to access DB_NAME with password
+if ! grep -Fxq "local   $DB_NAME $DB_USER               md5" /var/lib/pgsql/data/pg_hba.conf ; then
+    sed -e "s/^# \"local\" is for Unix domain socket connections only$/&\nlocal   $DB_NAME $DB_USER               md5/" -i /var/lib/pgsql/data/pg_hba.conf
 fi
 
 # Reload PostgreSQL
@@ -159,7 +172,7 @@ cd "$NGEOB_INSTALL_DIR"
 # Configure ngeo_browse_server_instance
 if [ ! -d ngeo_browse_server_instance ] ; then
 
-    django-admin.py startproject --extension=conf --template=`python -c "import ngeo_browse_server, os; from os.path import dirname, abspath, join; print(join(dirname(abspath(ngeo_browse_server.__file__)), 'project_template'))"` ngeo_browse_server_instance
+    django-admin startproject --extension=conf --template=`python -c "import ngeo_browse_server, os; from os.path import dirname, abspath, join; print(join(dirname(abspath(ngeo_browse_server.__file__)), 'project_template'))"` ngeo_browse_server_instance
     cd ngeo_browse_server_instance
     
     # Configure logging
@@ -183,7 +196,7 @@ if [ ! -d ngeo_browse_server_instance ] ; then
     python manage.py loaddata auth_data.json ngeo_browse_layer.json eoxs_dataset_series.json # TODO remove in production
     python manage.py loaddata --database=mapcache ngeo_mapcache.json # TODO remove in production
 
-    sed -e 's,http_service_url=http://localhost:8000/ows,http_service_url="$NGEOB_URL""$APACHE_NGEO_BROWSE_ALIAS",' -i ngeo_browse_server_instance/conf/eoxserver.conf
+    sed -e "s,http_service_url=http://localhost:8000/ows,http_service_url=$NGEOB_URL$APACHE_NGEO_BROWSE_ALIAS/ows," -i ngeo_browse_server_instance/conf/eoxserver.conf
 
     # Collect static files
     python manage.py collectstatic --noinput

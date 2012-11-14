@@ -9,6 +9,7 @@
 /autotest/logs/eoxserver.log
 /autotest/wcst_perm
 /autotest/wcst_temp
+/autotest/data/optimized/
 
 # Custom
 /init.sh
