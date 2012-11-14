@@ -39,7 +39,7 @@ from eoxserver.core.system import System
 from ngeo_browse_server.config import get_ngeo_config
 from ngeo_browse_server.config.models import Browse
 from ngeo_browse_server.control.ingest.parsing import parse_browse_report
-from ngeo_browse_server.control.ingest import get_optimized_filename
+from ngeo_browse_server.control.ingest import get_optimized_path
 
 
 class ngEOTestCaseMixIn(object):
@@ -160,7 +160,7 @@ class ngEOIngestTestCaseMixIn(ngEOTestCaseMixIn):
         # delete optimized files
         for browse_report in parsed_browse_report:
             try:
-                remove(get_optimized_filename(browse_report.file_name))
+                remove(get_optimized_path(browse_report.file_name))
             except OSError:
                 pass
 

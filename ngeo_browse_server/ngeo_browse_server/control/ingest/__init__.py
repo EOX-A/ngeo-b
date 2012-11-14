@@ -95,9 +95,28 @@ def get_format_config():
     elif values["compression"] == "DEFLATE":
         value = safe_get(config, "control.ingest", "zlevel")
         values["zlevel"] = int(value) if value is not None else None
+        
+    try:
+        values["tiling"] = config.getboolean("control.ingest", "tiling")
+    except: pass
     
     return values
 
+
+def get_optimization_config():
+    values = {}
+    config = get_ngeo_config()
+    
+    try:
+        values["overviews"] = config.getboolean("control.ingest", "overviews")
+    except: pass
+    
+    try:
+        values["color_index"] = config.getboolean("control.ingest", "color_index")
+    except: pass
+    
+    return values
+    
 
 def ingest_browse_report(parsed_browse_report, storage_dir=None, 
                          optimized_dir=None, reraise_exceptions=False):
@@ -127,10 +146,9 @@ def ingest_browse_report(parsed_browse_report, storage_dir=None,
         
     logger.debug("Using CRS '%s' ('%s')." % (crs, browse_layer.grid))
     
-    format_selection = get_format_selection("GTiff", tiling=True,
-                                            **get_format_config())
-    preprocessor = WMSPreProcessor(format_selection, crs=crs, overviews=True,
-                                   bandmode=RGB)
+    format_selection = get_format_selection("GTiff", **get_format_config())
+    preprocessor = WMSPreProcessor(format_selection, crs=crs, bandmode=RGB,
+                                   **get_optimization_config())
     
     result = IngestResult()
     
@@ -252,6 +270,7 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
         # unregister the previous coverage first
         if replaced:
             rect_mgr.delete(obj_id=identifier)
+            # TODO: delete the mapcache models here
         
         # create EO metadata necessary for registration
         eo_metadata = EOMetadata(
@@ -290,6 +309,9 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
                                               minx=extent[0], miny=extent[1],
                                               maxx=extent[2], maxy=extent[3],
                                               time=time)
+        
+        logger.debug("Successfully ingested browse with ID '%s'."
+                     % identifier)
         
         return replaced
 
