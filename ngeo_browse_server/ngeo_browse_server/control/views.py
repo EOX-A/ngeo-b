@@ -58,7 +58,6 @@ def ingest(request):
                               {"result": result}, 
                               mimetype="text/xml")
     except Exception, e:
-        raise
         return render_to_response("control/ingest_exception.xml",
                                   {"code": getattr(e, "code", None)
                                            or type(e).__name__,
