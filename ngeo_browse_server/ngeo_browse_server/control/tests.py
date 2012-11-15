@@ -27,19 +27,22 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
-from os import remove
+import sys
+from os import walk
 from os.path import join
+import tempfile
+import shutil
+from cStringIO import StringIO
 from lxml import etree
 
 from django.conf import settings
 from django.test import TestCase
 from django.test.client import Client
+from django.core.management import execute_from_command_line
 from eoxserver.core.system import System
 
-from ngeo_browse_server.config import get_ngeo_config
+from ngeo_browse_server.config import get_ngeo_config, reset_ngeo_config
 from ngeo_browse_server.config.models import Browse
-from ngeo_browse_server.control.ingest.parsing import parse_browse_report
-from ngeo_browse_server.control.ingest import get_optimized_path
 
 
 class ngEOTestCaseMixIn(object):
@@ -54,27 +57,41 @@ class ngEOTestCaseMixIn(object):
     expected_status = 200
     expected_response = ""
     
+    # pointing to the actual data directory. Will be copied to a temporary directory
     storage_dir = "data/reference_test_data"
     
+    def setUp_files(self):
+        # create a temporary storage directory and copy the reference test data
+        # into it point the control.ingest.storage_dir to this location
+        self.temp_storage_dir = tempfile.mktemp() # create a temp dir
+        
+        shutil.copytree(join(settings.PROJECT_DIR, self.storage_dir), self.temp_storage_dir)
+        get_ngeo_config().set("control.ingest", "storage_dir", self.temp_storage_dir)
+        
+        # create a temporary optimized files directory, empty. point the 
+        # control.ingest.optimized_files_dir to it
+        self.temp_optimized_files_dir = tempfile.mkdtemp()
+        get_ngeo_config().set("control.ingest", "optimized_files_dir", self.temp_optimized_files_dir)
     
-    @classmethod
-    def setUpClass(cls):
-        cls.saved_storage_dir = get_ngeo_config().get("control.ingest", "storage_dir")
-        get_ngeo_config().set("control.ingest", "storage_dir", cls.storage_dir)
     
-    
-    @classmethod
-    def tearDownClass(cls):
-        get_ngeo_config().set("control.ingest", "storage_dir", cls.saved_storage_dir)
+    def tearDown_files(self):
+        # remove the two created temporary directories
+        shutil.rmtree(self.temp_storage_dir)
+        shutil.rmtree(self.temp_optimized_files_dir)
+        
+        # reset the config settings
+        reset_ngeo_config()
     
     
     def setUp(self):
         super(ngEOTestCaseMixIn, self).setUp()
+        self.setUp_files()
         self.response = self.dispatch()
-        
+    
     
     def tearDown(self):
         super(ngEOTestCaseMixIn, self).tearDown()
+        self.tearDown_files()
     
     
     def get_request(self):
@@ -116,6 +133,7 @@ class ngEOIngestTestCaseMixIn(ngEOTestCaseMixIn):
                 "eoxs_dataset_series.json"]
     expected_ingested_browse_ids = ()
     expected_inserted_into_series = None
+    expected_optimized_files = ()
     
     
     def test_expected_ingested_browses(self):
@@ -147,22 +165,69 @@ class ngEOIngestTestCaseMixIn(ngEOTestCaseMixIn):
         ids = set([c.getCoverageId() for c in dataset_series.getEOCoverages()])
         
         self.assertEqual(len(ids.difference(self.expected_ingested_browse_ids)), 0)
-        
     
-    def tearDown(self):
-        # perform some cleanup, sweep through optimized files directory and
-        # remove all generated optimized files which are addressed in the browse
-        # report
-        super(ngEOIngestTestCaseMixIn, self).tearDown()
-        document = etree.fromstring(self.get_request())
-        parsed_browse_report = parse_browse_report(document)
+    
+    def test_expected_optimized_files(self):
+        # check that all optimized files are beeing created
+        files = []
+        for (_, _, filenames) in walk(self.temp_optimized_files_dir):
+            files.extend(filenames) # TODO adjust this once the layer gets his own directory name
         
-        # delete optimized files
-        for browse_report in parsed_browse_report:
-            try:
-                remove(get_optimized_path(browse_report.file_name))
-            except OSError:
-                pass
+        self.assertItemsEqual(self.expected_optimized_files, files)
+    
+    
+    def test_deleted_storage_files(self):
+        # TODO: implement
+        pass
+
+
+class ngEOIngestFromCommandTestCaseMixIn(ngEOIngestTestCaseMixIn):
+    command = "ngeo_ingest_browse_report"
+    args = ()
+    kwargs = {}
+    
+    def setUp(self):
+        
+        self.setUp_files()
+        
+        # construct command line parameters
+        
+        args = ["manage.py", self.command]
+        if isinstance(args, (list, tuple)):
+            args.extend(self.args)
+        elif isinstance(args, basestring):
+            args.extend(self.args.split(" "))
+        
+        for key, value in self.kwargs.items():
+            args.append("-%s" % key if len(key) == 1 else "--%s" % key)
+            if isinstance(value, (list, tuple)):
+                args.extend(value)
+            else: 
+                args.append(value)
+        
+        # redirect stderr to buffer
+        sys.stderr = StringIO()
+        
+        # execute command
+        self.execute_command(args)
+        
+        # reset stderr
+        sys.stderr = sys.__stderr__
+    
+    
+    def execute_command(self, args):
+        """ This function actually executes the given command. It raises a
+        failure if the command prematurely quits.
+        """
+        
+        try:
+            execute_from_command_line(args)
+        except SystemExit:
+            if not self.expect_failure:
+                self.fail("Command '%s' failed and exited. Message was: '%s'" % ( 
+                          " ".join( args ) , 
+                          "".join(sys.stderr.getvalue().rsplit("\n", 1)) ) ) 
+    
 
 
 class ngEOIngestReplaceTestCaseMixIn(ngEOIngestTestCaseMixIn):
@@ -253,7 +318,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 """
 
     
-class InsertFootprintBrowse(ngEOIngestTestCaseMixIn, TestCase):
+class IngesttFootprintBrowse(ngEOIngestTestCaseMixIn, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     
     expected_ingested_browse_ids = ("b_id_1",)
@@ -279,7 +344,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 """
 
 
-class InsertFootprintBrowseGroup(ngEOIngestTestCaseMixIn, TestCase):
+class IngesttFootprintBrowseGroup(ngEOIngestTestCaseMixIn, TestCase):
     request_file = "reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"
     
     expected_ingested_browse_ids = ("b_id_6", "b_id_7", "b_id_8")
@@ -340,5 +405,19 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
     </bsi:ingestionResult>
 </bsi:ingestBrowseResponse>
 """
+
+
+#===============================================================================
+# Command line ingestion test cases
+#===============================================================================
+
+class IngestFromCommand(ngEOIngestFromCommandTestCaseMixIn, TestCase):
+    args = (join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_IM__0P_20100807_101327.xml"),)
     
+    expected_ingested_browse_ids = ("b_id_3",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ("ASA_IM__0P_20100807_101327_proc.tif",)
+
+
+# TODO: test optimization features
 
