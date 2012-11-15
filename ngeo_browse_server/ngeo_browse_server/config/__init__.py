@@ -8,18 +8,21 @@ _config_instance = None
 
 
 def get_ngeo_config():
+    """ Return the global configuration instance. Initialize it, if it has not 
+    yet been done."""
+    
     global _config_instance 
     if not _config_instance:
-        _config_instance = ConfigParser()
-        _config_instance.read([join(settings.PROJECT_DIR, "conf", "ngeo.conf"),
-                               ]) # TODO: read default conf?
+        reset_ngeo_config()
     
     return _config_instance
+
+
+def reset_ngeo_config():
+    """ Reset the global configuration instance and reread the contents from the 
+    config file. """
     
-        
-    
-    
-
-
-
-
+    global _config_instance
+    _config_instance = ConfigParser()
+    _config_instance.read([join(settings.PROJECT_DIR, "conf", "ngeo.conf"),
+                           ]) # TODO: read default conf?
