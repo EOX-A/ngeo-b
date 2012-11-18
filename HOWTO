@@ -29,7 +29,8 @@ python manage.py runserver 0.0.0.0:8000
 git archive --format=tar --prefix=ngeob-0.1dev/ master | gzip > ngeob-0.1dev.tar.gz
 scp ngeob-0.1dev.tar.gz ngeo.eox.at:.
 ssh ngeo.eox.at
-tar -xvzf ngeob-0.1dev.tar.gz
+cd build/
+tar -xvzf ../ngeob-0.1dev.tar.gz
 cd ngeob-0.1dev/ngeo_browse_server/
 python setup.py bdist_rpm --requires "EOxServer mapache httpd" --release <NO>
 
@@ -38,7 +39,24 @@ python setup.py bdist_rpm --requires "EOxServer mapache httpd" --release <NO>
 ########################################################################
 
 ssh ngeo.eox.at
+cd build/
 svn co https://eoxserver.org/svn/trunk eoxserver-0.3dev
 cd eoxserver-0.3dev/
 svn up
 python setup.py bdist_rpm --requires "Django14 >= 1.4.2 gdal-python mapserver" --release <NO>
+
+########################################################################
+# How to build MapCache                                                #
+########################################################################
+
+ssh ngeo.eox.at
+cd build/mapcache/
+git pull
+git archive --format=tar --prefix=mapcache-1.1dev/ master | gzip > ../mapcache-1.1dev.tar.gz
+cd ../../rpmbuild/
+mv ../build/mapcache-1.1dev.tar.gz SOURCES/
+cd SPECS/
+vi mapcache.spec
+rpmbuild -ba mapcache.spec 
+
+
