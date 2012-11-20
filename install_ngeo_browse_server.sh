@@ -31,6 +31,9 @@
 # About:
 # =====
 # This script installs the ngEO Browse Server.
+#
+# Use with caution as passwords are sent on the command line and thus can be 
+# seen by other users.
 
 # Running:
 # =======
@@ -66,7 +69,7 @@ echo "==============================================================="
 echo "install_ngeo_browse_server.sh"
 echo "==============================================================="
 
-echo "Starting ngEO Browse Server installation"
+echo "Started ngEO Browse Server installation"
 
 # Check architecture
 if [ "`uname -m`" != "x86_64" ] ; then
@@ -193,9 +196,6 @@ if [ ! -d ngeo_browse_server_instance ] ; then
     python manage.py syncdb --database=mapcache --noinput
     python manage.py loaddata initial_rangetypes.json
     
-    python manage.py loaddata auth_data.json ngeo_browse_layer.json eoxs_dataset_series.json # TODO remove in production
-    python manage.py loaddata --database=mapcache ngeo_mapcache.json # TODO remove in production
-
     sed -e "s,http_service_url=http://localhost:8000/ows,http_service_url=$NGEOB_URL$APACHE_NGEO_BROWSE_ALIAS/ows," -i ngeo_browse_server_instance/conf/eoxserver.conf
 
     # Collect static files
@@ -212,14 +212,18 @@ fi
 [ -d "$MAPCACHE_DIR" ] || mkdir -p "$MAPCACHE_DIR"
 cd "$MAPCACHE_DIR"
 
-#TODO
-
 # Make the cache read- and editable by apache
 chown -R apache:apache .
 
 
 # Configure WebDAV
 [ -d "$NGEOB_INSTALL_DIR/store" ] || mkdir -p "$NGEOB_INSTALL_DIR/store"
+
+
+# Enable MapCache module in Apache
+if ! grep -Fxq "LoadModule mapcache_module modules/mod_mapcache.so" /etc/httpd/conf/httpd.conf ; then
+    sed -e 's/^LoadModule version_module modules\/mod_version.so$/&\nLoadModule mapcache_module modules\/mod_mapcache.so/' -i /etc/httpd/conf/httpd.conf
+fi
 
 
 # Add Apache configuration
@@ -247,10 +251,14 @@ cat << EOF > "$APACHE_CONF"
         allow from all
     </Directory>
 
-    # TODO finish
-    # Alias /c "$MAPCACHE_DIR"
+    MapCacheAlias /c "$MAPCACHE_DIR/mapcache.xml"
+    <Directory $MAPCACHE_DIR>
+        Order Allow,Deny
+        Allow from all
+    </Directory>
 
     # TODO use vars in beginning of script
+    # TODO file: /var/www/dav/DavUsers
     DavLockDB /var/www/dav/DavLock
     Alias /store "$NGEOB_INSTALL_DIR/store"
     <Directory $NGEOB_INSTALL_DIR/store>
