@@ -29,9 +29,8 @@
 
 from django.contrib import admin
 from ngeo_browse_server.mapcache.models import (
-    Source, Time, Extent
+    Source, Time
 )
 
 admin.site.register(Source)
 admin.site.register(Time)
-admin.site.register(Extent)
