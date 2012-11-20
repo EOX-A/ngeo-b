@@ -54,6 +54,7 @@ DB_PASSWORD="oi4Zuush"
 
 # MapCache
 MAPCACHE_DIR="/var/www/cache"
+MAPCACHE_CONF="mapcache.xml"
 
 # Apache HTTPD
 APACHE_CONF="/etc/httpd/conf.d/010_ngeo_browse_server.conf"
@@ -162,15 +163,15 @@ service postgresql force-reload
 if [ -f db_config_ngeo_browse_server.sh ] ; then
     chgrp postgres db_config_ngeo_browse_server.sh
     chmod g+x db_config_ngeo_browse_server.sh
-    su postgres -c "./db_config_ngeo_browse_server.sh $DB_NAME $DB_USER  $DB_PASSWORD"
+    su postgres -c "./db_config_ngeo_browse_server.sh $DB_NAME $DB_USER $DB_PASSWORD"
 else
     echo "Script db_config_ngeo_browse_server.sh to configure DB not found."
 fi
 
 
+# ngEO Browse Server
 [ -d "$NGEOB_INSTALL_DIR" ] || mkdir -p "$NGEOB_INSTALL_DIR"
 cd "$NGEOB_INSTALL_DIR"
-
 
 # Configure ngeo_browse_server_instance
 if [ ! -d ngeo_browse_server_instance ] ; then
@@ -208,12 +209,76 @@ if [ ! -d ngeo_browse_server_instance ] ; then
 fi
 
 
-# Configure MapCache
-[ -d "$MAPCACHE_DIR" ] || mkdir -p "$MAPCACHE_DIR"
-cd "$MAPCACHE_DIR"
+# MapCache
+if [ ! -d "$MAPCACHE_DIR" ] ; then
+    mkdir -p "$MAPCACHE_DIR"
+    cd "$MAPCACHE_DIR"
 
-# Make the cache read- and editable by apache
-chown -R apache:apache .
+    # Configure read-only MapCache
+    cat << EOF > "$MAPCACHE_DIR/$MAPCACHE_CONF"
+<?xml version="1.0" encoding="UTF-8"?>
+<mapcache>
+    <default_format>PNG</default_format>
+    <format name="mypng" type ="PNG">
+        <compression>fast</compression>
+    </format>
+    <format name="myjpeg" type ="JPEG">
+        <quality>85</quality>
+        <photometric>ycbcr</photometric>
+    </format>
+    <format name="mixed" type="MIXED">
+        <transparent>mypng</transparent>
+        <opaque>myjpeg</opaque>
+    </format>
+
+    <service type="wms" enabled="true">
+        <full_wms>assemble</full_wms>
+        <resample_mode>bilinear</resample_mode>
+        <maxsize>4096</maxsize>
+    </service>
+    <service type="wmts" enabled="true"/>
+    <service type="demo" enabled="true"/>
+
+    <errors>empty_img</errors>
+    <lock_dir>/tmp</lock_dir>
+</mapcache>
+EOF
+    # Configure second MapCache instance for seeding
+    cat << EOF > "$MAPCACHE_DIR/seed_$MAPCACHE_CONF"
+<?xml version="1.0" encoding="UTF-8"?>
+<mapcache>
+    <default_format>PNG</default_format>
+    <format name="mypng" type ="PNG">
+        <compression>fast</compression>
+    </format>
+    <format name="myjpeg" type ="JPEG">
+        <quality>85</quality>
+        <photometric>ycbcr</photometric>
+    </format>
+    <format name="mixed" type="MIXED">
+        <transparent>mypng</transparent>
+        <opaque>myjpeg</opaque>
+    </format>
+
+    <service type="wms" enabled="true">
+        <full_wms>assemble</full_wms>
+        <resample_mode>bilinear</resample_mode>
+        <maxsize>4096</maxsize>
+    </service>
+    <service type="wmts" enabled="true"/>
+    <service type="demo" enabled="true"/>
+
+    <errors>empty_img</errors>
+    <lock_dir>/tmp</lock_dir>
+</mapcache>
+EOF
+
+    # Make the cache read- and editable by apache
+    chown -R apache:apache .
+
+    cd -
+fi
+
 
 
 # Configure WebDAV
@@ -227,8 +292,10 @@ fi
 
 
 # Add Apache configuration
-cat << EOF > "$APACHE_CONF"
+if [ ! -f "$APACHE_CONF" ] ; then
+    cat << EOF > "$APACHE_CONF"
 <VirtualHost *:80>
+test
     ServerName $APACHE_ServerName
     ServerAdmin $APACHE_ServerAdmin
 
@@ -278,11 +345,11 @@ cat << EOF > "$APACHE_CONF"
 </VirtualHost>
 EOF
 
+    # Reload Apache
+    service httpd graceful
+fi
+
 # Permanently start Apache
 chkconfig httpd on
-
-# Reload Apache
-service httpd graceful
-
 
 echo "Finished ngEO Browse Server installation"
