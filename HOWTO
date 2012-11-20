@@ -52,7 +52,7 @@ python setup.py bdist_rpm --requires "Django14 >= 1.4.2 gdal-python mapserver" -
 ssh ngeo.eox.at
 cd build/mapcache/
 git pull
-git archive --format=tar --prefix=mapcache-1.1dev/ master | gzip > ../mapcache-1.1dev.tar.gz
+git archive --format=tar --prefix=mapcache-1.0.1dev/ branch-1-0 | gzip > ../mapcache-1.0.1dev.tar.gz
 cd ../../rpmbuild/
 mv ../build/mapcache-1.1dev.tar.gz SOURCES/
 cd SPECS/
