@@ -1,2 +1,4 @@
 /.vagrant
 /shares/eoxserver
+/shares/httpd/www_root/cache/TEST_SAR.sqlite
+/shares/httpd/www_root/cache/TEST_OPTICAL.sqlite

@@ -4,9 +4,12 @@
 # Django
 /autotest/data/data.sqlite
 /autotest/data/mapcache.sqlite
+/autotest/static
+/ngEO_Browse_Server.egg-info
 
 # EOxServer
 /autotest/logs/eoxserver.log
+/autotest/logs/debug.log
 /autotest/wcst_perm
 /autotest/wcst_temp
 /autotest/data/optimized/
