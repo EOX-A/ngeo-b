@@ -120,6 +120,10 @@ def get_optimization_config():
         values["color_index"] = config.getboolean(section, "color_index")
     except: pass
     
+    try:
+        values["footprint_alpha"] = config.getboolean(section, "footprint_alpha")
+    except: pass
+    
     return values
 
 
@@ -137,7 +141,8 @@ def get_mapcache_config():
     
 
 def ingest_browse_report(parsed_browse_report, storage_dir=None, 
-                         optimized_dir=None, reraise_exceptions=False):
+                         optimized_dir=None, reraise_exceptions=False,
+                         do_preprocessing=True):
     """ Ingests a browse report. reraise_exceptions if errors shall be handled 
     externally
     """
@@ -164,9 +169,14 @@ def ingest_browse_report(parsed_browse_report, storage_dir=None,
         
     logger.debug("Using CRS '%s' ('%s')." % (crs, browse_layer.grid))
     
+    
     format_selection = get_format_selection("GTiff", **get_format_config())
-    preprocessor = WMSPreProcessor(format_selection, crs=crs, bandmode=RGB,
-                                   **get_optimization_config())
+    # TODO: CopyPreProcessor ??????
+    if do_preprocessing:
+        preprocessor = WMSPreProcessor(format_selection, crs=crs, bandmode=RGB,
+                                       **get_optimization_config())
+    else:
+        preprocessor = None # TODO: CopyPreprocessor
     
     result = IngestResult()
     
@@ -280,7 +290,7 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
     input_filename = get_storage_path(parsed_browse.file_name, storage_dir)
     output_filename = get_optimized_path(parsed_browse.file_name, optimized_dir)
     
-    # wrap all file operations with 
+    # wrap all file operations with IngestionTransaction
     with IngestionTransaction(output_filename):
         try:
             logger.info("Starting preprocessing on file '%s' to create '%s'."
@@ -392,17 +402,15 @@ def create_models(parsed_browse, browse_report, identifier, srid, crs, replaced,
                                           maxx=extent[2], maxy=extent[3],
                                           time=time)
     
-    
     # seed MapCache synchronously
     # TODO: maybe replace this with an async solution
     seed_mapcache(tileset=browse_layer.id, grid=crs, 
                   minx=extent[0], miny=extent[1],
                   maxx=extent[2], maxy=extent[3], 
                   minzoom=browse_layer.lowest_map_level, 
-                  maxzoom=browse_layer.highers_map_level,
+                  maxzoom=browse_layer.highest_map_level,
                   **get_mapcache_config())
-
-
+    
 #===============================================================================
 # Ingestion Transaction
 #===============================================================================
