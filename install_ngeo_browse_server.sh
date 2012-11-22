@@ -100,10 +100,10 @@ if [ ! -f /etc/yum.repos.d/eox.repo ] ; then
     sed -e 's/^enabled=0/enabled=1/' -i /etc/yum.repos.d/eox-testing.repo
 fi
 # Set includepkgs
-if ! grep -Fxq "includepkgs=EOxServer pyspatialite pysqlite libxml2 libxml2-python" /etc/yum.repos.d/eox.repo ; then
+if ! grep -Fxq "includepkgs=EOxServer pyspatialite pysqlite libxml2 libxml2-python" /etc/yum.repos.d/eox-testing.repo ; then
     sed -e 's/^\[eox-testing\]$/&\nincludepkgs=EOxServer pyspatialite pysqlite libxml2 libxml2-python/' -i /etc/yum.repos.d/eox-testing.repo
 fi
-if ! grep -Fxq "includepkgs=ngEO_Browse_Server" /etc/yum.repos.d/eox.repo ; then
+if ! grep -Fxq "includepkgs=ngEO_Browse_Server" /etc/yum.repos.d/eox-testing.repo ; then
     sed -e 's/^\[eox-testing-noarch\]$/&\nincludepkgs=ngEO_Browse_Server/' -i /etc/yum.repos.d/eox-testing.repo
 fi
 # Set exclude
