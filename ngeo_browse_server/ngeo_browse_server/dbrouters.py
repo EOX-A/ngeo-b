@@ -42,13 +42,6 @@ class MapCacheRouter(object):
         return None
 
     def allow_syncdb(self, db, model):
-#        mapcache_app = (model._meta.app_label == "mapcache")
-#        mapcache_db = (db == "mapcache")
-#        if mapcache_app:
-#            return mapcache_db
-#        if mapcache_db:
-#            return False
-#        return None
         if db == 'mapcache':
             return model._meta.app_label == 'mapcache'
         elif model._meta.app_label == 'mapcache':

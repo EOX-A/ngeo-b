@@ -45,6 +45,7 @@ NGEOB_INSTALL_DIR="/var/www/ngeo"
 
 # MapCache
 MAPCACHE_DIR="/var/www/cache"
+MAPCACHE_CONF="mapcache.xml"
 
 ################################################################################
 # Usually there should be no need to change anything below.                    #
@@ -59,20 +60,86 @@ echo "Started loading demo data"
 # ngEO Browse Server
 cd "$NGEOB_INSTALL_DIR"
     
-    # TODO download demo data
-    python manage.py loaddata auth_data.json ngeo_browse_layer.json eoxs_dataset_series.json
-    python manage.py loaddata --database=mapcache ngeo_mapcache.json
-    python manage.py ngeo_ingest_browse_report /home/meissls/reference_test_data/*.xml --storage-dir=/home/meissls/reference_test_data/
+# TODO download demo data
+python manage.py loaddata auth_data.json ngeo_browse_layer.json eoxs_dataset_series.json
+python manage.py loaddata --database=mapcache ngeo_mapcache.json
+python manage.py ngeo_ingest_browse_report /home/meissls/reference_test_data/*.xml --storage-dir=/home/meissls/reference_test_data/
 
 
 # MapCache
 cd "$MAPCACHE_DIR"
 
-    #TODO mapcache.xml
-    mapcache_seed -t TEST_SAR -v -z 0,7 -p 4 -c mapcache.xml
-    mapcache_seed -t TEST_OPTICAL -v -z 0,7 -p 4 -c mapcache.xml
+#TODO mapcache.xml and seed_mapcache.xml
+cat << EOF > "$MAPCACHE_DIR/$MAPCACHE_CONF"
+cat << EOF > "$MAPCACHE_DIR/seed_$MAPCACHE_CONF"
+<!--    <cache name="TEST_SAR" type="sqlite3">-->
+    <cache name="TEST_SAR" type="mbtiles">
+        <dbfile>/var/www/cache/TEST_SAR.sqlite</dbfile>
+    </cache>
 
-    # Make the cache read- and editable by apache
-    chown -R apache:apache .
+<!--    <cache name="TEST_OPTICAL" type="sqlite3">-->
+    <cache name="TEST_OPTICAL" type="mbtiles">
+        <dbfile>/var/www/cache/TEST_OPTICAL.sqlite</dbfile>
+    </cache>
+
+    <source name="TEST_SAR" type="wms">
+        <getmap>
+            <params>
+                <LAYERS>TEST_SAR</LAYERS>
+                <TRANSPARENT>true</TRANSPARENT>
+            </params>
+        </getmap>
+        <http>
+            <url>http://ngeo.eox.at/browse/ows?</url>
+<!--            <url>http://localhost/browse/ows?</url>-->
+        </http>
+    </source>
+
+    <source name="TEST_OPTICAL" type="wms">
+        <getmap>
+            <params>
+                <LAYERS>TEST_OPTICAL</LAYERS>
+                <TRANSPARENT>true</TRANSPARENT>
+            </params>
+        </getmap>
+        <http>
+            <url>http://ngeo.eox.at/browse/ows?</url>
+<!--            <url>http://localhost/browse/ows?</url>-->
+        </http>
+    </source>
+
+    <tileset name="TEST_SAR">
+        <source>TEST_SAR</source>
+        <cache>TEST_SAR</cache>
+        <grid>WGS84</grid>
+        <format>mixed</format>
+        <metatile>2 2</metatile>
+        <metabuffer>10</metabuffer>
+        <expires>3600</expires>
+<!--        <dimensions>
+            <dimension type="TIME" name="TIME" default="empty" dbfile="/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/data/mapcache.sqlite"></dimension>
+        </dimensions>-->
+    </tileset>
+
+    <tileset name="TEST_OPTICAL">
+        <source>TEST_OPTICAL</source>
+        <cache>TEST_OPTICAL</cache>
+        <grid>WGS84</grid>
+        <format>mixed</format>
+        <metatile>2 2</metatile>
+        <metabuffer>10</metabuffer>
+        <expires>3600</expires>
+<!--        <dimensions>
+            <dimension type="TIME" name="TIME" default="empty" dbfile="/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/data/mapcache.sqlite"></dimension>
+        </dimensions>-->
+    </tileset>
+EOF
+
+# TODO seed only covered area
+mapcache_seed -t TEST_SAR -v -z 0,7 -p 4 -c mapcache.xml
+mapcache_seed -t TEST_OPTICAL -v -z 0,7 -p 4 -c mapcache.xml
+
+# Make the cache read- and editable by apache
+chown -R apache:apache .
 
 echo "Finished loading demo data"

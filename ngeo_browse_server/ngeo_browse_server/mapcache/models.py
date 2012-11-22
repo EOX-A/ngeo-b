@@ -72,23 +72,3 @@ class Time(models.Model):
     
     class Meta:
         db_table = "time"
-
-class Extent(models.Model):
-    """The geographic extent in srs coordinates of a time entry. Needed for 
-    each srs used in a grid configured in the MapCache tileset.
-    
-    """
-    srs = models.CharField(max_length=16)
-    minx = models.FloatField()
-    miny = models.FloatField()
-    maxx = models.FloatField()
-    maxy = models.FloatField()
-    time = models.ForeignKey(Time)
-    
-    def __unicode__(self):
-        return "Extent (SRS=%s; %f, %f, %f, %f;)" % (
-            self.srs, self.minx, self.miny, self.maxx, self.maxy
-        )
-    
-    class Meta:
-        db_table = "extent"

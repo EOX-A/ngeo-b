@@ -24,7 +24,7 @@ Vagrant::Config.run do |config|
   # an identifier, the second is the path on the guest to mount the
   # folder, and the third is the path on the host to the actual folder.
   # config.vm.share_folder "v-data", "/vagrant_data", "../data"
-  config.vm.share_folder  "httpd-config", "/etc/httpd", "./shares/httpd/conf"
+  config.vm.share_folder  "httpd-config", "/etc/httpd/conf.d", "./shares/httpd/conf"
   config.vm.share_folder  "httpd-root", "/var/www", "./shares/httpd/www_root"
   config.vm.share_folder  "eoxserver", "/var/eoxserver", "./shares/eoxserver"
   config.vm.share_folder  "ngeob", "/var/ngeob", "./ngeo_browse_server"
@@ -37,7 +37,7 @@ Vagrant::Config.run do |config|
   config.vm.customize ["setextradata", :id, "VBoxInternal2/SharedFoldersEnableSymlinksCreate/ngeob", "1"]
 
   # Increase memory
-  config.vm.customize ["modifyvm", :id, "--memory", 1024]
+  config.vm.customize ["modifyvm", :id, "--memory", 1024, "--cpus", 2]
 
   # Enable provisioning with Puppet stand alone.
   #config.vm.provision :puppet do |puppet|

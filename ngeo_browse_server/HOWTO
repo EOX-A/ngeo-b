@@ -26,6 +26,20 @@ python manage.py loaddata --database=mapcache ngeo_mapcache.json
 
 
 ########################################################################
+# How to run tests                                                     #
+########################################################################
+
+python manage.py test config -v3
+
+
+########################################################################
+# How to load test data                                                #
+########################################################################
+
+python manage.py ngeo_ingest_browse_report autotest/data/reference_test_data/browseReport_*.xml --storage-dir=data/reference_test_data/
+
+
+########################################################################
 # How to generate test data                                            #
 ########################################################################
 

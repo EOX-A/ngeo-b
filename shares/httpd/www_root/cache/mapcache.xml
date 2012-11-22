@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mapcache>
+<!-- TODO    <cache name="TEST_SAR" type="sqlite3">-->
+    <cache name="TEST_SAR" type="mbtiles">
+        <dbfile>/var/www/cache/TEST_SAR.sqlite</dbfile>
+    </cache>
+
+<!-- TODO    <cache name="TEST_OPTICAL" type="sqlite3">-->
+    <cache name="TEST_OPTICAL" type="mbtiles">
+        <dbfile>/var/www/cache/TEST_OPTICAL.sqlite</dbfile>
+    </cache>
+
+    <source name="TEST_SAR" type="wms">
+        <getmap>
+            <params>
+                <LAYERS>TEST_SAR</LAYERS>
+                <TRANSPARENT>true</TRANSPARENT>
+            </params>
+        </getmap>
+        <http>
+            <url>http://localhost/browse/ows?</url>
+        </http>
+    </source>
+                           
+    <source name="TEST_OPTICAL" type="wms">
+        <getmap>
+            <params>
+                <LAYERS>TEST_OPTICAL</LAYERS>
+                <TRANSPARENT>true</TRANSPARENT>
+            </params>
+        </getmap>
+        <http>
+            <url>http://localhost/browse/ows?</url>
+        </http>
+    </source>
+
+<!-- TODO Limit min and max resolution/zoom level -->
+    <tileset name="TEST_SAR">
+        <source>TEST_SAR</source>
+        <cache>TEST_SAR</cache>
+        <grid>WGS84</grid>
+        <format>mixed</format>
+        <metatile>2 2</metatile>
+        <metabuffer>10</metabuffer>
+        <expires>3600</expires>
+<!-- TODO        <dimensions>
+            <dimension type="TIME" name="TIME" default="empty" dbfile="/var/ngeob/autotest/data/mapcache.sqlite"></dimension>
+        </dimensions>-->
+    </tileset>
+
+    <tileset name="TEST_OPTICAL">
+        <source>TEST_OPTICAL</source>
+        <cache>TEST_OPTICAL</cache>
+        <grid>WGS84</grid>
+        <format>mixed</format>
+        <metatile>2 2</metatile>
+        <metabuffer>10</metabuffer>
+        <expires>3600</expires>
+<!-- TODO        <dimensions>
+            <dimension type="TIME" name="TIME" default="empty" dbfile="/var/ngeob/autotest/data/mapcache.sqlite"></dimension>
+        </dimensions>-->
+    </tileset>
+
+    <default_format>PNG</default_format>
+    <format name="mypng" type ="PNG">
+        <compression>fast</compression>
+    </format>
+    <format name="myjpeg" type ="JPEG">
+        <quality>85</quality>
+        <photometric>ycbcr</photometric>
+    </format>
+    <format name="mixed" type="MIXED">
+        <transparent>mypng</transparent>
+        <opaque>myjpeg</opaque>
+    </format>
+
+    <service type="wms" enabled="true">
+        <full_wms>assemble</full_wms>
+        <resample_mode>bilinear</resample_mode>
+        <maxsize>4096</maxsize>
+    </service>
+    <service type="wmts" enabled="true"/>
+    <service type="demo" enabled="true"/><!-- TODO Remove in production -->
+
+    <errors>empty_img</errors>
+    <lock_dir>/tmp</lock_dir>
+</mapcache>
