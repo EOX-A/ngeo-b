@@ -7,6 +7,7 @@ from itertools import product
 from numpy import arange
 import logging
 from ConfigParser import NoSectionError, NoOptionError
+from uuid import uuid4
 
 from django.conf import settings
 from eoxserver.core.system import System
@@ -16,13 +17,14 @@ from eoxserver.processing.preprocessing.georeference import Extent, GCPList
 from eoxserver.resources.coverages.metadata import EOMetadata
 from eoxserver.resources.coverages.crss import fromShortCode, hasSwappedAxes
 
-from ngeo_browse_server.config import get_ngeo_config
+from ngeo_browse_server.config import get_ngeo_config, safe_get
 from ngeo_browse_server.control.ingest.parsing import (
     parse_browse_report, parse_coord_list
 )
 from ngeo_browse_server.control.ingest import data
 from ngeo_browse_server.config import models
 from ngeo_browse_server.mapcache import models as mapcache_models
+from ngeo_browse_server.control.ingest.tasks import seed_mapcache
 
 
 logger = logging.getLogger(__name__)
@@ -43,8 +45,10 @@ def get_storage_path(file_name, storage_dir=None):
     directory for uploaded but unprocessed files. 
     """
     
+    section = "control.ingest"
+    
     if not storage_dir:
-        storage_dir = get_ngeo_config().get("control.ingest", "storage_dir")
+        storage_dir = get_ngeo_config().get(section, "storage_dir")
     
     return get_project_relative_path(join(storage_dir, file_name))
 
@@ -62,13 +66,16 @@ def get_optimized_path(file_name, optimized_dir=None):
     """
     file_name = basename(file_name)
     config = get_ngeo_config()
+    
+    section = "control.ingest"
+    
     if not optimized_dir:
-        optimized_dir = config.get("control.ingest", "optimized_files_dir")
+        optimized_dir = config.get(section, "optimized_files_dir")
         
     optimized_dir = get_project_relative_path(optimized_dir)
     
     try:
-        postfix = config.get("control.ingest", "optimized_files_postfix")
+        postfix = config.get(section, "optimized_files_postfix")
     except NoSectionError, NoOptionError:
         postfix = ""
     
@@ -80,24 +87,20 @@ def get_format_config():
     values = {}
     config = get_ngeo_config()
     
-    def safe_get(config, section, option, default=None):
-        try:
-            return config.get(section, option)
-        except:
-            return default
+    section = "control.ingest"
     
-    values["compression"] = safe_get(config, "control.ingest", "compression")
+    values["compression"] = safe_get(config, section, "compression")
     
     if values["compression"] == "JPEG":
-        value = safe_get(config, "control.ingest", "jpeg_quality")
+        value = safe_get(config, section, "jpeg_quality")
         values["jpeg_quality"] = int(value) if value is not None else None
     
     elif values["compression"] == "DEFLATE":
-        value = safe_get(config, "control.ingest", "zlevel")
+        value = safe_get(config, section, "zlevel")
         values["zlevel"] = int(value) if value is not None else None
         
     try:
-        values["tiling"] = config.getboolean("control.ingest", "tiling")
+        values["tiling"] = config.getboolean(section, "tiling")
     except: pass
     
     return values
@@ -107,13 +110,28 @@ def get_optimization_config():
     values = {}
     config = get_ngeo_config()
     
+    section = "control.ingest"
+    
     try:
-        values["overviews"] = config.getboolean("control.ingest", "overviews")
+        values["overviews"] = config.getboolean(section, "overviews")
     except: pass
     
     try:
-        values["color_index"] = config.getboolean("control.ingest", "color_index")
+        values["color_index"] = config.getboolean(section, "color_index")
     except: pass
+    
+    return values
+
+
+def get_mapcache_config():
+    values = {}
+    config = get_ngeo_config()
+    
+    section = "control.ingest.mapcache"
+    
+    values["seed_command"] = config.get(section, "seed_command")
+    values["config_file"] = config.get(section, "config_file")
+    values["threads"] = int(safe_get(config, section, "threads", 1))
     
     return values
     
@@ -184,14 +202,24 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
     srid = fromShortCode(parsed_browse.reference_system_identifier)
     swap_axes = hasSwappedAxes(srid)
     
+    config = get_ngeo_config()
+    
     identifier = parsed_browse.browse_identifier
+    if not identifier:
+        # generate an identifier
+        prefix = safe_get(config, "control.ingest", "id_prefix", "browse")
+        identifier = "%s_%s" % (prefix, uuid4().hex)
+    else:
+        # TODO: check if the browse ID is a valid coverage ID, otherwise replace it
+        pass
     
     # check if a browse already exists and delete it in order to replace it
     try:
-        browse = models.Browse.objects.get(browse_identifier__id=identifier)
-        browse.delete()
-        replaced = True
-        logger.info("Replacing browse '%s'." % identifier)
+        if identifier:
+            browse = models.Browse.objects.get(browse_identifier__id=identifier)
+            browse.delete()
+            replaced = True
+            logger.info("Replacing browse '%s'." % identifier)
     except models.Browse.DoesNotExist:
         logger.info("Creating new browse '%s'." % identifier)
     
@@ -254,66 +282,125 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
     
     # wrap all file operations with 
     with IngestionTransaction(output_filename):
-        logger.info("Starting preprocessing on file '%s' to create '%s'."
-                    % (input_filename, output_filename))
-             
-        result = preprocessor.process(input_filename, output_filename,
-                                      geo_reference, generate_metadata=True)
+        try:
+            logger.info("Starting preprocessing on file '%s' to create '%s'."
+                        % (input_filename, output_filename))
+                 
+            result = preprocessor.process(input_filename, output_filename,
+                                          geo_reference, generate_metadata=True)
+            
+            logger.info("Creating database models.")
+            create_models(parsed_browse, browse_report, identifier, srid, crs,
+                          replaced, result)
         
-        rect_mgr = System.getRegistry().findAndBind(
-            intf_id="resources.coverages.interfaces.Manager",
-            params={
-                "resources.coverages.interfaces.res_type": "eo.rect_dataset"
-            }
-        )
+        except:
+            failure_dir = get_project_relative_path(
+                safe_get(config, "control.ingest", "failure_dir")
+            )
+            
+            logger.error("Error during ingestion of Browse '%s'. Moving "
+                         "original image to '%s'."
+                         % (parsed_browse.browse_identifier, failure_dir))
+            
+            # move the file to failure folder
+            try:
+                shutil.move(input_filename, failure_dir)
+            except:
+                logger.warn("Could not move '%s' to configured `failure_dir` "
+                             "'%s'." % (input_filename, failure_dir))
+            
+            # re-raise the exception
+            raise
         
-        # unregister the previous coverage first
-        if replaced:
-            rect_mgr.delete(obj_id=identifier)
-            # TODO: delete the mapcache models here
+        else:
+            # move the file to success folder, or delete it right away
+            delete_on_success = False
+            try: delete_on_success = config.getboolean("control.ingest", "delete_on_success")
+            except: pass
+            
+            if delete_on_success:
+                remove(input_filename)
+            else:
+                success_dir = get_project_relative_path(
+                    safe_get(config, "control.ingest", "success_dir")
+                )
+                
+                try:
+                    shutil.move(input_filename, success_dir)
+                except:
+                    logger.warn("Could not move '%s' to configured "
+                                "`success_dir` '%s'."
+                                % (input_filename, success_dir))
+            
         
-        # create EO metadata necessary for registration
-        eo_metadata = EOMetadata(
-            identifier, parsed_browse.start_time, parsed_browse.end_time,
-            result.footprint_geom
-        )
-        
-        # initialize the Coverage Manager for Rectified Datasets to register the
-        # datasets in the database
-        
-        
-        logging.info("Creating Rectified Dataset.")
-        # get dataset series ID from browse layer, if available
-        container_ids = []
-        browse_layer = browse_report.browse_layer
-        if browse_layer:
-            container_ids.append(browse_layer.id)
-        
-        # register the optimized dataset
-        coverage = rect_mgr.create(obj_id=identifier, range_type_name="RGB", 
-                                   default_srid=srid, visible=False, 
-                                   local_path=result.output_filename,
-                                   eo_metadata=eo_metadata, force=False, 
-                                   container_ids=container_ids)
-        
-        extent = coverage.getExtent()
-        
-        # TODO: mapcache model replacements??
-        # create mapcache models
-        source, _ = mapcache_models.Source.objects.get_or_create(name=browse_layer.id)
-        time = mapcache_models.Time.objects.create(start_time=parsed_browse.start_time,
-                                                   end_time=parsed_browse.end_time,
-                                                   source=source)
-        
-        mapcache_models.Extent.objects.create(srs=crs,
-                                              minx=extent[0], miny=extent[1],
-                                              maxx=extent[2], maxy=extent[3],
-                                              time=time)
-        
-        logger.debug("Successfully ingested browse with ID '%s'."
-                     % identifier)
-        
-        return replaced
+    logger.info("Successfully ingested browse with ID '%s'."
+                % identifier)
+    
+    return replaced
+
+
+def create_models(parsed_browse, browse_report, identifier, srid, crs, replaced,
+                  preprocess_result):
+    
+    rect_mgr = System.getRegistry().findAndBind(
+        intf_id="resources.coverages.interfaces.Manager",
+        params={
+            "resources.coverages.interfaces.res_type": "eo.rect_dataset"
+        }
+    )
+    
+    # unregister the previous coverage first
+    if replaced:
+        rect_mgr.delete(obj_id=identifier)
+        # TODO: delete the mapcache models here
+    
+    # create EO metadata necessary for registration
+    eo_metadata = EOMetadata(
+        identifier, parsed_browse.start_time, parsed_browse.end_time,
+        preprocess_result.footprint_geom
+    )
+    
+    # initialize the Coverage Manager for Rectified Datasets to register the
+    # datasets in the database
+    
+    
+    logging.info("Creating Rectified Dataset.")
+    # get dataset series ID from browse layer, if available
+    container_ids = []
+    browse_layer = browse_report.browse_layer
+    if browse_layer:
+        container_ids.append(browse_layer.id)
+    
+    # register the optimized dataset
+    coverage = rect_mgr.create(obj_id=identifier, range_type_name="RGB", 
+                               default_srid=srid, visible=False, 
+                               local_path=preprocess_result.output_filename,
+                               eo_metadata=eo_metadata, force=False, 
+                               container_ids=container_ids)
+    
+    extent = coverage.getExtent()
+    
+    # TODO: mapcache model replacements??
+    # create mapcache models
+    source, _ = mapcache_models.Source.objects.get_or_create(name=browse_layer.id)
+    time = mapcache_models.Time.objects.create(start_time=parsed_browse.start_time,
+                                               end_time=parsed_browse.end_time,
+                                               source=source)
+    
+    mapcache_models.Extent.objects.create(srs=crs,
+                                          minx=extent[0], miny=extent[1],
+                                          maxx=extent[2], maxy=extent[3],
+                                          time=time)
+    
+    
+    # seed MapCache synchronously
+    # TODO: maybe replace this with an async solution
+    seed_mapcache(tileset=browse_layer.id, grid=crs, 
+                  minx=extent[0], miny=extent[1],
+                  maxx=extent[2], maxy=extent[3], 
+                  minzoom=browse_layer.lowest_map_level, 
+                  maxzoom=browse_layer.highers_map_level,
+                  **get_mapcache_config())
 
 
 #===============================================================================
