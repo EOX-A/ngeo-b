@@ -45,6 +45,35 @@ from ngeo_browse_server.config import get_ngeo_config, reset_ngeo_config
 from ngeo_browse_server.config.models import Browse
 
 
+class IngestResult(object):
+    def __init__(self, xml):
+        def ns_bsi(tag):
+            return "{http://ngeo.eo.esa.int/schema/browse/ingestion}" + tag
+        
+        document = etree.fromstring(xml)
+        self.status = document.find(".//" + ns_bsi("status")).text
+        self.to_be_replaced = int(document.find(".//" + ns_bsi("toBeReplaced")).text)
+        self.actually_inserted = int(document.find(".//" + ns_bsi("actuallyInserted")).text)
+        self.actually_replaced = int(document.find(".//" + ns_bsi("actuallyReplaced")).text)
+        self._records = []
+        for record in document.findall(".//" + ns_bsi("briefRecord")):
+            identifier = record.findtext(ns_bsi("identifier"))
+            status = record.findtext(ns_bsi("status"))
+            exception_code, exception_message = None, None
+            if status == "failure":
+                exception_code = record.findtext(".//" + ns_bsi("exceptionCode"))
+                exception_message = record.findtext(".//" + ns_bsi("exceptionMessage"))
+            self._records.append((identifier, status, exception_code, exception_message))
+    
+    
+    def __iter__(self):
+        return iter(self._records)
+    
+    records = property(lambda self: self._records)
+    successful = property(lambda self: [record for record in self._records if record[1] == "success"])
+    failed = property(lambda self: [record for record in self._records if record[1] == "failure"])
+    
+
 class BaseTestCaseMixIn(object):
     """ Base Mixin for ngEO test cases using the http interface. Compares the 
     expected response/status code with the actual results.
@@ -85,6 +114,10 @@ class BaseTestCaseMixIn(object):
         
         self.temp_failure_dir = tempfile.mkdtemp()
         config.set(section, "failure_dir", self.temp_failure_dir)
+        
+        # streamline configuration
+        config.set(section, "delete_on_success", "false")
+        config.set(section, "leave_original", "false")
     
     
     def tearDown_files(self):
@@ -117,7 +150,11 @@ class HttpMixIn(object):
             filename = join(settings.PROJECT_DIR, "data", self.request_file);
             with open(filename) as f:
                 return str(f.read())
-        
+    
+    
+    def get_response(self):
+        return self.response.content
+    
     
     def execute(self, request=None, url=None):
         if not url:
@@ -144,7 +181,7 @@ class CliMixIn(object):
     args = ()
     kwargs = {}
     
-    def execute(self):
+    def execute(self, *args):
         # construct command line parameters
         args = ["manage.py", self.command]
         if isinstance(args, (list, tuple)):
@@ -159,14 +196,24 @@ class CliMixIn(object):
             else: 
                 args.append(value)
         
-        # redirect stderr to buffer
+        # redirect stdio/stderr to buffer
+        sys.stdout = StringIO()
         sys.stderr = StringIO()
         
-        # execute command
-        self.execute_command(args)
+        try:
+            # execute command
+            self.execute_command(args)
+            
+            # retrieve string
+            stdout_str = sys.stdout.getvalue()
+            stderr_str = sys.stderr.getvalue()
         
-        # reset stderr
-        sys.stderr = sys.__stderr__
+        finally:
+            # reset stdio/stderr
+            sys.stdout = sys.__stdout__
+            sys.stderr = sys.__stderr__
+        
+        return stdout_str, stderr_str
     
     
     def execute_command(self, args):
@@ -182,6 +229,10 @@ class CliMixIn(object):
                           " ".join( args ) , 
                           "".join(sys.stderr.getvalue().rsplit("\n", 1)) ) ) 
 
+    def get_response(self):
+        # return either stout
+        return self.response[0]
+        
 
 
 class IngestTestCaseMixIn(BaseTestCaseMixIn):
@@ -272,34 +323,32 @@ class IngestReplaceTestCaseMixIn(IngestTestCaseMixIn):
             with open(filename) as f:
                 request_before_replace = f.read()
         
-        self.response_before_replace = self.dispatch(request_before_replace)
+        self.response_before_replace = self.execute(request_before_replace)
         super(IngestReplaceTestCaseMixIn, self).setUp()
     
     
     def test_expected_num_replaced(self):
-        
-        def ns_bsi(tag):
-            return "{http://ngeo.eo.esa.int/schema/browse/ingestion}" + tag
-        
-        document = etree.fromstring(self.response.content)
-        actually_replaced = int(document.find(".//" + ns_bsi("actuallyReplaced")).text)
-        self.assertEqual(self.expected_num_replaced, actually_replaced)
+        result = IngestResult(self.response.content)
+        self.assertEqual(self.expected_num_replaced, result.actually_replaced)
 
 
 class IngestFailureTestCaseMixIn(IngestTestCaseMixIn):
-    
+    """ Test failures in ingestion. """
     expected_failed_browse_ids = ()
+    expected_failed_files = ()
     
     def test_expected_failed(self):
-        # TODO: parse the XML, check if errors are equal
+        result = IngestResult(self.get_response())
+        failed_ids = [record[0] for record in result.failed]
         
+        self.assertItemsEqual(self.expected_failed_browse_ids, failed_ids)
         
         # get file list of failure_dir and compare the count
         files = []
         for (_, _, filenames) in walk(self.temp_failure_dir):
             files.extend(filenames)
         
-        self.assertEqual(len(self.expected_failed), len(files))
+        self.assertItemsEqual(self.expected_failed_files, files)
     
 
 
@@ -312,6 +361,7 @@ class IngestRegularGrid(IngestTestCaseMixIn, HttpMixIn, TestCase):
     
     expected_ingested_browse_ids = ("ASAR",)
     expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775_proc.tif']
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
@@ -365,11 +415,12 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 """
 
     
-class IngesttFootprintBrowse(IngestTestCaseMixIn, HttpMixIn, TestCase):
+class IngestFootprintBrowse(IngestTestCaseMixIn, HttpMixIn, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     
     expected_ingested_browse_ids = ("b_id_1",)
     expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['ASA_IM__0P_20100722_213840_proc.tif']
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -391,11 +442,15 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 """
 
 
-class IngesttFootprintBrowseGroup(IngestTestCaseMixIn, HttpMixIn, TestCase):
+class IngestFootprintBrowseGroup(IngestTestCaseMixIn, HttpMixIn, TestCase):
     request_file = "reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"
     
     expected_ingested_browse_ids = ("b_id_6", "b_id_7", "b_id_8")
     expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['ASA_WS__0P_20100719_101023_proc.tif',
+                                'ASA_WS__0P_20100722_101601_proc.tif',
+                                'ASA_WS__0P_20100725_102231_proc.tif']
+
 
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -433,6 +488,7 @@ class InsertFootprintBrowseReplace(IngestReplaceTestCaseMixIn, HttpMixIn, TestCa
     
     expected_ingested_browse_ids = ("b_id_3",)
     expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['ASA_IM__0P_20100807_101327_new_proc.tif']
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
