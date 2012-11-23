@@ -47,13 +47,18 @@ from eoxserver.resources.coverages.metadata import EOMetadata
 from eoxserver.resources.coverages.crss import fromShortCode, hasSwappedAxes
 
 from ngeo_browse_server.config import get_ngeo_config, safe_get
+from ngeo_browse_server.config import models
 from ngeo_browse_server.control.ingest.parsing import (
     parse_browse_report, parse_coord_list
 )
 from ngeo_browse_server.control.ingest import data
-from ngeo_browse_server.config import models
+from ngeo_browse_server.control.ingest.result import IngestResult
+from ngeo_browse_server.control.ingest.config import (
+    get_project_relative_path, get_storage_path, get_optimized_path, 
+    get_format_config, get_optimization_config, get_mapcache_config
+)
 from ngeo_browse_server.mapcache import models as mapcache_models
-from ngeo_browse_server.control.ingest.tasks import seed_mapcache
+from ngeo_browse_server.mapcache.tasks import seed_mapcache
 
 
 logger = logging.getLogger(__name__)
@@ -62,112 +67,6 @@ def _model_from_parsed(parsed_browse, browse_report, model_cls):
     return model_cls.objects.create(browse_report=browse_report,
                                     **parsed_browse.get_kwargs())
 
-def get_project_relative_path(path):
-    if isabs(path):
-        return path
-    
-    return join(settings.PROJECT_DIR, path)
-
-
-def get_storage_path(file_name, storage_dir=None):
-    """ Returns an absolute path to a filename within the intermediary storage
-    directory for uploaded but unprocessed files. 
-    """
-    
-    section = "control.ingest"
-    
-    if not storage_dir:
-        storage_dir = get_ngeo_config().get(section, "storage_dir")
-    
-    return get_project_relative_path(join(storage_dir, file_name))
-
-
-def get_optimized_path(file_name, optimized_dir=None):
-    """ Returns an absolute path to a filename within the storage directory for
-    optimized raster files. Uses the optimized directory if given, otherwise 
-    uses the 'control.ingest.optimized_files_dir' setting from the ngEO
-    configuration.
-    
-    Also tries to get the postfix for optimized files from the 
-    'control.ingest.optimized_files_postfix' setting from the ngEO configuration.
-    
-    All relative paths are treated relative to the PROJECT_DIR directory setting.
-    """
-    file_name = basename(file_name)
-    config = get_ngeo_config()
-    
-    section = "control.ingest"
-    
-    if not optimized_dir:
-        optimized_dir = config.get(section, "optimized_files_dir")
-        
-    optimized_dir = get_project_relative_path(optimized_dir)
-    
-    try:
-        postfix = config.get(section, "optimized_files_postfix")
-    except NoSectionError, NoOptionError:
-        postfix = ""
-    
-    root, ext = splitext(file_name)
-    return join(optimized_dir, root + postfix + ext)
-
-
-def get_format_config():
-    values = {}
-    config = get_ngeo_config()
-    
-    section = "control.ingest"
-    
-    values["compression"] = safe_get(config, section, "compression")
-    
-    if values["compression"] == "JPEG":
-        value = safe_get(config, section, "jpeg_quality")
-        values["jpeg_quality"] = int(value) if value is not None else None
-    
-    elif values["compression"] == "DEFLATE":
-        value = safe_get(config, section, "zlevel")
-        values["zlevel"] = int(value) if value is not None else None
-        
-    try:
-        values["tiling"] = config.getboolean(section, "tiling")
-    except: pass
-    
-    return values
-
-
-def get_optimization_config():
-    values = {}
-    config = get_ngeo_config()
-    
-    section = "control.ingest"
-    
-    try:
-        values["overviews"] = config.getboolean(section, "overviews")
-    except: pass
-    
-    try:
-        values["color_index"] = config.getboolean(section, "color_index")
-    except: pass
-    
-    try:
-        values["footprint_alpha"] = config.getboolean(section, "footprint_alpha")
-    except: pass
-    
-    return values
-
-
-def get_mapcache_config():
-    values = {}
-    config = get_ngeo_config()
-    
-    section = "control.ingest.mapcache"
-    
-    values["seed_command"] = config.get(section, "seed_command")
-    values["config_file"] = config.get(section, "config_file")
-    values["threads"] = int(safe_get(config, section, "threads", 1))
-    
-    return values
-    
 
 def ingest_browse_report(parsed_browse_report, storage_dir=None, 
                          optimized_dir=None, reraise_exceptions=False,
@@ -321,6 +220,11 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
     
     # wrap all file operations with IngestionTransaction
     with IngestionTransaction(output_filename):
+        leave_original = False
+        try:
+            leave_original = config.getboolean("control.ingest", "leave_original")
+        except: pass
+        
         try:
             logger.info("Starting preprocessing on file '%s' to create '%s'."
                         % (input_filename, output_filename))
@@ -333,6 +237,9 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
                           replaced, result)
         
         except:
+            # save exception info to re-raise it
+            exc_info = sys.exc_info()
+            
             failure_dir = get_project_relative_path(
                 safe_get(config, "control.ingest", "failure_dir")
             )
@@ -343,13 +250,14 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
             
             # move the file to failure folder
             try:
-                shutil.move(input_filename, failure_dir)
+                if not leave_original:
+                    shutil.move(input_filename, failure_dir)
             except:
                 logger.warn("Could not move '%s' to configured `failure_dir` "
                              "'%s'." % (input_filename, failure_dir))
             
             # re-raise the exception
-            raise
+            raise exc_info[0], exc_info[1], exc_info[2]
         
         else:
             # move the file to success folder, or delete it right away
@@ -357,19 +265,20 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
             try: delete_on_success = config.getboolean("control.ingest", "delete_on_success")
             except: pass
             
-            if delete_on_success:
-                remove(input_filename)
-            else:
-                success_dir = get_project_relative_path(
-                    safe_get(config, "control.ingest", "success_dir")
-                )
-                
-                try:
-                    shutil.move(input_filename, success_dir)
-                except:
-                    logger.warn("Could not move '%s' to configured "
-                                "`success_dir` '%s'."
-                                % (input_filename, success_dir))
+            if not leave_original:
+                if delete_on_success:
+                    remove(input_filename)
+                else:
+                    success_dir = get_project_relative_path(
+                        safe_get(config, "control.ingest", "success_dir")
+                    )
+                    
+                    try:
+                        shutil.move(input_filename, success_dir)
+                    except:
+                        logger.warn("Could not move '%s' to configured "
+                                    "`success_dir` '%s'."
+                                    % (input_filename, success_dir))
             
     logger.info("Successfully ingested browse with ID '%s'."
                 % identifier)
@@ -425,14 +334,14 @@ def create_models(parsed_browse, browse_report, identifier, srid, crs, replaced,
                                                end_time=parsed_browse.end_time,
                                                source=source)
     
-    mapcache_models.Extent.objects.create(srs=crs,
-                                          minx=extent[0], miny=extent[1],
-                                          maxx=extent[2], maxy=extent[3],
-                                          time=time)
+    #mapcache_models.Extent.objects.create(srs=crs,
+    #                                      minx=extent[0], miny=extent[1],
+    #                                      maxx=extent[2], maxy=extent[3],
+    #                                      time=time)
     
     # seed MapCache synchronously
     # TODO: maybe replace this with an async solution
-    seed_mapcache(tileset=browse_layer.id, grid=crs, 
+    seed_mapcache(tileset=browse_layer.id, grid=browse_layer.grid, 
                   minx=extent[0], miny=extent[1],
                   maxx=extent[2], maxy=extent[3], 
                   minzoom=browse_layer.lowest_map_level, 
@@ -494,59 +403,3 @@ class IngestionTransaction(object):
             # move the backup file back to restore the initial condition
             if self._exists:
                 shutil.move(self._safe_filename, self._subject_filename)
-            
-
-#===============================================================================
-# ingestion results
-#===============================================================================
-
-class IngestResult(object):
-    """ Result object for ingestion operations. """
-    
-    def __init__(self):
-        self._inserted = 0
-        self._replaced = 0
-        self._records = []
-    
-    
-    def add(self, identifier, replaced=False, status="success"):
-        """ Adds a single browse ingestion result, where the status is either
-        success or failure.
-        """
-        if replaced:
-            self._replaced += 1
-        else:
-            self._inserted += 1
-        
-        assert(status in ("success", "partial"))
-        
-        self._records.append((identifier, status, None, None))
-    
-    
-    def add_failure(self, identifier, code, message):
-        """ Add a single browse ingestion failure result, whith an according 
-        error code and message.
-        """
-        self._records.append((identifier, "failure", code, message))
-
-
-    def __iter__(self):
-        "Helper for easy iteration of browse ingest results."
-        return iter(self._records)
-    
-    
-    @property
-    def status(self):
-        """Returns 'partial' if any failure results where registered, else 
-        'success'.
-        """
-        if len(filter(lambda record: record[1] == "failure", self._records)):
-            return "partial"
-        else:
-            return "success"
-    
-    to_be_replaced = property(lambda self: len(self._records))  
-    actually_inserted = property(lambda self: self._inserted)
-    actually_replaced = property(lambda self: self._replaced)
-
-    
