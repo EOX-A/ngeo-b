@@ -99,7 +99,6 @@ def ingest_browse_report(parsed_browse_report, storage_dir=None,
     
     
     format_selection = get_format_selection("GTiff", **get_format_config())
-    # TODO: CopyPreProcessor ??????
     if do_preprocessing:
         preprocessor = WMSPreProcessor(format_selection, crs=crs, bandmode=RGB,
                                        **get_optimization_config())
@@ -153,8 +152,15 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
     
     # check if a browse already exists and delete it in order to replace it
     try:
-        if identifier:
-            browse = models.Browse.objects.get(browse_identifier__id=identifier)
+        if parsed_browse.browse_identifier:
+            browse = models.Browse.objects.get(browse_identifier__id=parsed_browse.browse_identifier)
+            # delete *one* of the fitting Time objects
+            time_to_replace = mapcache_models.Time.objects.filter(
+                start_time=browse.start_time,
+                end_time=browse.end_time,
+                source__name=browse_report.browse_layer.id
+            )[0]
+            time_to_replace.delete()
             browse.delete()
             replaced = True
             logger.info("Replacing browse '%s'." % identifier)
@@ -288,7 +294,8 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
 
 def create_models(parsed_browse, browse_report, identifier, srid, crs, replaced,
                   preprocess_result):
-    
+    # initialize the Coverage Manager for Rectified Datasets to register the
+    # datasets in the database
     rect_mgr = System.getRegistry().findAndBind(
         intf_id="resources.coverages.interfaces.Manager",
         params={
@@ -296,10 +303,13 @@ def create_models(parsed_browse, browse_report, identifier, srid, crs, replaced,
         }
     )
     
+    browse_layer = browse_report.browse_layer
+    source, _ = mapcache_models.Source.objects.get_or_create(name=browse_layer.id)
+    
     # unregister the previous coverage first
     if replaced:
         rect_mgr.delete(obj_id=identifier)
-        # TODO: delete the mapcache models here
+        
     
     # create EO metadata necessary for registration
     eo_metadata = EOMetadata(
@@ -307,18 +317,14 @@ def create_models(parsed_browse, browse_report, identifier, srid, crs, replaced,
         preprocess_result.footprint_geom
     )
     
-    # initialize the Coverage Manager for Rectified Datasets to register the
-    # datasets in the database
     
-    
-    logging.info("Creating Rectified Dataset.")
     # get dataset series ID from browse layer, if available
     container_ids = []
-    browse_layer = browse_report.browse_layer
     if browse_layer:
         container_ids.append(browse_layer.id)
     
     # register the optimized dataset
+    logging.info("Creating Rectified Dataset.")
     coverage = rect_mgr.create(obj_id=identifier, range_type_name="RGB", 
                                default_srid=srid, visible=False, 
                                local_path=preprocess_result.output_filename,
@@ -329,15 +335,10 @@ def create_models(parsed_browse, browse_report, identifier, srid, crs, replaced,
     
     # TODO: mapcache model replacements??
     # create mapcache models
-    source, _ = mapcache_models.Source.objects.get_or_create(name=browse_layer.id)
-    time = mapcache_models.Time.objects.create(start_time=parsed_browse.start_time,
-                                               end_time=parsed_browse.end_time,
-                                               source=source)
     
-    #mapcache_models.Extent.objects.create(srs=crs,
-    #                                      minx=extent[0], miny=extent[1],
-    #                                      maxx=extent[2], maxy=extent[3],
-    #                                      time=time)
+    mapcache_models.Time.objects.create(start_time=parsed_browse.start_time,
+                                        end_time=parsed_browse.end_time,
+                                        source=source)
     
     # seed MapCache synchronously
     # TODO: maybe replace this with an async solution
