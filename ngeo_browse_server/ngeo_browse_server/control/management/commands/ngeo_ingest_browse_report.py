@@ -4,7 +4,6 @@ from lxml import etree
 from optparse import make_option
 
 from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
 from django.template.loader import render_to_string
 from eoxserver.resources.coverages.management.commands import CommandOutputMixIn
 
@@ -20,9 +19,9 @@ class Command(CommandOutputMixIn, BaseCommand):
     
     option_list = BaseCommand.option_list + (
         make_option('--on-error',
-            dest='on_error', default="rollback",
-            choices=["continue", "stop", "rollback"],
-            help="Declare how errors shall be handled. Default is 'rollback'."
+            dest='on_error', default="stop",
+            choices=["continue", "stop"],
+            help="Declare how errors shall be handled. Default is 'stop'."
         ),
         make_option('--delete-original', action="store_true",
             dest='delete_original', default=False,
@@ -72,35 +71,32 @@ class Command(CommandOutputMixIn, BaseCommand):
         if not len(filenames):
             raise CommandError("No input files given.")
         
-        with transaction.commit_manually():
-            for filename in filenames:
-                sid = transaction.savepoint()
-                try:
-                    # handle each browse report
-                    self._handle_file(filename, storage_dir, optimized_dir,
-                                      delete_original, create_result)
-                except Exception, e:
-                    # handle exceptions
-                    if on_error == "continue":
-                        self.print_msg("%s: %s" % (type(e).__name__, str(e)),
-                                       1, error=True)
-                        # just rollback to the last savepoint and continue
-                        transaction.savepoint_rollback(sid)
-                    elif on_error == "stop":
-                        # rollback to the last savepoint, commit the transaction
-                        # and stop here
-                        # TODO: 
-                        transaction.savepoint_rollback(sid)
-                        transaction.commit()
-                        raise
-                    elif on_error == "rollback":
-                        # rollback the complete transaction and stop
-                        transaction.rollback()
-                        raise
-                
-                transaction.savepoint_commit(sid)
+        # all paths are relative to the current working directory if they are
+        # not yet absolute themselves
+        if storage_dir is not None:
+            storage_dir = os.path.abspath(storage_dir)
             
-            transaction.commit()
+        if optimized_dir is not None:
+            optimized_dir = os.path.abspath(optimized_dir)
+        
+        # handle each file seperately
+        for filename in filenames:
+            try:
+                # handle each browse report
+                self._handle_file(filename, storage_dir, optimized_dir,
+                                  delete_original, create_result)
+            except Exception, e:
+                # handle exceptions
+                if on_error == "continue":
+                    # just print the traceback and continue
+                    self.print_msg("%s: %s" % (type(e).__name__, str(e)),
+                                   1, error=True)
+                    continue
+                
+                elif on_error == "stop":
+                    # reraise the exception to stop the execution
+                    raise
+                
 
 
     def _handle_file(self, filename, storage_dir, optimized_dir,

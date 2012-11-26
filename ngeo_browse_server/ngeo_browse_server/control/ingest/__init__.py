@@ -37,9 +37,11 @@ from numpy import arange
 import logging
 from ConfigParser import NoSectionError, NoOptionError
 from uuid import uuid4
+import traceback
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from eoxserver.core.system import System
 from eoxserver.processing.preprocessing import WMSPreProcessor, RGB
 from eoxserver.processing.preprocessing.format import get_format_selection
@@ -60,6 +62,7 @@ from ngeo_browse_server.control.ingest.config import (
     get_format_config, get_optimization_config, get_mapcache_config
 )
 from ngeo_browse_server.control.transaction import IngestionTransaction
+from ngeo_browse_server.control.exceptions import IngestionException
 from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.mapcache.tasks import seed_mapcache
 
@@ -83,14 +86,17 @@ def ingest_browse_report(parsed_browse_report, storage_dir=None,
     System.init()
     
     try:
-        browse_layer = models.BrowseLayer.objects.get(browse_type=parsed_browse_report.browse_type)
+        # get the according browse layer
+        browse_type = parsed_browse_report.browse_type
+        browse_layer = models.BrowseLayer.objects.get(browse_type=browse_type)
     except models.BrowseLayer.DoesNotExist:
-        raise Exception("Browse layer with browse type '%s' does not exist."
-                        % parsed_browse_report.browse_type) # TODO: raise better exception type?
+        raise IngestionException("Browse layer with browse type '%s' does not "
+                                 "exist." % parsed_browse_report.browse_type)
     
-    browse_report = models.BrowseReport.objects.create(browse_layer=browse_layer,
-                                                       **parsed_browse_report.get_kwargs())
-    
+    # generate a browse report model
+    browse_report = models.BrowseReport.objects.create(
+        browse_layer=browse_layer, **parsed_browse_report.get_kwargs()
+    )
     
     # initialize the preprocessor with configuration values
     crs = None
@@ -101,7 +107,7 @@ def ingest_browse_report(parsed_browse_report, storage_dir=None,
         
     logger.debug("Using CRS '%s' ('%s')." % (crs, browse_layer.grid))
     
-    
+    # create the required preprocessor/format selection
     format_selection = get_format_selection("GTiff", **get_format_config())
     if do_preprocessing:
         preprocessor = WMSPreProcessor(format_selection, crs=crs, bandmode=RGB,
@@ -109,25 +115,46 @@ def ingest_browse_report(parsed_browse_report, storage_dir=None,
     else:
         preprocessor = None # TODO: CopyPreprocessor
     
-    result = IngestResult()
-    
-    for parsed_browse in parsed_browse_report:
-        try:
-            replaced = ingest_browse(parsed_browse, browse_report, preprocessor,
-                                     crs, storage_dir, optimized_dir)
-            result.add(parsed_browse.browse_identifier, replaced)
-        except Exception, e:
-            logger.error("Failure during ingestion of browse '%s'." %
-                         parsed_browse.browse_identifier)
-            if reraise_exceptions:
-                info = sys.exc_info()
-                raise info[0], info[1], info[2]
-            else:
-                # TODO: use transaction savepoints to keep the DB in a 
-                # consistent state
-                result.add_failure(parsed_browse.browse_identifier, 
-                                   type(e).__name__, str(e))
+
+    # transaction management on browse report basis
+    with transaction.commit_manually():
+        result = IngestResult()
         
+        # iterate over all browses in the browse report
+        for parsed_browse in parsed_browse_report:
+            sid = transaction.savepoint()
+            try:
+                # try ingest a single browse and log success
+                replaced = ingest_browse(parsed_browse, browse_report,
+                                         preprocessor, crs, storage_dir,
+                                         optimized_dir)
+                result.add(parsed_browse.browse_identifier, replaced)
+                
+            except Exception, e:
+                # report error
+                logger.error("Failure during ingestion of browse '%s'." %
+                             parsed_browse.browse_identifier)
+                logger.error(traceback.format_exc() + "\n")
+                
+                if reraise_exceptions:
+                    # complete rollback and reraise exception
+                    transaction.rollback()
+                    
+                    info = sys.exc_info()
+                    raise info[0], info[1], info[2]
+                
+                else:
+                    # undo latest changes, append the failure and continue
+                    transaction.savepoint_rollback(sid)
+                    result.add_failure(parsed_browse.browse_identifier, 
+                                       type(e).__name__, str(e))
+            
+            # ingestion of browse was ok, commit changes
+            transaction.savepoint_commit(sid)
+        
+        # ingestion finished, commit changes. 
+        transaction.commit()
+            
     return result
     
 
