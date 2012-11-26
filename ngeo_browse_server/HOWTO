@@ -6,29 +6,8 @@
 vagrant up
 vagrant ssh
 
-# Reset DB with PostgreSQL:
-dropdb ngeo
-rm /var/ngeob/autotest/data/mapcache.sqlite
-createdb -O vagrant -T template_postgis ngeo
 cd /var/ngeob/
-python manage.py syncdb --noinput
-python manage.py syncdb --database=mapcache --noinput
-python manage.py loaddata auth_data.json ngeo_browse_layer.json eoxs_dataset_series.json initial_rangetypes.json
-python manage.py loaddata --database=mapcache ngeo_mapcache.json
-
-## Reset DB with Django:
-## Note, schema changes are not applied.
-#cd /var/ngeob/
-#python manage.py flush
-#python manage.py flush --database=mapcache
-#python manage.py loaddata auth_data.json ngeo_browse_layer.json eoxs_dataset_series.json initial_rangetypes.json
-#python manage.py loaddata --database=mapcache ngeo_mapcache.json
-
-# Reset ngEO Browse Server
-rm /var/ngeob/autotest/data/optimized/*.tif
-
-# Reset MapCache
-rm /var/www/cache/TEST_*sqlite
+./reset_db.sh
 
 
 ########################################################################
@@ -43,7 +22,7 @@ python manage.py test config -v3
 ########################################################################
 
 python manage.py ngeo_ingest_browse_report autotest/data/reference_test_data/browseReport_*.xml --storage-dir=data/reference_test_data/
-python manage.py ngeo_ingest_browse_report tmp/tmp_report_short.xml --storage-dir=/var/ngeob/tmp/
+python manage.py ngeo_ingest_browse_report tmp/tmp_report.xml --storage-dir=/var/ngeob/tmp/
 
 
 ########################################################################
