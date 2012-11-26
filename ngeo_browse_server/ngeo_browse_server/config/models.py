@@ -38,6 +38,7 @@ import re
 from django.db import models
 from django.core.validators import RegexValidator
 
+from eoxserver.resources.coverages.models import NCNameValidator
 
 ReferenceSystemIdentifierValidator = RegexValidator( 
     re.compile(r'^EPSG:[0-9]+$|^RAW$'),
@@ -84,10 +85,9 @@ class BrowseLayer(models.Model):
     lowest_map_level = models.IntegerField(null=True, blank=True, default=None)
     
     def __unicode__(self):
-        return "Browse Layer %s with Browse Type %s" % (
+        return "Browse Layer '%s' with Browse Type '%s'" % (
             self.id, self.browse_type
         )
-        return self.id
     
     class Meta:
         verbose_name = "Browse Layer"
@@ -121,6 +121,11 @@ class BrowseReport(models.Model):
     responsible_org_name = models.CharField(max_length=1024, blank=True)
     date_time = models.DateTimeField()
     
+    def __unicode__(self):
+        return "Browse Report for '%s' from '%s' and '%s'" % (
+            self.browse_layer, self.date_time, self.responsible_org_name
+        )
+    
     class Meta:
         verbose_name = "Browse Report"
         verbose_name_plural = "Browse Reports"
@@ -131,6 +136,7 @@ class Browse(models.Model):
     defined five types that inherit from this class.
     
     """
+    coverage_id = models.CharField("Coverage ID", max_length=256, unique=True, validators=[NCNameValidator])
     browse_report = models.ForeignKey(BrowseReport, related_name="browses", verbose_name="Browse Report")
     file_name = models.CharField(max_length=1024, validators=[NameValidator])
     image_type = models.CharField(max_length=8, default="GeoTIFF", 
@@ -144,17 +150,17 @@ class Browse(models.Model):
         )
     )
     reference_system_identifier = models.CharField(max_length=10, validators=[ReferenceSystemIdentifierValidator])
-    geo_type = models.CharField(max_length=24, default="modelInGeotiff", 
-        choices = (
-            ("rectifiedBrowse", "Browse is rectified and the corner coordinates are given"),
-            ("footprint", "Browse is non-rectified and a polygon delimiting boundary is given"),
-            ("regularGrid", "Browse is non-rectified and a grid of tie-points is provided"),
-            ("verticalCurtainFootprint", "Browse is vertical curtain and a suitable footprint object is supplied"), # TODO: Vertical curtains are not supported for now.
-            ("modelInGeotiff", "Browse is a rectified GeoTIFF"),
-        )
-    )
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
+    
+    def __unicode__(self):
+        return "Browse image '%s' with internal ID '%s'" % (
+            self.file_name, self.coverage_id
+        )
+    
+    class Meta:
+        verbose_name = "Browse image"
+        verbose_name_plural = "Browse images"
 
 
 class BrowseIdentifier(models.Model):
@@ -164,6 +170,13 @@ class BrowseIdentifier(models.Model):
     """
     id = models.CharField("Browse Identifier", max_length=1024, primary_key=True, validators=[NameValidator])
     browse = models.OneToOneField(Browse, related_name="browse_identifier")
+    
+    def __unicode__(self):
+        return "Browse identifier '%s'" % self.id
+    
+    class Meta:
+        verbose_name = "Browse identifier"
+        verbose_name_plural = "Browse identifiers"
 
 
 class RectifiedBrowse(Browse):
