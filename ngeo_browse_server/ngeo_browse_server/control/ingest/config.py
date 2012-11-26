@@ -7,26 +7,29 @@ from ngeo_browse_server.config import get_ngeo_config, safe_get
 
 
 def get_project_relative_path(path):
+    """ Returns a path, relative to the defined `PROJECT_DIR` directory. """
+    
     if isabs(path):
         return path
     
     return join(settings.PROJECT_DIR, path)
 
 
-def get_storage_path(file_name, storage_dir=None):
+def get_storage_path(file_name, storage_dir=None, config=None):
     """ Returns an absolute path to a filename within the intermediary storage
     directory for uploaded but unprocessed files. 
     """
     
+    config = config or get_ngeo_config()
     section = "control.ingest"
     
     if not storage_dir:
-        storage_dir = get_ngeo_config().get(section, "storage_dir")
+        storage_dir = config.get(section, "storage_dir")
     
     return get_project_relative_path(join(storage_dir, file_name))
 
 
-def get_optimized_path(file_name, optimized_dir=None):
+def get_optimized_path(file_name, optimized_dir=None, config=None):
     """ Returns an absolute path to a filename within the storage directory for
     optimized raster files. Uses the optimized directory if given, otherwise 
     uses the 'control.ingest.optimized_files_dir' setting from the ngEO
@@ -37,8 +40,9 @@ def get_optimized_path(file_name, optimized_dir=None):
     
     All relative paths are treated relative to the PROJECT_DIR directory setting.
     """
+    
     file_name = basename(file_name)
-    config = get_ngeo_config()
+    config = config or get_ngeo_config()
     
     section = "control.ingest"
     
@@ -56,9 +60,13 @@ def get_optimized_path(file_name, optimized_dir=None):
     return join(optimized_dir, root + postfix + ext)
 
 
-def get_format_config():
+def get_format_config(config=None):
+    """ Returns a dictionary with all preprocessing format specific
+    configuration settings.
+    """
+    
     values = {}
-    config = get_ngeo_config()
+    config = config or get_ngeo_config()
     
     section = "control.ingest"
     
@@ -79,9 +87,11 @@ def get_format_config():
     return values
 
 
-def get_optimization_config():
+def get_optimization_config(config=None):
+    """ Returns a dictionary with all optimization specific config settings. """
+    
     values = {}
-    config = get_ngeo_config()
+    config = config or get_ngeo_config()
     
     section = "control.ingest"
     
@@ -100,9 +110,11 @@ def get_optimization_config():
     return values
 
 
-def get_mapcache_config():
+def get_mapcache_config(config=None):
+    """ Returns a dicitonary with all mapcache related config settings. """
+    
     values = {}
-    config = get_ngeo_config()
+    config = config or get_ngeo_config()
     
     section = "control.ingest.mapcache"
     
