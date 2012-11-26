@@ -26,3 +26,13 @@ def reset_ngeo_config():
     _config_instance = ConfigParser()
     _config_instance.read([join(settings.PROJECT_DIR, "conf", "ngeo.conf"),
                            ]) # TODO: read default conf?
+
+def safe_get(config, section, option, default=None):
+    """ Convenience function to get a value from a config or retrieve the 
+    default.
+    """
+    
+    try:
+        return config.get(section, option)
+    except:
+        return default

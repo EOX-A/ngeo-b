@@ -7,8 +7,8 @@ provide means for easy data exchange.
 class Browse(object):
     """ Abstract base class for browse records. """
 
-    def __init__(self, browse_identifier, file_name, image_type,
-                 reference_system_identifier, start_time, end_time):
+    def __init__(self, file_name, image_type, reference_system_identifier, 
+                 start_time, end_time, browse_identifier=None):
         self._browse_identifier = browse_identifier
         self._file_name = file_name
         self._image_type = image_type

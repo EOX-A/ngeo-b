@@ -36,6 +36,7 @@ from itertools import product
 from numpy import arange
 import logging
 from ConfigParser import NoSectionError, NoOptionError
+from uuid import uuid4
 
 from django.conf import settings
 from eoxserver.core.system import System
@@ -45,13 +46,19 @@ from eoxserver.processing.preprocessing.georeference import Extent, GCPList
 from eoxserver.resources.coverages.metadata import EOMetadata
 from eoxserver.resources.coverages.crss import fromShortCode, hasSwappedAxes
 
-from ngeo_browse_server.config import get_ngeo_config
+from ngeo_browse_server.config import get_ngeo_config, safe_get
+from ngeo_browse_server.config import models
 from ngeo_browse_server.control.ingest.parsing import (
     parse_browse_report, parse_coord_list
 )
 from ngeo_browse_server.control.ingest import data
-from ngeo_browse_server.config import models
+from ngeo_browse_server.control.ingest.result import IngestResult
+from ngeo_browse_server.control.ingest.config import (
+    get_project_relative_path, get_storage_path, get_optimized_path, 
+    get_format_config, get_optimization_config, get_mapcache_config
+)
 from ngeo_browse_server.mapcache import models as mapcache_models
+from ngeo_browse_server.mapcache.tasks import seed_mapcache
 
 
 logger = logging.getLogger(__name__)
@@ -60,95 +67,10 @@ def _model_from_parsed(parsed_browse, browse_report, model_cls):
     return model_cls.objects.create(browse_report=browse_report,
                                     **parsed_browse.get_kwargs())
 
-def get_project_relative_path(path):
-    if isabs(path):
-        return path
-    
-    return join(settings.PROJECT_DIR, path)
-
-
-def get_storage_path(file_name, storage_dir=None):
-    """ Returns an absolute path to a filename within the intermediary storage
-    directory for uploaded but unprocessed files. 
-    """
-    
-    if not storage_dir:
-        storage_dir = get_ngeo_config().get("control.ingest", "storage_dir")
-    
-    return get_project_relative_path(join(storage_dir, file_name))
-
-
-def get_optimized_path(file_name, optimized_dir=None):
-    """ Returns an absolute path to a filename within the storage directory for
-    optimized raster files. Uses the optimized directory if given, otherwise 
-    uses the 'control.ingest.optimized_files_dir' setting from the ngEO
-    configuration.
-    
-    Also tries to get the postfix for optimized files from the 
-    'control.ingest.optimized_files_postfix' setting from the ngEO configuration.
-    
-    All relative paths are treated relative to the PROJECT_DIR directory setting.
-    """
-    file_name = basename(file_name)
-    config = get_ngeo_config()
-    if not optimized_dir:
-        optimized_dir = config.get("control.ingest", "optimized_files_dir")
-        
-    optimized_dir = get_project_relative_path(optimized_dir)
-    
-    try:
-        postfix = config.get("control.ingest", "optimized_files_postfix")
-    except NoSectionError, NoOptionError:
-        postfix = ""
-    
-    root, ext = splitext(file_name)
-    return join(optimized_dir, root + postfix + ext)
-
-
-def get_format_config():
-    values = {}
-    config = get_ngeo_config()
-    
-    def safe_get(config, section, option, default=None):
-        try:
-            return config.get(section, option)
-        except:
-            return default
-    
-    values["compression"] = safe_get(config, "control.ingest", "compression")
-    
-    if values["compression"] == "JPEG":
-        value = safe_get(config, "control.ingest", "jpeg_quality")
-        values["jpeg_quality"] = int(value) if value is not None else None
-    
-    elif values["compression"] == "DEFLATE":
-        value = safe_get(config, "control.ingest", "zlevel")
-        values["zlevel"] = int(value) if value is not None else None
-        
-    try:
-        values["tiling"] = config.getboolean("control.ingest", "tiling")
-    except: pass
-    
-    return values
-
-
-def get_optimization_config():
-    values = {}
-    config = get_ngeo_config()
-    
-    try:
-        values["overviews"] = config.getboolean("control.ingest", "overviews")
-    except: pass
-    
-    try:
-        values["color_index"] = config.getboolean("control.ingest", "color_index")
-    except: pass
-    
-    return values
-    
 
 def ingest_browse_report(parsed_browse_report, storage_dir=None, 
-                         optimized_dir=None, reraise_exceptions=False):
+                         optimized_dir=None, reraise_exceptions=False,
+                         do_preprocessing=True):
     """ Ingests a browse report. reraise_exceptions if errors shall be handled 
     externally
     """
@@ -175,9 +97,13 @@ def ingest_browse_report(parsed_browse_report, storage_dir=None,
         
     logger.debug("Using CRS '%s' ('%s')." % (crs, browse_layer.grid))
     
+    
     format_selection = get_format_selection("GTiff", **get_format_config())
-    preprocessor = WMSPreProcessor(format_selection, crs=crs, bandmode=RGB,
-                                   **get_optimization_config())
+    if do_preprocessing:
+        preprocessor = WMSPreProcessor(format_selection, crs=crs, bandmode=RGB,
+                                       **get_optimization_config())
+    else:
+        preprocessor = None # TODO: CopyPreprocessor
     
     result = IngestResult()
     
@@ -213,14 +139,31 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
     srid = fromShortCode(parsed_browse.reference_system_identifier)
     swap_axes = hasSwappedAxes(srid)
     
+    config = get_ngeo_config()
+    
     identifier = parsed_browse.browse_identifier
+    if not identifier:
+        # generate an identifier
+        prefix = safe_get(config, "control.ingest", "id_prefix", "browse")
+        identifier = "%s_%s" % (prefix, uuid4().hex)
+    else:
+        # TODO: check if the browse ID is a valid coverage ID, otherwise replace it
+        pass
     
     # check if a browse already exists and delete it in order to replace it
     try:
-        browse = models.Browse.objects.get(browse_identifier__id=identifier)
-        browse.delete()
-        replaced = True
-        logger.info("Replacing browse '%s'." % identifier)
+        if parsed_browse.browse_identifier:
+            browse = models.Browse.objects.get(browse_identifier__id=parsed_browse.browse_identifier)
+            # delete *one* of the fitting Time objects
+            time_to_replace = mapcache_models.Time.objects.filter(
+                start_time=browse.start_time,
+                end_time=browse.end_time,
+                source__name=browse_report.browse_layer.id
+            )[0]
+            time_to_replace.delete()
+            browse.delete()
+            replaced = True
+            logger.info("Replacing browse '%s'." % identifier)
     except models.Browse.DoesNotExist:
         logger.info("Creating new browse '%s'." % identifier)
     
@@ -281,63 +224,131 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
     input_filename = get_storage_path(parsed_browse.file_name, storage_dir)
     output_filename = get_optimized_path(parsed_browse.file_name, optimized_dir)
     
-    # wrap all file operations with 
+    # wrap all file operations with IngestionTransaction
     with IngestionTransaction(output_filename):
-        logger.info("Starting preprocessing on file '%s' to create '%s'."
-                    % (input_filename, output_filename))
-             
-        result = preprocessor.process(input_filename, output_filename,
-                                      geo_reference, generate_metadata=True)
+        leave_original = False
+        try:
+            leave_original = config.getboolean("control.ingest", "leave_original")
+        except: pass
         
-        rect_mgr = System.getRegistry().findAndBind(
-            intf_id="resources.coverages.interfaces.Manager",
-            params={
-                "resources.coverages.interfaces.res_type": "eo.rect_dataset"
-            }
-        )
+        try:
+            logger.info("Starting preprocessing on file '%s' to create '%s'."
+                        % (input_filename, output_filename))
+                 
+            result = preprocessor.process(input_filename, output_filename,
+                                          geo_reference, generate_metadata=True)
+            
+            logger.info("Creating database models.")
+            create_models(parsed_browse, browse_report, identifier, srid, crs,
+                          replaced, result)
         
-        # unregister the previous coverage first
-        if replaced:
-            rect_mgr.delete(obj_id=identifier)
-            # TODO: delete the mapcache models here
+        except:
+            # save exception info to re-raise it
+            exc_info = sys.exc_info()
+            
+            failure_dir = get_project_relative_path(
+                safe_get(config, "control.ingest", "failure_dir")
+            )
+            
+            logger.error("Error during ingestion of Browse '%s'. Moving "
+                         "original image to '%s'."
+                         % (parsed_browse.browse_identifier, failure_dir))
+            
+            # move the file to failure folder
+            try:
+                if not leave_original:
+                    shutil.move(input_filename, failure_dir)
+            except:
+                logger.warn("Could not move '%s' to configured `failure_dir` "
+                             "'%s'." % (input_filename, failure_dir))
+            
+            # re-raise the exception
+            raise exc_info[0], exc_info[1], exc_info[2]
         
-        # create EO metadata necessary for registration
-        eo_metadata = EOMetadata(
-            identifier, parsed_browse.start_time, parsed_browse.end_time,
-            result.footprint_geom
-        )
-        
-        # initialize the Coverage Manager for Rectified Datasets to register the
-        # datasets in the database
-        
-        
-        logging.info("Creating Rectified Dataset.")
-        # get dataset series ID from browse layer, if available
-        container_ids = []
-        browse_layer = browse_report.browse_layer
-        if browse_layer:
-            container_ids.append(browse_layer.id)
-        
-        # register the optimized dataset
-        coverage = rect_mgr.create(obj_id=identifier, range_type_name="RGB", 
-                                   default_srid=srid, visible=False, 
-                                   local_path=result.output_filename,
-                                   eo_metadata=eo_metadata, force=False, 
-                                   container_ids=container_ids)
-        
-        # TODO: mapcache model replacements??
-        # create mapcache models
-        source, _ = mapcache_models.Source.objects.get_or_create(name=browse_layer.id)
-        time = mapcache_models.Time.objects.create(start_time=parsed_browse.start_time,
-                                                   end_time=parsed_browse.end_time,
-                                                   source=source)
-        
-        logger.debug("Successfully ingested browse with ID '%s'."
-                     % identifier)
-        
-        return replaced
+        else:
+            # move the file to success folder, or delete it right away
+            delete_on_success = False
+            try: delete_on_success = config.getboolean("control.ingest", "delete_on_success")
+            except: pass
+            
+            if not leave_original:
+                if delete_on_success:
+                    remove(input_filename)
+                else:
+                    success_dir = get_project_relative_path(
+                        safe_get(config, "control.ingest", "success_dir")
+                    )
+                    
+                    try:
+                        shutil.move(input_filename, success_dir)
+                    except:
+                        logger.warn("Could not move '%s' to configured "
+                                    "`success_dir` '%s'."
+                                    % (input_filename, success_dir))
+            
+    logger.info("Successfully ingested browse with ID '%s'."
+                % identifier)
+    
+    return replaced
 
 
+def create_models(parsed_browse, browse_report, identifier, srid, crs, replaced,
+                  preprocess_result):
+    # initialize the Coverage Manager for Rectified Datasets to register the
+    # datasets in the database
+    rect_mgr = System.getRegistry().findAndBind(
+        intf_id="resources.coverages.interfaces.Manager",
+        params={
+            "resources.coverages.interfaces.res_type": "eo.rect_dataset"
+        }
+    )
+    
+    browse_layer = browse_report.browse_layer
+    source, _ = mapcache_models.Source.objects.get_or_create(name=browse_layer.id)
+    
+    # unregister the previous coverage first
+    if replaced:
+        rect_mgr.delete(obj_id=identifier)
+        
+    
+    # create EO metadata necessary for registration
+    eo_metadata = EOMetadata(
+        identifier, parsed_browse.start_time, parsed_browse.end_time,
+        preprocess_result.footprint_geom
+    )
+    
+    
+    # get dataset series ID from browse layer, if available
+    container_ids = []
+    if browse_layer:
+        container_ids.append(browse_layer.id)
+    
+    # register the optimized dataset
+    logging.info("Creating Rectified Dataset.")
+    coverage = rect_mgr.create(obj_id=identifier, range_type_name="RGB", 
+                               default_srid=srid, visible=False, 
+                               local_path=preprocess_result.output_filename,
+                               eo_metadata=eo_metadata, force=False, 
+                               container_ids=container_ids)
+    
+    extent = coverage.getExtent()
+    
+    # TODO: mapcache model replacements??
+    # create mapcache models
+    
+    mapcache_models.Time.objects.create(start_time=parsed_browse.start_time,
+                                        end_time=parsed_browse.end_time,
+                                        source=source)
+    
+    # seed MapCache synchronously
+    # TODO: maybe replace this with an async solution
+    seed_mapcache(tileset=browse_layer.id, grid=browse_layer.grid, 
+                  minx=extent[0], miny=extent[1],
+                  maxx=extent[2], maxy=extent[3], 
+                  minzoom=browse_layer.lowest_map_level, 
+                  maxzoom=browse_layer.highest_map_level,
+                  **get_mapcache_config())
+    
 #===============================================================================
 # Ingestion Transaction
 #===============================================================================
@@ -393,59 +404,3 @@ class IngestionTransaction(object):
             # move the backup file back to restore the initial condition
             if self._exists:
                 shutil.move(self._safe_filename, self._subject_filename)
-            
-
-#===============================================================================
-# ingestion results
-#===============================================================================
-
-class IngestResult(object):
-    """ Result object for ingestion operations. """
-    
-    def __init__(self):
-        self._inserted = 0
-        self._replaced = 0
-        self._records = []
-    
-    
-    def add(self, identifier, replaced=False, status="success"):
-        """ Adds a single browse ingestion result, where the status is either
-        success or failure.
-        """
-        if replaced:
-            self._replaced += 1
-        else:
-            self._inserted += 1
-        
-        assert(status in ("success", "partial"))
-        
-        self._records.append((identifier, status, None, None))
-    
-    
-    def add_failure(self, identifier, code, message):
-        """ Add a single browse ingestion failure result, whith an according 
-        error code and message.
-        """
-        self._records.append((identifier, "failure", code, message))
-
-
-    def __iter__(self):
-        "Helper for easy iteration of browse ingest results."
-        return iter(self._records)
-    
-    
-    @property
-    def status(self):
-        """Returns 'partial' if any failure results where registered, else 
-        'success'.
-        """
-        if len(filter(lambda record: record[1] == "failure", self._records)):
-            return "partial"
-        else:
-            return "success"
-    
-    to_be_replaced = property(lambda self: len(self._records))  
-    actually_inserted = property(lambda self: self._inserted)
-    actually_replaced = property(lambda self: self._replaced)
-
-    

@@ -81,7 +81,7 @@ fi
 
 # Check required tools are installed
 if [ ! -x "`which sed`" ] ; then
-    echo "ERROR: sed is required, please install it and try again" 
+    yum install -y sed
     exit 1
 fi
 
@@ -96,18 +96,15 @@ fi
 # Install needed yum repositories
 # EOX
 if [ ! -f /etc/yum.repos.d/eox.repo ] ; then
-    cd /etc/yum.repos.d/
-    wget -c --progress=dot:mega \
-        "http://packages.eox.at/eox.repo"
-    rpm --import http://packages.eox.at/eox-package-maintainers.gpg
-    cd -
+    rpm -i http://yum.packages.eox.at/el/eox-release-6-1.noarch.rpm
+    sed -e 's/^enabled=0/enabled=1/' -i /etc/yum.repos.d/eox-testing.repo
 fi
 # Set includepkgs
-if ! grep -Fxq "includepkgs=EOxServer pyspatialite pysqlite libxml2 libxml2-python" /etc/yum.repos.d/eox.repo ; then
-    sed -e 's/^\[eox\]$/&\nincludepkgs=EOxServer pyspatialite pysqlite libxml2 libxml2-python/' -i /etc/yum.repos.d/eox.repo
+if ! grep -Fxq "includepkgs=EOxServer pyspatialite pysqlite libxml2 libxml2-python" /etc/yum.repos.d/eox-testing.repo ; then
+    sed -e 's/^\[eox-testing\]$/&\nincludepkgs=EOxServer pyspatialite pysqlite libxml2 libxml2-python/' -i /etc/yum.repos.d/eox-testing.repo
 fi
-if ! grep -Fxq "includepkgs=ngEO_Browse_Server" /etc/yum.repos.d/eox.repo ; then
-    sed -e 's/^\[eox-noarch\]$/&\nincludepkgs=ngEO_Browse_Server/' -i /etc/yum.repos.d/eox.repo
+if ! grep -Fxq "includepkgs=ngEO_Browse_Server" /etc/yum.repos.d/eox-testing.repo ; then
+    sed -e 's/^\[eox-testing-noarch\]$/&\nincludepkgs=ngEO_Browse_Server/' -i /etc/yum.repos.d/eox-testing.repo
 fi
 # Set exclude
 if ! grep -Fxq "exclude=libxml2 libxml2-python" /etc/yum.repos.d/CentOS-Base.repo ; then

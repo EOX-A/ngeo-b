@@ -27,6 +27,8 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
+import logging
+import traceback
 from lxml import etree
 
 from django.db import transaction
@@ -36,6 +38,8 @@ from ngeo_browse_server.control.ingest import ingest_browse_report
 from ngeo_browse_server.control.ingest.parsing import parse_browse_report
 from ngeo_browse_server.config import get_ngeo_config
 
+
+logger = logging.getLogger(__name__)
 
 @transaction.commit_on_success
 def ingest(request):
@@ -52,12 +56,13 @@ def ingest(request):
         document = etree.parse(request)
         parsed_browse_report = parse_browse_report(document.getroot())
         result = ingest_browse_report(parsed_browse_report, 
-                                      reraise_exceptions=True)
+                                      reraise_exceptions=False)
         
         return render_to_response("control/ingest_response.xml", 
                               {"result": result}, 
                               mimetype="text/xml")
     except Exception, e:
+        logger.error(traceback.format_exc())
         return render_to_response("control/ingest_exception.xml",
                                   {"code": getattr(e, "code", None)
                                            or type(e).__name__,
