@@ -112,7 +112,7 @@ if ! grep -Fxq "exclude=libxml2 libxml2-python" /etc/yum.repos.d/CentOS-Base.rep
     sed -e 's/^\[updates\]$/&\nexclude=libxml2 libxml2-python/' -i /etc/yum.repos.d/CentOS-Base.repo
 fi
 # EPEL
-rpm -Uvh http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-7.noarch.rpm
+rpm -Uvh http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-7.noarch.rpm
 # ELGIS
 rpm -Uvh http://elgis.argeo.org/repos/6/elgis-release-6-6_0.noarch.rpm
 
@@ -277,7 +277,6 @@ EOF
 fi
 
 
-
 # Configure WebDAV
 [ -d "$NGEOB_INSTALL_DIR/store" ] || mkdir -p "$NGEOB_INSTALL_DIR/store"
 
@@ -307,10 +306,12 @@ test
     Alias /static "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/static"
     Alias $APACHE_NGEO_BROWSE_ALIAS "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/wsgi.py"
 
+    WSGIDaemonProcess test processes=10 threads=1
     <Directory "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance">
         AllowOverride None
         Options +ExecCGI -MultiViews +SymLinksIfOwnerMatch
         AddHandler wsgi-script .py
+        WSGIProcessGroup test
         Order allow,deny
         allow from all
     </Directory>

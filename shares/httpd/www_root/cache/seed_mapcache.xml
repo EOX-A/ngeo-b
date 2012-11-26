@@ -10,8 +10,33 @@
         <dbfile>/var/www/cache/TEST_OPTICAL.sqlite</dbfile>
     </cache>
 
+    <source name="TEST_SAR" type="wms">
+        <getmap>
+            <params>
+                <LAYERS>TEST_SAR</LAYERS>
+                <TRANSPARENT>true</TRANSPARENT>
+            </params>
+        </getmap>
+        <http>
+            <url>http://localhost/browse/ows?</url>
+        </http>
+    </source>
+                           
+    <source name="TEST_OPTICAL" type="wms">
+        <getmap>
+            <params>
+                <LAYERS>TEST_OPTICAL</LAYERS>
+                <TRANSPARENT>true</TRANSPARENT>
+            </params>
+        </getmap>
+        <http>
+            <url>http://localhost/browse/ows?</url>
+        </http>
+    </source>
+
 <!-- TODO Limit min and max resolution/zoom level -->
     <tileset name="TEST_SAR">
+        <source>TEST_SAR</source>
         <cache>TEST_SAR</cache>
         <grid>WGS84</grid>
         <format>mixed</format>
@@ -24,6 +49,7 @@
     </tileset>
 
     <tileset name="TEST_OPTICAL">
+        <source>TEST_OPTICAL</source>
         <cache>TEST_OPTICAL</cache>
         <grid>WGS84</grid>
         <format>mixed</format>

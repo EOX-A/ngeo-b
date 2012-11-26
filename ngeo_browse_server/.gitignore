@@ -10,6 +10,7 @@
 # EOxServer
 /autotest/logs/eoxserver.log
 /autotest/logs/debug.log
+/autotest/logs/ngeo.log
 /autotest/wcst_perm
 /autotest/wcst_temp
 /autotest/data/optimized/
