@@ -36,7 +36,7 @@ from os.path import join
 PROJECT_DIR = '{{ project_directory }}/{{ project_name }}'
 PROJECT_URL_PREFIX = ''
 
-TEST_RUNNER = 'eoxserver.testing.core.EOxServerTestRunner'
+#TEST_RUNNER = 'eoxserver.testing.core.EOxServerTestRunner'
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
@@ -108,7 +108,7 @@ MEDIA_URL = ''
 # Don't put anything in this directory yourself; store your static files
 # in apps' "static/" subdirectories and in STATICFILES_DIRS.
 # Example: "/home/media/media.lawrence.com/static/"
-STATIC_ROOT = '{{ project_directory }}/{{ project_name }}/static/'
+STATIC_ROOT = join(PROJECT_DIR, 'static')
 
 # URL prefix for static files.
 # Example: "http://media.lawrence.com/static/"
@@ -188,47 +188,54 @@ INSTALLED_APPS = (
     'ngeo_browse_server.mapcache',
 )
 
-# A sample logging configuration. The only tangible logging
-# performed by this configuration is to send an email to
-# the site admins on every HTTP 500 error when DEBUG=False.
-# See http://docs.djangoproject.com/en/dev/topics/logging for
-# more details on how to customize your logging configuration.
 LOGGING = {
     'version': 1,
-    'disable_existing_loggers': False,
+    'disable_existing_loggers': True,
     'filters': {
         'require_debug_false': {
             '()': 'django.utils.log.RequireDebugFalse'
         }
     },
-    'handlers': {
-        'mail_admins': {
-            'level': 'ERROR',
-            'filters': ['require_debug_false'],
-            'class': 'django.utils.log.AdminEmailHandler'
+    'formatters': {
+        'simple': {
+            'format': '%(levelname)s: %(message)s'
         },
-        'debug_file':{
+        'verbose': {
+            'format': '[%(asctime)s][%(module)s] %(levelname)s: %(message)s'
+        }
+    },
+    'handlers': {
+        'eoxserver_file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': '{{ project_directory }}/{{ project_name }}/logs/debug.log'
+            'filename': join(PROJECT_DIR, 'logs', 'eoxserver.log'),
+            'formatter': 'verbose',
+            'filters': [],
+        },
+        'ngeo_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': join(PROJECT_DIR, 'logs', 'ngeo.log'),
+            'formatter': 'verbose',
+            'filters': [],
         }
     },
     'loggers': {
         'eoxserver': {
-            'handlers': ['debug_file'],
+            'handlers': ['eoxserver_file'],
             'level': 'DEBUG' if DEBUG else 'INFO',
-            'propagate': True,
+            'propagate': False,
         },
         'ngeo_browse_server': {
-            'handlers': ['debug_file'],
+            'handlers': ['ngeo_file'],
             'level': 'DEBUG' if DEBUG else 'INFO',
-            'propagate': True,
+            'propagate': False,
         },
     }
 }
 
 FIXTURE_DIRS = (
-    join(PROJECT_DIR, '{{ project_directory }}/{{ project_name }}/data/fixtures'),
+    join(PROJECT_DIR, 'data/fixtures'),
 )
 
 # Set this variable if the path to the instance cannot be resolved 
