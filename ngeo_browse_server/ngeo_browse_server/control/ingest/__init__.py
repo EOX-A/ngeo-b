@@ -39,6 +39,7 @@ from ConfigParser import NoSectionError, NoOptionError
 from uuid import uuid4
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from eoxserver.core.system import System
 from eoxserver.processing.preprocessing import WMSPreProcessor, RGB
 from eoxserver.processing.preprocessing.format import get_format_selection
@@ -58,9 +59,9 @@ from ngeo_browse_server.control.ingest.config import (
     get_project_relative_path, get_storage_path, get_optimized_path, 
     get_format_config, get_optimization_config, get_mapcache_config
 )
+from ngeo_browse_server.control.transaction import IngestionTransaction
 from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.mapcache.tasks import seed_mapcache
-from django.core.exceptions import ValidationError
 
 
 logger = logging.getLogger(__name__)
@@ -374,70 +375,3 @@ def create_models(parsed_browse, browse_report, coverage_id, srid, crs,
                   maxzoom=browse_layer.highest_map_level,
                   **get_mapcache_config())
     
-#===============================================================================
-# Ingestion Transaction
-#===============================================================================
-
-class IngestionTransaction(object):
-    """ File Transaction guard to save previous files for a critical section to
-    be used with the "with"-statement.
-    """
-    
-    def __init__(self, subject_filename, safe_filename=None):
-        self._subject_filename = subject_filename
-        self._safe_filename = safe_filename
-    
-    
-    def __enter__(self):
-        " Start of critical block. Check if file exists and create backup. "
-        
-        # check if the file in question exists. If it does, move it to a safe 
-        # location 
-        self._exists = exists(self._subject_filename)
-        if not self._exists:
-            # file does not exist, do nothing
-            logger.debug("IngestionTransaction: file '%s' does not exist. "
-                         "Do nothing." % self._subject_filename)
-            return
-        
-        # create a temporary file if no path was given
-        if not self._safe_filename:
-            _, self._safe_filename = tempfile.mkstemp()
-            logger.debug("IngestionTransaction: generating backup file '%s'."
-                         % self._safe_filename)
-        
-        logger.debug("IngestionTransaction:Moving '%s' to '%s'." 
-                     % (self._subject_filename, self._safe_filename))
-        
-        # move the old file to a safe location
-        shutil.move(self._subject_filename, self._safe_filename)
-    
-    
-    def __exit__(self, etype, value, traceback):
-        " End of critical block. Either revert changes or delete backup. "
-
-        if (etype, value, traceback) == (None, None, None):
-            # no error occurred
-            logger.debug("IngestionTransaction: no error occurred.")
-            if self._exists:
-                # delete the saved old file, if it existed
-                logger.debug("IngestionTransaction: deleting backup '%s'."
-                             % self._safe_filename)
-                remove(self._safe_filename)
-        
-        # on error
-        else:
-            # an error occurred, try removing the new file. It may not exist.
-            try:
-                logger.debug("IngestionTransaction: An error occurred. " 
-                             "Deleting '%s'."
-                             % self._subject_filename)
-                remove(self._subject_filename)
-            except OSError:
-                pass
-            
-            # move the backup file back to restore the initial condition
-            if self._exists:
-                logger.debug("IngestionTransaction: Restoring backup '%s'."
-                             % self._safe_filename)
-                shutil.move(self._safe_filename, self._subject_filename)
