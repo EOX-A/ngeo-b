@@ -36,7 +36,6 @@ from django.shortcuts import render_to_response
 
 from ngeo_browse_server.control.ingest import ingest_browse_report
 from ngeo_browse_server.control.ingest.parsing import parse_browse_report
-from ngeo_browse_server.config import get_ngeo_config
 
 
 logger = logging.getLogger(__name__)
@@ -68,6 +67,3 @@ def ingest(request):
                                            or type(e).__name__,
                                    "message": str(e)},
                                   mimetype="text/xml")
-    
-    
-    

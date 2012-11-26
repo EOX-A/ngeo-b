@@ -28,7 +28,7 @@
 #-------------------------------------------------------------------------------
 
 import sys
-from os import remove
+from os import remove, makedirs
 from os.path import isabs, isdir, join, basename, splitext, abspath, exists
 import shutil
 import tempfile
@@ -257,6 +257,7 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
             # move the file to failure folder
             try:
                 if not leave_original:
+                    makedirs(failure_dir)
                     shutil.move(input_filename, failure_dir)
             except:
                 logger.warn("Could not move '%s' to configured `failure_dir` "
@@ -280,6 +281,7 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
                     )
                     
                     try:
+                        makedirs(success_dir)
                         shutil.move(input_filename, success_dir)
                     except:
                         logger.warn("Could not move '%s' to configured "
@@ -304,7 +306,6 @@ def create_models(parsed_browse, browse_report, identifier, srid, crs, replaced,
     )
     
     browse_layer = browse_report.browse_layer
-    source, _ = mapcache_models.Source.objects.get_or_create(name=browse_layer.id)
     
     # unregister the previous coverage first
     if replaced:
@@ -324,7 +325,7 @@ def create_models(parsed_browse, browse_report, identifier, srid, crs, replaced,
         container_ids.append(browse_layer.id)
     
     # register the optimized dataset
-    logging.info("Creating Rectified Dataset.")
+    logger.info("Creating Rectified Dataset.")
     coverage = rect_mgr.create(obj_id=identifier, range_type_name="RGB", 
                                default_srid=srid, visible=False, 
                                local_path=preprocess_result.output_filename,
@@ -333,9 +334,8 @@ def create_models(parsed_browse, browse_report, identifier, srid, crs, replaced,
     
     extent = coverage.getExtent()
     
-    # TODO: mapcache model replacements??
     # create mapcache models
-    
+    source, _ = mapcache_models.Source.objects.get_or_create(name=browse_layer.id)
     mapcache_models.Time.objects.create(start_time=parsed_browse.start_time,
                                         end_time=parsed_browse.end_time,
                                         source=source)
