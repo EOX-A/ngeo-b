@@ -1,6 +1,6 @@
 ngEO Browse Server is a server providing access to browse images via `OGC's 
 <http://www.opengeospatial.org/>`_ `WMS 
-<http://www.opengeospatial.org/standards/wms>`_ interfacd.
+<http://www.opengeospatial.org/standards/wms>`_ interface.
 
 ngEO Browse Server is released under the MIT license and written in `Python 
 <http://www.python.org/>`_ and entirely based on Open Source software 
