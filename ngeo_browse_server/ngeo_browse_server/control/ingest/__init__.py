@@ -45,6 +45,7 @@ from eoxserver.processing.preprocessing.format import get_format_selection
 from eoxserver.processing.preprocessing.georeference import Extent, GCPList
 from eoxserver.resources.coverages.metadata import EOMetadata
 from eoxserver.resources.coverages.crss import fromShortCode, hasSwappedAxes
+from eoxserver.resources.coverages.models import NCNameValidator
 
 from ngeo_browse_server.config import get_ngeo_config, safe_get
 from ngeo_browse_server.config import models
@@ -59,12 +60,14 @@ from ngeo_browse_server.control.ingest.config import (
 )
 from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.mapcache.tasks import seed_mapcache
+from django.core.exceptions import ValidationError
 
 
 logger = logging.getLogger(__name__)
 
-def _model_from_parsed(parsed_browse, browse_report, model_cls):
+def _model_from_parsed(parsed_browse, browse_report, coverage_id, model_cls):
     return model_cls.objects.create(browse_report=browse_report,
+                                    coverage_id=coverage_id,
                                     **parsed_browse.get_kwargs())
 
 
@@ -141,31 +144,57 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
     
     config = get_ngeo_config()
     
-    identifier = parsed_browse.browse_identifier
-    if not identifier:
-        # generate an identifier
+    browse_layer = browse_report.browse_layer
+    coverage_id = parsed_browse.browse_identifier
+    if not coverage_id:
+        # no identifier given, generate a new one
         prefix = safe_get(config, "control.ingest", "id_prefix", "browse")
-        identifier = "%s_%s" % (prefix, uuid4().hex)
+        coverage_id = "%s_%s" % (prefix, uuid4().hex)
+        logger.info("No browse identifier given, generating coverage ID '%s'."
+                    % coverage_id)
     else:
-        # TODO: check if the browse ID is a valid coverage ID, otherwise replace it
-        pass
-    
+        try:
+            NCNameValidator(coverage_id)
+        except ValidationError:
+            # given ID is not valid, generate a new identifier
+            old_id = coverage_id
+            prefix = safe_get(config, "control.ingest", "id_prefix", "browse")
+            coverage_id = "%s_%s" % (prefix, uuid4().hex)
+            logger.info("Browse ID '%s' is not a valid coverage ID. Using "
+                        "generated ID '%s'." % (old_id, coverage_id))
+        
     # check if a browse already exists and delete it in order to replace it
     try:
         if parsed_browse.browse_identifier:
-            browse = models.Browse.objects.get(browse_identifier__id=parsed_browse.browse_identifier)
+            # try to get a previous browse
+            browse = models.Browse.objects.get(
+                browse_identifier__id=parsed_browse.browse_identifier
+            )
+            
             # delete *one* of the fitting Time objects
-            time_to_replace = mapcache_models.Time.objects.filter(
+            mapcache_models.Time.objects.filter(
                 start_time=browse.start_time,
                 end_time=browse.end_time,
-                source__name=browse_report.browse_layer.id
-            )[0]
-            time_to_replace.delete()
+                source__name=browse_layer.id
+            )[0].delete()
+            
+            # delete the EOxServer rectified dataset entry
+            rect_mgr = System.getRegistry().findAndBind(
+                intf_id="resources.coverages.interfaces.Manager",
+                params={
+                    "resources.coverages.interfaces.res_type": "eo.rect_dataset"
+                }
+            )
+            rect_mgr.delete(obj_id=browse.coverage_id)
+            
             browse.delete()
+            
             replaced = True
-            logger.info("Replacing browse '%s'." % identifier)
+            logger.info("Existing browse found, replacing it.")
+            
     except models.Browse.DoesNotExist:
-        logger.info("Creating new browse '%s'." % identifier)
+        # A browse with that identifier does not exist, so just create a new one
+        logger.info("Creating new browse.")
     
     
     # initialize a GeoReference for the preprocessor
@@ -174,17 +203,18 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
         geo_reference = Extent(parsed_browse.minx, parsed_browse.miny, 
                                parsed_browse.maxx, parsed_browse.maxy,
                                srid)
-        model = _model_from_parsed(parsed_browse, browse_report,
+        model = _model_from_parsed(parsed_browse, browse_report, coverage_id,
                                    models.RectifiedBrowse)
         
     elif type(parsed_browse) is data.FootprintBrowse:
+        # Generate GCPs from footprint coordinates
         pixels = parse_coord_list(parsed_browse.col_row_list)
         coords = parse_coord_list(parsed_browse.coord_list, swap_axes)
         gcps = [(x, y, pixel, line) 
                 for (x, y), (pixel, line) in zip(coords, pixels)]
         geo_reference = GCPList(gcps, srid)
         
-        model = _model_from_parsed(parsed_browse, browse_report,
+        model = _model_from_parsed(parsed_browse, browse_report, coverage_id,
                                    models.FootprintBrowse)
         
     elif type(parsed_browse) is data.RegularGridBrowse:
@@ -205,7 +235,7 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
                 for (x, y), (pixel, line) in zip(coords, pixels)]
         geo_reference = GCPList(gcps, srid)
         
-        model = _model_from_parsed(parsed_browse, browse_report,
+        model = _model_from_parsed(parsed_browse, browse_report, coverage_id,
                                    models.RegularGridBrowse)
         
         for coord_list in parsed_browse.coord_lists:
@@ -239,7 +269,7 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
                                           geo_reference, generate_metadata=True)
             
             logger.info("Creating database models.")
-            create_models(parsed_browse, browse_report, identifier, srid, crs,
+            create_models(parsed_browse, browse_report, coverage_id, srid, crs,
                           replaced, result)
         
         except:
@@ -288,14 +318,14 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
                                     "`success_dir` '%s'."
                                     % (input_filename, success_dir))
             
-    logger.info("Successfully ingested browse with ID '%s'."
-                % identifier)
+    logger.info("Successfully ingested browse with coverage ID '%s'."
+                % coverage_id)
     
     return replaced
 
 
-def create_models(parsed_browse, browse_report, identifier, srid, crs, replaced,
-                  preprocess_result):
+def create_models(parsed_browse, browse_report, coverage_id, srid, crs,
+                  replaced, preprocess_result):
     # initialize the Coverage Manager for Rectified Datasets to register the
     # datasets in the database
     rect_mgr = System.getRegistry().findAndBind(
@@ -307,14 +337,9 @@ def create_models(parsed_browse, browse_report, identifier, srid, crs, replaced,
     
     browse_layer = browse_report.browse_layer
     
-    # unregister the previous coverage first
-    if replaced:
-        rect_mgr.delete(obj_id=identifier)
-        
-    
     # create EO metadata necessary for registration
     eo_metadata = EOMetadata(
-        identifier, parsed_browse.start_time, parsed_browse.end_time,
+        coverage_id, parsed_browse.start_time, parsed_browse.end_time,
         preprocess_result.footprint_geom
     )
     
@@ -326,7 +351,7 @@ def create_models(parsed_browse, browse_report, identifier, srid, crs, replaced,
     
     # register the optimized dataset
     logger.info("Creating Rectified Dataset.")
-    coverage = rect_mgr.create(obj_id=identifier, range_type_name="RGB", 
+    coverage = rect_mgr.create(obj_id=coverage_id, range_type_name="RGB", 
                                default_srid=srid, visible=False, 
                                local_path=preprocess_result.output_filename,
                                eo_metadata=eo_metadata, force=False, 
@@ -364,43 +389,55 @@ class IngestionTransaction(object):
     
     
     def __enter__(self):
-        " Start of critical block. "
+        " Start of critical block. Check if file exists and create backup. "
         
         # check if the file in question exists. If it does, move it to a safe 
         # location 
         self._exists = exists(self._subject_filename)
         if not self._exists:
             # file does not exist, do nothing
+            logger.debug("IngestionTransaction: file '%s' does not exist. "
+                         "Do nothing." % self._subject_filename)
             return
         
         # create a temporary file if no path was given
         if not self._safe_filename:
             _, self._safe_filename = tempfile.mkstemp()
+            logger.debug("IngestionTransaction: generating backup file '%s'."
+                         % self._safe_filename)
         
-        logger.debug("Moving '%s' to '%s'." % (self._subject_filename,
-                                               self._safe_filename))
+        logger.debug("IngestionTransaction:Moving '%s' to '%s'." 
+                     % (self._subject_filename, self._safe_filename))
         
         # move the old file to a safe location
         shutil.move(self._subject_filename, self._safe_filename)
     
     
     def __exit__(self, etype, value, traceback):
-        " End of critical block. "
-        # no error
+        " End of critical block. Either revert changes or delete backup. "
+
         if (etype, value, traceback) == (None, None, None):
             # no error occurred
+            logger.debug("IngestionTransaction: no error occurred.")
             if self._exists:
                 # delete the saved old file, if it existed
+                logger.debug("IngestionTransaction: deleting backup '%s'."
+                             % self._safe_filename)
                 remove(self._safe_filename)
         
         # on error
         else:
             # an error occurred, try removing the new file. It may not exist.
             try:
+                logger.debug("IngestionTransaction: An error occurred. " 
+                             "Deleting '%s'."
+                             % self._subject_filename)
                 remove(self._subject_filename)
             except OSError:
                 pass
             
             # move the backup file back to restore the initial condition
             if self._exists:
+                logger.debug("IngestionTransaction: Restoring backup '%s'."
+                             % self._safe_filename)
                 shutil.move(self._safe_filename, self._subject_filename)
