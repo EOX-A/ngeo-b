@@ -79,10 +79,13 @@ def safe_makedirs(path):
     if not exists(path):
         makedirs(path)
 
+
 def _model_from_parsed(parsed_browse, browse_report, coverage_id, model_cls):
-    return model_cls.objects.create(browse_report=browse_report,
-                                    coverage_id=coverage_id,
-                                    **parsed_browse.get_kwargs())
+    model = model_cls(browse_report=browse_report, coverage_id=coverage_id,
+                      **parsed_browse.get_kwargs())
+    model.full_clean()
+    model.save()
+    return model
 
 
 def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
@@ -103,9 +106,11 @@ def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
                                  "exist." % parsed_browse_report.browse_type)
     
     # generate a browse report model
-    browse_report = models.BrowseReport.objects.create(
+    browse_report = models.BrowseReport(
         browse_layer=browse_layer, **parsed_browse_report.get_kwargs()
     )
+    browse_report.full_clean()
+    browse_report.save()
     
     # initialize the preprocessor with configuration values
     crs = None
@@ -252,6 +257,12 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs, config=None):
         coords = parse_coord_list(parsed_browse.coord_list, swap_axes)
         gcps = [(x, y, pixel, line) 
                 for (x, y), (pixel, line) in zip(coords, pixels)]
+        
+        # check that the last point of the footprint is the first
+        if not gcps[0] == gcps[-1]:
+            raise IngestionException("The last value of the footprint is not "
+                                     "equal to the first.")
+        
         geo_reference = GCPList(gcps, srid)
         
         model = _model_from_parsed(parsed_browse, browse_report, coverage_id,
@@ -260,8 +271,14 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs, config=None):
     elif type(parsed_browse) is data.RegularGridBrowse:
         # calculate a list of pixel coordinates according to the values of the
         # parsed browse report (col_node_number * row_node_number)
-        range_x = arange(0.0, parsed_browse.col_node_number * parsed_browse.col_step, parsed_browse.col_step)
-        range_y = arange(0.0, parsed_browse.row_node_number * parsed_browse.row_step, parsed_browse.row_step)
+        range_x = arange(
+            0.0, parsed_browse.col_node_number * parsed_browse.col_step,
+            parsed_browse.col_step
+        )
+        range_y = arange(
+            0.0, parsed_browse.row_node_number * parsed_browse.row_step,
+            parsed_browse.row_step
+        )
         
         # Python is cool!
         pixels = [(x, y) for y in range_y for x in range_x]
@@ -279,23 +296,32 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs, config=None):
                                    models.RegularGridBrowse)
         
         for coord_list in parsed_browse.coord_lists:
-            models.RegularGridCoordList.objects.create(regular_grid_browse=model,
-                                                       coord_list=coord_list)
+            coord_list = models.RegularGridCoordList(regular_grid_browse=model,
+                                                     coord_list=coord_list)
+            coord_list.full_clean()
+            coord_list.save()
     
     else:
         raise NotImplementedError
     
     # if the browse contains an identifier, create the according model
     if parsed_browse.browse_identifier is not None:
-        models.BrowseIdentifier.objects.create(id=parsed_browse.browse_identifier, 
-                                               browse=model)
+        browse_identifier = models.BrowseIdentifier(
+            id=parsed_browse.browse_identifier, browse=model
+        )
+        browse_identifier.full_clean()
+        browse_identifier.save()
 
     # start the preprocessor
     input_filename = get_storage_path(parsed_browse.file_name, config=config)
     output_filename = get_optimized_path(parsed_browse.file_name, 
                                          browse_layer.id, config=config)
     
-    # 
+    if not exists(input_filename):
+        raise IngestionException("Input file '%s' does not exist."
+                                 % input_filename)
+    
+    # check that the output directory exists
     safe_makedirs(dirname(output_filename))
     
     # wrap all file operations with IngestionTransaction
@@ -387,7 +413,6 @@ def create_models(parsed_browse, browse_report, coverage_id, srid, crs,
         preprocess_result.footprint_geom
     )
     
-    
     # get dataset series ID from browse layer, if available
     container_ids = []
     if browse_layer:
@@ -405,9 +430,11 @@ def create_models(parsed_browse, browse_report, coverage_id, srid, crs,
     
     # create mapcache models
     source, _ = mapcache_models.Source.objects.get_or_create(name=browse_layer.id)
-    mapcache_models.Time.objects.create(start_time=parsed_browse.start_time,
-                                        end_time=parsed_browse.end_time,
-                                        source=source)
+    time = mapcache_models.Time(start_time=parsed_browse.start_time,
+                                end_time=parsed_browse.end_time,
+                                source=source)
+    time.full_clean()
+    time.save()
     
     # seed MapCache synchronously
     # TODO: maybe replace this with an async solution
