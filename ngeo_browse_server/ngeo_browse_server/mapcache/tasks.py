@@ -1,5 +1,6 @@
 import logging
 import subprocess
+from ngeo_browse_server.mapcache.exceptions import SeedException
 
 
 logger = logging.getLogger(__name__)
@@ -7,13 +8,16 @@ logger = logging.getLogger(__name__)
 def seed_mapcache(seed_command, config_file, tileset, grid, 
                   minx, miny, maxx, maxy, minzoom, maxzoom, threads):
 
-    # translate tileset
+    # translate grid
     if grid == "urn:ogc:def:wkss:OGC:1.0:GoogleMapsCompatible":
         grid = "G"
     elif grid == "urn:ogc:def:wkss:OGC:1.0:GoogleCRS84Quad":
         grid = "WGS84"
     else:
         raise Exception("Invalid grid '%s'." % grid)
+    
+    if minzoom is None: minzoom = 1
+    if maxzoom is None: maxzoom = 10
     
     logger.info("Starting mapcaching seed with parameters: command='%s', "
                 "config_file='%s', tileset='%s', grid='%s', "
@@ -27,25 +31,26 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
         "-t", tileset,
         "-g", grid,
         "-e", "%f,%f,%f,%f" % (minx, miny, maxx, maxy),
-        "-n", threads
+        "-n", str(threads),
+        "-z", "%d,%d" % (minzoom, maxzoom),
+        "-q", "-f"
     ]
-    
-    if minzoom is not None and maxzoom is not None: 
-        args.extend(("-z", "%d,%d" % (minzoom, maxzoom)))
-    
-    
-    args = map(str, args)
     
     logger.debug("mapcache seeding command: '%s'. raw: '%s'."
                  % (" ".join(args), args))
     
-    process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process = subprocess.Popen(args, stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE)
     
     out, err = process.communicate()
     for string in (out, err):
         for line in string.split("\n"):
             logger.info(line)
-            
+    
+    if process.returncode == 0:
+        raise SeedException("'%s' failed. Returncode '%d'."
+                            % (seed_command, process.returncode))
+    
     logger.info("Seeding finished with returncode '%d'." % process.returncode)
     
     return process.returncode
