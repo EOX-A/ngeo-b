@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 class LogToConsoleMixIn(object):
     """ Helper mix-in to redirect logs to the `sys.stderr` stream. """
+    
     def set_up_logging(self, loggernames, verbosity=None, traceback=False):
         verbosity = int(verbosity)
         if verbosity is None:
@@ -110,14 +111,14 @@ class Command(LogToConsoleMixIn, BaseCommand):
             optimized_dir = os.path.abspath(optimized_dir)
             
         
-        # TODO: set config values here
+        # set config values
         section = "control.ingest"
         config = get_ngeo_config()
         config.set(section, "storage_dir", storage_dir)
-        config.set(section, "optimized_dir", optimized_dir)
+        config.set(section, "optimized_files_dir", optimized_dir)
         config.set(section, "delete_on_success", delete_on_success)
         
-        # handle each file seperately
+        # handle each file separately
         for filename in filenames:
             try:
                 # handle each browse report
@@ -131,7 +132,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
                     continue
                 
                 elif on_error == "stop":
-                    # reraise the exception to stop the execution
+                    # re-raise the exception to stop the execution
                     raise
                 
 
@@ -146,7 +147,9 @@ class Command(LogToConsoleMixIn, BaseCommand):
         parsed_browse_report = parse_browse_report(document.getroot())
         
         # ingest the parsed browse report
-        logger.info("Ingesting browse report with %d browses.")
+        logger.info("Ingesting browse report with %d browse%s."
+                    % (len(parsed_browse_report), 
+                       "s" if len(parsed_browse_report) > 1 else ""))
         
         if not create_result:
             result = ingest_browse_report(parsed_browse_report,
