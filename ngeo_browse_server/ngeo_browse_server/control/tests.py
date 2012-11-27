@@ -29,7 +29,7 @@
 
 import sys
 from os import walk
-from os.path import join
+from os.path import join, exists
 import tempfile
 import shutil
 from cStringIO import StringIO
@@ -253,6 +253,7 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
     expected_ingested_browse_ids = ()
     expected_inserted_into_series = None
     expected_optimized_files = ()
+    expected_deleted_files = None
     
     
     def test_expected_ingested_browses(self):
@@ -308,8 +309,12 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
         """ Check that the storage files were deleted/moved from the storage
             dir.
         """
-        # TODO: implement
-        self.skipTest("Not yet implemented.")
+        
+        if self.expected_deleted_files is None:
+            self.skipTest("No expected files given.")
+            
+        for filename in self.expected_deleted_files:
+            self.assertFalse(exists(join(self.temp_storage_dir, filename)))
 
     
     def test_seed(self):
@@ -461,6 +466,7 @@ class IngestFootprintBrowse(IngestTestCaseMixIn, HttpMixIn, TestCase):
     expected_ingested_browse_ids = ("b_id_1",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['ASA_IM__0P_20100722_213840_proc.tif']
+    expected_deleted_files = ['ASA_IM__0P_20100722_213840.jpg']
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -487,6 +493,7 @@ class IngestFootprintBrowse2(IngestTestCaseMixIn, HttpMixIn, TestCase):
     expected_ingested_browse_ids = ("b_id_2",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['ASA_IM__0P_20100731_103315_proc.tif']
+    expected_deleted_files = ['ASA_IM__0P_20100731_103315.jpg']
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -513,6 +520,7 @@ class IngestFootprintBrowse3(IngestTestCaseMixIn, HttpMixIn, TestCase):
     expected_ingested_browse_ids = ("b_id_5",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['ASA_IM__0P_20100813_102453_proc.tif']
+    expected_deleted_files = ['ASA_IM__0P_20100813_102453.jpg']
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -543,6 +551,7 @@ class IngestFootprintBrowse4(IngestTestCaseMixIn, HttpMixIn, TestCase):
     expected_ingested_browse_ids = ("b_id_9",)
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['ATS_TOA_1P_20100719_105257_proc.tif']
+    expected_deleted_files = ['ATS_TOA_1P_20100719_105257.jpg']
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -569,6 +578,7 @@ class IngestFootprintBrowse5(IngestTestCaseMixIn, HttpMixIn, TestCase):
     expected_ingested_browse_ids = ("b_id_10",)
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['ATS_TOA_1P_20100719_213253_proc.tif']
+    expected_deleted_files = ['ATS_TOA_1P_20100719_213253.jpg']
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -595,6 +605,7 @@ class IngestFootprintBrowse6(IngestTestCaseMixIn, HttpMixIn, TestCase):
     expected_ingested_browse_ids = ("b_id_11",)
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['ATS_TOA_1P_20100722_101606_proc.tif']
+    expected_deleted_files = ['ATS_TOA_1P_20100722_101606.jpg']
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -627,7 +638,9 @@ class IngestFootprintBrowseGroup(IngestTestCaseMixIn, HttpMixIn, TestCase):
     expected_optimized_files = ['ASA_WS__0P_20100719_101023_proc.tif',
                                 'ASA_WS__0P_20100722_101601_proc.tif',
                                 'ASA_WS__0P_20100725_102231_proc.tif']
-
+    expected_deleted_files = ['ASA_WS__0P_20100719_101023.jpg',
+                              'ASA_WS__0P_20100722_101601.jpg',
+                              'ASA_WS__0P_20100725_102231.jpg']
 
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -662,7 +675,6 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class IngestFootprintBrowseReplace(IngestReplaceTestCaseMixIn, HttpMixIn, TestCase):
     fixtures = IngestReplaceTestCaseMixIn.fixtures + ["browse_ASA_IM__0P_20100807_101327.json"]
-    #request_before_replace_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327.xml"
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_new.xml"
     
     expected_num_replaced = 1
@@ -670,6 +682,7 @@ class IngestFootprintBrowseReplace(IngestReplaceTestCaseMixIn, HttpMixIn, TestCa
     expected_ingested_browse_ids = ("b_id_3",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['ASA_IM__0P_20100807_101327_new_proc.tif']
+    expected_deleted_files = ['ASA_IM__0P_20100807_101327_new.jpg']
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -733,6 +746,7 @@ class IngestFromCommand(IngestTestCaseMixIn, CliMixIn, TestCase):
     expected_ingested_browse_ids = ("b_id_3",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ("ASA_IM__0P_20100807_101327_proc.tif",)
+    expected_deleted_files = ['ASA_IM__0P_20100807_101327.jpg']
 
 
 # TODO: test optimization features
