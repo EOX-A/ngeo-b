@@ -61,8 +61,8 @@ from ngeo_browse_server.control.ingest.config import (
     get_project_relative_path, get_storage_path, get_optimized_path, 
     get_format_config, get_optimization_config, get_mapcache_config
 )
-from ngeo_browse_server.control.transaction import IngestionTransaction
-from ngeo_browse_server.control.exceptions import IngestionException
+from ngeo_browse_server.control.ingest.filetransaction import IngestionTransaction
+from ngeo_browse_server.control.ingest.exceptions import IngestionException
 from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.mapcache.tasks import seed_mapcache
 
@@ -75,9 +75,8 @@ def _model_from_parsed(parsed_browse, browse_report, coverage_id, model_cls):
                                     **parsed_browse.get_kwargs())
 
 
-def ingest_browse_report(parsed_browse_report, storage_dir=None, 
-                         optimized_dir=None, reraise_exceptions=False,
-                         do_preprocessing=True):
+def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
+                         do_preprocessing=True, config=None):
     """ Ingests a browse report. reraise_exceptions if errors shall be handled 
     externally
     """
@@ -108,16 +107,17 @@ def ingest_browse_report(parsed_browse_report, storage_dir=None,
     logger.debug("Using CRS '%s' ('%s')." % (crs, browse_layer.grid))
     
     # create the required preprocessor/format selection
-    format_selection = get_format_selection("GTiff", **get_format_config())
+    format_selection = get_format_selection("GTiff",
+                                            **get_format_config(config))
     if do_preprocessing:
         preprocessor = WMSPreProcessor(format_selection, crs=crs, bandmode=RGB,
-                                       **get_optimization_config())
+                                       **get_optimization_config(config))
     else:
         preprocessor = None # TODO: CopyPreprocessor
     
 
     # transaction management on browse report basis
-    with transaction.commit_manually():
+    with transaction.commit_on_success():
         result = IngestResult()
         
         # iterate over all browses in the browse report
@@ -126,8 +126,7 @@ def ingest_browse_report(parsed_browse_report, storage_dir=None,
             try:
                 # try ingest a single browse and log success
                 replaced = ingest_browse(parsed_browse, browse_report,
-                                         preprocessor, crs, storage_dir,
-                                         optimized_dir)
+                                         preprocessor, crs, config=config)
                 result.add(parsed_browse.browse_identifier, replaced)
                 
             except Exception, e:
@@ -158,8 +157,7 @@ def ingest_browse_report(parsed_browse_report, storage_dir=None,
     return result
     
 
-def ingest_browse(parsed_browse, browse_report, preprocessor, crs, 
-                  storage_dir=None, optimized_dir=None):
+def ingest_browse(parsed_browse, browse_report, preprocessor, crs, config=None):
     """ Ingests a single browse report, performs the preprocessing of the data
     file and adds the generated browse model to the browse report model. Returns
     a boolean value, indicating whether or not the browse has been inserted or
@@ -170,7 +168,7 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
     srid = fromShortCode(parsed_browse.reference_system_identifier)
     swap_axes = hasSwappedAxes(srid)
     
-    config = get_ngeo_config()
+    config = config or get_ngeo_config()
     
     browse_layer = browse_report.browse_layer
     coverage_id = parsed_browse.browse_identifier
@@ -279,8 +277,8 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
                                                browse=model)
 
     # start the preprocessor
-    input_filename = get_storage_path(parsed_browse.file_name, storage_dir)
-    output_filename = get_optimized_path(parsed_browse.file_name, optimized_dir)
+    input_filename = get_storage_path(parsed_browse.file_name, config=config)
+    output_filename = get_optimized_path(parsed_browse.file_name, config=config)
     
     # wrap all file operations with IngestionTransaction
     with IngestionTransaction(output_filename):
@@ -298,7 +296,7 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
             
             logger.info("Creating database models.")
             create_models(parsed_browse, browse_report, coverage_id, srid, crs,
-                          replaced, result)
+                          replaced, result, config=config)
         
         except:
             # save exception info to re-raise it
@@ -353,7 +351,7 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
 
 
 def create_models(parsed_browse, browse_report, coverage_id, srid, crs,
-                  replaced, preprocess_result):
+                  replaced, preprocess_result, config=None):
     # initialize the Coverage Manager for Rectified Datasets to register the
     # datasets in the database
     rect_mgr = System.getRegistry().findAndBind(
@@ -400,5 +398,5 @@ def create_models(parsed_browse, browse_report, coverage_id, srid, crs,
                   maxx=extent[2], maxy=extent[3], 
                   minzoom=browse_layer.lowest_map_level, 
                   maxzoom=browse_layer.highest_map_level,
-                  **get_mapcache_config())
+                  **get_mapcache_config(config))
     
