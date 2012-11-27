@@ -338,6 +338,11 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs, config=None):
             result = preprocessor.process(input_filename, output_filename,
                                           geo_reference, generate_metadata=True)
             
+            # validate preprocess result
+            if result.num_bands not in (3, 4):
+                raise IngestionException("Processed browse image has %d bands."
+                                         % result.num_bands)
+            
             logger.info("Creating database models.")
             create_models(parsed_browse, browse_report, coverage_id, srid, crs,
                           replaced, result, config=config)
@@ -418,9 +423,13 @@ def create_models(parsed_browse, browse_report, coverage_id, srid, crs,
     if browse_layer:
         container_ids.append(browse_layer.id)
     
+    
+    range_type_name = "RGB" if preprocess_result.num_bands == 3 else "RGBA"
+    
     # register the optimized dataset
     logger.info("Creating Rectified Dataset.")
-    coverage = rect_mgr.create(obj_id=coverage_id, range_type_name="RGB", 
+    coverage = rect_mgr.create(obj_id=coverage_id, 
+                               range_type_name=range_type_name,
                                default_srid=srid, visible=False, 
                                local_path=preprocess_result.output_filename,
                                eo_metadata=eo_metadata, force=False, 
