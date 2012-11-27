@@ -132,6 +132,8 @@ class BrowseReport(object):
     def __iter__(self):
         return iter(self._browses)
     
+    def __len__(self):
+        return len(self._browses)
     
     def append(self, browse):
         self._browses.append(browse)
