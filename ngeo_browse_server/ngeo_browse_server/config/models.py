@@ -37,6 +37,7 @@ import re
 
 from django.db import models
 from django.core.validators import RegexValidator
+from django.core.exceptions import ValidationError
 
 from eoxserver.resources.coverages.models import NCNameValidator
 
@@ -92,6 +93,13 @@ class BrowseLayer(models.Model):
     class Meta:
         verbose_name = "Browse Layer"
         verbose_name_plural = "Browse Layers"
+        
+    def clean(self):
+        # custom model validation
+        if self.highest_map_level > self.lowest_map_level:
+            raise ValidationError("Highest map level number must be lower than"
+                                  "lowest map level.")
+        # TODO: more checks
 
 
 class RelatedDataset(models.Model):
@@ -161,6 +169,13 @@ class Browse(models.Model):
     class Meta:
         verbose_name = "Browse image"
         verbose_name_plural = "Browse images"
+    
+    def clean(self):
+        # custom model validation
+        if self.start_time > self.end_time:
+            raise ValidationError("Start time may not be more recent than end "
+                                  "time.")
+        
 
 
 class BrowseIdentifier(models.Model):
@@ -187,6 +202,11 @@ class RectifiedBrowse(Browse):
     miny = models.FloatField()
     maxx = models.FloatField()
     maxy = models.FloatField()
+    
+    def clean(self):
+        super(RectifiedBrowse, self).clean()
+        if self.minx > self.maxx or self.miny > self.maxy:
+            raise ValidationError("Invalid extent given.")
 
 class FootprintBrowse(Browse):
     """Non-rectified Browses with given polygon delimiting boundary or 
