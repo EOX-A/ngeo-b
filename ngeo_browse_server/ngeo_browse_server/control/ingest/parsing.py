@@ -4,6 +4,7 @@ from itertools import izip
 from eoxserver.core.util.timetools import getDateTime
 
 from ngeo_browse_server.control.ingest import data  
+from ngeo_browse_server.control.ingest.exceptions import ParsingException
 
 
 logger = logging.getLogger(__name__)
@@ -98,6 +99,9 @@ def parse_browse(browse_elem, browse_report=None):
     elif vertical_curtain_footprint is not None:
         logger.info("Parsing Vertical Curtain Browse.")
         return data.VerticalCurtainBrowse(**kwargs)
+    
+    else:
+        raise ParsingException("Missing geo-spatial reference type.")
 
 
 def parse_coord_list(coord_list, swap_axes=False):
