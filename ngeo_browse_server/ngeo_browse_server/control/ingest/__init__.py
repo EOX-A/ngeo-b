@@ -29,7 +29,9 @@
 
 import sys
 from os import remove, makedirs
-from os.path import isabs, isdir, join, basename, splitext, abspath, exists
+from os.path import (
+    isabs, isdir, join, basename, splitext, abspath, exists, dirname
+)
 import shutil
 import tempfile
 from itertools import product
@@ -163,6 +165,10 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs, config=None):
     a boolean value, indicating whether or not the browse has been inserted or
     replaced a previous browse entry.
     """
+    
+    logger.info("Ingesting browse '%s'."
+                % (parsed_browse.browse_identifier or "<<no ID>>"))
+    
     replaced = False
     
     srid = fromShortCode(parsed_browse.reference_system_identifier)
@@ -278,7 +284,11 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs, config=None):
 
     # start the preprocessor
     input_filename = get_storage_path(parsed_browse.file_name, config=config)
-    output_filename = get_optimized_path(parsed_browse.file_name, config=config)
+    output_filename = get_optimized_path(parsed_browse.file_name, 
+                                         browse_layer.id, config=config)
+    
+    # 
+    makedirs(dirname(output_filename))
     
     # wrap all file operations with IngestionTransaction
     with IngestionTransaction(output_filename):
