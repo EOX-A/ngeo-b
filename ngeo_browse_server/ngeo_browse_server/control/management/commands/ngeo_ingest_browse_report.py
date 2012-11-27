@@ -102,20 +102,21 @@ class Command(LogToConsoleMixIn, BaseCommand):
         if not len(filenames):
             raise CommandError("No input files given.")
         
-        # all paths are relative to the current working directory if they are
-        # not yet absolute themselves
-        if storage_dir is not None:
-            storage_dir = os.path.abspath(storage_dir)
-            
-        if optimized_dir is not None:
-            optimized_dir = os.path.abspath(optimized_dir)
-            
         
         # set config values
         section = "control.ingest"
         config = get_ngeo_config()
-        config.set(section, "storage_dir", storage_dir)
-        config.set(section, "optimized_files_dir", optimized_dir)
+        
+        # all paths are relative to the current working directory if they are
+        # not yet absolute themselves
+        if storage_dir is not None:
+            storage_dir = os.path.abspath(storage_dir)
+            config.set(section, "storage_dir", storage_dir)
+            
+        if optimized_dir is not None:
+            optimized_dir = os.path.abspath(optimized_dir)
+            config.set(section, "optimized_files_dir", optimized_dir)
+        
         config.set(section, "delete_on_success", delete_on_success)
         
         # handle each file separately

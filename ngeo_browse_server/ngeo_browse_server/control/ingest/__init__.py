@@ -71,6 +71,14 @@ from ngeo_browse_server.mapcache.tasks import seed_mapcache
 
 logger = logging.getLogger(__name__)
 
+def safe_makedirs(path):
+    """ make dirs without raising an exception when the directories are already
+    existing.
+    """
+    
+    if not exists(path):
+        makedirs(path)
+
 def _model_from_parsed(parsed_browse, browse_report, coverage_id, model_cls):
     return model_cls.objects.create(browse_report=browse_report,
                                     coverage_id=coverage_id,
@@ -288,7 +296,7 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs, config=None):
                                          browse_layer.id, config=config)
     
     # 
-    makedirs(dirname(output_filename))
+    safe_makedirs(dirname(output_filename))
     
     # wrap all file operations with IngestionTransaction
     with IngestionTransaction(output_filename):
@@ -323,7 +331,7 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs, config=None):
             # move the file to failure folder
             try:
                 if not leave_original:
-                    makedirs(failure_dir)
+                    safe_makedirs(failure_dir)
                     shutil.move(input_filename, failure_dir)
             except:
                 logger.warn("Could not move '%s' to configured `failure_dir` "
@@ -347,7 +355,7 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs, config=None):
                     )
                     
                     try:
-                        makedirs(success_dir)
+                        safe_makedirs(success_dir)
                         shutil.move(input_filename, success_dir)
                     except:
                         logger.warn("Could not move '%s' to configured "
