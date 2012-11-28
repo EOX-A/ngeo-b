@@ -29,16 +29,10 @@
 
 import sys
 from os import remove, makedirs
-from os.path import (
-    isabs, isdir, join, basename, splitext, abspath, exists, dirname
-)
+from os.path import exists, dirname
 import shutil
-import tempfile
-from itertools import product
 from numpy import arange
 import logging
-from ConfigParser import NoSectionError, NoOptionError
-from uuid import uuid4
 import traceback
 
 from django.conf import settings
@@ -80,9 +74,10 @@ def safe_makedirs(path):
         makedirs(path)
 
 
-def _model_from_parsed(parsed_browse, browse_report, coverage_id, model_cls):
-    model = model_cls(browse_report=browse_report, coverage_id=coverage_id,
-                      **parsed_browse.get_kwargs())
+def _model_from_parsed(parsed_browse, browse_report, browse_layer, 
+                       coverage_id, model_cls):
+    model = model_cls(browse_report=browse_report, browse_layer=browse_layer, 
+                      coverage_id=coverage_id, **parsed_browse.get_kwargs())
     return model
 
 
@@ -137,6 +132,13 @@ def _georef_from_parsed(parsed_browse):
     else:
         raise NotImplementedError
 
+def _generate_coverage_id(parsed_browse, browse_layer):
+    frmt = "%Y%m%d%H%M%S%f"
+    return "%s_%s_%s" % (browse_layer.id,
+                         parsed_browse.start_time.strftime(frmt),
+                         parsed_browse.end_time.strftime(frmt))
+
+    
 
 def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
                          do_preprocessing=True, config=None):
@@ -242,8 +244,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
     coverage_id = parsed_browse.browse_identifier
     if not coverage_id:
         # no identifier given, generate a new one
-        prefix = safe_get(config, "control.ingest", "id_prefix", "browse")
-        coverage_id = "%s_%s" % (prefix, uuid4().hex)
+        coverage_id = _generate_coverage_id(parsed_browse, browse_layer)
         logger.info("No browse identifier given, generating coverage ID '%s'."
                     % coverage_id)
     else:
@@ -252,8 +253,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         except ValidationError:
             # given ID is not valid, generate a new identifier
             old_id = coverage_id
-            prefix = safe_get(config, "control.ingest", "id_prefix", "browse")
-            coverage_id = "%s_%s" % (prefix, uuid4().hex)
+            coverage_id = _generate_coverage_id(parsed_browse, browse_layer)
             logger.info("Browse ID '%s' is not a valid coverage ID. Using "
                         "generated ID '%s'." % (old_id, coverage_id))
         
@@ -316,10 +316,17 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
     input_filename = get_storage_path(parsed_browse.file_name, config=config)
     output_filename = get_optimized_path(parsed_browse.file_name, 
                                          browse_layer.id, config=config)
+    output_filename = preprocessor.generate_filename(output_filename)
     
+    # assert that the input file exists
     if not exists(input_filename):
         raise IngestionException("Input file '%s' does not exist."
                                  % input_filename)
+    
+    # assert that the output file does not exist
+    if exists(output_filename):
+        raise IngestionException("Output file '%s' already exists."
+                                 % output_filename)
     
     # check that the output directory exists
     safe_makedirs(dirname(output_filename))
@@ -350,7 +357,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
             
             
             # "un-seed" if replaced and previous extent not equal to this extent
-            if extent != replaced_extent:
+            if replaced and extent != replaced_extent:
                 seed_mapcache(tileset=browse_layer.id, grid=browse_layer.grid, 
                               minx=replaced_extent[0], miny=replaced_extent[1],
                               maxx=replaced_extent[2], maxy=replaced_extent[3], 
@@ -367,6 +374,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                           maxx=extent[2], maxy=extent[3], 
                           minzoom=browse_layer.lowest_map_level, 
                           maxzoom=browse_layer.highest_map_level,
+                          delete=False,
                           **get_mapcache_config(config))
         
         except:
