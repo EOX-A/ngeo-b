@@ -96,9 +96,9 @@ class BrowseLayer(models.Model):
         
     def clean(self):
         # custom model validation
-        if self.highest_map_level > self.lowest_map_level:
-            raise ValidationError("Highest map level number must be lower than"
-                                  "lowest map level.")
+        if self.highest_map_level < self.lowest_map_level:
+            raise ValidationError("Highest map level number must be greater "
+                                  "than lowest map level number.")
         # TODO: more checks
 
 

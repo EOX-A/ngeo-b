@@ -16,7 +16,7 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
     else:
         raise Exception("Invalid grid '%s'." % grid)
     
-    if minzoom is None: minzoom = 1
+    if minzoom is None: minzoom = 0
     if maxzoom is None: maxzoom = 10
     
     logger.info("Starting mapcaching seed with parameters: command='%s', "
