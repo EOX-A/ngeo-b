@@ -6,7 +6,7 @@ from ngeo_browse_server.mapcache.exceptions import SeedException
 logger = logging.getLogger(__name__)
 
 def seed_mapcache(seed_command, config_file, tileset, grid, 
-                  minx, miny, maxx, maxy, minzoom, maxzoom, threads):
+                  minx, miny, maxx, maxy, minzoom, maxzoom, threads, delete):
 
     # translate grid
     if grid == "urn:ogc:def:wkss:OGC:1.0:GoogleMapsCompatible":
@@ -33,6 +33,7 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
         "-e", "%f,%f,%f,%f" % (minx, miny, maxx, maxy),
         "-n", str(threads),
         "-z", "%d,%d" % (minzoom, maxzoom),
+        "-m", "seed" if not delete else "delete",
         "-q", "-f"
     ]
     
