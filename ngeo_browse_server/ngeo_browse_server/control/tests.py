@@ -279,6 +279,7 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
     fixtures = ["initial_rangetypes.json", "ngeo_browse_layer.json", 
                 "eoxs_dataset_series.json", "ngeo_mapcache.json"]
     expected_ingested_browse_ids = ()
+    expected_ingested_coverage_ids = None
     expected_inserted_into_series = None
     expected_optimized_files = ()
     expected_deleted_files = None
@@ -289,30 +290,45 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
         are created and the count is equal to the produced optimized files.
         """
         
-        # TODO: implement if the browse ID cannot be taken for the coverage ID
+        System.init()
         
         if not self.expected_ingested_browse_ids:
             self.skipTest("No expected browse IDs given.")
         
-        System.init()
-        for browse_id in self.expected_ingested_browse_ids:
-            self.assertTrue(models.Browse.objects.filter(browse_identifier__id=browse_id).exists())
+        browse_ids = self.expected_ingested_browse_ids
+        coverage_ids = self.expected_ingested_coverage_ids or browse_ids
+        
+        assert(len(coverage_ids) == len(browse_ids))
+        
+        for browse_id, coverage_id in zip(browse_ids, coverage_ids):
+            # check if the browse with either the browse ID or coverage ID exists
+            if browse_id is not None:
+                self.assertTrue(
+                    models.Browse.objects.filter(
+                        browse_identifier__value=browse_id
+                    ).exists()
+                )
+            elif coverage_id is not None:
+                self.assertTrue(
+                    models.Browse.objects.filter(
+                        coverage_id=coverage_id
+                    ).exists()
+                )
+            
             coverage_wrapper = System.getRegistry().getFromFactory(
                 "resources.coverages.wrappers.EOCoverageFactory",
-                {"obj_id": browse_id} # TODO: browse id != coverage id
+                {"obj_id": coverage_id}
             )
             self.assertTrue(coverage_wrapper is not None)
         
         files = self.get_file_list(self.temp_success_dir)
-        self.assertEqual(len(self.expected_ingested_browse_ids), len(files))
+        self.assertEqual(len(browse_ids), len(files))
         
     
     def test_expected_inserted_into_series(self):
         """ Check that the browse is inserted into the dataset series (browse 
         layer.
         """
-        
-        # TODO: implement if the browse ID cannot be taken for the coverage ID
         
         if (not self.expected_inserted_into_series or
             not self.expected_ingested_browse_ids):
@@ -325,9 +341,10 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
         
         self.assertTrue(dataset_series is not None)
         
-        ids = set([c.getCoverageId() for c in dataset_series.getEOCoverages()])
+        expected_coverage_ids = self.expected_ingested_coverage_ids or self.expected_ingested_browse_ids
+        actual_ids = set([c.getCoverageId() for c in dataset_series.getEOCoverages()])
         
-        self.assertEqual(len(ids.difference(self.expected_ingested_browse_ids)), 0)
+        self.assertItemsEqual(expected_coverage_ids, actual_ids)
     
     
     def test_expected_optimized_files(self):
@@ -649,8 +666,9 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class IngestBrowseNoID(IngestTestCaseMixIn, HttpMixIn, TestCase):
     
-    expected_ingested_browse_ids = ("b_id_11",) # TODO: missing coverage ID
-    expected_inserted_into_series = "TEST_OPTICAL" # TODO: missing coverage ID
+    expected_ingested_browse_ids = (None,)
+    expected_ingested_coverage_ids = ("TEST_OPTICAL_20100722101606000000_20100722101722000000",)
+    expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['ATS_TOA_1P_20100722_101606_proc.tif']
     expected_deleted_files = ['ATS_TOA_1P_20100722_101606.jpg']
     
@@ -695,8 +713,9 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class IngestBrowseSpecialID(IngestTestCaseMixIn, HttpMixIn, TestCase):
     
-    expected_ingested_browse_ids = ("some:special:id",) # TODO: missing coverage ID
-    expected_inserted_into_series = "TEST_OPTICAL" # TODO: missing coverage ID
+    expected_ingested_browse_ids = ("some:special:id",)
+    expected_ingested_coverage_ids = ("TEST_OPTICAL_20100722101606000000_20100722101722000000",)
+    expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['ATS_TOA_1P_20100722_101606_proc.tif']
     expected_deleted_files = ['ATS_TOA_1P_20100722_101606.jpg']
     
