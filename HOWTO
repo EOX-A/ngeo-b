@@ -38,12 +38,12 @@ python setup.py bdist_rpm --requires "EOxServer mapache httpd" --release <NO>
 # How to build EOxServer                                               #
 ########################################################################
 
-ssh ngeo.eox.at
+ssh eox@ngeo.eox.at
 cd build/
-svn co https://eoxserver.org/svn/trunk eoxserver-0.3dev
-cd eoxserver-0.3dev/
+#svn co https://eoxserver.org/svn/trunk eoxserver-0.3dev
 svn up
-python setup.py bdist_rpm --requires "Django14 >= 1.4.2 gdal-python mapserver" --release <NO>
+cd eoxserver-0.3dev/
+python setup.py bdist_rpm --requires "Django14 >= 1.4.2 gdal-python mapserver-python libxml2-python python-lxml" --release <NO>
 
 ########################################################################
 # How to build MapCache                                                #
