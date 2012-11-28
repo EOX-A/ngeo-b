@@ -441,14 +441,20 @@ def create_models(parsed_browse, browse_report, browse_layer, coverage_id, crs,
     if type(parsed_browse) is data.RectifiedBrowse:
         model = _model_from_parsed(parsed_browse, browse_report, browse_layer,
                                    coverage_id, models.RectifiedBrowse)
+        model.full_clean()
+        model.save()
         
     elif type(parsed_browse) is data.FootprintBrowse:
         model = _model_from_parsed(parsed_browse, browse_report, browse_layer,
                                    coverage_id, models.FootprintBrowse)
+        model.full_clean()
+        model.save()
         
     elif type(parsed_browse) is data.RegularGridBrowse:
         model = _model_from_parsed(parsed_browse, browse_report, browse_layer,
                                    coverage_id, models.RegularGridBrowse)
+        model.full_clean()
+        model.save()
         
         for coord_list in parsed_browse.coord_lists:
             coord_list = models.RegularGridCoordList(regular_grid_browse=model,
@@ -458,9 +464,6 @@ def create_models(parsed_browse, browse_report, browse_layer, coverage_id, crs,
     
     else:
         raise NotImplementedError
-    
-    model.full_clean()
-    model.save()
     
     # if the browse contains an identifier, create the according model
     if parsed_browse.browse_identifier is not None:
