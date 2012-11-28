@@ -191,7 +191,8 @@ def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
             try:
                 # try ingest a single browse and log success
                 replaced = ingest_browse(parsed_browse, browse_report,
-                                         preprocessor, crs, config=config)
+                                         browse_layer, preprocessor, crs,
+                                         config=config)
                 result.add(parsed_browse.browse_identifier, replaced)
                 
             except Exception, e:
