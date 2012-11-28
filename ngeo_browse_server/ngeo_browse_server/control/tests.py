@@ -861,10 +861,8 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
             <bsi:identifier>FAILURE</bsi:identifier>
             <bsi:status>failure</bsi:status>
             <bsi:error>
-                <bsi:exceptionCode>RuntimeError</bsi:exceptionCode>
-                <bsi:exceptionMessage>`%s/does_not_exist.tiff&#39; does not exist in the file system,
-and is not recognised as a supported dataset name.
-</bsi:exceptionMessage>
+                <bsi:exceptionCode>IngestionException</bsi:exceptionCode>
+                <bsi:exceptionMessage>Input file &#39;%s/does_not_exist.tiff&#39; does not exist.</bsi:exceptionMessage>
             </bsi:error>
         </bsi:briefRecord>
     </bsi:ingestionResult>
@@ -911,7 +909,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
             <bsi:status>failure</bsi:status>
             <bsi:error>
                 <bsi:exceptionCode>ValidationError</bsi:exceptionCode>
-                <bsi:exceptionMessage>{&#39;id&#39;: [u&#39;This field must contain a valid Name i.e. beginning with a letter, an underscore, or a colon, and continuing with letters, digits, hyphens, underscores, colons, or full stops.&#39;]}</bsi:exceptionMessage>
+                <bsi:exceptionMessage>{&#39;value&#39;: [u&#39;This field must contain a valid Name i.e. beginning with a letter, an underscore, or a colon, and continuing with letters, digits, hyphens, underscores, colons, or full stops.&#39;]}</bsi:exceptionMessage>
             </bsi:error>
         </bsi:briefRecord>
     </bsi:ingestionResult>
