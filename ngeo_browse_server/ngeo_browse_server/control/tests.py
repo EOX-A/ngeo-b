@@ -29,7 +29,7 @@
 
 import sys
 from os import walk
-from os.path import join
+from os.path import join, exists
 import tempfile
 import shutil
 from cStringIO import StringIO
@@ -90,10 +90,24 @@ class BaseTestCaseMixIn(object):
     storage_dir = "data/reference_test_data"
     multi_db = True
     
+    surveilled_model_classes = (
+        models.Browse,
+        eoxs_models.RectifiedDatasetRecord,
+        mapcache_models.Time,
+        mapcache_models.Source
+    )
+    
     def setUp(self):
         super(BaseTestCaseMixIn, self).setUp()
         self.setUp_files()
+        
+        # check the number of DS, Browse and Time models in the database
+        self.model_counts = {}
+        
+        # wrap the ingestion with model counter
+        self.add_counts(*self.surveilled_model_classes)
         self.response = self.execute()
+        self.add_counts(*self.surveilled_model_classes)
     
     
     def tearDown(self):
@@ -137,6 +151,20 @@ class BaseTestCaseMixIn(object):
         
         # reset the config settings
         reset_ngeo_config()
+    
+    def add_counts(self, *model_classes):
+        # save the count of each model class to be checked later on.
+        for model_cls in model_classes:
+            self.model_counts.setdefault(model_cls.__name__, []).append(model_cls.objects.count())
+    
+    def get_file_list(self, path):
+        # convenience function to get a list of files from a directory
+        
+        files = []
+        for _, _, filenames in walk(path):
+            files.extend(filenames)
+        
+        return files
     
 
 
@@ -234,8 +262,8 @@ class CliMixIn(object):
         except SystemExit:
             if not self.expect_failure:
                 self.fail("Command '%s' failed and exited. Message was: '%s'" % ( 
-                          " ".join( args ) , 
-                          "".join(sys.stderr.getvalue().rsplit("\n", 1)) ) ) 
+                          " ".join(args) , 
+                          "".join(sys.stderr.getvalue().rsplit("\n", 1))))
 
     def get_response(self):
         # return either stout
@@ -253,9 +281,16 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
     expected_ingested_browse_ids = ()
     expected_inserted_into_series = None
     expected_optimized_files = ()
+    expected_deleted_files = None
     
     
     def test_expected_ingested_browses(self):
+        """ Check that the expected browse IDs are ingested, rectified datasets
+        are created and the count is equal to the produced optimized files.
+        """
+        
+        # TODO: implement if the browse ID cannot be taken for the coverage ID
+        
         if not self.expected_ingested_browse_ids:
             self.skipTest("No expected browse IDs given.")
         
@@ -264,21 +299,24 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
             self.assertTrue(models.Browse.objects.filter(browse_identifier__id=browse_id).exists())
             coverage_wrapper = System.getRegistry().getFromFactory(
                 "resources.coverages.wrappers.EOCoverageFactory",
-                {"obj_id": browse_id}
+                {"obj_id": browse_id} # TODO: browse id != coverage id
             )
             self.assertTrue(coverage_wrapper is not None)
         
-        files = []
-        for _, _, filenames in walk(self.temp_success_dir):
-            files.extend(filenames)
-        
+        files = self.get_file_list(self.temp_success_dir)
         self.assertEqual(len(self.expected_ingested_browse_ids), len(files))
         
     
     def test_expected_inserted_into_series(self):
+        """ Check that the browse is inserted into the dataset series (browse 
+        layer.
+        """
+        
+        # TODO: implement if the browse ID cannot be taken for the coverage ID
+        
         if (not self.expected_inserted_into_series or
             not self.expected_ingested_browse_ids):
-            self.skipTest("No expected browse IDs given.")
+            self.skipTest("No expected browse IDs or dataset series ID given.")
         
         dataset_series = System.getRegistry().getFromFactory(
             "resources.coverages.wrappers.DatasetSeriesFactory",
@@ -293,11 +331,10 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
     
     
     def test_expected_optimized_files(self):
-        # check that all optimized files are beeing created
-        files = []
-        for (_, _, filenames) in walk(self.temp_optimized_files_dir):
-            files.extend(filenames) # TODO adjust this once the layer gets his own directory name
+        """ Check that the expected optimized files are created. """
         
+        # check that all optimized files are beeing created
+        files = self.get_file_list(self.temp_optimized_files_dir)
         self.assertItemsEqual(self.expected_optimized_files, files)
         
         
@@ -308,8 +345,12 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
         """ Check that the storage files were deleted/moved from the storage
             dir.
         """
-        # TODO: implement
-        self.skipTest("Not yet implemented.")
+        
+        if self.expected_deleted_files is None:
+            self.skipTest("No expected files given.")
+            
+        for filename in self.expected_deleted_files:
+            self.assertFalse(exists(join(self.temp_storage_dir, filename)))
 
     
     def test_seed(self):
@@ -327,31 +368,9 @@ class IngestReplaceTestCaseMixIn(IngestTestCaseMixIn):
     
     expected_num_replaced = 1
     
-    surveilled_model_classes = (
-        models.Browse,
-        eoxs_models.RectifiedDatasetRecord,
-        mapcache_models.Time,
-        mapcache_models.Source
-    )
-    
-    def setUp(self):
-        # check the number of DS, Browse and Time models in the database
-        self.model_counts = {}
-        
-        # wrap the ingestion with model counter
-        self.add_counts(*self.surveilled_model_classes)
-        super(IngestReplaceTestCaseMixIn, self).setUp()
-        self.add_counts(*self.surveilled_model_classes)
-    
-    
-    def add_counts(self, *model_classes):
-        # save the count of each model class to be checked later on.
-        for model_cls in model_classes:
-            self.model_counts.setdefault(model_cls.__name__, []).append(model_cls.objects.count())
-    
-    
     def test_expected_num_replaced(self):
-        """ Check the returned number in the ingest result. """ 
+        """ Check the returned number in the ingest result. """
+        
         result = IngestResult(self.response.content)
         self.assertEqual(self.expected_num_replaced, result.actually_replaced)
         
@@ -366,6 +385,7 @@ class IngestReplaceTestCaseMixIn(IngestTestCaseMixIn):
     
     def test_delete_previous_file(self):
         """ Check that the previous raster file is deleted. """
+        
         # TODO: implement
         self.skipTest("Not yet implemented.")
         pass
@@ -373,20 +393,22 @@ class IngestReplaceTestCaseMixIn(IngestTestCaseMixIn):
 
 class IngestFailureTestCaseMixIn(IngestTestCaseMixIn):
     """ Test failures in ingestion. """
+    
     expected_failed_browse_ids = ()
     expected_failed_files = ()
     
     def test_expected_failed(self):
+        """ Check that the failed ingestion is declared in the result. Also
+        check that the files are copied into the failure directory.
+        """
+        
         result = IngestResult(self.get_response())
         failed_ids = [record[0] for record in result.failed]
         
         self.assertItemsEqual(self.expected_failed_browse_ids, failed_ids)
         
         # get file list of failure_dir and compare the count
-        files = []
-        for (_, _, filenames) in walk(self.temp_failure_dir):
-            files.extend(filenames)
-        
+        files = self.get_file_list(self.temp_failure_dir)
         self.assertItemsEqual(self.expected_failed_files, files)
 
 #===============================================================================
@@ -461,6 +483,7 @@ class IngestFootprintBrowse(IngestTestCaseMixIn, HttpMixIn, TestCase):
     expected_ingested_browse_ids = ("b_id_1",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['ASA_IM__0P_20100722_213840_proc.tif']
+    expected_deleted_files = ['ASA_IM__0P_20100722_213840.jpg']
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -487,6 +510,7 @@ class IngestFootprintBrowse2(IngestTestCaseMixIn, HttpMixIn, TestCase):
     expected_ingested_browse_ids = ("b_id_2",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['ASA_IM__0P_20100731_103315_proc.tif']
+    expected_deleted_files = ['ASA_IM__0P_20100731_103315.jpg']
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -513,6 +537,7 @@ class IngestFootprintBrowse3(IngestTestCaseMixIn, HttpMixIn, TestCase):
     expected_ingested_browse_ids = ("b_id_5",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['ASA_IM__0P_20100813_102453_proc.tif']
+    expected_deleted_files = ['ASA_IM__0P_20100813_102453.jpg']
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -543,6 +568,7 @@ class IngestFootprintBrowse4(IngestTestCaseMixIn, HttpMixIn, TestCase):
     expected_ingested_browse_ids = ("b_id_9",)
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['ATS_TOA_1P_20100719_105257_proc.tif']
+    expected_deleted_files = ['ATS_TOA_1P_20100719_105257.jpg']
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -569,6 +595,7 @@ class IngestFootprintBrowse5(IngestTestCaseMixIn, HttpMixIn, TestCase):
     expected_ingested_browse_ids = ("b_id_10",)
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['ATS_TOA_1P_20100719_213253_proc.tif']
+    expected_deleted_files = ['ATS_TOA_1P_20100719_213253.jpg']
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -595,6 +622,7 @@ class IngestFootprintBrowse6(IngestTestCaseMixIn, HttpMixIn, TestCase):
     expected_ingested_browse_ids = ("b_id_11",)
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['ATS_TOA_1P_20100722_101606_proc.tif']
+    expected_deleted_files = ['ATS_TOA_1P_20100722_101606.jpg']
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -616,6 +644,103 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 """
 
 #===============================================================================
+# Arbitrary ingests
+#===============================================================================
+
+class IngestBrowseNoID(IngestTestCaseMixIn, HttpMixIn, TestCase):
+    
+    expected_ingested_browse_ids = ("b_id_11",) # TODO: missing coverage ID
+    expected_inserted_into_series = "TEST_OPTICAL" # TODO: missing coverage ID
+    expected_optimized_files = ['ATS_TOA_1P_20100722_101606_proc.tif']
+    expected_deleted_files = ['ATS_TOA_1P_20100722_101606.jpg']
+    
+    request = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
+    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
+    <rep:browseType>OPTICAL</rep:browseType>
+    <rep:browse>
+        <rep:fileName>ATS_TOA_1P_20100722_101606.jpg</rep:fileName>
+        <rep:imageType>Jpeg</rep:imageType>
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:footprint nodeNumber="5">
+            <rep:colRowList>0 0 128 0 128 129 0 129 0 0</rep:colRowList>
+            <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
+        </rep:footprint>
+        <rep:startTime>2010-07-22T10:16:06Z</rep:startTime>
+        <rep:endTime>2010-07-22T10:17:22Z</rep:endTime>
+    </rep:browse>
+</rep:browseReport>
+"""
+    
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>None</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+class IngestBrowseSpecialID(IngestTestCaseMixIn, HttpMixIn, TestCase):
+    
+    expected_ingested_browse_ids = ("some:special:id",) # TODO: missing coverage ID
+    expected_inserted_into_series = "TEST_OPTICAL" # TODO: missing coverage ID
+    expected_optimized_files = ['ATS_TOA_1P_20100722_101606_proc.tif']
+    expected_deleted_files = ['ATS_TOA_1P_20100722_101606.jpg']
+    
+    request = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
+    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
+    <rep:browseType>OPTICAL</rep:browseType>
+    <rep:browse>
+        <rep:browseIdentifier>some:special:id</rep:browseIdentifier>
+        <rep:fileName>ATS_TOA_1P_20100722_101606.jpg</rep:fileName>
+        <rep:imageType>Jpeg</rep:imageType>
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:footprint nodeNumber="5">
+            <rep:colRowList>0 0 128 0 128 129 0 129 0 0</rep:colRowList>
+            <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
+        </rep:footprint>
+        <rep:startTime>2010-07-22T10:16:06Z</rep:startTime>
+        <rep:endTime>2010-07-22T10:17:22Z</rep:endTime>
+    </rep:browse>
+</rep:browseReport>
+"""
+    
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>some:special:id</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+#===============================================================================
 # Ingest a browse report with multiple browses inside
 #===============================================================================
 
@@ -627,7 +752,9 @@ class IngestFootprintBrowseGroup(IngestTestCaseMixIn, HttpMixIn, TestCase):
     expected_optimized_files = ['ASA_WS__0P_20100719_101023_proc.tif',
                                 'ASA_WS__0P_20100722_101601_proc.tif',
                                 'ASA_WS__0P_20100725_102231_proc.tif']
-
+    expected_deleted_files = ['ASA_WS__0P_20100719_101023.jpg',
+                              'ASA_WS__0P_20100722_101601.jpg',
+                              'ASA_WS__0P_20100725_102231.jpg']
 
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -662,7 +789,6 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class IngestFootprintBrowseReplace(IngestReplaceTestCaseMixIn, HttpMixIn, TestCase):
     fixtures = IngestReplaceTestCaseMixIn.fixtures + ["browse_ASA_IM__0P_20100807_101327.json"]
-    #request_before_replace_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327.xml"
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_new.xml"
     
     expected_num_replaced = 1
@@ -670,6 +796,7 @@ class IngestFootprintBrowseReplace(IngestReplaceTestCaseMixIn, HttpMixIn, TestCa
     expected_ingested_browse_ids = ("b_id_3",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['ASA_IM__0P_20100807_101327_new_proc.tif']
+    expected_deleted_files = ['ASA_IM__0P_20100807_101327_new.jpg']
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -690,9 +817,13 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 </bsi:ingestBrowseResponse>
 """
 
-class IngestFailure(IngestFailureTestCaseMixIn, HttpMixIn, TestCase):
+#===============================================================================
+# Ingest Failure tests
+#===============================================================================
+
+class IngestFailureNoInputFile(IngestFailureTestCaseMixIn, HttpMixIn, TestCase):
     expected_failed_browse_ids = ("FAILURE",)
-    request_file = "feed_test_data/BrowseReport_FAILURE.xml" 
+    request_file = "test_data/BrowseReport_FAILURE.xml" 
 
     @property
     def expected_response(self):
@@ -722,6 +853,191 @@ and is not recognised as a supported dataset name.
 """ % self.temp_storage_dir
 
 
+class IngestFailureIDStartsWithNumber(IngestFailureTestCaseMixIn, HttpMixIn, TestCase):
+    expected_failed_browse_ids = ("11_id_starts_with_number",)
+    request = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
+    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
+    <rep:browseType>OPTICAL</rep:browseType>
+    <rep:browse>
+        <rep:browseIdentifier>11_id_starts_with_number</rep:browseIdentifier>
+        <rep:fileName>ATS_TOA_1P_20100722_101606.jpg</rep:fileName>
+        <rep:imageType>Jpeg</rep:imageType>
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:footprint nodeNumber="5">
+            <rep:colRowList>0 0 128 0 128 129 0 129 0 0</rep:colRowList>
+            <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
+        </rep:footprint>
+        <rep:startTime>2010-07-22T10:16:06Z</rep:startTime>
+        <rep:endTime>2010-07-22T10:17:22Z</rep:endTime>
+    </rep:browse>
+</rep:browseReport>
+"""
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>partial</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>0</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>11_id_starts_with_number</bsi:identifier>
+            <bsi:status>failure</bsi:status>
+            <bsi:error>
+                <bsi:exceptionCode>ValidationError</bsi:exceptionCode>
+                <bsi:exceptionMessage>{&#39;id&#39;: [u&#39;This field must contain a valid Name i.e. beginning with a letter, an underscore, or a colon, and continuing with letters, digits, hyphens, underscores, colons, or full stops.&#39;]}</bsi:exceptionMessage>
+            </bsi:error>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+
+class IngestFailureFootprintNoCircle(IngestFailureTestCaseMixIn, HttpMixIn, TestCase):
+    expected_failed_browse_ids = ("FAILURE",)
+    request = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
+    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
+    <rep:browseType>OPTICAL</rep:browseType>
+    <rep:browse>
+        <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
+        <rep:fileName>ATS_TOA_1P_20100722_101606.jpg</rep:fileName>
+        <rep:imageType>Jpeg</rep:imageType>
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:footprint nodeNumber="5">
+            <rep:colRowList>0 0 128 0 128 129 0 129</rep:colRowList>
+            <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82</rep:coordList>
+        </rep:footprint>
+        <rep:startTime>2010-07-22T10:16:06Z</rep:startTime>
+        <rep:endTime>2010-07-22T10:17:22Z</rep:endTime>
+    </rep:browse>
+</rep:browseReport>"""
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>partial</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>0</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>FAILURE</bsi:identifier>
+            <bsi:status>failure</bsi:status>
+            <bsi:error>
+                <bsi:exceptionCode>IngestionException</bsi:exceptionCode>
+                <bsi:exceptionMessage>The last value of the footprint is not equal to the first.</bsi:exceptionMessage>
+            </bsi:error>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+
+class IngestFailureUnknownReferenceSystem(IngestFailureTestCaseMixIn, HttpMixIn, TestCase):
+    expected_failed_browse_ids = ("FAILURE",)
+    request = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
+    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
+    <rep:browseType>OPTICAL</rep:browseType>
+    <rep:browse>
+        <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
+        <rep:fileName>ATS_TOA_1P_20100722_101606.jpg</rep:fileName>
+        <rep:imageType>Jpeg</rep:imageType>
+        <rep:referenceSystemIdentifier>EPSG:999999</rep:referenceSystemIdentifier> 
+        <rep:footprint nodeNumber="5">
+            <rep:colRowList>0 0 128 0 128 129 0 129 0 0</rep:colRowList>
+            <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
+        </rep:footprint>
+        <rep:startTime>2010-07-22T10:16:06Z</rep:startTime>
+        <rep:endTime>2010-07-22T10:17:22Z</rep:endTime>
+    </rep:browse>
+</rep:browseReport>"""
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>partial</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>0</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>FAILURE</bsi:identifier>
+            <bsi:status>failure</bsi:status>
+            <bsi:error>
+                <bsi:exceptionCode>RuntimeError</bsi:exceptionCode>
+                <bsi:exceptionMessage>EPSG PCS/GCS code 999999 not found in EPSG support files.  Is this a valid
+EPSG coordinate system?</bsi:exceptionMessage>
+            </bsi:error>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+
+class IngestFailureEndBeforeStart(IngestFailureTestCaseMixIn, HttpMixIn, TestCase):
+    expected_failed_browse_ids = ("FAILURE",)
+    request = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
+    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
+    <rep:browseType>OPTICAL</rep:browseType>
+    <rep:browse>
+        <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
+        <rep:fileName>ATS_TOA_1P_20100722_101606.jpg</rep:fileName>
+        <rep:imageType>Jpeg</rep:imageType>
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:footprint nodeNumber="5">
+            <rep:colRowList>0 0 128 0 128 129 0 129 0 0 </rep:colRowList>
+            <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
+        </rep:footprint>
+        <rep:startTime>2010-07-22T10:16:06Z</rep:startTime>
+        <rep:endTime>2009-07-22T10:17:22Z</rep:endTime>
+    </rep:browse>
+</rep:browseReport>"""
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>partial</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>0</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>FAILURE</bsi:identifier>
+            <bsi:status>failure</bsi:status>
+            <bsi:error>
+                <bsi:exceptionCode>ValidationError</bsi:exceptionCode>
+                <bsi:exceptionMessage>{&#39;__all__&#39;: [u&#39;Start time may not be more recent than end time.&#39;]}</bsi:exceptionMessage>
+            </bsi:error>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
 
 #===============================================================================
 # Command line ingestion test cases
@@ -733,6 +1049,7 @@ class IngestFromCommand(IngestTestCaseMixIn, CliMixIn, TestCase):
     expected_ingested_browse_ids = ("b_id_3",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ("ASA_IM__0P_20100807_101327_proc.tif",)
+    expected_deleted_files = ['ASA_IM__0P_20100807_101327.jpg']
 
 
 # TODO: test optimization features

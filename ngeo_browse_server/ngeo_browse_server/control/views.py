@@ -31,7 +31,6 @@ import logging
 import traceback
 from lxml import etree
 
-from django.db import transaction
 from django.shortcuts import render_to_response
 
 from ngeo_browse_server.control.ingest import ingest_browse_report
@@ -40,7 +39,6 @@ from ngeo_browse_server.control.ingest.parsing import parse_browse_report
 
 logger = logging.getLogger(__name__)
 
-@transaction.commit_on_success
 def ingest(request):
     """ View to ingest a browse report delivered via HTTP-POST. The XML file is
         expected to be included within the POST data.

@@ -29,7 +29,9 @@
 
 import sys
 from os import remove, makedirs
-from os.path import isabs, isdir, join, basename, splitext, abspath, exists
+from os.path import (
+    isabs, isdir, join, basename, splitext, abspath, exists, dirname
+)
 import shutil
 import tempfile
 from itertools import product
@@ -37,8 +39,11 @@ from numpy import arange
 import logging
 from ConfigParser import NoSectionError, NoOptionError
 from uuid import uuid4
+import traceback
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.db import transaction
 from eoxserver.core.system import System
 from eoxserver.processing.preprocessing import WMSPreProcessor, RGB
 from eoxserver.processing.preprocessing.format import get_format_selection
@@ -58,22 +63,33 @@ from ngeo_browse_server.control.ingest.config import (
     get_project_relative_path, get_storage_path, get_optimized_path, 
     get_format_config, get_optimization_config, get_mapcache_config
 )
+from ngeo_browse_server.control.ingest.filetransaction import IngestionTransaction
+from ngeo_browse_server.control.ingest.exceptions import IngestionException
 from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.mapcache.tasks import seed_mapcache
-from django.core.exceptions import ValidationError
 
 
 logger = logging.getLogger(__name__)
 
+def safe_makedirs(path):
+    """ make dirs without raising an exception when the directories are already
+    existing.
+    """
+    
+    if not exists(path):
+        makedirs(path)
+
+
 def _model_from_parsed(parsed_browse, browse_report, coverage_id, model_cls):
-    return model_cls.objects.create(browse_report=browse_report,
-                                    coverage_id=coverage_id,
-                                    **parsed_browse.get_kwargs())
+    model = model_cls(browse_report=browse_report, coverage_id=coverage_id,
+                      **parsed_browse.get_kwargs())
+    model.full_clean()
+    model.save()
+    return model
 
 
-def ingest_browse_report(parsed_browse_report, storage_dir=None, 
-                         optimized_dir=None, reraise_exceptions=False,
-                         do_preprocessing=True):
+def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
+                         do_preprocessing=True, config=None):
     """ Ingests a browse report. reraise_exceptions if errors shall be handled 
     externally
     """
@@ -82,14 +98,19 @@ def ingest_browse_report(parsed_browse_report, storage_dir=None,
     System.init()
     
     try:
-        browse_layer = models.BrowseLayer.objects.get(browse_type=parsed_browse_report.browse_type)
+        # get the according browse layer
+        browse_type = parsed_browse_report.browse_type
+        browse_layer = models.BrowseLayer.objects.get(browse_type=browse_type)
     except models.BrowseLayer.DoesNotExist:
-        raise Exception("Browse layer with browse type '%s' does not exist."
-                        % parsed_browse_report.browse_type) # TODO: raise better exception type?
+        raise IngestionException("Browse layer with browse type '%s' does not "
+                                 "exist." % parsed_browse_report.browse_type)
     
-    browse_report = models.BrowseReport.objects.create(browse_layer=browse_layer,
-                                                       **parsed_browse_report.get_kwargs())
-    
+    # generate a browse report model
+    browse_report = models.BrowseReport(
+        browse_layer=browse_layer, **parsed_browse_report.get_kwargs()
+    )
+    browse_report.full_clean()
+    browse_report.save()
     
     # initialize the preprocessor with configuration values
     crs = None
@@ -100,49 +121,73 @@ def ingest_browse_report(parsed_browse_report, storage_dir=None,
         
     logger.debug("Using CRS '%s' ('%s')." % (crs, browse_layer.grid))
     
-    
-    format_selection = get_format_selection("GTiff", **get_format_config())
+    # create the required preprocessor/format selection
+    format_selection = get_format_selection("GTiff",
+                                            **get_format_config(config))
     if do_preprocessing:
         preprocessor = WMSPreProcessor(format_selection, crs=crs, bandmode=RGB,
-                                       **get_optimization_config())
+                                       **get_optimization_config(config))
     else:
         preprocessor = None # TODO: CopyPreprocessor
     
-    result = IngestResult()
-    
-    for parsed_browse in parsed_browse_report:
-        try:
-            replaced = ingest_browse(parsed_browse, browse_report, preprocessor,
-                                     crs, storage_dir, optimized_dir)
-            result.add(parsed_browse.browse_identifier, replaced)
-        except Exception, e:
-            logger.error("Failure during ingestion of browse '%s'." %
-                         parsed_browse.browse_identifier)
-            if reraise_exceptions:
-                info = sys.exc_info()
-                raise info[0], info[1], info[2]
-            else:
-                # TODO: use transaction savepoints to keep the DB in a 
-                # consistent state
-                result.add_failure(parsed_browse.browse_identifier, 
-                                   type(e).__name__, str(e))
+
+    # transaction management on browse report basis
+    with transaction.commit_on_success():
+        result = IngestResult()
         
+        # iterate over all browses in the browse report
+        for parsed_browse in parsed_browse_report:
+            sid = transaction.savepoint()
+            try:
+                # try ingest a single browse and log success
+                replaced = ingest_browse(parsed_browse, browse_report,
+                                         preprocessor, crs, config=config)
+                result.add(parsed_browse.browse_identifier, replaced)
+                
+            except Exception, e:
+                # report error
+                logger.error("Failure during ingestion of browse '%s'." %
+                             parsed_browse.browse_identifier)
+                logger.error(traceback.format_exc() + "\n")
+                
+                if reraise_exceptions:
+                    # complete rollback and reraise exception
+                    transaction.rollback()
+                    
+                    info = sys.exc_info()
+                    raise info[0], info[1], info[2]
+                
+                else:
+                    # undo latest changes, append the failure and continue
+                    transaction.savepoint_rollback(sid)
+                    result.add_failure(parsed_browse.browse_identifier, 
+                                       type(e).__name__, str(e))
+            
+            # ingestion of browse was ok, commit changes
+            transaction.savepoint_commit(sid)
+        
+        # ingestion finished, commit changes. 
+        transaction.commit()
+            
     return result
     
 
-def ingest_browse(parsed_browse, browse_report, preprocessor, crs, 
-                  storage_dir=None, optimized_dir=None):
+def ingest_browse(parsed_browse, browse_report, preprocessor, crs, config=None):
     """ Ingests a single browse report, performs the preprocessing of the data
     file and adds the generated browse model to the browse report model. Returns
     a boolean value, indicating whether or not the browse has been inserted or
     replaced a previous browse entry.
     """
+    
+    logger.info("Ingesting browse '%s'."
+                % (parsed_browse.browse_identifier or "<<no ID>>"))
+    
     replaced = False
     
     srid = fromShortCode(parsed_browse.reference_system_identifier)
     swap_axes = hasSwappedAxes(srid)
     
-    config = get_ngeo_config()
+    config = config or get_ngeo_config()
     
     browse_layer = browse_report.browse_layer
     coverage_id = parsed_browse.browse_identifier
@@ -212,6 +257,12 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
         coords = parse_coord_list(parsed_browse.coord_list, swap_axes)
         gcps = [(x, y, pixel, line) 
                 for (x, y), (pixel, line) in zip(coords, pixels)]
+        
+        # check that the last point of the footprint is the first
+        if not gcps[0] == gcps[-1]:
+            raise IngestionException("The last value of the footprint is not "
+                                     "equal to the first.")
+        
         geo_reference = GCPList(gcps, srid)
         
         model = _model_from_parsed(parsed_browse, browse_report, coverage_id,
@@ -220,8 +271,14 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
     elif type(parsed_browse) is data.RegularGridBrowse:
         # calculate a list of pixel coordinates according to the values of the
         # parsed browse report (col_node_number * row_node_number)
-        range_x = arange(0.0, parsed_browse.col_node_number * parsed_browse.col_step, parsed_browse.col_step)
-        range_y = arange(0.0, parsed_browse.row_node_number * parsed_browse.row_step, parsed_browse.row_step)
+        range_x = arange(
+            0.0, parsed_browse.col_node_number * parsed_browse.col_step,
+            parsed_browse.col_step
+        )
+        range_y = arange(
+            0.0, parsed_browse.row_node_number * parsed_browse.row_step,
+            parsed_browse.row_step
+        )
         
         # Python is cool!
         pixels = [(x, y) for y in range_y for x in range_x]
@@ -239,20 +296,33 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
                                    models.RegularGridBrowse)
         
         for coord_list in parsed_browse.coord_lists:
-            models.RegularGridCoordList.objects.create(regular_grid_browse=model,
-                                                       coord_list=coord_list)
+            coord_list = models.RegularGridCoordList(regular_grid_browse=model,
+                                                     coord_list=coord_list)
+            coord_list.full_clean()
+            coord_list.save()
     
     else:
         raise NotImplementedError
     
     # if the browse contains an identifier, create the according model
     if parsed_browse.browse_identifier is not None:
-        models.BrowseIdentifier.objects.create(id=parsed_browse.browse_identifier, 
-                                               browse=model)
+        browse_identifier = models.BrowseIdentifier(
+            id=parsed_browse.browse_identifier, browse=model
+        )
+        browse_identifier.full_clean()
+        browse_identifier.save()
 
     # start the preprocessor
-    input_filename = get_storage_path(parsed_browse.file_name, storage_dir)
-    output_filename = get_optimized_path(parsed_browse.file_name, optimized_dir)
+    input_filename = get_storage_path(parsed_browse.file_name, config=config)
+    output_filename = get_optimized_path(parsed_browse.file_name, 
+                                         browse_layer.id, config=config)
+    
+    if not exists(input_filename):
+        raise IngestionException("Input file '%s' does not exist."
+                                 % input_filename)
+    
+    # check that the output directory exists
+    safe_makedirs(dirname(output_filename))
     
     # wrap all file operations with IngestionTransaction
     with IngestionTransaction(output_filename):
@@ -270,7 +340,7 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
             
             logger.info("Creating database models.")
             create_models(parsed_browse, browse_report, coverage_id, srid, crs,
-                          replaced, result)
+                          replaced, result, config=config)
         
         except:
             # save exception info to re-raise it
@@ -287,7 +357,7 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
             # move the file to failure folder
             try:
                 if not leave_original:
-                    makedirs(failure_dir)
+                    safe_makedirs(failure_dir)
                     shutil.move(input_filename, failure_dir)
             except:
                 logger.warn("Could not move '%s' to configured `failure_dir` "
@@ -311,7 +381,7 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
                     )
                     
                     try:
-                        makedirs(success_dir)
+                        safe_makedirs(success_dir)
                         shutil.move(input_filename, success_dir)
                     except:
                         logger.warn("Could not move '%s' to configured "
@@ -325,7 +395,7 @@ def ingest_browse(parsed_browse, browse_report, preprocessor, crs,
 
 
 def create_models(parsed_browse, browse_report, coverage_id, srid, crs,
-                  replaced, preprocess_result):
+                  replaced, preprocess_result, config=None):
     # initialize the Coverage Manager for Rectified Datasets to register the
     # datasets in the database
     rect_mgr = System.getRegistry().findAndBind(
@@ -342,7 +412,6 @@ def create_models(parsed_browse, browse_report, coverage_id, srid, crs,
         coverage_id, parsed_browse.start_time, parsed_browse.end_time,
         preprocess_result.footprint_geom
     )
-    
     
     # get dataset series ID from browse layer, if available
     container_ids = []
@@ -361,9 +430,11 @@ def create_models(parsed_browse, browse_report, coverage_id, srid, crs,
     
     # create mapcache models
     source, _ = mapcache_models.Source.objects.get_or_create(name=browse_layer.id)
-    mapcache_models.Time.objects.create(start_time=parsed_browse.start_time,
-                                        end_time=parsed_browse.end_time,
-                                        source=source)
+    time = mapcache_models.Time(start_time=parsed_browse.start_time,
+                                end_time=parsed_browse.end_time,
+                                source=source)
+    time.full_clean()
+    time.save()
     
     # seed MapCache synchronously
     # TODO: maybe replace this with an async solution
@@ -372,72 +443,5 @@ def create_models(parsed_browse, browse_report, coverage_id, srid, crs,
                   maxx=extent[2], maxy=extent[3], 
                   minzoom=browse_layer.lowest_map_level, 
                   maxzoom=browse_layer.highest_map_level,
-                  **get_mapcache_config())
+                  **get_mapcache_config(config))
     
-#===============================================================================
-# Ingestion Transaction
-#===============================================================================
-
-class IngestionTransaction(object):
-    """ File Transaction guard to save previous files for a critical section to
-    be used with the "with"-statement.
-    """
-    
-    def __init__(self, subject_filename, safe_filename=None):
-        self._subject_filename = subject_filename
-        self._safe_filename = safe_filename
-    
-    
-    def __enter__(self):
-        " Start of critical block. Check if file exists and create backup. "
-        
-        # check if the file in question exists. If it does, move it to a safe 
-        # location 
-        self._exists = exists(self._subject_filename)
-        if not self._exists:
-            # file does not exist, do nothing
-            logger.debug("IngestionTransaction: file '%s' does not exist. "
-                         "Do nothing." % self._subject_filename)
-            return
-        
-        # create a temporary file if no path was given
-        if not self._safe_filename:
-            _, self._safe_filename = tempfile.mkstemp()
-            logger.debug("IngestionTransaction: generating backup file '%s'."
-                         % self._safe_filename)
-        
-        logger.debug("IngestionTransaction:Moving '%s' to '%s'." 
-                     % (self._subject_filename, self._safe_filename))
-        
-        # move the old file to a safe location
-        shutil.move(self._subject_filename, self._safe_filename)
-    
-    
-    def __exit__(self, etype, value, traceback):
-        " End of critical block. Either revert changes or delete backup. "
-
-        if (etype, value, traceback) == (None, None, None):
-            # no error occurred
-            logger.debug("IngestionTransaction: no error occurred.")
-            if self._exists:
-                # delete the saved old file, if it existed
-                logger.debug("IngestionTransaction: deleting backup '%s'."
-                             % self._safe_filename)
-                remove(self._safe_filename)
-        
-        # on error
-        else:
-            # an error occurred, try removing the new file. It may not exist.
-            try:
-                logger.debug("IngestionTransaction: An error occurred. " 
-                             "Deleting '%s'."
-                             % self._subject_filename)
-                remove(self._subject_filename)
-            except OSError:
-                pass
-            
-            # move the backup file back to restore the initial condition
-            if self._exists:
-                logger.debug("IngestionTransaction: Restoring backup '%s'."
-                             % self._safe_filename)
-                shutil.move(self._safe_filename, self._subject_filename)
