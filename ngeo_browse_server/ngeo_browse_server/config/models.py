@@ -96,9 +96,9 @@ class BrowseLayer(models.Model):
         
     def clean(self):
         # custom model validation
-        if self.highest_map_level > self.lowest_map_level:
-            raise ValidationError("Highest map level number must be lower than"
-                                  "lowest map level.")
+        if self.highest_map_level < self.lowest_map_level:
+            raise ValidationError("Highest map level number must be greater "
+                                  "than lowest map level number.")
         # TODO: more checks
 
 
@@ -144,8 +144,9 @@ class Browse(models.Model):
     defined five types that inherit from this class.
     
     """
-    coverage_id = models.CharField("Coverage ID", max_length=256, unique=True, validators=[NCNameValidator])
+    coverage_id = models.CharField("Coverage ID", max_length=256, primary_key=True, validators=[NCNameValidator])
     browse_report = models.ForeignKey(BrowseReport, related_name="browses", verbose_name="Browse Report")
+    browse_layer = models.ForeignKey(BrowseLayer, related_name="browses", verbose_name="Browse Layer")
     file_name = models.CharField(max_length=1024, validators=[NameValidator])
     image_type = models.CharField(max_length=8, default="GeoTIFF", 
         choices = (
@@ -169,6 +170,7 @@ class Browse(models.Model):
     class Meta:
         verbose_name = "Browse image"
         verbose_name_plural = "Browse images"
+        unique_together = (("start_time", "end_time", "browse_layer"),)
     
     def clean(self):
         # custom model validation
@@ -183,8 +185,9 @@ class BrowseIdentifier(models.Model):
     used later to update the browse data.
     
     """
-    id = models.CharField("Browse Identifier", max_length=1024, primary_key=True, validators=[NameValidator])
+    value = models.CharField("Browse Identifier", max_length=1024, validators=[NameValidator])
     browse = models.OneToOneField(Browse, related_name="browse_identifier")
+    browse_layer = models.ForeignKey(BrowseLayer, verbose_name="Browse Layer")
     
     def __unicode__(self):
         return "Browse identifier '%s'" % self.id
@@ -192,6 +195,7 @@ class BrowseIdentifier(models.Model):
     class Meta:
         verbose_name = "Browse identifier"
         verbose_name_plural = "Browse identifiers"
+        unique_together = (("value", "browse_layer"),)
 
 
 class RectifiedBrowse(Browse):
