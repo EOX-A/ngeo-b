@@ -65,80 +65,9 @@ from ngeo_browse_server.mapcache.tasks import seed_mapcache
 
 logger = logging.getLogger(__name__)
 
-def safe_makedirs(path):
-    """ make dirs without raising an exception when the directories are already
-    existing.
-    """
-    
-    if not exists(path):
-        makedirs(path)
-
-
-def _model_from_parsed(parsed_browse, browse_report, browse_layer, 
-                       coverage_id, model_cls):
-    model = model_cls(browse_report=browse_report, browse_layer=browse_layer, 
-                      coverage_id=coverage_id, **parsed_browse.get_kwargs())
-    return model
-
-
-def _georef_from_parsed(parsed_browse):
-    srid = fromShortCode(parsed_browse.reference_system_identifier)
-    swap_axes = hasSwappedAxes(srid)
-    
-    if type(parsed_browse) is data.RectifiedBrowse:
-        return Extent(parsed_browse.minx, parsed_browse.miny, 
-                      parsed_browse.maxx, parsed_browse.maxy,
-                      srid)
-        
-    elif type(parsed_browse) is data.FootprintBrowse:
-        # Generate GCPs from footprint coordinates
-        pixels = parse_coord_list(parsed_browse.col_row_list)
-        coords = parse_coord_list(parsed_browse.coord_list, swap_axes)
-        gcps = [(x, y, pixel, line) 
-                for (x, y), (pixel, line) in zip(coords, pixels)]
-        
-        # check that the last point of the footprint is the first
-        if not gcps[0] == gcps[-1]:
-            raise IngestionException("The last value of the footprint is not "
-                                     "equal to the first.")
-        
-        return GCPList(gcps, srid)
-        
-        
-    elif type(parsed_browse) is data.RegularGridBrowse:
-        # calculate a list of pixel coordinates according to the values of the
-        # parsed browse report (col_node_number * row_node_number)
-        range_x = arange(
-            0.0, parsed_browse.col_node_number * parsed_browse.col_step,
-            parsed_browse.col_step
-        )
-        range_y = arange(
-            0.0, parsed_browse.row_node_number * parsed_browse.row_step,
-            parsed_browse.row_step
-        )
-        
-        # Python is cool!
-        pixels = [(x, y) for y in range_y for x in range_x]
-        
-        # get the lat-lon coordinates as tuple-lists
-        coords = []
-        for coord_list in parsed_browse.coord_lists:
-            coords.extend(parse_coord_list(coord_list, swap_axes))
-        
-        gcps = [(x, y, pixel, line) 
-                for (x, y), (pixel, line) in zip(coords, pixels)]
-        return GCPList(gcps, srid)
-    
-    else:
-        raise NotImplementedError
-
-def _generate_coverage_id(parsed_browse, browse_layer):
-    frmt = "%Y%m%d%H%M%S%f"
-    return "%s_%s_%s" % (browse_layer.id,
-                         parsed_browse.start_time.strftime(frmt),
-                         parsed_browse.end_time.strftime(frmt))
-
-    
+#===============================================================================
+# main functions
+#===============================================================================
 
 def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
                          do_preprocessing=True, config=None):
@@ -275,33 +204,8 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                 end_time=parsed_browse.end_time,
                 browse_layer=browse_layer
             )
-        
-        # delete *one* of the fitting Time objects
-        mapcache_models.Time.objects.filter(
-            start_time=browse.start_time,
-            end_time=browse.end_time,
-            source__name=browse_layer.id
-        )[0].delete()
-        
-        # delete the EOxServer rectified dataset entry
-        rect_mgr = System.getRegistry().findAndBind(
-            intf_id="resources.coverages.interfaces.Manager",
-            params={
-                "resources.coverages.interfaces.res_type": "eo.rect_dataset"
-            }
-        )
-        
-        # get previous extent to "un-seed" MapCache in that area
-        rect_ds = System.getRegistry().getFromFactory(
-            "resources.coverages.wrappers.EOCoverageFactory",
-            {"obj_id": coverage_id}
-        )
-        replaced_extent = rect_ds.getExtent()
-        
-        rect_mgr.delete(obj_id=browse.coverage_id)
-        
-        browse.delete()
-        
+            
+        replaced_extent = cleanup_replaced(browse, browse_layer, coverage_id)
         replaced = True
         logger.info("Existing browse found, replacing it.")
             
@@ -429,6 +333,45 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
     return replaced
 
 
+#===============================================================================
+# model creation/cleanup functions
+#===============================================================================
+
+def cleanup_replaced(browse, browse_layer, coverage_id):
+    """ Delete all models and files associated with a to be replaced browse. 
+    Returns the extent of the replaced image.
+    """
+    
+    # delete *one* of the fitting Time objects
+    mapcache_models.Time.objects.filter(
+        start_time=browse.start_time,
+        end_time=browse.end_time,
+        source__name=browse_layer.id
+    )[0].delete()
+    
+    # get previous extent to "un-seed" MapCache in that area
+    rect_ds = System.getRegistry().getFromFactory(
+        "resources.coverages.wrappers.EOCoverageFactory",
+        {"obj_id": browse.coverage_id}
+    )
+    replaced_extent = rect_ds.getExtent()
+    
+    # TODO: delete the optimized browse image of the to-be-replaced browse here
+    # ATTENTION: In case of an error, this file must be restored!
+    
+    # delete the EOxServer rectified dataset entry
+    rect_mgr = System.getRegistry().findAndBind(
+        intf_id="resources.coverages.interfaces.Manager",
+        params={
+            "resources.coverages.interfaces.res_type": "eo.rect_dataset"
+        }
+    )
+    rect_mgr.delete(obj_id=browse.coverage_id)
+    browse.delete()
+    
+    return replaced_extent
+
+
 def create_models(parsed_browse, browse_report, browse_layer, coverage_id, crs,
                   replaced, preprocess_result, config=None):
     """ Creates all required database models for the browse and returns the
@@ -516,4 +459,81 @@ def create_models(parsed_browse, browse_report, browse_layer, coverage_id, crs,
     time.save()
     
     return extent
+
+#===============================================================================
+# helper functions
+#===============================================================================
+
+def safe_makedirs(path):
+    """ make dirs without raising an exception when the directories are already
+    existing.
+    """
+    
+    if not exists(path):
+        makedirs(path)
+
+
+def _model_from_parsed(parsed_browse, browse_report, browse_layer, 
+                       coverage_id, model_cls):
+    model = model_cls(browse_report=browse_report, browse_layer=browse_layer, 
+                      coverage_id=coverage_id, **parsed_browse.get_kwargs())
+    return model
+
+
+def _georef_from_parsed(parsed_browse):
+    srid = fromShortCode(parsed_browse.reference_system_identifier)
+    swap_axes = hasSwappedAxes(srid)
+    
+    if type(parsed_browse) is data.RectifiedBrowse:
+        return Extent(parsed_browse.minx, parsed_browse.miny, 
+                      parsed_browse.maxx, parsed_browse.maxy,
+                      srid)
+        
+    elif type(parsed_browse) is data.FootprintBrowse:
+        # Generate GCPs from footprint coordinates
+        pixels = parse_coord_list(parsed_browse.col_row_list)
+        coords = parse_coord_list(parsed_browse.coord_list, swap_axes)
+        gcps = [(x, y, pixel, line) 
+                for (x, y), (pixel, line) in zip(coords, pixels)]
+        
+        # check that the last point of the footprint is the first
+        if not gcps[0] == gcps[-1]:
+            raise IngestionException("The last value of the footprint is not "
+                                     "equal to the first.")
+        
+        return GCPList(gcps, srid)
+        
+        
+    elif type(parsed_browse) is data.RegularGridBrowse:
+        # calculate a list of pixel coordinates according to the values of the
+        # parsed browse report (col_node_number * row_node_number)
+        range_x = arange(
+            0.0, parsed_browse.col_node_number * parsed_browse.col_step,
+            parsed_browse.col_step
+        )
+        range_y = arange(
+            0.0, parsed_browse.row_node_number * parsed_browse.row_step,
+            parsed_browse.row_step
+        )
+        
+        # Python is cool!
+        pixels = [(x, y) for y in range_y for x in range_x]
+        
+        # get the lat-lon coordinates as tuple-lists
+        coords = []
+        for coord_list in parsed_browse.coord_lists:
+            coords.extend(parse_coord_list(coord_list, swap_axes))
+        
+        gcps = [(x, y, pixel, line) 
+                for (x, y), (pixel, line) in zip(coords, pixels)]
+        return GCPList(gcps, srid)
+    
+    else:
+        raise NotImplementedError
+
+def _generate_coverage_id(parsed_browse, browse_layer):
+    frmt = "%Y%m%d%H%M%S%f"
+    return "%s_%s_%s" % (browse_layer.id,
+                         parsed_browse.start_time.strftime(frmt),
+                         parsed_browse.end_time.strftime(frmt))
 
