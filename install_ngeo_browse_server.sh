@@ -96,9 +96,10 @@ fi
 # EOX
 if [ ! -f /etc/yum.repos.d/eox.repo ] ; then
     rpm -Uvh http://yum.packages.eox.at/el/eox-release-6-1.noarch.rpm
-    sed -e 's/^enabled=0/enabled=1/' -i /etc/yum.repos.d/eox-testing.repo
+    sed -e 's/^enabled=0/enabled=1/' -i /etc/yum.repos.d/eox-testing.repo # TODO: Remove in production
 fi
 # Set includepkgs
+# TODO: Use stable EOX repro in production
 if ! grep -Fxq "includepkgs=EOxServer pyspatialite pysqlite libxml2 libxml2-python" /etc/yum.repos.d/eox-testing.repo ; then
     sed -e 's/^\[eox-testing\]$/&\nincludepkgs=EOxServer pyspatialite pysqlite libxml2 libxml2-python/' -i /etc/yum.repos.d/eox-testing.repo
 fi
@@ -343,6 +344,7 @@ if [ ! -f "$APACHE_CONF" ] ; then
     <Directory $MAPCACHE_DIR>
         Order Allow,Deny
         Allow from all
+        Header set Access-Control-Allow-Origin *
     </Directory>
 
     # TODO use vars in beginning of script
