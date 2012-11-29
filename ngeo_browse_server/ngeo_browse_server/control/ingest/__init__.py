@@ -29,7 +29,7 @@
 
 import sys
 from os import remove, makedirs
-from os.path import exists, dirname
+from os.path import exists, dirname, join, isdir
 import shutil
 from numpy import arange
 import logging
@@ -38,8 +38,9 @@ import traceback
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.template.loader import render_to_string
 from eoxserver.core.system import System
-from eoxserver.processing.preprocessing import WMSPreProcessor, RGB
+from eoxserver.processing.preprocessing import WMSPreProcessor, RGB, RGBA
 from eoxserver.processing.preprocessing.format import get_format_selection
 from eoxserver.processing.preprocessing.georeference import Extent, GCPList
 from eoxserver.resources.coverages.metadata import EOMetadata
@@ -58,6 +59,7 @@ from ngeo_browse_server.control.ingest.config import (
     get_format_config, get_optimization_config, get_mapcache_config
 )
 from ngeo_browse_server.control.ingest.filetransaction import IngestionTransaction
+from ngeo_browse_server.control.ingest.config import get_success_dir, get_failure_dir
 from ngeo_browse_server.control.ingest.exceptions import IngestionException
 from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.mapcache.tasks import seed_mapcache
@@ -111,6 +113,8 @@ def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
     else:
         preprocessor = None # TODO: CopyPreprocessor
     
+    succeded = []
+    failed = []
 
     # transaction management on browse report basis
     with transaction.commit_on_success():
@@ -125,6 +129,7 @@ def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
                                          browse_layer, preprocessor, crs,
                                          config=config)
                 result.add(parsed_browse.browse_identifier, replaced)
+                succeded.append(parsed_browse)
                 
             except Exception, e:
                 # report error
@@ -144,9 +149,31 @@ def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
                     transaction.savepoint_rollback(sid)
                     result.add_failure(parsed_browse.browse_identifier, 
                                        type(e).__name__, str(e))
+                    
+                    failed.append(parsed_browse)
             
             # ingestion of browse was ok, commit changes
             transaction.savepoint_commit(sid)
+            
+        # generate browse report and save to to success/failure dir
+        if len(succeded):
+            succeded_report = data.BrowseReport(
+                parsed_browse_report.browse_type, 
+                parsed_browse_report.date_time, 
+                parsed_browse_report.responsible_org_name, 
+                succeded
+            )
+            _save_result_browse_report(succeded_report, get_success_dir(config))
+        
+        if len(failed):
+            failed_report = data.BrowseReport(
+                parsed_browse_report.browse_type, 
+                parsed_browse_report.date_time, 
+                parsed_browse_report.responsible_org_name, 
+                failed
+            )
+            _save_result_browse_report(failed_report, get_failure_dir(config))
+        
         
         # ingestion finished, commit changes. 
         transaction.commit()
@@ -285,9 +312,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
             # save exception info to re-raise it
             exc_info = sys.exc_info()
             
-            failure_dir = get_project_relative_path(
-                safe_get(config, "control.ingest", "failure_dir")
-            )
+            failure_dir = get_failure_dir(config)
             
             logger.error("Error during ingestion of Browse '%s'. Moving "
                          "original image to '%s'."
@@ -315,9 +340,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                 if delete_on_success:
                     remove(input_filename)
                 else:
-                    success_dir = get_project_relative_path(
-                        safe_get(config, "control.ingest", "success_dir")
-                    )
+                    success_dir = get_success_dir(config)
                     
                     try:
                         safe_makedirs(success_dir)
@@ -531,9 +554,23 @@ def _georef_from_parsed(parsed_browse):
     else:
         raise NotImplementedError
 
+
 def _generate_coverage_id(parsed_browse, browse_layer):
     frmt = "%Y%m%d%H%M%S%f"
     return "%s_%s_%s" % (browse_layer.id,
                          parsed_browse.start_time.strftime(frmt),
                          parsed_browse.end_time.strftime(frmt))
 
+
+def _save_result_browse_report(browse_report, path):
+    "Render the browse report to the template and save it under the given path."
+    
+    if isdir(path):
+        # generate a filename
+        path = join(path, "%s_%s_%s.xml" % (browse_report.browse_type, 
+                                            browse_report.responsible_org_name,
+                                            browse_report.date_time.strftime("%Y%m%d%H%M%S%f")))
+    
+    with open(path) as f:
+        f.write(render_to_string("control/browse_report.html",
+                                 {"browse_report": browse_report}))

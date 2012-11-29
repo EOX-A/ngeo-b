@@ -53,6 +53,9 @@ class Browse(object):
     start_time = property(lambda self: self._start_time)
     end_time = property(lambda self: self._end_time)
 
+    @property
+    def geo_type(self):
+        raise NotImplementedError()
 
     def get_kwargs(self):
         return {
@@ -75,6 +78,7 @@ class RectifiedBrowse(Browse):
     maxx = property(lambda self: self._extent[2])
     maxy = property(lambda self: self._extent[3])
 
+    geo_type = property(lambda self: "rectifiedBrowse")
 
     def get_kwargs(self):
         kwargs = super(RectifiedBrowse, self).get_kwargs()
@@ -99,6 +103,7 @@ class FootprintBrowse(Browse):
     col_row_list = property(lambda self: self._col_row_list)
     coord_list = property(lambda self: self._coord_list)
     
+    geo_type = property(lambda self: "footprintBrowse")
     
     def get_kwargs(self):
         kwargs = super(FootprintBrowse, self).get_kwargs()
@@ -129,6 +134,8 @@ class RegularGridBrowse(Browse):
     row_step = property(lambda self: self._row_step)
     coord_lists = property(lambda self: self._coord_lists)
     
+    geo_type = property(lambda self: "regularGridBrowse")
+    
     def get_kwargs(self):
         kwargs = super(RegularGridBrowse, self).get_kwargs()
         kwargs.update({
@@ -141,11 +148,11 @@ class RegularGridBrowse(Browse):
 
     
 class VerticalCurtainBrowse(Browse):
-    pass
+    geo_type = property(lambda self: "verticalCurtainBrowse")
 
 
 class ModelInGeotiffBrowse(Browse):
-    pass
+    geo_type = property(lambda self: "modelInGeotiffBrowse")
 
 
 class BrowseReport(object):
