@@ -62,6 +62,10 @@ APACHE_ServerName="ngeo.eox.at"
 APACHE_ServerAdmin="webmaster@eox.at"
 APACHE_NGEO_BROWSE_ALIAS="/browse"
 
+# WebDAV
+WEBDAV_USER="test"
+WEBDAV_PASSWORD="eiNoo7ae"
+
 ################################################################################
 # Usually there should be no need to change anything below.                    #
 ################################################################################
@@ -303,8 +307,8 @@ fi
 [ -d "$NGEOB_INSTALL_DIR/dav" ] || mkdir -p "$NGEOB_INSTALL_DIR/dav"
 chown -R apache:apache "$NGEOB_INSTALL_DIR/store"
 chown -R apache:apache "$NGEOB_INSTALL_DIR/dav"
-echo "test:dav@ngeo.eox.at:9e1e1d7cad0f6d301c736b380243eeee" > "$NGEOB_INSTALL_DIR/dav/DavUsers"
-
+/usr/bin/htpasswd -cb "$NGEOB_INSTALL_DIR/dav/DavUsers" $WEBDAV_USER $WEBDAV_PASSWORD
+chmod 0640 "$NGEOB_INSTALL_DIR/dav/DavUsers"
 
 # Enable MapCache module in Apache
 if ! grep -Fxq "LoadModule mapcache_module modules/mod_mapcache.so" /etc/httpd/conf/httpd.conf ; then
