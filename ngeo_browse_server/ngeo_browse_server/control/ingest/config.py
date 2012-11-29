@@ -28,11 +28,12 @@
 #-------------------------------------------------------------------------------
 
 from os.path import isabs, join, basename, splitext
-from ConfigParser import NoSectionError, NoOptionError
 
 from django.conf import settings
+from eoxserver.processing.preprocessing import RGB, RGBA
 
 from ngeo_browse_server.config import get_ngeo_config, safe_get
+
 
 
 INGEST_SECTION = "control.ingest"
@@ -137,6 +138,8 @@ def get_optimization_config(config=None):
     values = {}
     config = config or get_ngeo_config()
     
+    values["bandmode"] = RGB
+    
     try:
         values["overviews"] = config.getboolean(INGEST_SECTION, "overviews")
     except: pass
@@ -147,6 +150,8 @@ def get_optimization_config(config=None):
     
     try:
         values["footprint_alpha"] = config.getboolean(INGEST_SECTION, "footprint_alpha")
+        if values["footprint_alpha"]:
+            values["bandmode"] = RGBA
     except: pass
     
     return values

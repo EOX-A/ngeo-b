@@ -108,7 +108,7 @@ def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
     format_selection = get_format_selection("GTiff",
                                             **get_format_config(config))
     if do_preprocessing:
-        preprocessor = WMSPreProcessor(format_selection, crs=crs, bandmode=RGB, # TODO if alpha -> RGBA
+        preprocessor = WMSPreProcessor(format_selection, crs=crs,
                                        **get_optimization_config(config))
     else:
         preprocessor = None # TODO: CopyPreprocessor
