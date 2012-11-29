@@ -82,7 +82,6 @@ fi
 # Check required tools are installed
 if [ ! -x "`which sed`" ] ; then
     yum install -y sed
-    exit 1
 fi
 
 
