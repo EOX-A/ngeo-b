@@ -279,6 +279,10 @@ fi
 
 # Configure WebDAV
 [ -d "$NGEOB_INSTALL_DIR/store" ] || mkdir -p "$NGEOB_INSTALL_DIR/store"
+[ -d "$NGEOB_INSTALL_DIR/dav" ] || mkdir -p "$NGEOB_INSTALL_DIR/dav"
+chown -R apache:apache "$NGEOB_INSTALL_DIR/store"
+chown -R apache:apache "$NGEOB_INSTALL_DIR/dav"
+echo "test:dav@ngeo.eox.at:9e1e1d7cad0f6d301c736b380243eeee" > "$NGEOB_INSTALL_DIR/dav/DavUsers"
 
 
 # Enable MapCache module in Apache
@@ -324,7 +328,7 @@ test
 
     # TODO use vars in beginning of script
     # TODO file: /var/www/dav/DavUsers
-    DavLockDB /var/www/dav/DavLock
+    DavLockDB "$NGEOB_INSTALL_DIR/dav/DavLock"
     Alias /store "$NGEOB_INSTALL_DIR/store"
     <Directory $NGEOB_INSTALL_DIR/store>
         Order Allow,Deny
@@ -337,8 +341,12 @@ test
         AuthDigestDomain /store/ http://ngeo.eox.at/store/
 
         AuthDigestProvider file
-        AuthUserFile /var/www/dav/DavUsers
+        AuthUserFile "$NGEOB_INSTALL_DIR/dav/DavUsers"
         Require valid-user
+    </Directory>
+    <Directory $NGEOB_INSTALL_DIR/dav>
+        Order Allow,Deny
+        Deny from all
     </Directory>
 </VirtualHost>
 EOF
