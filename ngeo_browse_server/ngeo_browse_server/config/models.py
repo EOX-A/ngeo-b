@@ -46,7 +46,7 @@ ReferenceSystemIdentifierValidator = RegexValidator(
     message="Reference system identifier must be 'RAW' or follow the pattern 'EPSG:<code>."
 )
 NameValidator = RegexValidator(
-    re.compile(r'^[a-zA-z_:][a-zA-Z0-9.-_:]*$'),
+    re.compile(r'^[a-zA-z_:][a-zA-Z0-9.\-_:]*$'),
     message="This field must contain a valid Name i.e. beginning with a letter, an underscore, or a colon, and continuing with letters, digits, hyphens, underscores, colons, or full stops."
 )
 
@@ -202,15 +202,8 @@ class RectifiedBrowse(Browse):
     """Rectified Browses with given corner coordinates.
     
     """
-    minx = models.FloatField()
-    miny = models.FloatField()
-    maxx = models.FloatField()
-    maxy = models.FloatField()
+    coord_list = models.CharField(max_length=2048)
     
-    def clean(self):
-        super(RectifiedBrowse, self).clean()
-        if self.minx > self.maxx or self.miny > self.maxy:
-            raise ValidationError("Invalid extent given.")
 
 class FootprintBrowse(Browse):
     """Non-rectified Browses with given polygon delimiting boundary or 
