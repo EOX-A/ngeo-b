@@ -82,7 +82,6 @@ fi
 # Check required tools are installed
 if [ ! -x "`which sed`" ] ; then
     yum install -y sed
-    exit 1
 fi
 
 
@@ -96,7 +95,7 @@ fi
 # Install needed yum repositories
 # EOX
 if [ ! -f /etc/yum.repos.d/eox.repo ] ; then
-    rpm -i http://yum.packages.eox.at/el/eox-release-6-1.noarch.rpm
+    rpm -Uvh http://yum.packages.eox.at/el/eox-release-6-1.noarch.rpm
     sed -e 's/^enabled=0/enabled=1/' -i /etc/yum.repos.d/eox-testing.repo
 fi
 # Set includepkgs
@@ -115,15 +114,6 @@ fi
 rpm -Uvh http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-7.noarch.rpm
 # ELGIS
 rpm -Uvh http://elgis.argeo.org/repos/6/elgis-release-6-6_0.noarch.rpm
-
-# TODO MapServer 6.0.3 dependencies
-wget -c --progress=dot:mega \
-    "http://dl.atrpms.net/all/bitstream-vera-fonts-common-1.10-18.el6.noarch.rpm"
-wget -c --progress=dot:mega \
-    "http://dl.atrpms.net/all/bitstream-vera-sans-fonts-1.10-18.el6.noarch.rpm"
-yum install fontpackages-filesystem
-rpm -Uhv bitstream-vera-fonts-common-1.10-18.el6.noarch.rpm \
-    bitstream-vera-sans-fonts-1.10-18.el6.noarch.rpm
 
 # Apply available upgrades
 yum update -y
@@ -157,12 +147,42 @@ fi
 service postgresql force-reload
 
 # Configure PostgreSQL/PostGIS database
-if [ -f db_config_ngeo_browse_server.sh ] ; then
-    chgrp postgres db_config_ngeo_browse_server.sh
-    chmod g+x db_config_ngeo_browse_server.sh
-    su postgres -c "./db_config_ngeo_browse_server.sh $DB_NAME $DB_USER $DB_PASSWORD"
+
+## Write database configuration script
+TMPFILE=`mktemp`
+cat << EOF > "$TMPFILE"
+#!/bin/sh
+# cd to a "safe" location
+cd /tmp
+if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='template_postgis'")" != 1 ] ; then
+    echo "Creating template database."
+    createdb -E UTF8 template_postgis
+    createlang plpgsql -d template_postgis
+    psql postgres -c "UPDATE pg_database SET datistemplate='true' WHERE datname='template_postgis';"
+    psql -d template_postgis -f /usr/share/pgsql/contrib/postgis.sql
+    psql -d template_postgis -f /usr/share/pgsql/contrib/spatial_ref_sys.sql
+    psql -d template_postgis -c "GRANT ALL ON geometry_columns TO PUBLIC;"
+    psql -d template_postgis -c "GRANT ALL ON geography_columns TO PUBLIC;"
+    psql -d template_postgis -c "GRANT ALL ON spatial_ref_sys TO PUBLIC;"
+fi
+if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'")" != 1 ] ; then
+    echo "Creating ngEO database user."
+    psql postgres -tAc "CREATE USER $DB_USER NOSUPERUSER NOCREATEDB NOCREATEROLE ENCRYPTED PASSWORD '$DB_PASSWORD'"
+fi
+if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'")" != 1 ] ; then
+    echo "Creating ngEO Browse Server database."
+    createdb -O $DB_USER -T template_postgis $DB_NAME
+fi
+EOF
+## End of database configuration script
+
+if [ -f $TMPFILE ] ; then
+    chgrp postgres $TMPFILE
+    chmod g+rx $TMPFILE
+    su postgres -c "$TMPFILE"
+    rm "$TMPFILE"
 else
-    echo "Script db_config_ngeo_browse_server.sh to configure DB not found."
+    echo "Script to configure DB not found."
 fi
 
 
@@ -279,6 +299,10 @@ fi
 
 # Configure WebDAV
 [ -d "$NGEOB_INSTALL_DIR/store" ] || mkdir -p "$NGEOB_INSTALL_DIR/store"
+[ -d "$NGEOB_INSTALL_DIR/dav" ] || mkdir -p "$NGEOB_INSTALL_DIR/dav"
+chown -R apache:apache "$NGEOB_INSTALL_DIR/store"
+chown -R apache:apache "$NGEOB_INSTALL_DIR/dav"
+echo "test:dav@ngeo.eox.at:9e1e1d7cad0f6d301c736b380243eeee" > "$NGEOB_INSTALL_DIR/dav/DavUsers"
 
 
 # Enable MapCache module in Apache
@@ -291,7 +315,6 @@ fi
 if [ ! -f "$APACHE_CONF" ] ; then
     cat << EOF > "$APACHE_CONF"
 <VirtualHost *:80>
-test
     ServerName $APACHE_ServerName
     ServerAdmin $APACHE_ServerAdmin
 
@@ -324,7 +347,7 @@ test
 
     # TODO use vars in beginning of script
     # TODO file: /var/www/dav/DavUsers
-    DavLockDB /var/www/dav/DavLock
+    DavLockDB "$NGEOB_INSTALL_DIR/dav/DavLock"
     Alias /store "$NGEOB_INSTALL_DIR/store"
     <Directory $NGEOB_INSTALL_DIR/store>
         Order Allow,Deny
@@ -337,8 +360,12 @@ test
         AuthDigestDomain /store/ http://ngeo.eox.at/store/
 
         AuthDigestProvider file
-        AuthUserFile /var/www/dav/DavUsers
+        AuthUserFile "$NGEOB_INSTALL_DIR/dav/DavUsers"
         Require valid-user
+    </Directory>
+    <Directory $NGEOB_INSTALL_DIR/dav>
+        Order Allow,Deny
+        Deny from all
     </Directory>
 </VirtualHost>
 EOF
