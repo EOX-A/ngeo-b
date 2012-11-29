@@ -120,7 +120,7 @@ wget -c --progress=dot:mega \
     "http://dl.atrpms.net/all/bitstream-vera-fonts-common-1.10-18.el6.noarch.rpm"
 wget -c --progress=dot:mega \
     "http://dl.atrpms.net/all/bitstream-vera-sans-fonts-1.10-18.el6.noarch.rpm"
-yum install fontpackages-filesystem
+yum install -y fontpackages-filesystem
 rpm -Uhv bitstream-vera-fonts-common-1.10-18.el6.noarch.rpm \
     bitstream-vera-sans-fonts-1.10-18.el6.noarch.rpm
 
