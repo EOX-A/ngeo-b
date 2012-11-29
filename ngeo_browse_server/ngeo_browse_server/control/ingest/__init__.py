@@ -240,27 +240,12 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         # A browse with that identifier does not exist, so just create a new one
         logger.info("Creating new browse.")
     
-    # initialize a GeoReference for the preprocessor
-    geo_reference = _georef_from_parsed(parsed_browse)
     
-    # start the preprocessor
-    input_filename = get_storage_path(parsed_browse.file_name, config=config)
+    input_filename = get_storage_path(parsed_browse.file_name,
+                                              config=config)
     output_filename = get_optimized_path(parsed_browse.file_name, 
                                          browse_layer.id, config=config)
     output_filename = preprocessor.generate_filename(output_filename)
-    
-    # assert that the input file exists
-    if not exists(input_filename):
-        raise IngestionException("Input file '%s' does not exist."
-                                 % input_filename)
-    
-    # assert that the output file does not exist
-    if exists(output_filename):
-        raise IngestionException("Output file '%s' already exists."
-                                 % output_filename)
-    
-    # check that the output directory exists
-    safe_makedirs(dirname(output_filename))
     
     # wrap all file operations with IngestionTransaction
     with IngestionTransaction(output_filename):
@@ -270,6 +255,24 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         except: pass
         
         try:
+            # initialize a GeoReference for the preprocessor
+            geo_reference = _georef_from_parsed(parsed_browse)
+            
+            # assert that the input file exists
+            if not exists(input_filename):
+                raise IngestionException("Input file '%s' does not exist."
+                                         % input_filename)
+            
+            # assert that the output file does not exist
+            if exists(output_filename):
+                raise IngestionException("Output file '%s' already exists."
+                                         % output_filename)
+            
+            # check that the output directory exists
+            safe_makedirs(dirname(output_filename))
+            
+            
+            # start the preprocessor
             logger.info("Starting preprocessing on file '%s' to create '%s'."
                         % (input_filename, output_filename))
                  
@@ -404,19 +407,19 @@ def create_models(parsed_browse, browse_report, browse_layer, coverage_id, crs,
     srid = fromShortCode(parsed_browse.reference_system_identifier)
     
     # create the correct model from the pared browse
-    if type(parsed_browse) is data.RectifiedBrowse:
+    if parsed_browse.geo_type == "rectifiedBrowse":
         model = _model_from_parsed(parsed_browse, browse_report, browse_layer,
                                    coverage_id, models.RectifiedBrowse)
         model.full_clean()
         model.save()
         
-    elif type(parsed_browse) is data.FootprintBrowse:
+    elif parsed_browse.geo_type == "footprintBrowse":
         model = _model_from_parsed(parsed_browse, browse_report, browse_layer,
                                    coverage_id, models.FootprintBrowse)
         model.full_clean()
         model.save()
         
-    elif type(parsed_browse) is data.RegularGridBrowse:
+    elif parsed_browse.geo_type == "regularGridBrowse":
         model = _model_from_parsed(parsed_browse, browse_report, browse_layer,
                                    coverage_id, models.RegularGridBrowse)
         model.full_clean()
@@ -507,15 +510,17 @@ def _georef_from_parsed(parsed_browse):
     srid = fromShortCode(parsed_browse.reference_system_identifier)
     swap_axes = hasSwappedAxes(srid)
     
-    if type(parsed_browse) is data.RectifiedBrowse:
-        return Extent(parsed_browse.minx, parsed_browse.miny, 
-                      parsed_browse.maxx, parsed_browse.maxy,
-                      srid)
+    if parsed_browse.geo_type == "rectifiedBrowse":
+        coords = parse_coord_list(parsed_browse.coord_list, swap_axes)
+        coords = [coord for pair in coords for coord in pair]
+        assert(len(coords) == 4)
+        return Extent(*coords, srid=srid)
         
-    elif type(parsed_browse) is data.FootprintBrowse:
+    elif parsed_browse.geo_type == "footprintBrowse":
         # Generate GCPs from footprint coordinates
         pixels = parse_coord_list(parsed_browse.col_row_list)
         coords = parse_coord_list(parsed_browse.coord_list, swap_axes)
+        assert(len(pixels) == len(coords))
         gcps = [(x, y, pixel, line) 
                 for (x, y), (pixel, line) in zip(coords, pixels)]
         
@@ -527,7 +532,7 @@ def _georef_from_parsed(parsed_browse):
         return GCPList(gcps, srid)
         
         
-    elif type(parsed_browse) is data.RegularGridBrowse:
+    elif parsed_browse.geo_type == "regularGridBrowse":
         # calculate a list of pixel coordinates according to the values of the
         # parsed browse report (col_node_number * row_node_number)
         range_x = arange(
@@ -571,6 +576,8 @@ def _save_result_browse_report(browse_report, path):
                                             browse_report.responsible_org_name,
                                             browse_report.date_time.strftime("%Y%m%d%H%M%S%f")))
     
-    with open(path) as f:
-        f.write(render_to_string("control/browse_report.html",
+    safe_makedirs(dirname(path))
+    
+    with open(path, "w+") as f:
+        f.write(render_to_string("control/browse_report.xml",
                                  {"browse_report": browse_report}))
