@@ -86,6 +86,26 @@ def get_optimized_path(file_name, directory=None, config=None):
     return join(optimized_dir, root + postfix + ext)
 
 
+def get_success_dir(config=None):
+    """ Returns the configured success directory. """
+    
+    config = config or get_ngeo_config()
+    
+    return get_project_relative_path(
+        safe_get(config, "control.ingest", "success_dir")
+    )
+
+
+def get_failure_dir(config=None):
+    """ Returns the configured failure directory. """
+    
+    config = config or get_ngeo_config()
+    
+    return get_project_relative_path(
+        safe_get(config, "control.ingest", "failure_dir")
+    )
+
+
 def get_format_config(config=None):
     """ Returns a dictionary with all preprocessing format specific
     configuration settings.

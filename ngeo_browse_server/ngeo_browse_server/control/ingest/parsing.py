@@ -99,8 +99,8 @@ def parse_browse(browse_elem, browse_report=None):
     
     if rectified_browse is not None:
         logger.info("Parsing Rectified Browse.")
-        extent = map(float, rectified_browse.find(ns_rep("coordList")).text.split(" "))
-        return data.RectifiedBrowse(*extent, **kwargs)
+        kwargs["coord_list"] = rectified_browse.find(ns_rep("coordList")).text
+        return data.RectifiedBrowse(**kwargs)
     
     elif footprint is not None:
         logger.info("Parsing Footprint Browse.")

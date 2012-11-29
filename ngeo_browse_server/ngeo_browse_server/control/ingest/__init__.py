@@ -29,7 +29,7 @@
 
 import sys
 from os import remove, makedirs
-from os.path import exists, dirname
+from os.path import exists, dirname, join, isdir
 import shutil
 from numpy import arange
 import logging
@@ -38,8 +38,9 @@ import traceback
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.template.loader import render_to_string
 from eoxserver.core.system import System
-from eoxserver.processing.preprocessing import WMSPreProcessor, RGB
+from eoxserver.processing.preprocessing import WMSPreProcessor, RGB, RGBA
 from eoxserver.processing.preprocessing.format import get_format_selection
 from eoxserver.processing.preprocessing.georeference import Extent, GCPList
 from eoxserver.resources.coverages.metadata import EOMetadata
@@ -58,6 +59,7 @@ from ngeo_browse_server.control.ingest.config import (
     get_format_config, get_optimization_config, get_mapcache_config
 )
 from ngeo_browse_server.control.ingest.filetransaction import IngestionTransaction
+from ngeo_browse_server.control.ingest.config import get_success_dir, get_failure_dir
 from ngeo_browse_server.control.ingest.exceptions import IngestionException
 from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.mapcache.tasks import seed_mapcache
@@ -111,6 +113,8 @@ def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
     else:
         preprocessor = None # TODO: CopyPreprocessor
     
+    succeded = []
+    failed = []
 
     # transaction management on browse report basis
     with transaction.commit_on_success():
@@ -125,6 +129,7 @@ def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
                                          browse_layer, preprocessor, crs,
                                          config=config)
                 result.add(parsed_browse.browse_identifier, replaced)
+                succeded.append(parsed_browse)
                 
             except Exception, e:
                 # report error
@@ -144,9 +149,31 @@ def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
                     transaction.savepoint_rollback(sid)
                     result.add_failure(parsed_browse.browse_identifier, 
                                        type(e).__name__, str(e))
+                    
+                    failed.append(parsed_browse)
             
             # ingestion of browse was ok, commit changes
             transaction.savepoint_commit(sid)
+            
+        # generate browse report and save to to success/failure dir
+        if len(succeded):
+            succeded_report = data.BrowseReport(
+                parsed_browse_report.browse_type, 
+                parsed_browse_report.date_time, 
+                parsed_browse_report.responsible_org_name, 
+                succeded
+            )
+            _save_result_browse_report(succeded_report, get_success_dir(config))
+        
+        if len(failed):
+            failed_report = data.BrowseReport(
+                parsed_browse_report.browse_type, 
+                parsed_browse_report.date_time, 
+                parsed_browse_report.responsible_org_name, 
+                failed
+            )
+            _save_result_browse_report(failed_report, get_failure_dir(config))
+        
         
         # ingestion finished, commit changes. 
         transaction.commit()
@@ -213,27 +240,12 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         # A browse with that identifier does not exist, so just create a new one
         logger.info("Creating new browse.")
     
-    # initialize a GeoReference for the preprocessor
-    geo_reference = _georef_from_parsed(parsed_browse)
     
-    # start the preprocessor
-    input_filename = get_storage_path(parsed_browse.file_name, config=config)
+    input_filename = get_storage_path(parsed_browse.file_name,
+                                              config=config)
     output_filename = get_optimized_path(parsed_browse.file_name, 
                                          browse_layer.id, config=config)
     output_filename = preprocessor.generate_filename(output_filename)
-    
-    # assert that the input file exists
-    if not exists(input_filename):
-        raise IngestionException("Input file '%s' does not exist."
-                                 % input_filename)
-    
-    # assert that the output file does not exist
-    if exists(output_filename):
-        raise IngestionException("Output file '%s' already exists."
-                                 % output_filename)
-    
-    # check that the output directory exists
-    safe_makedirs(dirname(output_filename))
     
     # wrap all file operations with IngestionTransaction
     with IngestionTransaction(output_filename):
@@ -243,6 +255,24 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         except: pass
         
         try:
+            # initialize a GeoReference for the preprocessor
+            geo_reference = _georef_from_parsed(parsed_browse)
+            
+            # assert that the input file exists
+            if not exists(input_filename):
+                raise IngestionException("Input file '%s' does not exist."
+                                         % input_filename)
+            
+            # assert that the output file does not exist
+            if exists(output_filename):
+                raise IngestionException("Output file '%s' already exists."
+                                         % output_filename)
+            
+            # check that the output directory exists
+            safe_makedirs(dirname(output_filename))
+            
+            
+            # start the preprocessor
             logger.info("Starting preprocessing on file '%s' to create '%s'."
                         % (input_filename, output_filename))
                  
@@ -285,9 +315,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
             # save exception info to re-raise it
             exc_info = sys.exc_info()
             
-            failure_dir = get_project_relative_path(
-                safe_get(config, "control.ingest", "failure_dir")
-            )
+            failure_dir = get_failure_dir(config)
             
             logger.error("Error during ingestion of Browse '%s'. Moving "
                          "original image to '%s'."
@@ -315,9 +343,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                 if delete_on_success:
                     remove(input_filename)
                 else:
-                    success_dir = get_project_relative_path(
-                        safe_get(config, "control.ingest", "success_dir")
-                    )
+                    success_dir = get_success_dir(config)
                     
                     try:
                         safe_makedirs(success_dir)
@@ -381,19 +407,19 @@ def create_models(parsed_browse, browse_report, browse_layer, coverage_id, crs,
     srid = fromShortCode(parsed_browse.reference_system_identifier)
     
     # create the correct model from the pared browse
-    if type(parsed_browse) is data.RectifiedBrowse:
+    if parsed_browse.geo_type == "rectifiedBrowse":
         model = _model_from_parsed(parsed_browse, browse_report, browse_layer,
                                    coverage_id, models.RectifiedBrowse)
         model.full_clean()
         model.save()
         
-    elif type(parsed_browse) is data.FootprintBrowse:
+    elif parsed_browse.geo_type == "footprintBrowse":
         model = _model_from_parsed(parsed_browse, browse_report, browse_layer,
                                    coverage_id, models.FootprintBrowse)
         model.full_clean()
         model.save()
         
-    elif type(parsed_browse) is data.RegularGridBrowse:
+    elif parsed_browse.geo_type == "regularGridBrowse":
         model = _model_from_parsed(parsed_browse, browse_report, browse_layer,
                                    coverage_id, models.RegularGridBrowse)
         model.full_clean()
@@ -484,15 +510,17 @@ def _georef_from_parsed(parsed_browse):
     srid = fromShortCode(parsed_browse.reference_system_identifier)
     swap_axes = hasSwappedAxes(srid)
     
-    if type(parsed_browse) is data.RectifiedBrowse:
-        return Extent(parsed_browse.minx, parsed_browse.miny, 
-                      parsed_browse.maxx, parsed_browse.maxy,
-                      srid)
+    if parsed_browse.geo_type == "rectifiedBrowse":
+        coords = parse_coord_list(parsed_browse.coord_list, swap_axes)
+        coords = [coord for pair in coords for coord in pair]
+        assert(len(coords) == 4)
+        return Extent(*coords, srid=srid)
         
-    elif type(parsed_browse) is data.FootprintBrowse:
+    elif parsed_browse.geo_type == "footprintBrowse":
         # Generate GCPs from footprint coordinates
         pixels = parse_coord_list(parsed_browse.col_row_list)
         coords = parse_coord_list(parsed_browse.coord_list, swap_axes)
+        assert(len(pixels) == len(coords))
         gcps = [(x, y, pixel, line) 
                 for (x, y), (pixel, line) in zip(coords, pixels)]
         
@@ -504,7 +532,7 @@ def _georef_from_parsed(parsed_browse):
         return GCPList(gcps, srid)
         
         
-    elif type(parsed_browse) is data.RegularGridBrowse:
+    elif parsed_browse.geo_type == "regularGridBrowse":
         # calculate a list of pixel coordinates according to the values of the
         # parsed browse report (col_node_number * row_node_number)
         range_x = arange(
@@ -531,9 +559,25 @@ def _georef_from_parsed(parsed_browse):
     else:
         raise NotImplementedError
 
+
 def _generate_coverage_id(parsed_browse, browse_layer):
     frmt = "%Y%m%d%H%M%S%f"
     return "%s_%s_%s" % (browse_layer.id,
                          parsed_browse.start_time.strftime(frmt),
                          parsed_browse.end_time.strftime(frmt))
 
+
+def _save_result_browse_report(browse_report, path):
+    "Render the browse report to the template and save it under the given path."
+    
+    if isdir(path):
+        # generate a filename
+        path = join(path, "%s_%s_%s.xml" % (browse_report.browse_type, 
+                                            browse_report.responsible_org_name,
+                                            browse_report.date_time.strftime("%Y%m%d%H%M%S%f")))
+    
+    safe_makedirs(dirname(path))
+    
+    with open(path, "w+") as f:
+        f.write(render_to_string("control/browse_report.xml",
+                                 {"browse_report": browse_report}))
