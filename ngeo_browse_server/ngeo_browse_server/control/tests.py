@@ -284,6 +284,8 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
     expected_optimized_files = ()
     expected_deleted_files = None
     
+    expected_generated_success_browse_report = None
+    
     
     def test_expected_ingested_browses(self):
         """ Check that the expected browse IDs are ingested, rectified datasets
@@ -315,14 +317,27 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
                     ).exists()
                 )
             
+            # test if the EOxServer rectified dataset was created
             coverage_wrapper = System.getRegistry().getFromFactory(
                 "resources.coverages.wrappers.EOCoverageFactory",
                 {"obj_id": coverage_id}
             )
             self.assertTrue(coverage_wrapper is not None)
         
+        browse_report_file_mod = 0
+        if len(browse_ids) > 0:
+            # if at least one browse was successfully ingested, a browse report
+            # must also be present.
+            browse_report_file_mod = 1
+        
+        # test that the correct number of files was moved/created in the success
+        # directory
         files = self.get_file_list(self.temp_success_dir)
-        self.assertEqual(len(browse_ids), len(files))
+        self.assertEqual(len(browse_ids) + browse_report_file_mod, len(files))
+        
+        # test that a generated browse report is present in the success directory
+        if self.expected_generated_success_browse_report and len(browse_ids) > 0:
+            self.assertIn(self.expected_generated_success_browse_report, files)
         
     
     def test_expected_inserted_into_series(self):
@@ -414,6 +429,9 @@ class IngestFailureTestCaseMixIn(IngestTestCaseMixIn):
     expected_failed_browse_ids = ()
     expected_failed_files = ()
     
+    expected_generated_failure_browse_report = None
+    
+    
     def test_expected_failed(self):
         """ Check that the failed ingestion is declared in the result. Also
         check that the files are copied into the failure directory.
@@ -424,13 +442,63 @@ class IngestFailureTestCaseMixIn(IngestTestCaseMixIn):
         
         self.assertItemsEqual(self.expected_failed_browse_ids, failed_ids)
         
+        # make sure that the generated browse report is present aswell
+        expected_failed_files = list(self.expected_failed_files)
+        expected_failed_files.append(self.expected_generated_failure_browse_report)
+        
         # get file list of failure_dir and compare the count
         files = self.get_file_list(self.temp_failure_dir)
-        self.assertItemsEqual(self.expected_failed_files, files)
+        self.assertItemsEqual(expected_failed_files, files)
 
 #===============================================================================
 # actual test cases
 #===============================================================================
+
+
+class IngestRectifiedBrowse(IngestTestCaseMixIn, HttpMixIn, TestCase):
+    storage_dir = "data"
+    
+    expected_ingested_browse_ids = ("MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced",)
+    expected_inserted_into_series = "TEST_OPTICAL"
+    expected_optimized_files = ['mosaic_ENVISAT-MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_proc.tif']
+    request = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+    <rep:responsibleOrgName>EOX</rep:responsibleOrgName>
+    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
+    <rep:browseType>OPTICAL</rep:browseType>
+    <rep:browse>
+        <rep:browseIdentifier>MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced</rep:browseIdentifier>
+        <rep:fileName>mosaic_ENVISAT-MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.tif</rep:fileName>
+        <rep:imageType>TIFF</rep:imageType>
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:rectifiedBrowse>
+            <rep:coordList>32.1902500 8.4784500 46.2686450 25.4101500</rep:coordList>
+        </rep:rectifiedBrowse>
+        <rep:startTime>2012-10-02T09:20:00Z</rep:startTime>
+        <rep:endTime>2012-10-02T09:20:00Z</rep:endTime>
+    </rep:browse>
+</rep:browseReport>"""
+    
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
 
 class IngestRegularGrid(IngestTestCaseMixIn, HttpMixIn, TestCase):
     storage_dir = "data"
@@ -842,8 +910,10 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class IngestFailureNoInputFile(IngestFailureTestCaseMixIn, HttpMixIn, TestCase):
     expected_failed_browse_ids = ("FAILURE",)
-    request_file = "test_data/BrowseReport_FAILURE.xml" 
+    expected_generated_failure_browse_report = "SAR_EOX_20121002093000000000.xml"
 
+    request_file = "test_data/BrowseReport_FAILURE.xml" 
+    
     @property
     def expected_response(self):
         return """\
@@ -872,6 +942,9 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class IngestFailureIDStartsWithNumber(IngestFailureTestCaseMixIn, HttpMixIn, TestCase):
     expected_failed_browse_ids = ("11_id_starts_with_number",)
+    expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
+    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000.xml"
+    
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
@@ -919,6 +992,9 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class IngestFailureFootprintNoCircle(IngestFailureTestCaseMixIn, HttpMixIn, TestCase):
     expected_failed_browse_ids = ("FAILURE",)
+    expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
+    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000.xml"
+    
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
@@ -965,6 +1041,9 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class IngestFailureUnknownReferenceSystem(IngestFailureTestCaseMixIn, HttpMixIn, TestCase):
     expected_failed_browse_ids = ("FAILURE",)
+    expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
+    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000.xml"
+    
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
@@ -1012,6 +1091,9 @@ EPSG coordinate system?</bsi:exceptionMessage>
 
 class IngestFailureEndBeforeStart(IngestFailureTestCaseMixIn, HttpMixIn, TestCase):
     expected_failed_browse_ids = ("FAILURE",)
+    expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
+    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000.xml"
+    
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
