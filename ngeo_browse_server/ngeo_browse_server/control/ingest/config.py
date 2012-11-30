@@ -35,7 +35,6 @@ from eoxserver.processing.preprocessing import RGB, RGBA
 from ngeo_browse_server.config import get_ngeo_config, safe_get
 
 
-
 INGEST_SECTION = "control.ingest"
 MAPCACHE_SECTION = "control.ingest.mapcache"
 

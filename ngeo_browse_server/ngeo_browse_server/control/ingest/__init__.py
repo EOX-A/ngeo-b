@@ -40,7 +40,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.template.loader import render_to_string
 from eoxserver.core.system import System
-from eoxserver.processing.preprocessing import WMSPreProcessor, RGB, RGBA
+from eoxserver.processing.preprocessing import WMSPreProcessor, RGB, RGBA, ORIG_BANDS
 from eoxserver.processing.preprocessing.format import get_format_selection
 from eoxserver.processing.preprocessing.georeference import Extent, GCPList
 from eoxserver.resources.coverages.metadata import EOMetadata
@@ -194,6 +194,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
     
     replaced = False
     replaced_extent = None
+    replaced_filename = None
     
     config = config or get_ngeo_config()
     
@@ -232,7 +233,9 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                 browse_layer=browse_layer
             )
             
-        replaced_extent = cleanup_replaced(browse, browse_layer, coverage_id)
+        replaced_extent, replaced_filename = cleanup_replaced(
+            browse, browse_layer, coverage_id
+        )
         replaced = True
         logger.info("Existing browse found, replacing it.")
             
@@ -241,14 +244,13 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         logger.info("Creating new browse.")
     
     
-    input_filename = get_storage_path(parsed_browse.file_name,
-                                              config=config)
+    input_filename = get_storage_path(parsed_browse.file_name, config=config)
     output_filename = get_optimized_path(parsed_browse.file_name, 
                                          browse_layer.id, config=config)
     output_filename = preprocessor.generate_filename(output_filename)
     
     # wrap all file operations with IngestionTransaction
-    with IngestionTransaction(output_filename):
+    with IngestionTransaction(output_filename, replaced_filename):
         leave_original = False
         try:
             leave_original = config.getboolean("control.ingest", "leave_original")
@@ -381,6 +383,7 @@ def cleanup_replaced(browse, browse_layer, coverage_id):
         {"obj_id": browse.coverage_id}
     )
     replaced_extent = rect_ds.getExtent()
+    replaced_filename = rect_ds.getData().getLocation().getPath()
     
     # TODO: delete the optimized browse image of the to-be-replaced browse here
     # ATTENTION: In case of an error, this file must be restored!
@@ -395,7 +398,7 @@ def cleanup_replaced(browse, browse_layer, coverage_id):
     rect_mgr.delete(obj_id=browse.coverage_id)
     browse.delete()
     
-    return replaced_extent
+    return replaced_extent, replaced_filename
 
 
 def create_models(parsed_browse, browse_report, browse_layer, coverage_id, crs,
