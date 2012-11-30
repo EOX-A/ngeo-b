@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
 	<rep:responsibleOrgName>{{ browse_report.responsible_org_name }}</rep:responsibleOrgName>
-	<rep:dateTime>{{ browse_report.date_time }}</rep:dateTime>
-	<rep:browseType>{{ browse_report.browse_type }}</rep:browseType>
-	{% for browse in browse_report %}<rep:browse>
+	<rep:dateTime>{{ browse_report.date_time.isoformat }}</rep:dateTime>
+	<rep:browseType>{{ browse_report.browse_type }}</rep:browseType>{% for browse in browse_report %}
+	<rep:browse>
 		{% if browse.browse_identifier %}<rep:browseIdentifier>{{ browse.browse_identifier }}</rep:browseIdentifier>
 		{% endif %}<rep:fileName>{{ browse.file_name }}</rep:fileName>
 		<rep:imageType>{{ browse.image_type }}</rep:imageType>
@@ -24,7 +24,7 @@
         	{% endfor %}
     	</rep:regularGrid>
 		{% elif browse.geo_type == "modelInGeotiffBrowse" %}<rep:modelInGeotiff>true</rep:modelInGeotiff>
-		{% endif %}<rep:startTime>{{ browse.start_time }}{# TODO: format time correctly #}</rep:startTime>
-		<rep:endTime>{{ browse.end_time }}{# TODO: format time correctly #}</rep:endTime>
+		{% endif %}<rep:startTime>{{ browse.start_time.isoformat }}</rep:startTime>
+		<rep:endTime>{{ browse.end_time.isoformat }}</rep:endTime>
 	</rep:browse>{% endfor %}
 </rep:browseReport>
