@@ -143,6 +143,14 @@ def get_optimization_config(config=None):
         values["overviews"] = config.getboolean(INGEST_SECTION, "overviews")
     except: pass
     
+    values["overview_levels"] = safe_get(config, INGEST_SECTION, "overview_levels")
+    if values["overview_levels"]:
+        values["overview_levels"] = map(int, values["overview_levels"].split(","))
+    
+    try:
+        values["overview_minsize"] = config.getint(INGEST_SECTION, "overview_minsize")
+    except: pass
+    
     try:
         values["color_index"] = config.getboolean(INGEST_SECTION, "color_index")
     except: pass
