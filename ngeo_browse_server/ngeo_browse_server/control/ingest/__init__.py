@@ -29,7 +29,7 @@
 
 import sys
 from os import remove, makedirs
-from os.path import exists, dirname, join, isdir
+from os.path import exists, dirname, join, isdir, samefile
 import shutil
 from numpy import arange
 import logging
@@ -118,63 +118,64 @@ def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
 
     # transaction management on browse report basis
     with transaction.commit_on_success():
-        result = IngestResult()
-        
-        # iterate over all browses in the browse report
-        for parsed_browse in parsed_browse_report:
-            sid = transaction.savepoint()
-            try:
-                # try ingest a single browse and log success
-                replaced = ingest_browse(parsed_browse, browse_report,
-                                         browse_layer, preprocessor, crs,
-                                         config=config)
-                result.add(parsed_browse.browse_identifier, replaced)
-                succeded.append(parsed_browse)
-                
-            except Exception, e:
-                # report error
-                logger.error("Failure during ingestion of browse '%s'." %
-                             parsed_browse.browse_identifier)
-                logger.error(traceback.format_exc() + "\n")
-                
-                if reraise_exceptions:
-                    # complete rollback and reraise exception
-                    transaction.rollback()
-                    
-                    info = sys.exc_info()
-                    raise info[0], info[1], info[2]
-                
-                else:
-                    # undo latest changes, append the failure and continue
-                    transaction.savepoint_rollback(sid)
-                    result.add_failure(parsed_browse.browse_identifier, 
-                                       type(e).__name__, str(e))
-                    
-                    failed.append(parsed_browse)
+        with transaction.commit_on_success("mapcache"):
+            result = IngestResult()
             
-            # ingestion of browse was ok, commit changes
-            transaction.savepoint_commit(sid)
+            # iterate over all browses in the browse report
+            for parsed_browse in parsed_browse_report:
+                sid = transaction.savepoint()
+                try:
+                    # try ingest a single browse and log success
+                    replaced = ingest_browse(parsed_browse, browse_report,
+                                             browse_layer, preprocessor, crs,
+                                             config=config)
+                    result.add(parsed_browse.browse_identifier, replaced)
+                    succeded.append(parsed_browse)
+                    
+                except Exception, e:
+                    # report error
+                    logger.error("Failure during ingestion of browse '%s'." %
+                                 parsed_browse.browse_identifier)
+                    logger.error(traceback.format_exc() + "\n")
+                    
+                    if reraise_exceptions:
+                        # complete rollback and reraise exception
+                        transaction.rollback()
+                        
+                        info = sys.exc_info()
+                        raise info[0], info[1], info[2]
+                    
+                    else:
+                        # undo latest changes, append the failure and continue
+                        transaction.savepoint_rollback(sid)
+                        result.add_failure(parsed_browse.browse_identifier, 
+                                           type(e).__name__, str(e))
+                        
+                        failed.append(parsed_browse)
+                
+                # ingestion of browse was ok, commit changes
+                transaction.savepoint_commit(sid)
+                
+            # generate browse report and save to to success/failure dir
+            if len(succeded):
+                succeded_report = data.BrowseReport(
+                    parsed_browse_report.browse_type, 
+                    parsed_browse_report.date_time, 
+                    parsed_browse_report.responsible_org_name, 
+                    succeded
+                )
+                _save_result_browse_report(succeded_report, get_success_dir(config))
             
-        # generate browse report and save to to success/failure dir
-        if len(succeded):
-            succeded_report = data.BrowseReport(
-                parsed_browse_report.browse_type, 
-                parsed_browse_report.date_time, 
-                parsed_browse_report.responsible_org_name, 
-                succeded
-            )
-            _save_result_browse_report(succeded_report, get_success_dir(config))
-        
-        if len(failed):
-            failed_report = data.BrowseReport(
-                parsed_browse_report.browse_type, 
-                parsed_browse_report.date_time, 
-                parsed_browse_report.responsible_org_name, 
-                failed
-            )
-            _save_result_browse_report(failed_report, get_failure_dir(config))
-        
-        
+            if len(failed):
+                failed_report = data.BrowseReport(
+                    parsed_browse_report.browse_type, 
+                    parsed_browse_report.date_time, 
+                    parsed_browse_report.responsible_org_name, 
+                    failed
+                )
+                _save_result_browse_report(failed_report, get_failure_dir(config))
+            
+            
         # ingestion finished, commit changes. 
         transaction.commit()
             
@@ -243,20 +244,31 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         # A browse with that identifier does not exist, so just create a new one
         logger.info("Creating new browse.")
     
+    # get the `leave_original` setting
+    leave_original = False
+    try:
+        leave_original = config.getboolean("control.ingest", "leave_original")
+    except: pass
     
+    # get the input and output filenames
     input_filename = get_storage_path(parsed_browse.file_name, config=config)
     output_filename = get_optimized_path(parsed_browse.file_name, 
                                          browse_layer.id, config=config)
     output_filename = preprocessor.generate_filename(output_filename)
     
-    # wrap all file operations with IngestionTransaction
-    with IngestionTransaction(output_filename, replaced_filename):
-        leave_original = False
-        try:
-            leave_original = config.getboolean("control.ingest", "leave_original")
-        except: pass
+    try:
+        # assert that the output file does not exist (unless it is a to-be 
+        # replaced file).
+        if (exists(output_filename) and 
+            ((replaced_filename and
+              not samefile(output_filename, replaced_filename))
+             or not replaced_filename)):
+            raise IngestionException("Output file '%s' already exists."
+                                     % output_filename)
         
-        try:
+        # wrap all file operations with IngestionTransaction
+        with IngestionTransaction(output_filename, replaced_filename):
+        
             # initialize a GeoReference for the preprocessor
             geo_reference = _georef_from_parsed(parsed_browse)
             
@@ -265,14 +277,8 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                 raise IngestionException("Input file '%s' does not exist."
                                          % input_filename)
             
-            # assert that the output file does not exist
-            if exists(output_filename):
-                raise IngestionException("Output file '%s' already exists."
-                                         % output_filename)
-            
             # check that the output directory exists
             safe_makedirs(dirname(output_filename))
-            
             
             # start the preprocessor
             logger.info("Starting preprocessing on file '%s' to create '%s'."
@@ -313,47 +319,48 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                           delete=False,
                           **get_mapcache_config(config))
         
-        except:
-            # save exception info to re-raise it
-            exc_info = sys.exc_info()
-            
-            failure_dir = get_failure_dir(config)
-            
-            logger.error("Error during ingestion of Browse '%s'. Moving "
-                         "original image to '%s'."
-                         % (parsed_browse.browse_identifier, failure_dir))
-            
-            # move the file to failure folder
-            try:
-                if not leave_original:
-                    safe_makedirs(failure_dir)
-                    shutil.move(input_filename, failure_dir)
-            except:
-                logger.warn("Could not move '%s' to configured `failure_dir` "
-                             "'%s'." % (input_filename, failure_dir))
-            
-            # re-raise the exception
-            raise exc_info[0], exc_info[1], exc_info[2]
+    except:
+        # save exception info to re-raise it
+        exc_info = sys.exc_info()
         
-        else:
-            # move the file to success folder, or delete it right away
-            delete_on_success = False
-            try: delete_on_success = config.getboolean("control.ingest", "delete_on_success")
-            except: pass
-            
+        failure_dir = get_failure_dir(config)
+        
+        logger.error("Error during ingestion of Browse '%s'. Moving "
+                     "original image to '%s'."
+                     % (parsed_browse.browse_identifier, failure_dir))
+        
+        # move the file to failure folder
+        try:
             if not leave_original:
-                if delete_on_success:
-                    remove(input_filename)
-                else:
-                    success_dir = get_success_dir(config)
-                    
-                    try:
-                        safe_makedirs(success_dir)
-                        shutil.move(input_filename, success_dir)
-                    except:
-                        logger.warn("Could not move '%s' to configured "
-                                    "`success_dir` '%s'."
-                                    % (input_filename, success_dir))
+                safe_makedirs(failure_dir)
+                shutil.move(input_filename, failure_dir)
+        except Exception, e:
+            logger.warn("Could not move '%s' to configured "
+                         "`failure_dir` '%s'. Error was: '%s'."
+                         % (input_filename, failure_dir, str(e)))
+        
+        # re-raise the exception
+        raise exc_info[0], exc_info[1], exc_info[2]
+    
+    else:
+        # move the file to success folder, or delete it right away
+        delete_on_success = False
+        try: delete_on_success = config.getboolean("control.ingest", "delete_on_success")
+        except: pass
+        
+        if not leave_original:
+            if delete_on_success:
+                remove(input_filename)
+            else:
+                success_dir = get_success_dir(config)
+                
+                try:
+                    safe_makedirs(success_dir)
+                    shutil.move(input_filename, success_dir)
+                except Exception, e:
+                    logger.warn("Could not move '%s' to configured "
+                                "`success_dir` '%s'. Error was: '%s'."
+                                % (input_filename, success_dir, str(e)))
             
     logger.info("Successfully ingested browse with coverage ID '%s'."
                 % coverage_id)
