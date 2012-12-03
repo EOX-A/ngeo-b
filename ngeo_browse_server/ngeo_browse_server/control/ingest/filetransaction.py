@@ -28,7 +28,7 @@ class IngestionTransaction(object):
         
         # check if the file in question exists. If it does, move it to a safe 
         # location.
-        existing_filenames = [filename for filename in self._subject_filenames
+        existing_filenames = [filename for filename in set(self._subject_filenames)
                               if filename and exists(filename)]
         
         for filename in existing_filenames:
@@ -45,9 +45,9 @@ class IngestionTransaction(object):
         # on success
         if (etype, value, traceback) == (None, None, None):
             # no error occurred, delete all backups
-            logger.debug("No error occurred.")
+            logger.debug("No error occurred, removing backups.")
             for filename, backup_filename in self._file_map.items():
-                logger.debug("Deleting backup for '%s'." % filename)
+                logger.debug("Remove backup for '%s'." % filename)
                 remove(backup_filename)
         
         # on error
@@ -58,10 +58,10 @@ class IngestionTransaction(object):
                 try:
                     logger.debug("Deleting '%s'." % filename)
                     remove(filename)
-                except OSError:
+                except (OSError, TypeError):
                     pass
             
             # restore all backups
             for filename, backup_filename in self._file_map.items():
-                logger.debug("Restoring backup for '%s'." % self.filename)
+                logger.debug("Restoring backup for '%s'." % filename)
                 shutil.move(backup_filename, filename)
