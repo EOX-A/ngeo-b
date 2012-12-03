@@ -151,6 +151,8 @@ def get_optimization_config(config=None):
         values["overview_minsize"] = config.getint(INGEST_SECTION, "overview_minsize")
     except: pass
     
+    values["overview_resampling"] = safe_get(config, INGEST_SECTION, "overview_resampling")
+    
     try:
         values["color_index"] = config.getboolean(INGEST_SECTION, "color_index")
     except: pass
