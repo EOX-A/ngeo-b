@@ -23,10 +23,13 @@ class IngestionTransaction(object):
     def __enter__(self):
         " Start of critical block. Check if file exists and create backup. "
         
-        # check if the file in question exists. If it does, move it to a safe 
-        # location 
-        existing_filenames = filter(exists, set(self._subject_filenames))
+        # save a reference to the original file (key) and its backup (value).
         self._file_map = {}
+        
+        # check if the file in question exists. If it does, move it to a safe 
+        # location.
+        existing_filenames = [filename for filename in self._subject_filenames
+                              if filename and exists(filename)]
         
         for filename in existing_filenames:
             _, self._file_map[filename] = tempfile.mkstemp()
