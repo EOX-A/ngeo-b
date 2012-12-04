@@ -288,6 +288,7 @@ if [ ! -d "$MAPCACHE_DIR" ] ; then
     <service type="wms" enabled="true">
         <full_wms>assemble</full_wms>
         <resample_mode>bilinear</resample_mode>
+        <format>JPEG</format>
         <maxsize>4096</maxsize>
     </service>
     <service type="wmts" enabled="true"/>
@@ -317,6 +318,7 @@ EOF
     <service type="wms" enabled="true">
         <full_wms>assemble</full_wms>
         <resample_mode>bilinear</resample_mode>
+        <format>JPEG</format>
         <maxsize>4096</maxsize>
     </service>
     <service type="wmts" enabled="true"/>
