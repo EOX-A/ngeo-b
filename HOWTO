@@ -13,6 +13,11 @@ vagrant ssh
 # Install:
 cd /var/eoxserver/
 sudo python setup.py develop
+cd /var/mapcache
+sudo yum install httpd-devel pixman-devel sqlite-devel libpng-devel libjpeg-devel libcurl-devel 
+./configure
+make
+sudo make install
 cd /var/ngeob/
 sudo python setup.py develop
 
@@ -26,21 +31,21 @@ python manage.py runserver 0.0.0.0:8000
 # How to build ngEO Browse Server                                      #
 ########################################################################
 
+git pull
 git archive --format=tar --prefix=ngeob-0.1dev/ master | gzip > ngeob-0.1dev.tar.gz
-scp ngeob-0.1dev.tar.gz ngeo.eox.at:.
-ssh ngeo.eox.at
+scp ngeob-0.1dev.tar.gz eox@ngeo:.
+ssh eox@ngeo.eox.at
 cd build/
-tar -xvzf ../ngeob-0.1dev.tar.gz
+tar xzf ../ngeob-0.1dev.tar.gz
 cd ngeob-0.1dev/ngeo_browse_server/
-python setup.py bdist_rpm --requires "EOxServer mapache httpd" --release <NO>
+python setup.py bdist_rpm --requires "EOxServer mapcache httpd" --release <NO>
 
 ########################################################################
 # How to build EOxServer                                               #
 ########################################################################
 
 ssh eox@ngeo.eox.at
-cd build/
-#svn co https://eoxserver.org/svn/trunk eoxserver-0.3dev
+cd build/eoxserver-trunk/
 svn up
 cd eoxserver-0.3dev/
 python setup.py bdist_rpm --requires "Django14 >= 1.4.2 gdal-python mapserver-python libxml2-python python-lxml" --release <NO>
@@ -49,14 +54,15 @@ python setup.py bdist_rpm --requires "Django14 >= 1.4.2 gdal-python mapserver-py
 # How to build MapCache                                                #
 ########################################################################
 
-ssh ngeo.eox.at
+ssh eox@ngeo.eox.at
 cd build/mapcache/
 git pull
-git archive --format=tar --prefix=mapcache-1.0.1dev/ branch-1-0 | gzip > ../mapcache-1.0.1dev.tar.gz
-cd ../../rpmbuild/
-mv ../build/mapcache-1.1dev.tar.gz SOURCES/
-cd SPECS/
+git archive --format=tar --prefix=mapcache-1.1dev/ timedimension | gzip > ../../rpmbuild/SOURCES/mapcache-1.1dev.tar.gz
+cd ../../rpmbuild/SPECS/
 vi mapcache.spec
+# Adjust Release
 rpmbuild -ba mapcache.spec 
-
-
+cd ..
+mv RPMS/x86_64/ .
+tar czf tmp.tar.gz x86_64/ SRPMS/
+# Install at packages@yum.packages.eox.at
