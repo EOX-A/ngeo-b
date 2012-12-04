@@ -64,10 +64,17 @@ APACHE_CONF="/etc/httpd/conf.d/010_ngeo_browse_server.conf"
 APACHE_ServerName="ngeo.eox.at"
 APACHE_ServerAdmin="webmaster@eox.at"
 APACHE_NGEO_BROWSE_ALIAS="/browse"
+APACHE_NGEO_CACHE_ALIAS="/c"
+APACHE_NGEO_STORE_ALIAS="/store"
 
 # WebDAV
 WEBDAV_USER="test"
 WEBDAV_PASSWORD="eiNoo7ae"
+
+# Django
+DJANGO_USER="admin"
+DJANGO_MAIL="ngeo@eox.at"
+DJANGO_PASSWORD="Aa2phu0s"
 
 ################################################################################
 # Usually there should be no need to change anything below.                    #
@@ -144,8 +151,12 @@ if [ $? -ne 0 ] ; then
 fi
 
 
+# Permanently start Apache
+chkconfig httpd on
+
 # Permanently start PostgreSQL
 chkconfig postgresql on
+
 
 # Init PostgreSQL
 if [ ! -f "/var/lib/pgsql/data/PG_VERSION" ] ; then
@@ -211,10 +222,6 @@ if [ ! -d ngeo_browse_server_instance ] ; then
     django-admin startproject --extension=conf --template=`python -c "import ngeo_browse_server, os; from os.path import dirname, abspath, join; print(join(dirname(abspath(ngeo_browse_server.__file__)), 'project_template'))"` ngeo_browse_server_instance
     cd ngeo_browse_server_instance
     
-    # Configure logging
-#    sed -e 's/#logging_level=/logging_level=INFO/' -i ngeo_browse_server_instance/conf/eoxserver.conf # TODO enable in production
-#    sed -e 's/DEBUG = True/DEBUG = False/' -i ngeo_browse_server_instance/settings.py # TODO enable in production
-
     # Configure DBs
     NGEOB_INSTALL_DIR_ESCAPED=`echo $NGEOB_INSTALL_DIR | sed -e 's/\//\\\&/g'`
     sed -e "s/'ENGINE': 'django.contrib.gis.db.backends.spatialite',                  # Use 'spatialite' or change to 'postgis'./'ENGINE': 'django.contrib.gis.db.backends.postgis',/" -i ngeo_browse_server_instance/settings.py
@@ -225,11 +232,24 @@ if [ ! -d ngeo_browse_server_instance ] ; then
     sed -e "/'HOST': '',                                                             # Set to empty string for localhost. Not used with spatialite./d" -i ngeo_browse_server_instance/settings.py
     sed -e "/'PORT': '',                                                             # Set to empty string for default. Not used with spatialite./d" -i ngeo_browse_server_instance/settings.py
 
+    sed -e "s,http_service_url=http://localhost:8000/ows,http_service_url=$NGEOB_URL$APACHE_NGEO_BROWSE_ALIAS/ows," -i ngeo_browse_server_instance/conf/eoxserver.conf
+
+    if ! "$TESTING" ; then
+        # Configure logging
+        sed -e 's/#logging_level=/logging_level=INFO/' -i ngeo_browse_server_instance/conf/eoxserver.conf
+        sed -e 's/DEBUG = True/DEBUG = False/' -i ngeo_browse_server_instance/settings.py
+    fi
+
+    # Prepare DBs
     python manage.py syncdb --noinput
     python manage.py syncdb --database=mapcache --noinput
     python manage.py loaddata initial_rangetypes.json
-    
-    sed -e "s,http_service_url=http://localhost:8000/ows,http_service_url=$NGEOB_URL$APACHE_NGEO_BROWSE_ALIAS/ows," -i ngeo_browse_server_instance/conf/eoxserver.conf
+
+    # Create admin user
+    python manage.py createsuperuser --username=$DJANGO_USER --email=$DJANGO_MAIL --noinput
+    python -c "import os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ngeo_browse_server_instance.settings'); \
+               from django.contrib.auth.models import User;  admin = User.objects.get(username='$DJANGO_USER'); \
+               admin.set_password('$DJANGO_PASSWORD'); admin.save();"
 
     # Collect static files
     python manage.py collectstatic --noinput
@@ -315,13 +335,18 @@ fi
 
 
 # Configure WebDAV
-echo "Configuring WebDAV."
-[ -d "$NGEOB_INSTALL_DIR/store" ] || mkdir -p "$NGEOB_INSTALL_DIR/store"
-[ -d "$NGEOB_INSTALL_DIR/dav" ] || mkdir -p "$NGEOB_INSTALL_DIR/dav"
-chown -R apache:apache "$NGEOB_INSTALL_DIR/store"
-chown -R apache:apache "$NGEOB_INSTALL_DIR/dav"
-/usr/bin/htpasswd -cb "$NGEOB_INSTALL_DIR/dav/DavUsers" $WEBDAV_USER $WEBDAV_PASSWORD
-chmod 0640 "$NGEOB_INSTALL_DIR/dav/DavUsers"
+if [ ! -d "$NGEOB_INSTALL_DIR/dav" ] ; then
+    echo "Configuring WebDAV."
+    mkdir -p "$NGEOB_INSTALL_DIR/dav"
+    printf "$WEBDAV_USER:ngEO Browse Server:$WEBDAV_PASSWORD" | md5sum - > $NGEOB_INSTALL_DIR/dav/DavUsers
+    sed -e "s/^\(.*\)  -$/test:ngEO Browse Server:\1/" -i $NGEOB_INSTALL_DIR/dav/DavUsers
+    chown -R apache:apache "$NGEOB_INSTALL_DIR/dav"
+    chmod 0640 "$NGEOB_INSTALL_DIR/dav/DavUsers"
+fi
+if [ ! -d "$NGEOB_INSTALL_DIR/store" ] ; then
+    mkdir -p "$NGEOB_INSTALL_DIR/store"
+    chown -R apache:apache "$NGEOB_INSTALL_DIR/store"
+fi
 
 # Enable MapCache module in Apache
 if ! grep -Fxq "LoadModule mapcache_module modules/mod_mapcache.so" /etc/httpd/conf/httpd.conf ; then
@@ -336,6 +361,12 @@ if [ ! -f "$APACHE_CONF" ] ; then
     # Configure WSGI module
     if ! grep -Fxq "WSGISocketPrefix run/wsgi" /etc/httpd/conf.d/wsgi.conf ] ; then
         echo "WSGISocketPrefix run/wsgi" >> /etc/httpd/conf.d/wsgi.conf
+    fi
+
+    # Add hostname
+    HOSTNAME=`hostname`
+    if ! grep -Gxq "127\.0\.0\.1.* $HOSTNAME" /etc/hosts ; then
+        sed -e 's/^127\.0\.0\.1.*$/& $HOSTNAME/' -i /etc/hosts
     fi
 
     cat << EOF > "$APACHE_CONF"
@@ -364,17 +395,15 @@ if [ ! -f "$APACHE_CONF" ] ; then
         allow from all
     </Directory>
 
-    MapCacheAlias /c "$MAPCACHE_DIR/mapcache.xml"
+    MapCacheAlias $APACHE_NGEO_CACHE_ALIAS "$MAPCACHE_DIR/mapcache.xml"
     <Directory $MAPCACHE_DIR>
         Order Allow,Deny
         Allow from all
         Header set Access-Control-Allow-Origin *
     </Directory>
 
-    # TODO use vars in beginning of script
-    # TODO file: /var/www/dav/DavUsers
     DavLockDB "$NGEOB_INSTALL_DIR/dav/DavLock"
-    Alias /store "$NGEOB_INSTALL_DIR/store"
+    Alias $APACHE_NGEO_STORE_ALIAS "$NGEOB_INSTALL_DIR/store"
     <Directory $NGEOB_INSTALL_DIR/store>
         Order Allow,Deny
         Allow from all
@@ -382,9 +411,8 @@ if [ ! -f "$APACHE_CONF" ] ; then
         Options +Indexes
 
         AuthType Digest
-        AuthName "dav@ngeo.eox.at"
-        AuthDigestDomain /store/ http://ngeo.eox.at/store/
-
+        AuthName "ngEO Browse Server"
+        AuthDigestDomain $APACHE_NGEO_STORE_ALIAS $NGEOB_URL$APACHE_NGEO_STORE_ALIAS
         AuthDigestProvider file
         AuthUserFile "$NGEOB_INSTALL_DIR/dav/DavUsers"
         Require valid-user
@@ -395,12 +423,9 @@ if [ ! -f "$APACHE_CONF" ] ; then
     </Directory>
 </VirtualHost>
 EOF
-
-    # Reload Apache
-    service httpd graceful
 fi
 
-# Permanently start Apache
-chkconfig httpd on
+# Reload Apache
+service httpd graceful
 
 echo "Finished ngEO Browse Server installation"
