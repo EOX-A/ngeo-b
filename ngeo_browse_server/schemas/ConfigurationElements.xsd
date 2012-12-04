@@ -1,0 +1,892 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2006 sp2 U (http://www.altova.com) by Magellium (MAGELLIUM) -->
+<schema xmlns="http://www.w3.org/2001/XMLSchema" xmlns:cfg="http://ngeo.eo.esa.int/schema/configurationElements" targetNamespace="http://ngeo.eo.esa.int/schema/configurationElements" elementFormDefault="qualified">
+  <element name="nativeDataset" type="cfg:nativeType"/>
+  <element name="logicalDataset" type="cfg:logicalType"/>
+  <element name="virtualDataset" type="cfg:virtualType"/>
+  <element name="remoteDataset" type="cfg:remoteType"/>
+  <element name="feedSources">
+    <complexType>
+      <sequence>
+        <element name="pollingSources">
+          <complexType>
+            <sequence>
+              <element name="pollingSource" type="cfg:pollingSourceType" minOccurs="0" maxOccurs="unbounded"/>
+            </sequence>
+          </complexType>
+        </element>
+        <element name="harvestingSources">
+          <complexType>
+            <sequence>
+              <element name="harvestingSource" type="cfg:harvestingSourceType" minOccurs="0" maxOccurs="unbounded"/>
+            </sequence>
+          </complexType>
+        </element>
+      </sequence>
+    </complexType>
+  </element>
+  <element name="destinations">
+    <complexType>
+      <sequence>
+        <element name="catalogueDestination" type="cfg:catalogDestinationType" minOccurs="0" maxOccurs="unbounded">
+          <annotation>
+            <documentation>Information needed to connect to a internal catalogue</documentation>
+          </annotation>
+        </element>
+        <element name="browseServerDestination" type="cfg:browseServerDestinationType" minOccurs="0" maxOccurs="unbounded">
+          <annotation>
+            <documentation>Information needed to connect to a Browse Server</documentation>
+          </annotation>
+        </element>
+        <element name="ngeoRemoteDestination" type="cfg:ngeoRemoteDestinationType" minOccurs="0" maxOccurs="unbounded">
+          <annotation>
+            <documentation>Information needed to connect to another ngEO instance</documentation>
+          </annotation>
+        </element>
+      </sequence>
+    </complexType>
+  </element>
+  <element name="browseLayers" type="cfg:browseLayersType"/>
+  <element name="interferometry" type="cfg:interferometryType"/>
+  <complexType name="browseLayersType">
+    <sequence>
+      <element name="browseLayer" minOccurs="0" maxOccurs="unbounded">
+        <complexType>
+          <complexContent>
+            <extension base="cfg:browseLayerType"/>
+          </complexContent>
+        </complexType>
+      </element>
+    </sequence>
+  </complexType>
+  <complexType name="browseLayerIdsType">
+    <sequence>
+      <element name="browseLayerId" type="cfg:string255" minOccurs="0" maxOccurs="unbounded"/>
+    </sequence>
+  </complexType>
+  <complexType name="datasetDefinitions">
+    <sequence>
+      <element ref="cfg:nativeDataset" minOccurs="0" maxOccurs="unbounded"/>
+      <element ref="cfg:logicalDataset" minOccurs="0" maxOccurs="unbounded"/>
+      <element ref="cfg:virtualDataset" minOccurs="0" maxOccurs="unbounded"/>
+      <element ref="cfg:remoteDataset" minOccurs="0" maxOccurs="unbounded"/>
+    </sequence>
+  </complexType>
+  <complexType name="baseDatasetType">
+    <sequence>
+      <element name="description" type="cfg:string255">
+        <annotation>
+          <documentation>User oriented text describing the dataset.</documentation>
+        </annotation>
+      </element>
+      <element name="searchAccessPolicy">
+        <annotation>
+          <documentation>Access policy for search operations</documentation>
+        </annotation>
+        <simpleType>
+          <restriction base="cfg:string255">
+            <enumeration value="OPEN"/>
+            <enumeration value="RESTRICTED"/>
+            <enumeration value="PRIVATE"/>
+          </restriction>
+        </simpleType>
+      </element>
+      <element name="viewAccessPolicy">
+        <annotation>
+          <documentation>Access policy for view operations (i.e. access to browses)</documentation>
+        </annotation>
+        <simpleType>
+          <restriction base="cfg:string255">
+            <enumeration value="OPEN"/>
+            <enumeration value="RESTRICTED"/>
+            <enumeration value="PRIVATE"/>
+          </restriction>
+        </simpleType>
+      </element>
+      <element name="downloadAccessPolicy">
+        <annotation>
+          <documentation>Access policy for download operations</documentation>
+        </annotation>
+        <simpleType>
+          <restriction base="cfg:string255">
+            <enumeration value="OPEN"/>
+            <enumeration value="RESTRICTED"/>
+            <enumeration value="PRIVATE"/>
+          </restriction>
+        </simpleType>
+      </element>
+      <element name="keywords" type="cfg:keywordsType">
+        <annotation>
+          <documentation>Set of keywords associated to this dataset </documentation>
+        </annotation>
+      </element>
+      <element name="extraInformation" type="cfg:extraInformationType">
+        <annotation>
+          <documentation>Extra information used to describe the dataset</documentation>
+        </annotation>
+      </element>
+      <element name="bulkOrderThreshold" type="integer" minOccurs="0">
+        <annotation>
+          <documentation>Expressed in Kb. 
+Optional threshold value used by the Web Client to display a message to the User to suggest bulk order whenever the volume of data is too high.</documentation>
+        </annotation>
+      </element>
+    </sequence>
+    <attribute name="datasetId" type="cfg:string255" use="required"/>
+  </complexType>
+  <complexType name="extraInformationType">
+    <sequence>
+      <element name="extraMetadata" type="cfg:extraMetadataType" minOccurs="0" maxOccurs="unbounded"/>
+    </sequence>
+  </complexType>
+  <complexType name="extraMetadataType">
+    <sequence>
+      <element name="name" type="cfg:string255"/>
+      <element name="value" type="cfg:string255"/>
+    </sequence>
+  </complexType>
+  <complexType name="nativeType">
+    <complexContent>
+      <extension base="cfg:baseDatasetType">
+        <sequence>
+          <element name="mission" type="cfg:string255">
+            <annotation>
+              <documentation>Mission (ie. satellite) which provided the products contained in the dataset.</documentation>
+            </annotation>
+          </element>
+          <element name="sensor" type="cfg:string255">
+            <annotation>
+              <documentation>Sensor (i.e instrument) which provided the products contained in the dataset.</documentation>
+            </annotation>
+          </element>
+          <element name="sensorMode" type="cfg:string255">
+            <annotation>
+              <documentation>Sensor mode specific to all products contained in the dataset.</documentation>
+            </annotation>
+          </element>
+          <element name="productType" type="cfg:string255">
+            <annotation>
+              <documentation>Product type specific to all products contained in the dataset.</documentation>
+            </annotation>
+          </element>
+          <element name="downloadOptions" type="cfg:downloadOptionsType">
+            <annotation>
+              <documentation>Definition of the download options</documentation>
+            </annotation>
+          </element>
+          <element name="hostingCatalogueName" type="cfg:string255">
+            <annotation>
+              <documentation>Name of the catalogue hosting the Dataset</documentation>
+            </annotation>
+          </element>
+          <element name="attributes" type="cfg:attributeType"/>
+          <element name="browseLayerIds" type="cfg:browseLayerIdsType">
+            <annotation>
+              <documentation>references to the browse layers associated to this dataset</documentation>
+            </annotation>
+          </element>
+          <element name="productURLRecognition" type="cfg:string255">
+            <annotation>
+              <documentation>Provides a pattern used to recognize products URI belonging to this dataset</documentation>
+            </annotation>
+          </element>
+          <element name="validityEndDate" type="dateTime" minOccurs="0">
+            <annotation>
+              <documentation>can optionally be defined in configuration when expected end of life is known</documentation>
+            </annotation>
+          </element>
+          <element name="plannedProductsRetentionPeriod" type="duration" minOccurs="0">
+            <annotation>
+              <documentation>Represents the period (relative to the acquisition date-time) before removing planned metadata from the catalogue.
+This period is expressed as a duration (e..g. P5D for "5 days")</documentation>
+            </annotation>
+          </element>
+          <element name="usableForInterferometry" type="boolean">
+            <annotation>
+              <documentation>'true' if the native dataset can be used in an interferometry search.</documentation>
+            </annotation>
+          </element>
+          <element name="additionalAttributes" type="cfg:additionalAttributesType">
+            <annotation>
+              <documentation>Definition of additional attributes that can be generated from URL templates (e.g. for CDS: additional URL for search for Quality items on CQC)
+These additional attributes are stored in the vendor-specific part.</documentation>
+            </annotation>
+          </element>
+        </sequence>
+      </extension>
+    </complexContent>
+  </complexType>
+  <complexType name="pollingSourceType">
+    <sequence>
+      <element name="url" type="cfg:string255">
+        <annotation>
+          <documentation>URL of the metadata source basket to poll. The URL provides the protocol to use</documentation>
+        </annotation>
+      </element>
+      <sequence minOccurs="0">
+        <annotation>
+          <documentation>Optional user/password to use to connect to the basket</documentation>
+        </annotation>
+        <element name="user" type="cfg:string255"/>
+        <element name="password" type="cfg:string255"/>
+      </sequence>
+      <choice>
+        <element name="plugin" type="cfg:pluginType">
+          <annotation>
+            <documentation>Reference to the converter plugin to use.</documentation>
+          </annotation>
+        </element>
+        <element name="fileNamePattern">
+          <annotation>
+            <documentation>File name pattern used to extract 
+
+Mandatory in the case where no converter plugin is used (i.e. if basket is expected to contain reports that don’t need to be converted because they already follow [ngEO-MDGICD], [ngEO-BRGICD] or [ngEO-INGICD])</documentation>
+          </annotation>
+        </element>
+      </choice>
+      <element name="contentType">
+        <annotation>
+          <documentation>Enumeration providing the expected type of content in this basket.
+Possible values are productMetadata / browse / interferometry</documentation>
+        </annotation>
+        <simpleType>
+          <restriction base="cfg:string255">
+            <enumeration value="browse"/>
+            <enumeration value="interferometry"/>
+            <enumeration value="productMetadata"/>
+          </restriction>
+        </simpleType>
+      </element>
+      <element name="refreshPeriod" type="duration">
+        <annotation>
+          <documentation>Time to be waited before performing a new polling of the basket
+This time is expressed as a duration (e..g. PT5S for "5 seconds")</documentation>
+        </annotation>
+      </element>
+      <element name="stopAtFirstError" type="boolean">
+        <annotation>
+          <documentation>It set to 'true', the polling process will stop whenever some polled file is rejected during the polling process.</documentation>
+        </annotation>
+      </element>
+      <element name="argument" type="cfg:argumentType" minOccurs="0" maxOccurs="unbounded">
+        <annotation>
+          <documentation>Optional arguments used by the polling mechanism</documentation>
+        </annotation>
+      </element>
+    </sequence>
+  </complexType>
+  <complexType name="harvestingSourceType">
+    <sequence>
+      <element name="url" type="cfg:string255">
+        <annotation>
+          <documentation>URL of the harvesting source directory to poll. The URL provides the protocol to use</documentation>
+        </annotation>
+      </element>
+      <sequence minOccurs="0">
+        <annotation>
+          <documentation>Optional user/password to use to connect to the directory</documentation>
+        </annotation>
+        <element name="user" type="cfg:string255"/>
+        <element name="password" type="cfg:string255"/>
+      </sequence>
+      <element name="argument" type="cfg:argumentType" minOccurs="0" maxOccurs="unbounded">
+        <annotation>
+          <documentation>Optional arguments provided to the harvesting process when launched</documentation>
+        </annotation>
+      </element>
+      <element name="defaultValue" type="cfg:defaultValueType" minOccurs="0" maxOccurs="unbounded">
+        <annotation>
+          <documentation>Default (constant) values for attributes not provided in the index file</documentation>
+        </annotation>
+      </element>
+      <element name="refreshPeriod" type="duration">
+        <annotation>
+          <documentation>Time to be waited before performing a new harvesting of the directory
+This time is expressed as a duration (e..g. PT5S for "5 seconds")</documentation>
+        </annotation>
+      </element>
+      <element name="targetBasket">
+        <complexType>
+          <sequence>
+            <element name="url" type="cfg:string255">
+              <annotation>
+                <documentation>URL of the metadata basket where will be copied the generated reports.
+The URL provides the protocol to use</documentation>
+              </annotation>
+            </element>
+            <sequence minOccurs="0">
+              <annotation>
+                <documentation>Optional user/password to use to connect to the basket</documentation>
+              </annotation>
+              <element name="user" type="cfg:string255"/>
+              <element name="password" type="cfg:string255"/>
+            </sequence>
+          </sequence>
+        </complexType>
+      </element>
+    </sequence>
+  </complexType>
+  <complexType name="pluginType">
+    <sequence>
+      <element name="name" type="cfg:string255">
+        <annotation>
+          <documentation>Name of the Feed plugin to use to poll the basket.</documentation>
+        </annotation>
+      </element>
+      <element name="argument" type="cfg:argumentType" minOccurs="0" maxOccurs="unbounded">
+        <annotation>
+          <documentation>Optional arguments provided to the converter plugin when launched</documentation>
+        </annotation>
+      </element>
+    </sequence>
+  </complexType>
+  <complexType name="argumentType">
+    <attribute name="key" type="cfg:string255" use="required"/>
+  </complexType>
+  <complexType name="defaultValueType">
+    <attribute name="attributeName" type="cfg:string255" use="required"/>
+  </complexType>
+  <complexType name="catalogDestinationType">
+    <sequence>
+      <element name="ingestionURL" type="anyURI">
+        <annotation>
+          <documentation>URL of the ingestion service</documentation>
+        </annotation>
+      </element>
+      <element name="serviceURL" type="anyURI">
+        <annotation>
+          <documentation>URL of the request service - used by the Web Server</documentation>
+        </annotation>
+      </element>
+    </sequence>
+    <attribute name="catalogueName" type="cfg:string255" use="required">
+      <annotation>
+        <documentation>Name of the catalogue</documentation>
+      </annotation>
+    </attribute>
+  </complexType>
+  <complexType name="browseServerDestinationType">
+    <sequence>
+      <element name="ingestionURL" type="anyURI">
+        <annotation>
+          <documentation>URL of the ingestion service</documentation>
+        </annotation>
+      </element>
+      <element name="wmsURL" type="anyURI">
+        <annotation>
+          <documentation>URL of the public WMS service</documentation>
+        </annotation>
+      </element>
+      <element name="wmtsURL" type="anyURI">
+        <annotation>
+          <documentation>URL of the public WMTS service</documentation>
+        </annotation>
+      </element>
+    </sequence>
+    <attribute name="browseServerName" type="cfg:string255" use="required">
+      <annotation>
+        <documentation>Name of the browse server</documentation>
+      </annotation>
+    </attribute>
+  </complexType>
+  <complexType name="hmaCatalogRemoteDestinationType">
+    <sequence>
+      <element name="remoteCatalogueName" type="cfg:string255"/>
+    </sequence>
+  </complexType>
+  <complexType name="ngeoRemoteDestinationType">
+    <sequence>
+      <element name="serviceURL" type="anyURI">
+        <annotation>
+          <documentation>URL of the service of the Web Server used for cross-ngEO operations</documentation>
+        </annotation>
+      </element>
+      <element name="hostsRemoteDatasets" type="boolean">
+        <annotation>
+          <documentation>'true' if the remote ngEO instance hosts some remote dataset </documentation>
+        </annotation>
+      </element>
+    </sequence>
+    <attribute name="ngeoInstanceId" type="cfg:string255" use="required">
+      <annotation>
+        <documentation>Id of the ngeo remote instance</documentation>
+      </annotation>
+    </attribute>
+  </complexType>
+  <complexType name="dailDestinationType">
+    <sequence>
+      <element name="serviceURL" type="anyURI">
+        <annotation>
+          <documentation>URL of the service of the DAIL</documentation>
+        </annotation>
+      </element>
+      <element name="tokenServiceURL" type="anyURI">
+        <annotation>
+          <documentation>URL of the Token Service used to get a security token</documentation>
+        </annotation>
+      </element>
+    </sequence>
+  </complexType>
+  <complexType name="attributesType">
+    <sequence>
+      <element name="attribute" type="cfg:attributeType" maxOccurs="unbounded"/>
+    </sequence>
+  </complexType>
+  <complexType name="nativeAttributesType">
+    <sequence>
+      <element name="attribute" type="cfg:attributeType" maxOccurs="unbounded"/>
+    </sequence>
+  </complexType>
+  <complexType name="attributeType">
+    <attribute name="id" type="cfg:string255" use="required"/>
+    <attribute name="type" type="cfg:string255" use="required"/>
+    <attribute name="xpath" type="cfg:string255" use="required"/>
+    <attribute name="searchable" type="boolean" use="required">
+      <annotation>
+        <documentation>true if the attribute can be searched</documentation>
+      </annotation>
+    </attribute>
+    <attribute name="visibleForSearch" type="boolean" use="required">
+      <annotation>
+        <documentation>true if a search criteria is proposed in the Web Client for this attribute</documentation>
+      </annotation>
+    </attribute>
+	<attribute name="includedInResp" type="boolean" use="required">
+ 	 <annotation>
+ 	   <documentation>true if this attribute has to be returned in the Catalogue response.</documentation>
+ 	 </annotation>
+ 	</attribute>
+  </complexType>
+  <complexType name="additionalAttributesType">
+    <sequence>
+      <element name="additionalAttribute" type="cfg:additionalAttributeType" minOccurs="0" maxOccurs="unbounded"/>
+    </sequence>
+  </complexType>
+  <complexType name="additionalAttributeType">
+    <sequence>
+      <element name="attributeName" type="cfg:string255">
+        <annotation>
+          <documentation>Name of the vendor-specific attribute</documentation>
+        </annotation>
+      </element>
+      <element name="template" type="cfg:string255">
+        <annotation>
+          <documentation>Template of the attribute value.
+The template can contain place holders between $ (e.g. $nativeDatasetId$) for existing product attributes and place holders between % (e.g. %cqcSearchForm%) that refer to "constants" handled in the specific configuration of the Web Server.
+Both place-holders types are resolved by the Web Server when creating the attribute value.</documentation>
+        </annotation>
+      </element>
+    </sequence>
+  </complexType>
+  <complexType name="downloadOptionsType">
+    <sequence>
+      <element name="downloadOption" type="cfg:downloadOptionType" minOccurs="0" maxOccurs="unbounded"/>
+    </sequence>
+  </complexType>
+  <complexType name="downloadOptionsWithInheritanceType">
+    <choice>
+      <element name="downloadOption" type="cfg:downloadOptionType" maxOccurs="unbounded">
+        <annotation>
+          <documentation>Redefinition of the download options.
+The redefinition of the download options must be a subset of all possible download options (i.e. download options identical on all underlying datasets) and values
+
+The redefinition, thus, can omit some inherited options or values
+</documentation>
+        </annotation>
+      </element>
+      <element name="inherited">
+        <annotation>
+          <documentation>This redefinition, thus, can omit some inherited options or values</documentation>
+        </annotation>
+        <simpleType>
+          <restriction base="cfg:string255">
+            <enumeration value="true"/>
+          </restriction>
+        </simpleType>
+      </element>
+    </choice>
+  </complexType>
+  <complexType name="downloadOptionType">
+    <sequence>
+      <element name="humanReadable" type="cfg:string255" minOccurs="0">
+        <annotation>
+          <documentation>Download option name presented to the user (if different from download option name)</documentation>
+        </annotation>
+      </element>
+      <element name="description" type="cfg:string255"/>
+      <choice>
+        <sequence>
+          <element name="value">
+            <annotation>
+              <documentation>One or more possible values for the download option.
+Value is provided by the text content of the element. Value presented to the user, if different, is provided by the humanReadable attribute.</documentation>
+            </annotation>
+            <complexType>
+              <simpleContent>
+                <extension base="cfg:string255">
+                  <attribute name="humanReadable" type="cfg:string255">
+                    <annotation>
+                      <documentation>Value as presented to the User</documentation>
+                    </annotation>
+                  </attribute>
+                  <attribute name="sizeFactor" type="cfg:string255" use="required">
+                    <annotation>
+                      <documentation>Estimated size factor</documentation>
+                    </annotation>
+                  </attribute>
+                </extension>
+              </simpleContent>
+            </complexType>
+          </element>
+          <element name="defaultValue" type="cfg:string255" minOccurs="0"/>
+        </sequence>
+        <element name="cropProductSearchArea" type="cfg:string255" fixed="true">
+          <annotation>
+            <documentation>This tag is used for special 'crop product to the search area 'download option. Content is always the 'true' value.
+'crop product to the search area 'download option has no pre-defined value: the value passed in the product URI will be computed as the Well-Known-Text (WKT) formulation for the geographic area selected by the User on the Web Client.</documentation>
+          </annotation>
+        </element>
+      </choice>
+      <sequence>
+        <element name="preCondition" minOccurs="0">
+          <annotation>
+            <documentation>Optional pre-condition: download option will be presented by the Web Client (and accepted by the Web Server) only if at least one of the "parent" download option has been set to one of the possible values</documentation>
+          </annotation>
+          <complexType>
+            <sequence>
+              <element name="parentDownloadOption" maxOccurs="unbounded">
+                <complexType>
+                  <sequence>
+                    <element name="value" maxOccurs="unbounded">
+                      <annotation>
+                        <documentation>possible value for the "parent" download option</documentation>
+                      </annotation>
+                    </element>
+                  </sequence>
+                  <attribute name="name" type="cfg:string255" use="required"/>
+                </complexType>
+              </element>
+            </sequence>
+          </complexType>
+        </element>
+      </sequence>
+    </sequence>
+    <attribute name="name" type="cfg:string255" use="required">
+      <annotation>
+        <documentation>download option name (used in the product URI)</documentation>
+      </annotation>
+    </attribute>
+  </complexType>
+  <complexType name="keywordsType">
+    <sequence minOccurs="0" maxOccurs="unbounded">
+      <element name="keyword" type="cfg:string255"/>
+    </sequence>
+  </complexType>
+  <complexType name="browseLayerType">
+    <sequence>
+      <element name="browseType" type="cfg:string255">
+        <annotation>
+          <documentation>Browse type associated to this browse layer. 
+One browse type is associated to one and only one browse layer.</documentation>
+        </annotation>
+      </element>
+      <element name="title" type="cfg:string255">
+        <annotation>
+          <documentation>Title of the browse layer.
+Mapped to the Title property for this layer in the  capability file.</documentation>
+        </annotation>
+      </element>
+      <element name="description" type="cfg:string255" minOccurs="0">
+        <annotation>
+          <documentation>Description of the browse layer.
+Mapped to the Abstract property for this layer in the  capability file.</documentation>
+        </annotation>
+      </element>
+      <element name="browseAccessPolicy">
+        <annotation>
+          <documentation>Access policy for browses</documentation>
+        </annotation>
+        <simpleType>
+          <restriction base="cfg:string255">
+            <enumeration value="OPEN"/>
+            <enumeration value="RESTRICTED"/>
+            <enumeration value="PRIVATE"/>
+          </restriction>
+        </simpleType>
+      </element>
+      <element name="hostingBrowseServerName" type="cfg:string255">
+        <annotation>
+          <documentation>Name of the Browse Server hosting the browse layer</documentation>
+        </annotation>
+      </element>
+      <element name="relatedDatasetIds">
+        <annotation>
+          <documentation>Contains the list of native/remote datasets related to this browse layer</documentation>
+        </annotation>
+        <complexType>
+          <sequence>
+            <element name="datasetId" type="cfg:string255" maxOccurs="unbounded"/>
+          </sequence>
+        </complexType>
+      </element>
+      <element name="containsVerticalCurtains" type="boolean">
+        <annotation>
+          <documentation>Set to 'true' if this browse layer contains vertical curtains.</documentation>
+        </annotation>
+      </element>
+      <element name="rgbBands" type="cfg:string255" minOccurs="0">
+        <annotation>
+          <documentation>Bands to select from the browse image file for Red, Green, Blue in the WMS response. This is a a comma-separated list of three integers (e.g. 4 2 3). If not present, the default is to use  the first three bands (1 2 3).</documentation>
+        </annotation>
+      </element>
+      <element name="radiometricInterval" minOccurs="0">
+        <annotation>
+          <documentation>Range of pixel values that will be mapped to 0..255 in the WMS image. If not present, the range is automatically calculated from the image histogram</documentation>
+        </annotation>
+        <complexType>
+          <sequence>
+            <element name="min" type="int"/>
+            <element name="max" type="int"/>
+          </sequence>
+        </complexType>
+      </element>
+      <sequence>
+        <annotation>
+          <documentation>These two elements provide the highest and lowest zoom levels to support when generating the tiles.
+Tiles for zoom levels above the highest and below the lowest are not generated. 
+These zoom level refer to the tile definition provided in the specific configuration of the Browse Server. </documentation>
+        </annotation>
+        <element name="highestMapLevel" type="int"/>
+        <element name="lowestMapLevel" type="int"/>
+      </sequence>
+    </sequence>
+    <attribute name="browseLayerId" type="cfg:string255" use="required">
+      <annotation>
+        <documentation>Browse layer identifier.
+Mapped to ‘identifier’ in the WMTS capabilities file and to ‘name’ in the WMS capabilities file.</documentation>
+      </annotation>
+    </attribute>
+  </complexType>
+  <complexType name="logicalType">
+    <complexContent>
+      <extension base="cfg:baseDatasetType">
+        <sequence>
+          <element name="underlyingDatasetIds" type="cfg:underlyingDatasetsType">
+            <annotation>
+              <documentation>References of the native datasets this logical dataset is based on</documentation>
+            </annotation>
+          </element>
+          <element name="associationRules" type="cfg:associationRulesType"/>
+          <element name="downloadOptionsSubset" type="boolean">
+            <annotation>
+              <documentation>Boolean.
+false if the list of download options and their values matches exactly the theoretical inheritance (i.e. download options and values common to all underlying datasets).
+true if the list of download options and their values is only a subset of the theoretical inheritance (i.e. some download options and/or values have been removed).</documentation>
+            </annotation>
+          </element>
+          <element name="downloadOptions" type="cfg:downloadOptionsType">
+            <annotation>
+              <documentation>Definition of the download options</documentation>
+            </annotation>
+          </element>
+          <element name="productURLRecognition" type="cfg:string255" minOccurs="0">
+            <annotation>
+              <documentation>Optionally provides a pattern used to recognize products URI belonging to this dataset. </documentation>
+            </annotation>
+          </element>
+          <element name="visibleForSearchRedefs">
+            <annotation>
+              <documentation>A logical dataset inherits from its underlying native datasets of all searchable attributes that are present on  all of them. 
+The 'visible for search' property of these inherited searchable attributes can be redefined at the logical dataset level (only redefined values are expected to be presented here)</documentation>
+            </annotation>
+            <complexType>
+              <sequence>
+                <element name="visibleForSearchRedef" minOccurs="0" maxOccurs="unbounded">
+                  <complexType>
+                    <simpleContent>
+                      <extension base="boolean">
+                        <attribute name="id" type="cfg:string255" use="required"/>
+                      </extension>
+                    </simpleContent>
+                  </complexType>
+                </element>
+              </sequence>
+            </complexType>
+          </element>
+        </sequence>
+      </extension>
+    </complexContent>
+  </complexType>
+  <complexType name="underlyingDatasetsType">
+    <sequence>
+      <element name="underlyingDataset" maxOccurs="unbounded">
+        <complexType>
+          <sequence>
+            <element name="substitutionRules" type="cfg:substitutionRulesType">
+              <annotation>
+                <documentation>List of substitution rules (can be applied on the product URL or on any other attribute of the product)</documentation>
+              </annotation>
+            </element>
+            <element name="filteringCriteria" type="cfg:string255" minOccurs="0">
+              <annotation>
+                <documentation>Optional filtering criteria that will be merged with user search criteria before performing the search.
+Content of this field is formulated as an OpenSearch fragment</documentation>
+              </annotation>
+            </element>
+          </sequence>
+          <attribute name="datasetId" type="cfg:string255" use="required"/>
+        </complexType>
+      </element>
+    </sequence>
+  </complexType>
+  <complexType name="remoteType">
+    <complexContent>
+      <extension base="cfg:baseDatasetType">
+        <sequence>
+          <element name="mission" type="cfg:string255">
+            <annotation>
+              <documentation>Mission (ie. satellite) which provided the products contained in the dataset.</documentation>
+            </annotation>
+          </element>
+          <element name="sensor" type="cfg:string255">
+            <annotation>
+              <documentation>Sensor (i.e instrument) which provided the products contained in the dataset.</documentation>
+            </annotation>
+          </element>
+          <element name="sensorMode" type="cfg:string255">
+            <annotation>
+              <documentation>Sensor mode specific to all products contained in the dataset.</documentation>
+            </annotation>
+          </element>
+          <element name="productType" type="cfg:string255">
+            <annotation>
+              <documentation>Product type specific to all products contained in the dataset.</documentation>
+            </annotation>
+          </element>
+          <element name="remoteType">
+            <annotation>
+              <documentation>HMA or ngEO</documentation>
+            </annotation>
+            <simpleType>
+              <restriction base="cfg:string255">
+                <enumeration value="HMA"/>
+                <enumeration value="ngEO"/>
+              </restriction>
+            </simpleType>
+          </element>
+          <element name="hostingNgeoInstanceId" type="cfg:string255" minOccurs="0">
+            <annotation>
+              <documentation>Name of the catalogue hosting the Dataset. Mandatory if remoteType=ngEO</documentation>
+            </annotation>
+          </element>
+          <element name="browseLayerIds" type="cfg:browseLayerIdsType">
+            <annotation>
+              <documentation>references to the browse layers associated to this dataset</documentation>
+            </annotation>
+          </element>
+          <!-- TODO: This needs to be verfied, if it is really required for remote Dataset Definitions as well -->
+          <element name="productURLRecognition" type="cfg:string255">
+            <annotation>
+              <documentation>Provides a pattern used to recognize products URI belonging to this dataset</documentation>
+            </annotation>
+          </element>
+          <element name="validityStartDate" type="dateTime">
+            <annotation>
+              <documentation>Beginning of the period covered by the products contained in the dataset</documentation>
+            </annotation>
+          </element>
+          <element name="validityEndDate" type="dateTime">
+            <annotation>
+              <documentation>End of the period covered by the products contained in the dataset</documentation>
+            </annotation>
+          </element>
+          <element name="downloadOptionsSubset" type="boolean">
+            <annotation>
+              <documentation>Boolean.
+false if the list of download options and their values matches exactly the theoretical inheritance (i.e. download options and values common to all underlying datasets).
+true if the list of download options and their values is only a subset of the theoretical inheritance (i.e. some download options and/or values have been removed).</documentation>
+            </annotation>
+          </element>
+          <element name="downloadOptions" type="cfg:downloadOptionsType">
+            <annotation>
+              <documentation>Definition of the download options</documentation>
+            </annotation>
+          </element>
+          <element name="attributes" type="cfg:attributesType"/>
+          <element name="additionalAttributes" type="cfg:additionalAttributesType">
+            <annotation>
+              <documentation>Definition of additional attributes that can be generated from URL templates (e.g. for CDS: additional URL for search for Quality items on CQC)
+These additional attributes are stored in the vendor-specific part.</documentation>
+            </annotation>
+          </element>
+        </sequence>
+      </extension>
+    </complexContent>
+  </complexType>
+  <complexType name="associationRulesType">
+    <sequence>
+      <element name="associationRule" type="cfg:string255" minOccurs="0" maxOccurs="unbounded"/>
+    </sequence>
+  </complexType>
+  <complexType name="virtualType">
+    <complexContent>
+      <extension base="cfg:baseDatasetType">
+        <sequence>
+          <element name="underlyingDatasetIds" type="cfg:underlyingDatasetsType">
+            <annotation>
+              <documentation>References of the native datasets this logical dataset is based on</documentation>
+            </annotation>
+          </element>
+          <element name="downloadOptions" type="cfg:downloadOptionsType">
+            <annotation>
+              <documentation>Definition of the download options</documentation>
+            </annotation>
+          </element>
+        </sequence>
+      </extension>
+    </complexContent>
+  </complexType>
+  <complexType name="substitutionRulesType">
+    <sequence>
+      <element name="substitutionRule" type="cfg:substitutionRuleType" minOccurs="0" maxOccurs="unbounded"/>
+    </sequence>
+  </complexType>
+  <complexType name="substitutionRuleType">
+    <sequence>
+      <element name="pattern" type="cfg:patternType"/>
+      <element name="inversePattern" type="cfg:patternType" minOccurs="0"/>
+    </sequence>
+    <attribute name="attribute" type="cfg:string255" use="required"/>
+    <attribute name="id" type="cfg:string255" use="required"/>
+  </complexType>
+  <complexType name="interferometryType">
+    <sequence>
+      <element name="interferometryCombinations" minOccurs="0" maxOccurs="unbounded">
+        <annotation>
+          <documentation>Contains a list of IDs for native datasets that can be used together for interferometry</documentation>
+        </annotation>
+        <complexType>
+          <sequence>
+            <element name="nativeDatasetId" type="cfg:string255" maxOccurs="unbounded"/>
+          </sequence>
+          <attribute name="combinationName" type="cfg:string255" use="required">
+            <annotation>
+              <documentation>Name of the combination</documentation>
+            </annotation>
+          </attribute>
+        </complexType>
+      </element>
+    </sequence>
+  </complexType>
+  <complexType name="patternType">
+    <sequence>
+      <element name="search"/>
+      <element name="replace"/>
+    </sequence>
+  </complexType>
+  <simpleType name="string255">
+    <restriction base="string">
+      <maxLength value="255"/>
+    </restriction>
+  </simpleType>
+</schema>

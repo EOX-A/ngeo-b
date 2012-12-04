@@ -16,6 +16,8 @@ cd /var/ngeob/
 
 python manage.py test config -v3
 
+#Send browse reports via:
+curl -d @<filename> http://<URL>/browse/ingest
 
 ########################################################################
 # How to load test data                                                #
