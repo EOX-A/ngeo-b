@@ -164,12 +164,6 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
             result = ingest_browse_report(parsed_browse_report,
                                           reraise_exceptions=True,
                                           config=config)
-            
-            self.print_msg("%d browses have been successfully ingested. %d "
-                           "replaced, %d inserted."
-                           % (result.to_be_replaced, result.actually_replaced,
-                              result.actually_inserted))
-            
         else:
             result = ingest_browse_report(parsed_browse_report,
                                           reraise_exceptions=False,
@@ -178,3 +172,8 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
             # print ingest result
             print(render_to_string("control/ingest_response.xml",
                                    {"result": result}))
+        
+        self.print_msg("%d browses have been successfully ingested. %d "
+                        "replaced, %d inserted."
+                        % (result.to_be_replaced, result.actually_replaced,
+                            result.actually_inserted))
