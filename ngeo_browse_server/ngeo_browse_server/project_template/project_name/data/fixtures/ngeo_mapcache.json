@@ -1,0 +1,12 @@
+[
+    {
+        "pk": "TEST_SAR", 
+        "model": "mapcache.source", 
+        "fields": {}
+    }, 
+    {
+        "pk": "TEST_OPTICAL", 
+        "model": "mapcache.source", 
+        "fields": {}
+    }
+]
