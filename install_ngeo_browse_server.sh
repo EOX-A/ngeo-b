@@ -43,6 +43,9 @@
 # Adjust the variables to your liking.                                         #
 ################################################################################
 
+# Enable/disable testing repositories (false..disable; true..enable)
+TESTING=true
+
 # ngEO Browse Server
 NGEOB_INSTALL_DIR="/var/www/ngeo"
 NGEOB_URL="http://ngeo.eox.at"
@@ -98,19 +101,25 @@ fi
 
 # Install needed yum repositories
 # EOX
-if [ ! -f /etc/yum.repos.d/eox.repo ] ; then
-    rpm -Uvh http://yum.packages.eox.at/el/eox-release-6-1.noarch.rpm
-    sed -e 's/^enabled=0/enabled=1/' -i /etc/yum.repos.d/eox-testing.repo # TODO: Remove in production
+rpm -Uvh http://yum.packages.eox.at/el/eox-release-6-1.noarch.rpm
+if "$TESTING" ; then
+    sed -e 's/^enabled=0/enabled=1/' -i /etc/yum.repos.d/eox-testing.repo
 fi
-# Set includepkgs
-# TODO: Use stable EOX repro in production
-if ! grep -Fxq "includepkgs=EOxServer pyspatialite pysqlite libxml2 libxml2-python" /etc/yum.repos.d/eox-testing.repo ; then
-    sed -e 's/^\[eox-testing\]$/&\nincludepkgs=EOxServer pyspatialite pysqlite libxml2 libxml2-python/' -i /etc/yum.repos.d/eox-testing.repo
+# Set includepkgs in EOX Stable
+if ! grep -Fxq "includepkgs=EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python" /etc/yum.repos.d/eox.repo ; then
+    sed -e 's/^\[eox\]$/&\nincludepkgs=EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python/' -i /etc/yum.repos.d/eox.repo
+fi
+if ! grep -Fxq "includepkgs=ngEO_Browse_Server" /etc/yum.repos.d/eox.repo ; then
+    sed -e 's/^\[eox-noarch\]$/&\nincludepkgs=ngEO_Browse_Server/' -i /etc/yum.repos.d/eox.repo
+fi
+# Set includepkgs in EOX Testing
+if ! grep -Fxq "includepkgs=EOxServer mapcache" /etc/yum.repos.d/eox-testing.repo ; then
+    sed -e 's/^\[eox-testing\]$/&\nincludepkgs=EOxServer mapcache/' -i /etc/yum.repos.d/eox-testing.repo
 fi
 if ! grep -Fxq "includepkgs=ngEO_Browse_Server" /etc/yum.repos.d/eox-testing.repo ; then
     sed -e 's/^\[eox-testing-noarch\]$/&\nincludepkgs=ngEO_Browse_Server/' -i /etc/yum.repos.d/eox-testing.repo
 fi
-# Set exclude
+# Set exclude in CentOS-Base
 if ! grep -Fxq "exclude=libxml2 libxml2-python" /etc/yum.repos.d/CentOS-Base.repo ; then
     sed -e 's/^\[base\]$/&\nexclude=libxml2 libxml2-python/' -i /etc/yum.repos.d/CentOS-Base.repo
     sed -e 's/^\[updates\]$/&\nexclude=libxml2 libxml2-python/' -i /etc/yum.repos.d/CentOS-Base.repo
@@ -197,6 +206,7 @@ cd "$NGEOB_INSTALL_DIR"
 
 # Configure ngeo_browse_server_instance
 if [ ! -d ngeo_browse_server_instance ] ; then
+    echo "Creating and configuring ngEO Browse Server instance."
 
     django-admin startproject --extension=conf --template=`python -c "import ngeo_browse_server, os; from os.path import dirname, abspath, join; print(join(dirname(abspath(ngeo_browse_server.__file__)), 'project_template'))"` ngeo_browse_server_instance
     cd ngeo_browse_server_instance
@@ -231,8 +241,10 @@ if [ ! -d ngeo_browse_server_instance ] ; then
 fi
 
 
-# MapCache
+# MapCache #TODO: Remove demo service in production
 if [ ! -d "$MAPCACHE_DIR" ] ; then
+    echo "Configuring MapCache."
+
     mkdir -p "$MAPCACHE_DIR"
     cd "$MAPCACHE_DIR"
 
@@ -303,6 +315,7 @@ fi
 
 
 # Configure WebDAV
+echo "Configuring WebDAV."
 [ -d "$NGEOB_INSTALL_DIR/store" ] || mkdir -p "$NGEOB_INSTALL_DIR/store"
 [ -d "$NGEOB_INSTALL_DIR/dav" ] || mkdir -p "$NGEOB_INSTALL_DIR/dav"
 chown -R apache:apache "$NGEOB_INSTALL_DIR/store"
@@ -318,6 +331,8 @@ fi
 
 # Add Apache configuration
 if [ ! -f "$APACHE_CONF" ] ; then
+    echo "Configuring Apache."
+
     cat << EOF > "$APACHE_CONF"
 <VirtualHost *:80>
     ServerName $APACHE_ServerName
@@ -334,12 +349,12 @@ if [ ! -f "$APACHE_CONF" ] ; then
     Alias /static "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/static"
     Alias $APACHE_NGEO_BROWSE_ALIAS "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/wsgi.py"
 
-    WSGIDaemonProcess test processes=10 threads=1
+    WSGIDaemonProcess ngeob processes=10 threads=1
     <Directory "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance">
         AllowOverride None
         Options +ExecCGI -MultiViews +SymLinksIfOwnerMatch
         AddHandler wsgi-script .py
-        WSGIProcessGroup test
+        WSGIProcessGroup ngeob
         Order allow,deny
         allow from all
     </Directory>
