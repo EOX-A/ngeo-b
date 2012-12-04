@@ -34,8 +34,8 @@ from django.test import TestCase
 
 from ngeo_browse_server.control.testbase import (
     BaseTestCaseMixIn, HttpMixIn, CliMixIn, IngestTestCaseMixIn,
-    IngestReplaceTestCaseMixIn, OverviewMixIn, CompressionMixIn,
-    BandCountMixIn, HasColorTableMixIn, ExtentMixIn, SizeMixIn,
+    IngestReplaceTestCaseMixIn, OverviewMixIn, CompressionMixIn, BandCountMixIn,
+    HasColorTableMixIn, ExtentMixIn, SizeMixIn, ProjectionMixIn,
     IngestFailureTestCaseMixIn
 )
 from ngeo_browse_server.control.ingest.config import INGEST_SECTION
@@ -895,6 +895,13 @@ class IngestRasterSize(BaseTestCaseMixIn, HttpMixIn, SizeMixIn, TestCase):
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "ASA_IM__0P_20100722_213840_proc.tif"))
     
     expected_size = (1181, 1540)
+
+
+class IngestRasterProjectionEPSG4326(BaseTestCaseMixIn, HttpMixIn, ProjectionMixIn, TestCase):
+    request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
+    raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "ASA_IM__0P_20100722_213840_proc.tif"))
+    
+    expected_projection_srid = 4326
 
 
 #===============================================================================

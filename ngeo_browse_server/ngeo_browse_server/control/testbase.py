@@ -7,7 +7,7 @@ from cStringIO import StringIO
 from lxml import etree
 import logging
 
-from osgeo import gdal
+from osgeo import gdal, osr
 from django.conf import settings
 from django.test.client import Client
 from django.core.management import execute_from_command_line
@@ -22,9 +22,11 @@ from ngeo_browse_server.control.ingest.config import INGEST_SECTION
 from ngeo_browse_server.mapcache import models as mapcache_models
 
 
-
 logger = logging.getLogger(__name__)
+
 gdal.UseExceptions()
+osr.UseExceptions()
+
 
 class IngestResult(object):
     """ Helper class to parse an ingest result. """
@@ -519,6 +521,23 @@ class SizeMixIn(RasterMixIn):
         
         ds = self.open_raster()
         self.assertEqual(self.expected_size, (ds.RasterXSize, ds.RasterYSize))
+
+
+class ProjectionMixIn(RasterMixIn):
+    expected_projection_srid = None # WKT format
+    
+    def test_projection(self):
+        if self.expected_projection_srid is None:
+            self.skipTest("No expected projection given.")
+        
+        ds = self.open_raster()
+        exp_sr = osr.SpatialReference()
+        exp_sr.ImportFromEPSG(self.expected_projection_srid)
+        
+        sr = osr.SpatialReference()
+        sr.ImportFromWkt(ds.GetProjectionRef())
+        
+        self.assertTrue(exp_sr.IsSame(sr))
 
 
 class IngestFailureTestCaseMixIn(IngestTestCaseMixIn):
