@@ -27,6 +27,7 @@ Vagrant::Config.run do |config|
   config.vm.share_folder  "httpd-config", "/etc/httpd/conf.d", "./shares/httpd/conf"
   config.vm.share_folder  "httpd-root", "/var/www", "./shares/httpd/www_root"
   config.vm.share_folder  "eoxserver", "/var/eoxserver", "./shares/eoxserver"
+  config.vm.share_folder  "mapcache", "/var/mapcache", "./shares/mapcache"
   config.vm.share_folder  "ngeob", "/var/ngeob", "./ngeo_browse_server"
 
   # Enable symlinks in shared folders 
@@ -34,6 +35,7 @@ Vagrant::Config.run do |config|
   config.vm.customize ["setextradata", :id, "VBoxInternal2/SharedFoldersEnableSymlinksCreate/httpd-root", "1"]
   config.vm.customize ["setextradata", :id, "VBoxInternal2/SharedFoldersEnableSymlinksCreate/httpd-config", "1"]
   config.vm.customize ["setextradata", :id, "VBoxInternal2/SharedFoldersEnableSymlinksCreate/eoxserver", "1"]
+  config.vm.customize ["setextradata", :id, "VBoxInternal2/SharedFoldersEnableSymlinksCreate/mapcache", "1"]
   config.vm.customize ["setextradata", :id, "VBoxInternal2/SharedFoldersEnableSymlinksCreate/ngeob", "1"]
 
   # Increase memory
