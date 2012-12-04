@@ -37,6 +37,8 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
         "-q", "-f"
     ]
     
+    # TODO: start/end time
+    
     logger.debug("mapcache seeding command: '%s'. raw: '%s'."
                  % (" ".join(args), args))
     
@@ -48,7 +50,7 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
         for line in string.split("\n"):
             logger.info(line)
     
-    if process.returncode == 0:
+    if process.returncode != 0:
         raise SeedException("'%s' failed. Returncode '%d'."
                             % (seed_command, process.returncode))
     
