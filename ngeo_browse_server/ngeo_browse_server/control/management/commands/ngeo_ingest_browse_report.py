@@ -5,6 +5,7 @@ from optparse import make_option
 
 from django.core.management.base import BaseCommand, CommandError
 from django.template.loader import render_to_string
+from eoxserver.resources.coverages.management.commands import CommandOutputMixIn
 
 from ngeo_browse_server.control.ingest import ingest_browse_report
 from ngeo_browse_server.control.ingest.parsing import parse_browse_report
@@ -43,8 +44,13 @@ class LogToConsoleMixIn(object):
         for name in loggernames:
             logging.getLogger(name).addHandler(handler)
         
+        # TODO: don't interfere with CommandOutputMixIn   
+        #logging.getLogger(
+        #    "eoxserver.resources.coverages.management.commands"
+        #).
+        
 
-class Command(LogToConsoleMixIn, BaseCommand):
+class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
     
     option_list = BaseCommand.option_list + (
         make_option('--on-error',
@@ -88,9 +94,9 @@ class Command(LogToConsoleMixIn, BaseCommand):
 
     def handle(self, *filenames, **kwargs):
         # parse command arguments
-        verbosity = kwargs.get("verbosity", 1)
+        self.verbosity = int(kwargs.get("verbosity", 1))
         traceback = kwargs.get("traceback", False)
-        self.set_up_logging(["ngeo_browse_server"], verbosity, traceback)
+        self.set_up_logging(["ngeo_browse_server"], self.verbosity, traceback)
         
         on_error = kwargs["on_error"]
         delete_on_success = kwargs["delete_on_success"]
@@ -102,7 +108,6 @@ class Command(LogToConsoleMixIn, BaseCommand):
         if not len(filenames):
             raise CommandError("No input files given.")
         
-        
         # set config values
         section = "control.ingest"
         config = get_ngeo_config()
@@ -112,10 +117,13 @@ class Command(LogToConsoleMixIn, BaseCommand):
         if storage_dir is not None:
             storage_dir = os.path.abspath(storage_dir)
             config.set(section, "storage_dir", storage_dir)
+            self.print_msg("Using storage directory '%s'." % storage_dir, 2)
             
         if optimized_dir is not None:
             optimized_dir = os.path.abspath(optimized_dir)
             config.set(section, "optimized_files_dir", optimized_dir)
+            self.print_msg("Using optimized files directory '%s'."
+                           % optimized_dir, 2)
         
         config.set(section, "delete_on_success", delete_on_success)
         
@@ -143,24 +151,24 @@ class Command(LogToConsoleMixIn, BaseCommand):
         
         # parse the xml file and obtain its data structures as a 
         # parsed browse report.
-        logger.info("Parsing XML file '%s'." % filename)
+        self.print_msg("Parsing XML file '%s'." % filename, 1)
         document = etree.parse(filename)
         parsed_browse_report = parse_browse_report(document.getroot())
         
         # ingest the parsed browse report
-        logger.info("Ingesting browse report with %d browse%s."
-                    % (len(parsed_browse_report), 
-                       "s" if len(parsed_browse_report) > 1 else ""))
+        self.print_msg("Ingesting browse report with %d browse%s."
+                       % (len(parsed_browse_report), 
+                          "s" if len(parsed_browse_report) > 1 else ""))
         
         if not create_result:
             result = ingest_browse_report(parsed_browse_report,
                                           reraise_exceptions=True,
                                           config=config)
             
-            logger.info("%d browses have been successfully ingested. %d "
-                        "replaced, %d inserted."
-                         % (result.to_be_replaced, result.actually_replaced,
-                            result.actually_inserted))    
+            self.print_msg("%d browses have been successfully ingested. %d "
+                           "replaced, %d inserted."
+                           % (result.to_be_replaced, result.actually_replaced,
+                              result.actually_inserted))
             
         else:
             result = ingest_browse_report(parsed_browse_report,
