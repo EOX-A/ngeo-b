@@ -363,7 +363,7 @@ if [ ! -f "$APACHE_CONF" ] ; then
     echo "Configuring Apache."
 
     # Configure WSGI module
-    if ! grep -Fxq "WSGISocketPrefix run/wsgi" /etc/httpd/conf.d/wsgi.conf ] ; then
+    if ! grep -Fxq "WSGISocketPrefix run/wsgi" /etc/httpd/conf.d/wsgi.conf ; then
         echo "WSGISocketPrefix run/wsgi" >> /etc/httpd/conf.d/wsgi.conf
     fi
 
