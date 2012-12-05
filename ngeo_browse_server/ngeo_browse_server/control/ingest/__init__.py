@@ -118,12 +118,13 @@ def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
 
     # transaction management on browse report basis
     with transaction.commit_on_success():
-        with transaction.commit_on_success("mapcache"):
+        with transaction.commit_on_success(using="mapcache"):
             result = IngestResult()
             
             # iterate over all browses in the browse report
             for parsed_browse in parsed_browse_report:
                 sid = transaction.savepoint()
+                sid_mc = transaction.savepoint(using="mapcache")
                 try:
                     # try ingest a single browse and log success
                     replaced = ingest_browse(parsed_browse, browse_report,
@@ -136,11 +137,12 @@ def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
                     # report error
                     logger.error("Failure during ingestion of browse '%s'." %
                                  parsed_browse.browse_identifier)
-                    logger.error(traceback.format_exc() + "\n")
+                    logger.debug(traceback.format_exc() + "\n")
                     
                     if reraise_exceptions:
                         # complete rollback and reraise exception
                         transaction.rollback()
+                        transaction.rollback(using="mapcache")
                         
                         info = sys.exc_info()
                         raise info[0], info[1], info[2]
@@ -148,6 +150,7 @@ def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
                     else:
                         # undo latest changes, append the failure and continue
                         transaction.savepoint_rollback(sid)
+                        transaction.savepoint_rollback(sid_mc, using="mapcache")
                         result.add_failure(parsed_browse.browse_identifier, 
                                            type(e).__name__, str(e))
                         
@@ -155,7 +158,8 @@ def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
                 
                 # ingestion of browse was ok, commit changes
                 transaction.savepoint_commit(sid)
-                
+                transaction.savepoint_commit(sid_mc, using="mapcache")
+
             # generate browse report and save to to success/failure dir
             if len(succeded):
                 succeded_report = data.BrowseReport(
@@ -178,7 +182,8 @@ def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
             
         # ingestion finished, commit changes. 
         transaction.commit()
-            
+        transaction.commit(using="mapcache")
+
     return result
     
 
@@ -233,7 +238,8 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                 end_time=parsed_browse.end_time,
                 browse_layer=browse_layer
             )
-            
+        
+        replaced_timespan = browse.start_time, browse.end_time
         replaced_extent, replaced_filename = cleanup_replaced(
             browse, browse_layer, coverage_id
         )
@@ -293,18 +299,21 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                                          % result.num_bands)
             
             logger.info("Creating database models.")
-            extent = create_models(parsed_browse, browse_report, browse_layer,
-                                   coverage_id, crs, replaced, result,
-                                   config=config)
+            extent, timespan = create_models(parsed_browse, browse_report, 
+                                             browse_layer, coverage_id, crs,
+                                             replaced, result, config=config)
             
             
             # "un-seed" if replaced and previous extent not equal to this extent
-            if replaced and extent != replaced_extent:
+            if replaced and (extent != replaced_extent
+                             or timespan != replaced_timespan):
                 seed_mapcache(tileset=browse_layer.id, grid=browse_layer.grid, 
                               minx=replaced_extent[0], miny=replaced_extent[1],
                               maxx=replaced_extent[2], maxy=replaced_extent[3], 
                               minzoom=browse_layer.lowest_map_level, 
                               maxzoom=browse_layer.highest_map_level,
+                              start_time=replaced_timespan[0],
+                              end_time=replaced_timespan[1],
                               delete=True,
                               **get_mapcache_config(config))
             
@@ -316,6 +325,8 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                           maxx=extent[2], maxy=extent[3], 
                           minzoom=browse_layer.lowest_map_level, 
                           maxzoom=browse_layer.highest_map_level,
+                          start_time=timespan[0],
+                          end_time=timespan[1],
                           delete=False,
                           **get_mapcache_config(config))
         
@@ -418,34 +429,34 @@ def create_models(parsed_browse, browse_report, browse_layer, coverage_id, crs,
     
     # create the correct model from the pared browse
     if parsed_browse.geo_type == "rectifiedBrowse":
-        model = _model_from_parsed(parsed_browse, browse_report, browse_layer,
-                                   coverage_id, models.RectifiedBrowse)
-        model.full_clean()
-        model.save()
+        browse = _model_from_parsed(parsed_browse, browse_report, browse_layer,
+                                    coverage_id, models.RectifiedBrowse)
+        browse.full_clean()
+        browse.save()
         
     elif parsed_browse.geo_type == "footprintBrowse":
-        model = _model_from_parsed(parsed_browse, browse_report, browse_layer,
-                                   coverage_id, models.FootprintBrowse)
-        model.full_clean()
-        model.save()
+        browse = _model_from_parsed(parsed_browse, browse_report, browse_layer,
+                                    coverage_id, models.FootprintBrowse)
+        browse.full_clean()
+        browse.save()
         
     elif parsed_browse.geo_type == "regularGridBrowse":
-        model = _model_from_parsed(parsed_browse, browse_report, browse_layer,
-                                   coverage_id, models.RegularGridBrowse)
-        model.full_clean()
-        model.save()
+        browse = _model_from_parsed(parsed_browse, browse_report, browse_layer,
+                                    coverage_id, models.RegularGridBrowse)
+        browse.full_clean()
+        browse.save()
         
         for coord_list in parsed_browse.coord_lists:
-            coord_list = models.RegularGridCoordList(regular_grid_browse=model,
+            coord_list = models.RegularGridCoordList(regular_grid_browse=browse,
                                                      coord_list=coord_list)
             coord_list.full_clean()
             coord_list.save()
     
     elif parsed_browse.geo_type == "modelInGeotiffBrowse":
-        model = _model_from_parsed(parsed_browse, browse_report, browse_layer,
-                                   coverage_id, models.ModelInGeotiffBrowse)
-        model.full_clean()
-        model.save()
+        browse = _model_from_parsed(parsed_browse, browse_report, browse_layer,
+                                    coverage_id, models.ModelInGeotiffBrowse)
+        browse.full_clean()
+        browse.save()
     
     else:
         raise NotImplementedError
@@ -453,7 +464,7 @@ def create_models(parsed_browse, browse_report, browse_layer, coverage_id, crs,
     # if the browse contains an identifier, create the according model
     if parsed_browse.browse_identifier is not None:
         browse_identifier = models.BrowseIdentifier(
-            value=parsed_browse.browse_identifier, browse=model, 
+            value=parsed_browse.browse_identifier, browse=browse, 
             browse_layer=browse_layer
         )
         browse_identifier.full_clean()
@@ -500,7 +511,7 @@ def create_models(parsed_browse, browse_report, browse_layer, coverage_id, crs,
     time.full_clean()
     time.save()
     
-    return extent
+    return extent, (browse.start_time, browse.end_time)
 
 #===============================================================================
 # helper functions

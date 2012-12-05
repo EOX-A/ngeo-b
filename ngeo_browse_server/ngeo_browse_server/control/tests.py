@@ -837,6 +837,19 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 """ % self.temp_optimized_files_dir
 
 
+class IngestFailureInvalidXML(IngestFailureTestCaseMixIn, HttpMixIn, TestCase):
+    expect_exception = True
+    
+    request = ""
+
+    expected_response = """\
+<bsi:ingestException xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:exceptionCode>InvalidRequest</bsi:exceptionCode>
+    <bsi:exceptionMessage>Could not parse request XML. Error was: &#39;Start tag expected, &#39;&lt;&#39; not found, line 1, column 1&#39;.</bsi:exceptionMessage>
+</bsi:ingestException>
+"""
+
 #===============================================================================
 # Raster test cases
 #===============================================================================
@@ -966,7 +979,3 @@ class IngestFromCommand(IngestTestCaseMixIn, CliMixIn, TestCase):
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ("ASA_IM__0P_20100807_101327_proc.tif",)
     expected_deleted_files = ['ASA_IM__0P_20100807_101327.jpg']
-
-
-# TODO: test optimization features
-

@@ -74,8 +74,7 @@ class BaseTestCaseMixIn(object):
     surveilled_model_classes = (
         models.Browse,
         eoxs_models.RectifiedDatasetRecord,
-        mapcache_models.Time,
-        mapcache_models.Source
+        mapcache_models.Time
     )
     
     copy_to_optimized = () # list of filenames to be copied to the optimized dir
@@ -407,6 +406,14 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
         # TODO: implement
         self.skipTest("Not yet implemented.")
         pass
+    
+    
+    def test_model_counts(self):
+        """ Check that the models have been created correctly. """
+        
+        for model, value in self.model_counts.items():
+            self.assertEqual(value[0] + 1, value[1],
+                             "Model '%s' count mismatch." % model)
 
 
 class IngestReplaceTestCaseMixIn(IngestTestCaseMixIn):
@@ -427,10 +434,9 @@ class IngestReplaceTestCaseMixIn(IngestTestCaseMixIn):
     def test_model_counts(self):
         """ Check that no orphaned data entries are left in the database. """
         
-        for key, value in self.model_counts.items():
+        for model, value in self.model_counts.items():
             self.assertEqual(value[0], value[1],
-                             "Model '%s' count mismatch: %d != %d." 
-                             % (key, value[0], value[1]))
+                             "Model '%s' count mismatch." % model)
     
     def test_delete_previous_file(self):
         """ Check that the previous raster file is deleted. """
@@ -545,6 +551,7 @@ class IngestFailureTestCaseMixIn(IngestTestCaseMixIn):
     
     expected_failed_browse_ids = ()
     expected_failed_files = ()
+    expect_exception = False
     
     expected_generated_failure_browse_report = None
     
@@ -554,15 +561,26 @@ class IngestFailureTestCaseMixIn(IngestTestCaseMixIn):
         check that the files are copied into the failure directory.
         """
         
-        result = IngestResult(self.get_response())
-        failed_ids = [record[0] for record in result.failed]
+        if not self.expect_exception:
+            result = IngestResult(self.get_response())
+            failed_ids = [record[0] for record in result.failed]
+            
+            self.assertItemsEqual(self.expected_failed_browse_ids, failed_ids)
+            
+            # make sure that the generated browse report is present aswell
+            expected_failed_files = list(self.expected_failed_files)
+            expected_failed_files.append(self.expected_generated_failure_browse_report)
+            
+            # get file list of failure_dir and compare the count
+            files = self.get_file_list(self.temp_failure_dir)
+            self.assertItemsEqual(expected_failed_files, files)
+        else:
+            pass # TODO
+
+
+    def test_model_counts(self):
+        """ Check that database state is the same as before. """
         
-        self.assertItemsEqual(self.expected_failed_browse_ids, failed_ids)
-        
-        # make sure that the generated browse report is present aswell
-        expected_failed_files = list(self.expected_failed_files)
-        expected_failed_files.append(self.expected_generated_failure_browse_report)
-        
-        # get file list of failure_dir and compare the count
-        files = self.get_file_list(self.temp_failure_dir)
-        self.assertItemsEqual(expected_failed_files, files)
+        for model, value in self.model_counts.items():
+            self.assertEqual(value[0], value[1],
+                             "Model '%s' count mismatch." % model)
