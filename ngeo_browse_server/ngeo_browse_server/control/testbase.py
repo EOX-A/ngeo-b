@@ -407,6 +407,15 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
         # TODO: implement
         self.skipTest("Not yet implemented.")
         pass
+    
+    
+    def test_model_counts(self):
+        """ Check that the models have been created correctly. """
+        
+        for key, value in self.model_counts.items():
+            self.assertEqual(value[0] + 1, value[1],
+                             "Model '%s' count mismatch: %d != %d." 
+                             % (key, value[0], value[1]))
 
 
 class IngestReplaceTestCaseMixIn(IngestTestCaseMixIn):
@@ -545,6 +554,7 @@ class IngestFailureTestCaseMixIn(IngestTestCaseMixIn):
     
     expected_failed_browse_ids = ()
     expected_failed_files = ()
+    expect_exception = False
     
     expected_generated_failure_browse_report = None
     
@@ -554,15 +564,27 @@ class IngestFailureTestCaseMixIn(IngestTestCaseMixIn):
         check that the files are copied into the failure directory.
         """
         
-        result = IngestResult(self.get_response())
-        failed_ids = [record[0] for record in result.failed]
+        if not self.expect_exception:
+            result = IngestResult(self.get_response())
+            failed_ids = [record[0] for record in result.failed]
+            
+            self.assertItemsEqual(self.expected_failed_browse_ids, failed_ids)
+            
+            # make sure that the generated browse report is present aswell
+            expected_failed_files = list(self.expected_failed_files)
+            expected_failed_files.append(self.expected_generated_failure_browse_report)
+            
+            # get file list of failure_dir and compare the count
+            files = self.get_file_list(self.temp_failure_dir)
+            self.assertItemsEqual(expected_failed_files, files)
+        else:
+            pass # TODO
+
+
+    def test_model_counts(self):
+        """ Check that database state is the same as before. """
         
-        self.assertItemsEqual(self.expected_failed_browse_ids, failed_ids)
-        
-        # make sure that the generated browse report is present aswell
-        expected_failed_files = list(self.expected_failed_files)
-        expected_failed_files.append(self.expected_generated_failure_browse_report)
-        
-        # get file list of failure_dir and compare the count
-        files = self.get_file_list(self.temp_failure_dir)
-        self.assertItemsEqual(expected_failed_files, files)
+        for key, value in self.model_counts.items():
+            self.assertEqual(value[0], value[1],
+                             "Model '%s' count mismatch: %d != %d." 
+                             % (key, value[0], value[1]))
