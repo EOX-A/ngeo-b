@@ -34,6 +34,7 @@ python manage.py runserver 0.0.0.0:8000
 git pull
 git archive --format=tar --prefix=ngeob-0.1dev/ master | gzip > ngeob-0.1dev.tar.gz
 scp ngeob-0.1dev.tar.gz eox@ngeo:.
+rm ngeob-0.1dev.tar.gz
 ssh eox@ngeo.eox.at
 cd build/
 tar xzf ../ngeob-0.1dev.tar.gz
