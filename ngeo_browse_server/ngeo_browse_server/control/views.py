@@ -35,6 +35,8 @@ from django.shortcuts import render_to_response
 
 from ngeo_browse_server.control.ingest import ingest_browse_report
 from ngeo_browse_server.control.ingest.parsing import parse_browse_report
+from django.http import HttpRequest
+from ngeo_browse_server.control.ingest.exceptions import IngestionException
 
 
 logger = logging.getLogger(__name__)
@@ -46,11 +48,17 @@ def ingest(request):
     
     try:
         if request.method != "POST":
-            e = Exception("Method '%s' is not allowed, use 'POST' only." % 
-                          request.method.upper())
-            e.code = "MethodNotAllowed"
+            e = IngestionException("Method '%s' is not allowed, use 'POST' "
+                                   "only." % request.method.upper(),
+                                   "MethodNotAllowed")
         
-        document = etree.parse(request)
+        try:
+            document = etree.parse(request)
+        except etree.XMLSyntaxError, e: 
+            raise IngestionException("Could not parse request XML. Error was: "
+                                     "'%s'." % str(e),
+                                     "InvalidRequest")
+        
         parsed_browse_report = parse_browse_report(document.getroot())
         result = ingest_browse_report(parsed_browse_report, 
                                       reraise_exceptions=False)
