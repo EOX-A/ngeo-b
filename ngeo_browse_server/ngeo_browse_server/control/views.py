@@ -59,7 +59,7 @@ def ingest(request):
                               {"result": result}, 
                               mimetype="text/xml")
     except Exception, e:
-        logger.error(traceback.format_exc())
+        logger.debug(traceback.format_exc())
         return render_to_response("control/ingest_exception.xml",
                                   {"code": getattr(e, "code", None)
                                            or type(e).__name__,

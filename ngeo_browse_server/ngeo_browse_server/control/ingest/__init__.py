@@ -137,7 +137,7 @@ def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
                     # report error
                     logger.error("Failure during ingestion of browse '%s'." %
                                  parsed_browse.browse_identifier)
-                    logger.error(traceback.format_exc() + "\n")
+                    logger.debug(traceback.format_exc() + "\n")
                     
                     if reraise_exceptions:
                         # complete rollback and reraise exception
