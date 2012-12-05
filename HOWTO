@@ -37,8 +37,12 @@ scp ngeob-0.1dev.tar.gz eox@ngeo:.
 ssh eox@ngeo.eox.at
 cd build/
 tar xzf ../ngeob-0.1dev.tar.gz
+rm ../ngeob-0.1dev.tar.gz
 cd ngeob-0.1dev/ngeo_browse_server/
 python setup.py bdist_rpm --requires "EOxServer mapcache httpd" --release <NO>
+# scp packages
+cd ../..
+rm -r ngeob-0.1dev/
 
 ########################################################################
 # How to build EOxServer                                               #
@@ -47,7 +51,6 @@ python setup.py bdist_rpm --requires "EOxServer mapcache httpd" --release <NO>
 ssh eox@ngeo.eox.at
 cd build/eoxserver-trunk/
 svn up
-cd eoxserver-0.3dev/
 python setup.py bdist_rpm --requires "Django14 >= 1.4.2 gdal-python mapserver-python libxml2-python python-lxml" --release <NO>
 
 ########################################################################
