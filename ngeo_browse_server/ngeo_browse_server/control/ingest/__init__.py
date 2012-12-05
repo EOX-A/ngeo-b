@@ -441,6 +441,12 @@ def create_models(parsed_browse, browse_report, browse_layer, coverage_id, crs,
             coord_list.full_clean()
             coord_list.save()
     
+    elif parsed_browse.geo_type == "modelInGeotiffBrowse":
+        model = _model_from_parsed(parsed_browse, browse_report, browse_layer,
+                                   coverage_id, models.ModelInGeotiffBrowse)
+        model.full_clean()
+        model.save()
+    
     else:
         raise NotImplementedError
     
@@ -565,6 +571,9 @@ def _georef_from_parsed(parsed_browse):
         gcps = [(x, y, pixel, line) 
                 for (x, y), (pixel, line) in zip(coords, pixels)]
         return GCPList(gcps, srid)
+    
+    elif parsed_browse.geo_type == "modelInGeotiffBrowse":
+        return None
     
     else:
         raise NotImplementedError
