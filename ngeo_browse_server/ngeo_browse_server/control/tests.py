@@ -40,10 +40,57 @@ from ngeo_browse_server.control.testbase import (
 )
 from ngeo_browse_server.control.ingest.config import INGEST_SECTION
 
+
 #===============================================================================
-# actual test cases
+# Ingest ModelInGeoTiff test case
 #===============================================================================
 
+class IngestModelInGeotiffBrowse(IngestTestCaseMixIn, HttpMixIn, TestCase):
+    storage_dir = "data"
+    
+    expected_ingested_browse_ids = ("MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced",)
+    expected_inserted_into_series = "TEST_OPTICAL"
+    expected_optimized_files = ['mosaic_ENVISAT-MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_proc.tif']
+    request = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+    <rep:responsibleOrgName>EOX</rep:responsibleOrgName>
+    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
+    <rep:browseType>OPTICAL</rep:browseType>
+    <rep:browse>
+        <rep:browseIdentifier>MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced</rep:browseIdentifier>
+        <rep:fileName>mosaic_ENVISAT-MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.tif</rep:fileName>
+        <rep:imageType>TIFF</rep:imageType>
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:modelInGeotiff>true</rep:modelInGeotiff>
+        <rep:startTime>2012-10-02T09:20:00Z</rep:startTime>
+        <rep:endTime>2012-10-02T09:20:00Z</rep:endTime>
+    </rep:browse>
+</rep:browseReport>"""
+    
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+
+#===============================================================================
+# Ingest Rectified browse test case
+#===============================================================================
 
 class IngestRectifiedBrowse(IngestTestCaseMixIn, HttpMixIn, TestCase):
     storage_dir = "data"
@@ -89,6 +136,10 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 </bsi:ingestBrowseResponse>
 """
 
+
+#===============================================================================
+# Ingest Regular Grid test case
+#===============================================================================
 
 class IngestRegularGrid(IngestTestCaseMixIn, HttpMixIn, TestCase):
     storage_dir = "data"
@@ -864,7 +915,7 @@ class IngestRasterNoFootprintAlpha(BaseTestCaseMixIn, HttpMixIn, BandCountMixIn,
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "ASA_IM__0P_20100722_213840_proc.tif"))
     
     configuration = {
-        (INGEST_SECTION, "footprint_alpha"): "false"
+        (INGEST_SECTION, "footprint_alpha"): None
     }
     
     expected_band_count = 3
