@@ -44,20 +44,20 @@ class IngestionTransaction(object):
 
         # on success
         if (etype, value, traceback) == (None, None, None):
-            # no error occurred, delete all backups
-            logger.debug("No error occurred, removing backups.")
+            # delete all backups because no error occurred
+            logger.debug("Removing backups because no error occurred.")
             for filename, backup_filename in self._file_map.items():
                 logger.debug("Remove backup for '%s'." % filename)
                 remove(backup_filename)
         
         # on error
         else:
-            # an error occurred, try removing the new file. It may not exist.
-            logger.debug("An error occurred, deleting generated files.")
+            # try removing the new file because an error occurred. It may not exist.
+            logger.debug("Performing rollback because an error occurred.")
             for filename in set(self._subject_filenames):
                 try:
-                    logger.debug("Deleting '%s'." % filename)
                     remove(filename)
+                    logger.debug("Deleting '%s'." % filename)
                 except (OSError, TypeError):
                     pass
             
