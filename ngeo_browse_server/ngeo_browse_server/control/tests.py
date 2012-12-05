@@ -979,7 +979,3 @@ class IngestFromCommand(IngestTestCaseMixIn, CliMixIn, TestCase):
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ("ASA_IM__0P_20100807_101327_proc.tif",)
     expected_deleted_files = ['ASA_IM__0P_20100807_101327.jpg']
-
-
-# TODO: test optimization features
-

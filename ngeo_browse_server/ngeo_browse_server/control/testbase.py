@@ -74,8 +74,7 @@ class BaseTestCaseMixIn(object):
     surveilled_model_classes = (
         models.Browse,
         eoxs_models.RectifiedDatasetRecord,
-        mapcache_models.Time,
-        mapcache_models.Source
+        mapcache_models.Time
     )
     
     copy_to_optimized = () # list of filenames to be copied to the optimized dir
@@ -412,10 +411,9 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
     def test_model_counts(self):
         """ Check that the models have been created correctly. """
         
-        for key, value in self.model_counts.items():
+        for model, value in self.model_counts.items():
             self.assertEqual(value[0] + 1, value[1],
-                             "Model '%s' count mismatch: %d != %d." 
-                             % (key, value[0], value[1]))
+                             "Model '%s' count mismatch." % model)
 
 
 class IngestReplaceTestCaseMixIn(IngestTestCaseMixIn):
@@ -436,10 +434,9 @@ class IngestReplaceTestCaseMixIn(IngestTestCaseMixIn):
     def test_model_counts(self):
         """ Check that no orphaned data entries are left in the database. """
         
-        for key, value in self.model_counts.items():
+        for model, value in self.model_counts.items():
             self.assertEqual(value[0], value[1],
-                             "Model '%s' count mismatch: %d != %d." 
-                             % (key, value[0], value[1]))
+                             "Model '%s' count mismatch." % model)
     
     def test_delete_previous_file(self):
         """ Check that the previous raster file is deleted. """
@@ -584,7 +581,6 @@ class IngestFailureTestCaseMixIn(IngestTestCaseMixIn):
     def test_model_counts(self):
         """ Check that database state is the same as before. """
         
-        for key, value in self.model_counts.items():
+        for model, value in self.model_counts.items():
             self.assertEqual(value[0], value[1],
-                             "Model '%s' count mismatch: %d != %d." 
-                             % (key, value[0], value[1]))
+                             "Model '%s' count mismatch." % model)
