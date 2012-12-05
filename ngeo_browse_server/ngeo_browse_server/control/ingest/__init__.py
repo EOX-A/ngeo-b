@@ -118,12 +118,13 @@ def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
 
     # transaction management on browse report basis
     with transaction.commit_on_success():
-        with transaction.commit_on_success("mapcache"):
+        with transaction.commit_on_success(using="mapcache"):
             result = IngestResult()
             
             # iterate over all browses in the browse report
             for parsed_browse in parsed_browse_report:
                 sid = transaction.savepoint()
+                sid_mc = transaction.savepoint(using="mapcache")
                 try:
                     # try ingest a single browse and log success
                     replaced = ingest_browse(parsed_browse, browse_report,
@@ -141,6 +142,7 @@ def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
                     if reraise_exceptions:
                         # complete rollback and reraise exception
                         transaction.rollback()
+                        transaction.rollback(using="mapcache")
                         
                         info = sys.exc_info()
                         raise info[0], info[1], info[2]
@@ -148,6 +150,7 @@ def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
                     else:
                         # undo latest changes, append the failure and continue
                         transaction.savepoint_rollback(sid)
+                        transaction.savepoint_rollback(sid_mc, using="mapcache")
                         result.add_failure(parsed_browse.browse_identifier, 
                                            type(e).__name__, str(e))
                         
@@ -155,7 +158,8 @@ def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
                 
                 # ingestion of browse was ok, commit changes
                 transaction.savepoint_commit(sid)
-                
+                transaction.savepoint_commit(sid_mc, using="mapcache")
+
             # generate browse report and save to to success/failure dir
             if len(succeded):
                 succeded_report = data.BrowseReport(
@@ -178,7 +182,8 @@ def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
             
         # ingestion finished, commit changes. 
         transaction.commit()
-            
+        transaction.commit(using="mapcache")
+
     return result
     
 
