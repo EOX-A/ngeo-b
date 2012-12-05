@@ -172,7 +172,7 @@ def get_mapcache_config(config=None):
     values = {}
     config = config or get_ngeo_config()
     
-    values["seed_command"] = config.get(MAPCACHE_SECTION, "seed_command")
+    values["seed_command"] = safe_get(config, MAPCACHE_SECTION, "seed_command", "mapcache_seed")
     values["config_file"] = config.get(MAPCACHE_SECTION, "config_file")
     values["threads"] = int(safe_get(config, MAPCACHE_SECTION, "threads", 1))
     
