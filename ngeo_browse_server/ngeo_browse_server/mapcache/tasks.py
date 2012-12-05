@@ -20,6 +20,10 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
     if minzoom is None: minzoom = 0
     if maxzoom is None: maxzoom = 10
     
+    # start- and end-time are expected to be UTC Zulu 
+    start_time = start_time.replace(tzinfo=None)
+    end_time = end_time.replace(tzinfo=None)
+    
     logger.info("Starting mapcaching seed with parameters: command='%s', "
                 "config_file='%s', tileset='%s', grid='%s', "
                 "extent='%s,%s,%s,%s', zoom='%s,%s', threads='%s'." 
@@ -34,7 +38,7 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
         "-e", "%f,%f,%f,%f" % (minx, miny, maxx, maxy),
         "-n", str(threads),
         "-z", "%d,%d" % (minzoom, maxzoom),
-        "-D", "TIME=%s/%s" % (start_time.isoformat(), end_time.isoformat()),
+        "-D", "TIME=%sZ/%sZ" % (start_time.isoformat(), end_time.isoformat()),
         "-m", "seed" if not delete else "delete",
         "-q", "-f"
     ]
