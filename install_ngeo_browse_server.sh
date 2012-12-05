@@ -232,8 +232,12 @@ if [ ! -d ngeo_browse_server_instance ] ; then
     sed -e "/'HOST': '',                                                             # Set to empty string for localhost. Not used with spatialite./d" -i ngeo_browse_server_instance/settings.py
     sed -e "/'PORT': '',                                                             # Set to empty string for default. Not used with spatialite./d" -i ngeo_browse_server_instance/settings.py
 
+    # Configure instance
     sed -e "s,http_service_url=http://localhost:8000/ows,http_service_url=$NGEOB_URL$APACHE_NGEO_BROWSE_ALIAS/ows," -i ngeo_browse_server_instance/conf/eoxserver.conf
-
+    MAPCACHE_DIR_ESCAPED=`echo $MAPCACHE_DIR | sed -e 's/\//\\\&/g'`
+    sed -e "s/^config_file=$/config_file=$MAPCACHE_DIR_ESCAPED\/seed_$MAPCACHE_CONF/" -i ngeo_browse_server_instance/conf/ngeo.conf
+    sed -e "s/^storage_dir=data\/storage$/storage_dir=$NGEOB_INSTALL_DIR_ESCAPED\/store/" -i ngeo_browse_server_instance/conf/ngeo.conf
+    
     if ! "$TESTING" ; then
         # Configure logging
         sed -e 's/#logging_level=/logging_level=INFO/' -i ngeo_browse_server_instance/conf/eoxserver.conf
@@ -261,7 +265,7 @@ if [ ! -d ngeo_browse_server_instance ] ; then
 fi
 
 
-# MapCache #TODO: Remove demo service in production
+# MapCache
 if [ ! -d "$MAPCACHE_DIR" ] ; then
     echo "Configuring MapCache."
 
@@ -292,7 +296,6 @@ if [ ! -d "$MAPCACHE_DIR" ] ; then
         <maxsize>4096</maxsize>
     </service>
     <service type="wmts" enabled="true"/>
-    <service type="demo" enabled="true"/>
 
     <errors>empty_img</errors>
     <lock_dir>/tmp</lock_dir>
@@ -322,7 +325,6 @@ EOF
         <maxsize>4096</maxsize>
     </service>
     <service type="wmts" enabled="true"/>
-    <service type="demo" enabled="true"/>
 
     <errors>empty_img</errors>
     <lock_dir>/tmp</lock_dir>
@@ -368,7 +370,7 @@ if [ ! -f "$APACHE_CONF" ] ; then
     # Add hostname
     HOSTNAME=`hostname`
     if ! grep -Gxq "127\.0\.0\.1.* $HOSTNAME" /etc/hosts ; then
-        sed -e 's/^127\.0\.0\.1.*$/& $HOSTNAME/' -i /etc/hosts
+        sed -e "s/^127\.0\.0\.1.*$/& $HOSTNAME/" -i /etc/hosts
     fi
 
     cat << EOF > "$APACHE_CONF"
