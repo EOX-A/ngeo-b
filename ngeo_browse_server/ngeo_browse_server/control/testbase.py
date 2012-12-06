@@ -411,8 +411,10 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
     def test_model_counts(self):
         """ Check that the models have been created correctly. """
         
+        num_ingested_models = len(self.expected_ingested_coverage_ids or
+                                  self.expected_ingested_browse_ids)
         for model, value in self.model_counts.items():
-            self.assertEqual(value[0] + 1, value[1],
+            self.assertEqual(value[0] + num_ingested_models, value[1],
                              "Model '%s' count mismatch." % model)
 
 
