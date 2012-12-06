@@ -43,14 +43,14 @@
 
 # Reset DB with PostgreSQL:
 dropdb ngeo
-rm -f /var/ngeob/autotest/data/mapcache.sqlite
+rm -f /var/ngeob_data/mapcache.sqlite
 createdb -O vagrant -T template_postgis ngeo
 cd /var/ngeob/
 python manage.py syncdb --noinput
 python manage.py syncdb --database=mapcache --noinput
 python manage.py loaddata auth_data.json ngeo_browse_layer.json eoxs_dataset_series.json initial_rangetypes.json
 python manage.py loaddata --database=mapcache ngeo_mapcache.json
-chmod go+w autotest/data/mapcache.sqlite 
+sudo chown apache:apache /var/ngeob_data/mapcache.sqlite
 
 ## Reset DB with Django:
 ## Note, schema changes are not applied.
@@ -61,11 +61,19 @@ chmod go+w autotest/data/mapcache.sqlite
 #python manage.py loaddata --database=mapcache ngeo_mapcache.json
 
 # Reset ngEO Browse Server
-rm -f /var/ngeob/autotest/data/optimized/*.tif
-rm -f /var/ngeob/autotest/data/success/*.tif
-rm -f /var/ngeob/autotest/data/failure/*.tif
+rm -rf /var/ngeob_data/optimized/TEST_*
+rm -f /var/ngeob_data/success/*.jpg /var/ngeob_data/success/*.xml
+rm -f /var/ngeob_data/failure/*.jpg /var/ngeob_data/failure/*.xml
+rm -f /var/ngeob/autotest/logs/eoxserver.log /var/ngeob/autotest/logs/ngeo.log
+touch /var/ngeob/autotest/logs/eoxserver.log /var/ngeob/autotest/logs/ngeo.log
+chmod go+w /var/ngeob/autotest/logs/eoxserver.log /var/ngeob/autotest/logs/ngeo.log
 
 # Reset MapCache
 rm -f /var/www/cache/TEST_SAR.sqlite /var/www/cache/TEST_OPTICAL.sqlite
 touch /var/www/cache/TEST_SAR.sqlite /var/www/cache/TEST_OPTICAL.sqlite
 chmod go+w /var/www/cache/TEST_SAR.sqlite /var/www/cache/TEST_OPTICAL.sqlite
+
+# Upload test data
+cp /var/ngeob/autotest/data/reference_test_data/*.jpg /var/ngeob_data/storage/
+
+sudo service httpd restart

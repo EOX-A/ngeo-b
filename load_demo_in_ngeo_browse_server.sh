@@ -57,29 +57,69 @@ echo "==============================================================="
 
 echo "Started loading demo data"
 
-# ngEO Browse Server
-cd "$NGEOB_INSTALL_DIR"
-    
-# TODO download demo data
-python manage.py loaddata auth_data.json ngeo_browse_layer.json eoxs_dataset_series.json
+# Add browse layers in ngEO Browse Server instance
+echo "Adding browse layers in ngEO Browse Server instance."
+cd "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance"
+python manage.py loaddata ngeo_browse_layer.json eoxs_dataset_series.json
 python manage.py loaddata --database=mapcache ngeo_mapcache.json
-python manage.py ngeo_ingest_browse_report /home/meissls/reference_test_data/*.xml --storage-dir=/home/meissls/reference_test_data/
 
 
-# MapCache
+# Add browse laysers in MapCache
+echo "Adding browse laysers in MapCache."
 cd "$MAPCACHE_DIR"
+sed -e "/^<\/mapcache>$/d" -i $MAPCACHE_CONF
+sed -e "/^<\/mapcache>$/d" -i seed_$MAPCACHE_CONF
+cat << EOF >> $MAPCACHE_CONF
 
-#TODO mapcache.xml and seed_mapcache.xml
-cat << EOF > "$MAPCACHE_DIR/$MAPCACHE_CONF"
-cat << EOF > "$MAPCACHE_DIR/seed_$MAPCACHE_CONF"
-<!--    <cache name="TEST_SAR" type="sqlite3">-->
+<!-- TODO    <cache name="TEST_SAR" type="sqlite3">-->
     <cache name="TEST_SAR" type="mbtiles">
-        <dbfile>/var/www/cache/TEST_SAR.sqlite</dbfile>
+        <dbfile>$MAPCACHE_DIR/TEST_SAR.sqlite</dbfile>
     </cache>
 
-<!--    <cache name="TEST_OPTICAL" type="sqlite3">-->
+<!-- TODO    <cache name="TEST_OPTICAL" type="sqlite3">-->
     <cache name="TEST_OPTICAL" type="mbtiles">
-        <dbfile>/var/www/cache/TEST_OPTICAL.sqlite</dbfile>
+        <dbfile>$MAPCACHE_DIR/TEST_OPTICAL.sqlite</dbfile>
+    </cache>
+
+    <tileset name="TEST_SAR">
+        <cache>TEST_SAR</cache>
+        <grid>WGS84</grid>
+        <format>mixed</format>
+        <metatile>2 2</metatile>
+        <metabuffer>10</metabuffer>
+        <expires>3600</expires>
+        <timedimension type="sqlite" default="2010">
+            <dbfile>$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/data/mapcache.sqlite</dbfile>
+            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&gt;=datetime(:start_timestamp,'unixepoch') and end_time&lt;=datetime(:end_timestamp,'unixepoch')</query>
+        </timedimension>
+    </tileset>
+
+    <tileset name="TEST_OPTICAL">
+        <cache>TEST_OPTICAL</cache>
+        <grid>WGS84</grid>
+        <format>mixed</format>
+        <metatile>2 2</metatile>
+        <metabuffer>10</metabuffer>
+        <expires>3600</expires>
+        <timedimension type="sqlite" default="2010">
+            <dbfile>$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/data/mapcache.sqlite</dbfile>
+            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&gt;=datetime(:start_timestamp,'unixepoch') and end_time&lt;=datetime(:end_timestamp,'unixepoch')</query>
+        </timedimension>
+    </tileset>
+
+    <service type="demo" enabled="true"/>
+</mapcache>
+EOF
+cat << EOF >> seed_$MAPCACHE_CONF
+
+<!-- TODO    <cache name="TEST_SAR" type="sqlite3">-->
+    <cache name="TEST_SAR" type="mbtiles">
+        <dbfile>$MAPCACHE_DIR/TEST_SAR.sqlite</dbfile>
+    </cache>
+
+<!-- TODO    <cache name="TEST_OPTICAL" type="sqlite3">-->
+    <cache name="TEST_OPTICAL" type="mbtiles">
+        <dbfile>$MAPCACHE_DIR/TEST_OPTICAL.sqlite</dbfile>
     </cache>
 
     <source name="TEST_SAR" type="wms">
@@ -90,8 +130,7 @@ cat << EOF > "$MAPCACHE_DIR/seed_$MAPCACHE_CONF"
             </params>
         </getmap>
         <http>
-            <url>http://ngeo.eox.at/browse/ows?</url>
-<!--            <url>http://localhost/browse/ows?</url>-->
+            <url>http://localhost/browse/ows?</url>
         </http>
     </source>
 
@@ -103,8 +142,7 @@ cat << EOF > "$MAPCACHE_DIR/seed_$MAPCACHE_CONF"
             </params>
         </getmap>
         <http>
-            <url>http://ngeo.eox.at/browse/ows?</url>
-<!--            <url>http://localhost/browse/ows?</url>-->
+            <url>http://localhost/browse/ows?</url>
         </http>
     </source>
 
@@ -116,9 +154,10 @@ cat << EOF > "$MAPCACHE_DIR/seed_$MAPCACHE_CONF"
         <metatile>2 2</metatile>
         <metabuffer>10</metabuffer>
         <expires>3600</expires>
-<!--        <dimensions>
-            <dimension type="TIME" name="TIME" default="empty" dbfile="/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/data/mapcache.sqlite"></dimension>
-        </dimensions>-->
+        <timedimension type="sqlite" default="2010">
+            <dbfile>$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/data/mapcache.sqlite</dbfile>
+            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&gt;=datetime(:start_timestamp,'unixepoch') and end_time&lt;=datetime(:end_timestamp,'unixepoch')</query>
+        </timedimension>
     </tileset>
 
     <tileset name="TEST_OPTICAL">
@@ -129,17 +168,42 @@ cat << EOF > "$MAPCACHE_DIR/seed_$MAPCACHE_CONF"
         <metatile>2 2</metatile>
         <metabuffer>10</metabuffer>
         <expires>3600</expires>
-<!--        <dimensions>
-            <dimension type="TIME" name="TIME" default="empty" dbfile="/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/data/mapcache.sqlite"></dimension>
-        </dimensions>-->
+        <timedimension type="sqlite" default="2010">
+            <dbfile>$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/data/mapcache.sqlite</dbfile>
+            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&gt;=datetime(:start_timestamp,'unixepoch') and end_time&lt;=datetime(:end_timestamp,'unixepoch')</query>
+        </timedimension>
     </tileset>
+
+    <service type="demo" enabled="true"/>
+</mapcache>
 EOF
 
-# TODO seed only covered area
-mapcache_seed -t TEST_SAR -v -z 0,7 -p 4 -c mapcache.xml
-mapcache_seed -t TEST_OPTICAL -v -z 0,7 -p 4 -c mapcache.xml
+cat <<EOF
 
-# Make the cache read- and editable by apache
-chown -R apache:apache .
+################################################################################
+#                                                                              #
+#           Ingest browse reports either via command line or via URL           #
+#                                                                              #
+################################################################################
+Upload images using WebDAV
+Obtain test browse reports and perform one of the following:
+--------------------------------------------------------------------------------
+cd "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance"
+python manage.py ngeo_ingest_browse_report browseReport_*xml
+--------------------------------------------------------------------------------
+or
+--------------------------------------------------------------------------------
+curl -d @browseReport_ASA_IM__0P_20100722_213840.xml http://localhost/browse/ingest/
+curl -d @browseReport_ASA_IM__0P_20100731_103315.xml http://localhost/browse/ingest/
+curl -d @browseReport_ASA_IM__0P_20100807_101327.xml http://localhost/browse/ingest/
+curl -d @browseReport_ASA_IM__0P_20100807_101327_new.xml http://localhost/browse/ingest/
+curl -d @browseReport_ASA_IM__0P_20100813_102453.xml http://localhost/browse/ingest/
+curl -d @browseReport_ASA_WS__0P_20100719_101023_group.xml http://localhost/browse/ingest/
+curl -d @browseReport_ATS_TOA_1P_20100719_105257.xml http://localhost/browse/ingest/
+curl -d @browseReport_ATS_TOA_1P_20100719_213253.xml http://localhost/browse/ingest/
+curl -d @browseReport_ATS_TOA_1P_20100722_101606.xml http://localhost/browse/ingest/
+--------------------------------------------------------------------------------
+
+EOF
 
 echo "Finished loading demo data"
