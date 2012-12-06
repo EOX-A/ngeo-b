@@ -53,13 +53,20 @@ from ngeo_browse_server.control.ingest.parsing import (
     parse_browse_report, parse_coord_list
 )
 from ngeo_browse_server.control.ingest import data
-from ngeo_browse_server.control.ingest.result import IngestResult
+from ngeo_browse_server.control.ingest.result import (
+    IngestBrowseReportResult, IngestBrowseResult, IngestBrowseReplaceResult,
+    IngestBrowseFailureResult
+)
 from ngeo_browse_server.control.ingest.config import (
     get_project_relative_path, get_storage_path, get_optimized_path, 
     get_format_config, get_optimization_config, get_mapcache_config
 )
-from ngeo_browse_server.control.ingest.filetransaction import IngestionTransaction
-from ngeo_browse_server.control.ingest.config import get_success_dir, get_failure_dir
+from ngeo_browse_server.control.ingest.filetransaction import (
+    IngestionTransaction
+)
+from ngeo_browse_server.control.ingest.config import (
+    get_success_dir, get_failure_dir
+)
 from ngeo_browse_server.control.ingest.exceptions import IngestionException
 from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.mapcache.tasks import seed_mapcache
@@ -71,8 +78,7 @@ logger = logging.getLogger(__name__)
 # main functions
 #===============================================================================
 
-def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
-                         do_preprocessing=True, config=None):
+def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=None):
     """ Ingests a browse report. reraise_exceptions if errors shall be handled 
     externally
     """
@@ -116,75 +122,88 @@ def ingest_browse_report(parsed_browse_report, reraise_exceptions=False,
     succeded = []
     failed = []
 
-    # transaction management on browse report basis
-    with transaction.commit_on_success():
-        with transaction.commit_on_success(using="mapcache"):
-            result = IngestResult()
-            
-            # iterate over all browses in the browse report
-            for parsed_browse in parsed_browse_report:
-                sid = transaction.savepoint()
-                sid_mc = transaction.savepoint(using="mapcache")
+    
+    report_result = IngestBrowseReportResult()
+    
+    # iterate over all browses in the browse report
+    for parsed_browse in parsed_browse_report:
+        # transaction management per browse
+        with transaction.commit_manually():
+            try:
+                # try ingest a single browse and log success
+                result = ingest_browse(parsed_browse, browse_report,
+                                       browse_layer, preprocessor, crs,
+                                       config=config)
+                
+                transaction.commit() # commit here to allow seeding
+                
                 try:
-                    # try ingest a single browse and log success
-                    replaced = ingest_browse(parsed_browse, browse_report,
-                                             browse_layer, preprocessor, crs,
-                                             config=config)
-                    result.add(parsed_browse.browse_identifier, replaced)
-                    succeded.append(parsed_browse)
-                    
-                except Exception, e:
-                    # report error
-                    logger.error("Failure during ingestion of browse '%s'." %
-                                 parsed_browse.browse_identifier)
-                    logger.debug(traceback.format_exc() + "\n")
-                    
-                    if reraise_exceptions:
-                        # complete rollback and reraise exception
-                        transaction.rollback()
-                        transaction.rollback(using="mapcache")
-                        
-                        info = sys.exc_info()
-                        raise info[0], info[1], info[2]
+                    if not result.replaced:
+                        manage_mapcache_models(browse_layer, result.extent, 
+                                               result.time_interval, config=config)
                     
                     else:
-                        # undo latest changes, append the failure and continue
-                        transaction.savepoint_rollback(sid)
-                        transaction.savepoint_rollback(sid_mc, using="mapcache")
-                        result.add_failure(parsed_browse.browse_identifier, 
-                                           type(e).__name__, str(e))
-                        
-                        failed.append(parsed_browse)
+                        manage_mapcache_models(browse_layer, result.extent, 
+                                               result.time_interval,
+                                               result.replaced_extent,
+                                               result.replaced_time_interval,
+                                               config=config)
+                except Exception, e:
+                    # TODO: log warning
+                    pass
                 
-                # ingestion of browse was ok, commit changes
-                transaction.savepoint_commit(sid)
-                transaction.savepoint_commit(sid_mc, using="mapcache")
-
-            # generate browse report and save to to success/failure dir
-            if len(succeded):
-                succeded_report = data.BrowseReport(
-                    parsed_browse_report.browse_type, 
-                    parsed_browse_report.date_time, 
-                    parsed_browse_report.responsible_org_name, 
-                    succeded
+                report_result.add(result)
+                succeded.append(parsed_browse)
+                
+                logger.info("Finished seeding.")
+                
+                
+                
+            except Exception, e:
+                # report error
+                logger.error("Failure during ingestion of browse '%s'." %
+                             parsed_browse.browse_identifier)
+                logger.debug(traceback.format_exc() + "\n")
+                
+                # undo latest changes, append the failure and continue
+                report_result.add(IngestBrowseFailureResult(
+                    parsed_browse.browse_identifier, 
+                    type(e).__name__, str(e))
                 )
-                _save_result_browse_report(succeded_report, get_success_dir(config))
-            
-            if len(failed):
-                failed_report = data.BrowseReport(
-                    parsed_browse_report.browse_type, 
-                    parsed_browse_report.date_time, 
-                    parsed_browse_report.responsible_org_name, 
-                    failed
-                )
-                _save_result_browse_report(failed_report, get_failure_dir(config))
-            
-            
-        # ingestion finished, commit changes. 
-        transaction.commit()
-        transaction.commit(using="mapcache")
+                failed.append(parsed_browse)
+                
+                transaction.rollback()
 
-    return result
+    
+    # generate browse report and save to to success/failure dir
+    if len(succeded):
+        try:
+            succeded_report = data.BrowseReport(
+                parsed_browse_report.browse_type, 
+                parsed_browse_report.date_time, 
+                parsed_browse_report.responsible_org_name, 
+                succeded
+            )
+            _save_result_browse_report(succeded_report, get_success_dir(config))
+        
+        except Exception, e:
+            pass # TODO log warning
+            
+    
+    if len(failed):
+        try:
+            failed_report = data.BrowseReport(
+                parsed_browse_report.browse_type, 
+                parsed_browse_report.date_time, 
+                parsed_browse_report.responsible_org_name, 
+                failed
+            )
+            _save_result_browse_report(failed_report, get_failure_dir(config))
+        
+        except Exception, e:
+            pass # TODO: log warning
+
+    return report_result
     
 
 def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
@@ -239,7 +258,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                 browse_layer=browse_layer
             )
         
-        replaced_timespan = browse.start_time, browse.end_time
+        replaced_time_interval = browse.start_time, browse.end_time
         replaced_extent, replaced_filename = cleanup_replaced(
             browse, browse_layer, coverage_id
         )
@@ -299,36 +318,12 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                                          % result.num_bands)
             
             logger.info("Creating database models.")
-            extent, timespan = create_models(parsed_browse, browse_report, 
-                                             browse_layer, coverage_id, crs,
-                                             replaced, result, config=config)
+            extent, time_interval = create_models(parsed_browse, browse_report, 
+                                                  browse_layer, coverage_id, 
+                                                  crs, replaced, result, 
+                                                  config=config)
             
             
-            # "un-seed" if replaced and previous extent not equal to this extent
-            if replaced and (extent != replaced_extent
-                             or timespan != replaced_timespan):
-                seed_mapcache(tileset=browse_layer.id, grid=browse_layer.grid, 
-                              minx=replaced_extent[0], miny=replaced_extent[1],
-                              maxx=replaced_extent[2], maxy=replaced_extent[3], 
-                              minzoom=browse_layer.lowest_map_level, 
-                              maxzoom=browse_layer.highest_map_level,
-                              start_time=replaced_timespan[0],
-                              end_time=replaced_timespan[1],
-                              delete=True,
-                              **get_mapcache_config(config))
-            
-            
-            # seed MapCache synchronously
-            # TODO: maybe replace this with an async solution
-            seed_mapcache(tileset=browse_layer.id, grid=browse_layer.grid, 
-                          minx=extent[0], miny=extent[1],
-                          maxx=extent[2], maxy=extent[3], 
-                          minzoom=browse_layer.lowest_map_level, 
-                          maxzoom=browse_layer.highest_map_level,
-                          start_time=timespan[0],
-                          end_time=timespan[1],
-                          delete=False,
-                          **get_mapcache_config(config))
         
     except:
         # save exception info to re-raise it
@@ -349,6 +344,9 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
             logger.warn("Could not move '%s' to configured "
                          "`failure_dir` '%s'. Error was: '%s'."
                          % (input_filename, failure_dir, str(e)))
+        
+        # mapcache models are not encapsulated with transactions
+        
         
         # re-raise the exception
         raise exc_info[0], exc_info[1], exc_info[2]
@@ -376,7 +374,15 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
     logger.info("Successfully ingested browse with coverage ID '%s'."
                 % coverage_id)
     
-    return replaced
+    if not replaced:
+        return IngestBrowseResult(parsed_browse.browse_identifier, extent,
+                                  time_interval)
+    
+    else:
+        return IngestBrowseReplaceResult(parsed_browse.browse_identifier, 
+                                         extent, time_interval, replaced_extent, 
+                                         replaced_time_interval)
+
 
 
 #===============================================================================
@@ -388,13 +394,6 @@ def cleanup_replaced(browse, browse_layer, coverage_id):
     Returns the extent of the replaced image.
     """
     
-    # delete *one* of the fitting Time objects
-    mapcache_models.Time.objects.filter(
-        start_time=browse.start_time,
-        end_time=browse.end_time,
-        source__name=browse_layer.id
-    )[0].delete()
-    
     # get previous extent to "un-seed" MapCache in that area
     rect_ds = System.getRegistry().getFromFactory(
         "resources.coverages.wrappers.EOCoverageFactory",
@@ -402,9 +401,6 @@ def cleanup_replaced(browse, browse_layer, coverage_id):
     )
     replaced_extent = rect_ds.getExtent()
     replaced_filename = rect_ds.getData().getLocation().getPath()
-    
-    # TODO: delete the optimized browse image of the to-be-replaced browse here
-    # ATTENTION: In case of an error, this file must be restored!
     
     # delete the EOxServer rectified dataset entry
     rect_mgr = System.getRegistry().findAndBind(
@@ -502,16 +498,58 @@ def create_models(parsed_browse, browse_report, browse_layer, coverage_id, crs,
                                container_ids=container_ids)
     
     extent = coverage.getExtent()
+    return extent, (browse.start_time, browse.end_time)
+
+
+#===============================================================================
+# All mapcache ingestion related stuff
+#===============================================================================
+
+def manage_mapcache_models(browse_layer, extent, time_interval,
+                           replaced_extent=None, replaced_time_interval=None,
+                           config=None):
+
+    # replaced, delete previous time interval and "un-seed" the previous region
+    if replaced_extent and replaced_time_interval:
+        
+        # delete *one* of the fitting Time objects
+        mapcache_models.Time.objects.filter(
+            start_time=replaced_time_interval[0],
+            end_time=replaced_time_interval[1],
+            source__name=browse_layer.id
+        )[0].delete()
+        
+        
+        seed_mapcache(tileset=browse_layer.id, grid=browse_layer.grid, 
+                              minx=replaced_extent[0], miny=replaced_extent[1],
+                              maxx=replaced_extent[2], maxy=replaced_extent[3], 
+                              minzoom=browse_layer.lowest_map_level, 
+                              maxzoom=browse_layer.highest_map_level,
+                              start_time=replaced_time_interval[0],
+                              end_time=replaced_time_interval[1],
+                              delete=True,
+                              **get_mapcache_config(config))
     
     # create mapcache models
     source, _ = mapcache_models.Source.objects.get_or_create(name=browse_layer.id)
-    time = mapcache_models.Time(start_time=parsed_browse.start_time,
-                                end_time=parsed_browse.end_time,
+    time = mapcache_models.Time(start_time=time_interval[0],
+                                end_time=time_interval[1],
                                 source=source)
     time.full_clean()
     time.save()
     
-    return extent, (browse.start_time, browse.end_time)
+    # seed MapCache synchronously
+    # TODO: maybe replace this with an async solution
+    seed_mapcache(tileset=browse_layer.id, grid=browse_layer.grid, 
+                  minx=extent[0], miny=extent[1],
+                  maxx=extent[2], maxy=extent[3], 
+                  minzoom=browse_layer.lowest_map_level, 
+                  maxzoom=browse_layer.highest_map_level,
+                  start_time=time_interval[0],
+                  end_time=time_interval[1],
+                  delete=False,
+                  **get_mapcache_config(config))
+
 
 #===============================================================================
 # helper functions
