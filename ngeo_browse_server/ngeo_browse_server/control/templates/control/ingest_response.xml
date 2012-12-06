@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
 xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-    <bsi:status>{{ result.status }}</bsi:status>
+    <bsi:status>{{ results.status }}</bsi:status>
     <bsi:ingestionSummary>
-        <bsi:toBeReplaced>{{ result.to_be_replaced }}</bsi:toBeReplaced>
-        <bsi:actuallyInserted>{{ result.actually_inserted }}</bsi:actuallyInserted>
-        <bsi:actuallyReplaced>{{ result.actually_replaced }}</bsi:actuallyReplaced>
+        <bsi:toBeReplaced>{{ results.to_be_replaced }}</bsi:toBeReplaced>
+        <bsi:actuallyInserted>{{ results.actually_inserted }}</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>{{ results.actually_replaced }}</bsi:actuallyReplaced>
     </bsi:ingestionSummary>
-    <bsi:ingestionResult>{% for identifier, status, code, message in result %}
+    <bsi:ingestionResult>{% for result in results %}
         <bsi:briefRecord>
-            <bsi:identifier>{{ identifier }}</bsi:identifier>
-            <bsi:status>{{ status }}</bsi:status>{% if code or message %}
+            <bsi:identifier>{{ result.identifier }}</bsi:identifier>
+            <bsi:status>{{ result.status }}</bsi:status>{% if not result.success %}
             <bsi:error>
-                <bsi:exceptionCode>{{ code }}</bsi:exceptionCode>
-                <bsi:exceptionMessage>{{ message }}</bsi:exceptionMessage>
+                <bsi:exceptionCode>{{ result.code }}</bsi:exceptionCode>
+                <bsi:exceptionMessage>{{ result.message }}</bsi:exceptionMessage>
             </bsi:error>{% endif %}
         </bsi:briefRecord>{% endfor %}
     </bsi:ingestionResult>
