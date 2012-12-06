@@ -60,11 +60,10 @@ def ingest(request):
                                      "InvalidRequest")
         
         parsed_browse_report = parse_browse_report(document.getroot())
-        result = ingest_browse_report(parsed_browse_report, 
-                                      reraise_exceptions=False)
+        results = ingest_browse_report(parsed_browse_report)
         
         return render_to_response("control/ingest_response.xml", 
-                              {"result": result}, 
+                              {"results": results}, 
                               mimetype="text/xml")
     except Exception, e:
         logger.debug(traceback.format_exc())

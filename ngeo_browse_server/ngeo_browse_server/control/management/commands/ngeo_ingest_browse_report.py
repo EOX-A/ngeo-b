@@ -56,12 +56,19 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         make_option('--on-error',
             dest='on_error', default="stop",
             choices=["continue", "stop"],
-            help="Declare how errors shall be handled. Default is 'stop'."
+            help=("Declare how errors shall be handled. Possible values are "
+                  "'continue' and 'stop'. Default is 'stop'.")
         ),
         make_option('--delete-on-success', action="store_true",
             dest='delete_on_success', default=False,
             help=("If this option is set, the original browse files will be "
                   "deleted and only the optimized browse files will be kept.")
+        ),
+        make_option('--leave-original', action="store_true",
+            dest='leave_original', default=False,
+            help=("For debugging purposes only. If this option is set, the "
+                  "original raster files are not moved from the storage "
+                  "directory after a successful/failed ingest.")
         ),
         make_option('--storage-dir',
             dest='storage_dir',
@@ -103,6 +110,7 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         storage_dir = kwargs.get("storage_dir")
         optimized_dir = kwargs.get("optimized_dir")
         create_result = kwargs["create_result"]
+        leave_original = kwargs["leave_original"]
         
         # check consistency
         if not len(filenames):
@@ -126,6 +134,7 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                            % optimized_dir, 2)
         
         config.set(section, "delete_on_success", delete_on_success)
+        config.set(section, "leave_original", leave_original)
         
         # handle each file separately
         for filename in filenames:
@@ -160,20 +169,14 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                        % (len(parsed_browse_report), 
                           "s" if len(parsed_browse_report) > 1 else ""))
         
-        if not create_result:
-            result = ingest_browse_report(parsed_browse_report,
-                                          reraise_exceptions=True,
-                                          config=config)
-        else:
-            result = ingest_browse_report(parsed_browse_report,
-                                          reraise_exceptions=False,
-                                          config=config)
-            
+        results = ingest_browse_report(parsed_browse_report, config=config)
+        
+        if create_result:
             # print ingest result
             print(render_to_string("control/ingest_response.xml",
-                                   {"result": result}))
+                                   {"results": results}))
         
         self.print_msg("%d browses have been successfully ingested. %d "
                         "replaced, %d inserted."
-                        % (result.to_be_replaced, result.actually_replaced,
-                            result.actually_inserted))
+                        % (results.to_be_replaced, results.actually_replaced,
+                            results.actually_inserted))
