@@ -67,17 +67,16 @@ python manage.py loaddata --database=mapcache ngeo_mapcache.json
 # Add browse laysers in MapCache
 echo "Adding browse laysers in MapCache."
 cd "$MAPCACHE_DIR"
-sed -e "/^<\/mapcache>$/d" -i $MAPCACHE_CONF
-sed -e "/^<\/mapcache>$/d" -i seed_$MAPCACHE_CONF
-cat << EOF >> $MAPCACHE_CONF
+if ! grep -Fxq "    <service type=\"demo\" enabled=\"true\"/>" $MAPCACHE_CONF ; then
+    sed -e "/^<\/mapcache>$/d" -i $MAPCACHE_CONF
+    sed -e "/^<\/mapcache>$/d" -i seed_$MAPCACHE_CONF
+    cat << EOF >> $MAPCACHE_CONF
 
-<!-- TODO    <cache name="TEST_SAR" type="sqlite3">-->
-    <cache name="TEST_SAR" type="mbtiles">
+    <cache name="TEST_SAR" type="sqlite3">
         <dbfile>$MAPCACHE_DIR/TEST_SAR.sqlite</dbfile>
     </cache>
 
-<!-- TODO    <cache name="TEST_OPTICAL" type="sqlite3">-->
-    <cache name="TEST_OPTICAL" type="mbtiles">
+    <cache name="TEST_OPTICAL" type="sqlite3">
         <dbfile>$MAPCACHE_DIR/TEST_OPTICAL.sqlite</dbfile>
     </cache>
 
@@ -110,15 +109,13 @@ cat << EOF >> $MAPCACHE_CONF
     <service type="demo" enabled="true"/>
 </mapcache>
 EOF
-cat << EOF >> seed_$MAPCACHE_CONF
+    cat << EOF >> seed_$MAPCACHE_CONF
 
-<!-- TODO    <cache name="TEST_SAR" type="sqlite3">-->
-    <cache name="TEST_SAR" type="mbtiles">
+    <cache name="TEST_SAR" type="sqlite3">
         <dbfile>$MAPCACHE_DIR/TEST_SAR.sqlite</dbfile>
     </cache>
 
-<!-- TODO    <cache name="TEST_OPTICAL" type="sqlite3">-->
-    <cache name="TEST_OPTICAL" type="mbtiles">
+    <cache name="TEST_OPTICAL" type="sqlite3">
         <dbfile>$MAPCACHE_DIR/TEST_OPTICAL.sqlite</dbfile>
     </cache>
 
@@ -177,6 +174,7 @@ cat << EOF >> seed_$MAPCACHE_CONF
     <service type="demo" enabled="true"/>
 </mapcache>
 EOF
+fi
 
 cat <<EOF
 
