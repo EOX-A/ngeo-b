@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mapcache>
-<!-- TODO    <cache name="TEST_SAR" type="sqlite3">-->
-    <cache name="TEST_SAR" type="mbtiles">
+    <cache name="TEST_SAR" type="sqlite3">
         <dbfile>/var/www/cache/TEST_SAR.sqlite</dbfile>
     </cache>
 
-<!-- TODO    <cache name="TEST_OPTICAL" type="sqlite3">-->
-    <cache name="TEST_OPTICAL" type="mbtiles">
+    <cache name="TEST_OPTICAL" type="sqlite3">
         <dbfile>/var/www/cache/TEST_OPTICAL.sqlite</dbfile>
     </cache>
 
