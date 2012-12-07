@@ -22,17 +22,11 @@ class LogToConsoleMixIn(object):
         if verbosity is None:
             verbosity = 1
         
-        if verbosity > 4:
-            verbosity = 4
-        elif verbosity < 0:
-            verbosity = 0 
-        
         VERBOSITY_TO_LEVEL = {
             0: logging.CRITICAL,
-            1: logging.ERROR,
-            2: logging.WARNING,
-            3: logging.INFO,
-            4: logging.DEBUG
+            1: logging.WARNING,
+            2: logging.INFO,
+            3: logging.DEBUG
         }
         level = VERBOSITY_TO_LEVEL[verbosity]
         
