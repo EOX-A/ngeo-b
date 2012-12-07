@@ -129,50 +129,55 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
     for parsed_browse in parsed_browse_report:
         # transaction management per browse
         with transaction.commit_manually():
-            try:
-                # try ingest a single browse and log success
-                result = ingest_browse(parsed_browse, browse_report,
-                                       browse_layer, preprocessor, crs,
-                                       config=config)
-                
-                transaction.commit() # commit here to allow seeding
-                
+            with transaction.commit_manually(using="mapcache"):
                 try:
-                    if not result.replaced:
-                        manage_mapcache_models(browse_layer, result.extent, 
-                                               result.time_interval, config=config)
+                    # try ingest a single browse and log success
+                    result = ingest_browse(parsed_browse, browse_report,
+                                           browse_layer, preprocessor, crs,
+                                           config=config)
                     
-                    else:
-                        manage_mapcache_models(browse_layer, result.extent, 
-                                               result.time_interval,
-                                               result.replaced_extent,
-                                               result.replaced_time_interval,
-                                               config=config)
+                    report_result.add(result)
+                    succeded.append(parsed_browse)
+                    
+                    # commit here to allow seeding
+                    transaction.commit() 
+                    transaction.commit(using="mapcache")
+                    
+                    logger.info("Commited changes to database.")
+                    
+                    try:
+                        
+                        # seed MapCache synchronously
+                        # TODO: maybe replace this with an async solution
+                        seed_mapcache(tileset=browse_layer.id, grid=browse_layer.grid, 
+                                      minx=result.extent[0], miny=result.extent[1],
+                                      maxx=result.extent[2], maxy=result.extent[3], 
+                                      minzoom=browse_layer.lowest_map_level, 
+                                      maxzoom=browse_layer.highest_map_level,
+                                      start_time=result.time_interval[0],
+                                      end_time=result.time_interval[1],
+                                      delete=False,
+                                      **get_mapcache_config(config))
+                        logger.info("Successfully finished seeding.")
+                        
+                    except Exception, e:
+                        logger.warn("Seeding failed: %s" % str(e))
+                    
                 except Exception, e:
-                    # TODO: log warning
-                    pass
-                
-                report_result.add(result)
-                succeded.append(parsed_browse)
-                
-                logger.info("Finished seeding.")
-                
-                
-                
-            except Exception, e:
-                # report error
-                logger.error("Failure during ingestion of browse '%s'." %
-                             parsed_browse.browse_identifier)
-                logger.debug(traceback.format_exc() + "\n")
-                
-                # undo latest changes, append the failure and continue
-                report_result.add(IngestBrowseFailureResult(
-                    parsed_browse.browse_identifier, 
-                    type(e).__name__, str(e))
-                )
-                failed.append(parsed_browse)
-                
-                transaction.rollback()
+                    # report error
+                    logger.error("Failure during ingestion of browse '%s'." %
+                                 parsed_browse.browse_identifier)
+                    logger.debug(traceback.format_exc() + "\n")
+                    
+                    # undo latest changes, append the failure and continue
+                    report_result.add(IngestBrowseFailureResult(
+                        parsed_browse.browse_identifier, 
+                        type(e).__name__, str(e))
+                    )
+                    failed.append(parsed_browse)
+                    
+                    transaction.rollback()
+                    transaction.rollback(using="mapcache")
 
     
     # generate browse report and save to to success/failure dir
@@ -260,7 +265,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         
         replaced_time_interval = browse.start_time, browse.end_time
         replaced_extent, replaced_filename = cleanup_replaced(
-            browse, browse_layer, coverage_id
+            browse, browse_layer, coverage_id, config
         )
         replaced = True
         logger.info("Existing browse found, replacing it.")
@@ -322,7 +327,6 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                                                   browse_layer, coverage_id, 
                                                   crs, replaced, result, 
                                                   config=config)
-            
             
         
     except:
@@ -389,7 +393,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
 # model creation/cleanup functions
 #===============================================================================
 
-def cleanup_replaced(browse, browse_layer, coverage_id):
+def cleanup_replaced(browse, browse_layer, coverage_id, config=None):
     """ Delete all models and files associated with a to be replaced browse. 
     Returns the extent of the replaced image.
     """
@@ -411,6 +415,31 @@ def cleanup_replaced(browse, browse_layer, coverage_id):
     )
     rect_mgr.delete(obj_id=browse.coverage_id)
     browse.delete()
+    
+    
+    # unseed here
+    try:
+        seed_mapcache(tileset=browse_layer.id, grid=browse_layer.grid, 
+                      minx=replaced_extent[0], miny=replaced_extent[1],
+                      maxx=replaced_extent[2], maxy=replaced_extent[3], 
+                      minzoom=browse_layer.lowest_map_level, 
+                      maxzoom=browse_layer.highest_map_level,
+                      start_time=browse.start_time,
+                      end_time=browse.end_time,
+                      delete=True,
+                      **get_mapcache_config(config))
+    
+    
+    except Exception, e:
+        logger.warn("Un-seeding failed: %s" % str(e))
+    
+    
+    # delete *one* of the fitting Time objects
+    mapcache_models.Time.objects.filter(
+        start_time=browse.start_time,
+        end_time=browse.end_time,
+        source__name=browse_layer.id
+    )[0].delete()
     
     return replaced_extent, replaced_filename
 
@@ -498,58 +527,16 @@ def create_models(parsed_browse, browse_report, browse_layer, coverage_id, crs,
                                container_ids=container_ids)
     
     extent = coverage.getExtent()
-    return extent, (browse.start_time, browse.end_time)
-
-
-#===============================================================================
-# All mapcache ingestion related stuff
-#===============================================================================
-
-def manage_mapcache_models(browse_layer, extent, time_interval,
-                           replaced_extent=None, replaced_time_interval=None,
-                           config=None):
-
-    # replaced, delete previous time interval and "un-seed" the previous region
-    if replaced_extent and replaced_time_interval:
-        
-        # delete *one* of the fitting Time objects
-        mapcache_models.Time.objects.filter(
-            start_time=replaced_time_interval[0],
-            end_time=replaced_time_interval[1],
-            source__name=browse_layer.id
-        )[0].delete()
-        
-        
-        seed_mapcache(tileset=browse_layer.id, grid=browse_layer.grid, 
-                              minx=replaced_extent[0], miny=replaced_extent[1],
-                              maxx=replaced_extent[2], maxy=replaced_extent[3], 
-                              minzoom=browse_layer.lowest_map_level, 
-                              maxzoom=browse_layer.highest_map_level,
-                              start_time=replaced_time_interval[0],
-                              end_time=replaced_time_interval[1],
-                              delete=True,
-                              **get_mapcache_config(config))
     
     # create mapcache models
     source, _ = mapcache_models.Source.objects.get_or_create(name=browse_layer.id)
-    time = mapcache_models.Time(start_time=time_interval[0],
-                                end_time=time_interval[1],
+    time = mapcache_models.Time(start_time=browse.start_time,
+                                end_time=browse.end_time,
                                 source=source)
     time.full_clean()
     time.save()
     
-    # seed MapCache synchronously
-    # TODO: maybe replace this with an async solution
-    seed_mapcache(tileset=browse_layer.id, grid=browse_layer.grid, 
-                  minx=extent[0], miny=extent[1],
-                  maxx=extent[2], maxy=extent[3], 
-                  minzoom=browse_layer.lowest_map_level, 
-                  maxzoom=browse_layer.highest_map_level,
-                  start_time=time_interval[0],
-                  end_time=time_interval[1],
-                  delete=False,
-                  **get_mapcache_config(config))
-
+    return extent, (browse.start_time, browse.end_time)
 
 #===============================================================================
 # helper functions
