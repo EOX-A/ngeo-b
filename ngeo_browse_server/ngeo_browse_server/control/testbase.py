@@ -6,6 +6,7 @@ import shutil
 from cStringIO import StringIO
 from lxml import etree
 import logging
+import numpy
 
 import sqlite3
 from osgeo import gdal, osr
@@ -159,10 +160,11 @@ class BaseTestCaseMixIn(object):
         db_file = settings.DATABASES["mapcache"]["TEST_NAME"]
         mapcache_config_file = join(self.temp_mapcache_dir, "seed_mapcache.xml")
         with open(mapcache_config_file, "w+") as f:
-            f.write(render_to_string("control/seed_mapcache.xml",
+            f.write(render_to_string("test_control/seed_mapcache.xml",
                                      {"mapcache_dir": self.temp_mapcache_dir,
                                       "mapcache_test_db": db_file,
-                                      "base_url": getattr(self, "live_server_url", None)}))
+                                      "base_url": getattr(self, "live_server_url",
+                                                          "http://localhost/browse")}))
         
         config.set(MAPCACHE_SECTION, "config_file", mapcache_config_file)
     
@@ -439,6 +441,30 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
             
                 tiles = dict(cur.fetchall())
                 self.assertEqual(self.expected_tiles, tiles)
+                
+                any_filled = False
+                vsimem_path = "/vsimem/img.png"
+                
+                cur = connection.cursor()
+                cur.execute("SELECT tile_data FROM tiles;")
+                for (tile,) in cur.fetchall():
+                    # create in-memory file and open it with gdal 
+                    gdal.FileFromMemBuffer(vsimem_path, str(tile))
+                    ds = gdal.Open(vsimem_path)
+                    data = ds.ReadAsArray()
+                    
+                    # check if it contains any data; (0,0,0,0) is empty
+                    not_empty = numpy.any(data)
+                    any_filled = not_empty or any_filled
+                    
+                    # delete the file when done
+                    gdal.Unlink(vsimem_path)
+                    if any_filled: break;
+            
+                if not any_filled:
+                    self.fail("All tiles are empty.")
+                
+        
     
     def test_model_counts(self):
         """ Check that the models have been created correctly. """
