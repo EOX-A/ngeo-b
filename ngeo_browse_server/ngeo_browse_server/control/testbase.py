@@ -1,3 +1,32 @@
+#-------------------------------------------------------------------------------
+#
+# Project: ngEO Browse Server <http://ngeo.eox.at>
+# Authors: Fabian Schindler <fabian.schindler@eox.at>
+#          Marko Locher <marko.locher@eox.at>
+#          Stephan Meissl <stephan.meissl@eox.at>
+#
+#-------------------------------------------------------------------------------
+# Copyright (C) 2012 EOX IT Services GmbH
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
+# copies of the Software, and to permit persons to whom the Software is 
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies of this Software or works derived from this Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+#-------------------------------------------------------------------------------
+
 import sys
 from os import walk
 from os.path import join, exists, dirname
@@ -65,9 +94,7 @@ class IngestResult(object):
     
 
 class BaseTestCaseMixIn(object):
-    """ Base Mixin for ngEO test cases using the http interface. Compares the 
-    expected response/status code with the actual results.
-    """
+    """ Base Mixin for ngEO test cases. """
     
     fixtures = ["initial_rangetypes.json", "ngeo_browse_layer.json", 
                 "eoxs_dataset_series.json", "ngeo_mapcache.json"]
@@ -98,6 +125,7 @@ class BaseTestCaseMixIn(object):
         (INGEST_SECTION, "footprint_alpha"): "true",
         (INGEST_SECTION, "delete_on_success"): "false",
         (INGEST_SECTION, "leave_original"): "false",
+        (MAPCACHE_SECTION, "seed_command"): "/var/ngeob/mapcache_seed_dummy",
         # storage_dir, success_dir, failure_dir and optimized_files_dir are set
         # automatically.
     }
@@ -127,8 +155,8 @@ class BaseTestCaseMixIn(object):
 
         
     def setUp_files(self):
-        # create a temporary storage directory and copy the reference test data
-        # into it point the control.ingest.storage_dir to this location
+        # create a temporary storage directory, copy the reference test data
+        # into it, and point the control.ingest.storage_dir to this location
         self.temp_storage_dir = tempfile.mktemp() # create a temp dir
         
         config = get_ngeo_config()
@@ -203,12 +231,10 @@ class BaseTestCaseMixIn(object):
             files.extend(filenames)
         
         return files
-    
 
 
 class HttpMixIn(object):
-    """ Base class for testing the HTTP interface
-    """
+    """ Base class for testing the HTTP interface. """
     request = None
     request_file = None
     url = "/ingest/"
@@ -240,20 +266,25 @@ class HttpMixIn(object):
         client = Client()        
         return client.post(url, request, "text/xml")
 
-    
+
+class HttpTestCaseMixin(object):
+    """ Holds status code and comparison to expected response test. """
+
     def test_expected_status(self):
+        """ Check the status code of the response. """
         self.assertEqual(self.expected_status, self.response.status_code)
     
     
     def test_expected_response(self):
+        """ Check that the response is equal to the provided one if present. """
         if self.expected_response is None:
             self.skipTest("No expected response given.")
         
         self.assertEqual(self.expected_response, self.response.content)
 
 
-
 class CliMixIn(object):
+    """ Base class for testing the command line interface. """
     command = "ngeo_ingest_browse_report"
     args = ()
     kwargs = {}
@@ -318,19 +349,14 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
     """
     
     expected_ingested_browse_ids = ()
-    expected_ingested_coverage_ids = None
+    expected_ingested_coverage_ids = None # Defaults to expected_ingested_browse_ids
     expected_inserted_into_series = None
     expected_optimized_files = ()
     expected_deleted_files = None
-    
-    expected_generated_success_browse_report = None
-    
     expected_tiles = None     # dict. key: zoom level, value: count 
     
     def test_expected_ingested_browses(self):
-        """ Check that the expected browse IDs are ingested, rectified datasets
-        are created and the count is equal to the produced optimized files.
-        """
+        """ Check that the expected browses are ingested and the files correctly moved. """
         
         System.init()
         
@@ -374,16 +400,10 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
         # directory
         files = self.get_file_list(self.temp_success_dir)
         self.assertEqual(len(browse_ids) + browse_report_file_mod, len(files))
-        
-        # test that a generated browse report is present in the success directory
-        if self.expected_generated_success_browse_report and len(browse_ids) > 0:
-            self.assertIn(self.expected_generated_success_browse_report, files)
-        
+    
     
     def test_expected_inserted_into_series(self):
-        """ Check that the browse is inserted into the dataset series (browse 
-        layer.
-        """
+        """ Check that the browses are inserted into the corresponding browse layer. """
         
         if (not self.expected_inserted_into_series or
             not self.expected_ingested_browse_ids):
@@ -411,17 +431,34 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
         
     
     def test_deleted_storage_files(self):
-        """ Check that the storage files were deleted/moved from the storage
-            dir.
-        """
+        """ Check that the storage files were deleted/moved from the storage dir. """
         
         if self.expected_deleted_files is None:
-            self.skipTest("No expected files given.")
+            self.skipTest("No expected files to delete given.")
             
         for filename in self.expected_deleted_files:
             self.assertFalse(exists(join(self.temp_storage_dir, filename)))
 
-    
+
+    def test_model_counts(self):
+        """ Check that the models have been created correctly. """
+        
+        num_ingested_models = len(self.expected_ingested_coverage_ids or
+                                  self.expected_ingested_browse_ids)
+        for model, value in self.model_counts.items():
+            self.assertEqual(value[0] + num_ingested_models, value[1],
+                             "Model '%s' count mismatch." % model)
+
+
+class SeedTestCaseMixIn(BaseTestCaseMixIn):
+    """ Mixin for ngEO seed test cases. Checks whether or not the browses with
+    the specified IDs have been correctly seeded in MapCache.  
+    """
+
+    configuration = {
+        (MAPCACHE_SECTION, "seed_command"): "/usr/local/bin/mapcache_seed",
+    }
+
     def test_seed(self):
         """ Check that the seeding is done. """
         
@@ -436,8 +473,7 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
             with sqlite3.connect(db_filename) as connection:
                 cur = connection.cursor()
                 
-                cur.execute("SELECT zoom_level, count(zoom_level) "
-                            "FROM tiles GROUP BY zoom_level;")
+                cur.execute("SELECT z, count(z) FROM tiles GROUP BY z;")
             
                 tiles = dict(cur.fetchall())
                 self.assertEqual(self.expected_tiles, tiles)
@@ -446,7 +482,7 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
                 vsimem_path = "/vsimem/img.png"
                 
                 cur = connection.cursor()
-                cur.execute("SELECT tile_data FROM tiles;")
+                cur.execute("SELECT data FROM tiles;")
                 for (tile,) in cur.fetchall():
                     # create in-memory file and open it with gdal 
                     gdal.FileFromMemBuffer(vsimem_path, str(tile))
@@ -463,17 +499,6 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
             
                 if not any_filled:
                     self.fail("All tiles are empty.")
-                
-        
-    
-    def test_model_counts(self):
-        """ Check that the models have been created correctly. """
-        
-        num_ingested_models = len(self.expected_ingested_coverage_ids or
-                                  self.expected_ingested_browse_ids)
-        for model, value in self.model_counts.items():
-            self.assertEqual(value[0] + num_ingested_models, value[1],
-                             "Model '%s' count mismatch." % model)
 
 
 class IngestReplaceTestCaseMixIn(IngestTestCaseMixIn):
@@ -606,7 +631,7 @@ class ProjectionMixIn(RasterMixIn):
         self.assertTrue(exp_sr.IsSame(sr))
 
 
-class IngestFailureTestCaseMixIn(IngestTestCaseMixIn):
+class IngestFailureTestCaseMixIn(BaseTestCaseMixIn):
     """ Test failures in ingestion. """
     
     expected_failed_browse_ids = ()
@@ -617,9 +642,7 @@ class IngestFailureTestCaseMixIn(IngestTestCaseMixIn):
     
     
     def test_expected_failed(self):
-        """ Check that the failed ingestion is declared in the result. Also
-        check that the files are copied into the failure directory.
-        """
+        """ Check that the failed ingestion is declared in the result and the files are moved to the failure directory. """
         
         if not self.expect_exception:
             result = IngestResult(self.get_response())
