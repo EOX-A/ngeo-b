@@ -14,12 +14,6 @@
 /autotest/wcst_perm
 /autotest/wcst_temp
 
-# ngEO Browse Server
-/autotest/data/optimized/
-/autotest/data/storage/
-/autotest/data/success/
-/autotest/data/failure/
-
 # Custom
 /init.sh
 /.pydevproject
