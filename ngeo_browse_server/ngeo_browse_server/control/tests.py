@@ -30,7 +30,7 @@
 from os.path import join
 
 from django.conf import settings
-from django.test import TestCase
+from django.test import TestCase, LiveServerTestCase
 
 from ngeo_browse_server.control.testbase import (
     BaseTestCaseMixIn, HttpMixIn, CliMixIn, IngestTestCaseMixIn,
@@ -38,20 +38,23 @@ from ngeo_browse_server.control.testbase import (
     HasColorTableMixIn, ExtentMixIn, SizeMixIn, ProjectionMixIn,
     IngestFailureTestCaseMixIn
 )
-from ngeo_browse_server.control.ingest.config import INGEST_SECTION,\
-    MAPCACHE_SECTION
+from ngeo_browse_server.control.ingest.config import (
+    INGEST_SECTION, MAPCACHE_SECTION
+)
 
 
 #===============================================================================
 # Ingest ModelInGeoTiff test case
 #===============================================================================
 
-class IngestModelInGeotiffBrowse(IngestTestCaseMixIn, HttpMixIn, TestCase):
+class IngestModelInGeotiffBrowse(IngestTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     storage_dir = "data"
     
     expected_ingested_browse_ids = ("MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced",)
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['mosaic_ENVISAT-MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_proc.tif']
+    expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 16, 7: 24, 8: 48}
+    
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
@@ -93,12 +96,14 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 # Ingest Rectified browse test case
 #===============================================================================
 
-class IngestRectifiedBrowse(IngestTestCaseMixIn, HttpMixIn, TestCase):
+class IngestRectifiedBrowse(IngestTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     storage_dir = "data"
     
     expected_ingested_browse_ids = ("MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced",)
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['mosaic_ENVISAT-MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_proc.tif']
+    expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 16, 7: 24, 8: 48}
+    
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
@@ -142,12 +147,14 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 # Ingest Regular Grid test case
 #===============================================================================
 
-class IngestRegularGrid(IngestTestCaseMixIn, HttpMixIn, TestCase):
+class IngestRegularGridBrowse(IngestTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     storage_dir = "data"
     
     expected_ingested_browse_ids = ("ASAR",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775_proc.tif']
+    expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 16, 7: 24, 8: 48}
+    
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
@@ -204,13 +211,14 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 # Ingest Footprint browses
 #===============================================================================
     
-class IngestFootprintBrowse(IngestTestCaseMixIn, HttpMixIn, TestCase):
+class IngestFootprintBrowse(IngestTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     
     expected_ingested_browse_ids = ("b_id_1",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['ASA_IM__0P_20100722_213840_proc.tif']
     expected_deleted_files = ['ASA_IM__0P_20100722_213840.jpg']
+    expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 16, 7: 24, 8: 48}
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -231,13 +239,14 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 </bsi:ingestBrowseResponse>
 """
 
-class IngestFootprintBrowse2(IngestTestCaseMixIn, HttpMixIn, TestCase):
+class IngestFootprintBrowse2(IngestTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100731_103315.xml"
     
     expected_ingested_browse_ids = ("b_id_2",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['ASA_IM__0P_20100731_103315_proc.tif']
     expected_deleted_files = ['ASA_IM__0P_20100731_103315.jpg']
+    expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 16, 7: 24, 8: 48}
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -258,13 +267,14 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 </bsi:ingestBrowseResponse>
 """
 
-class IngestFootprintBrowse3(IngestTestCaseMixIn, HttpMixIn, TestCase):
+class IngestFootprintBrowse3(IngestTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100813_102453.xml"
     
     expected_ingested_browse_ids = ("b_id_5",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['ASA_IM__0P_20100813_102453_proc.tif']
     expected_deleted_files = ['ASA_IM__0P_20100813_102453.jpg']
+    expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 16, 7: 24, 8: 48}
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -289,13 +299,14 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 # Ingest into layer OPTICAL
 #===============================================================================
 
-class IngestFootprintBrowse4(IngestTestCaseMixIn, HttpMixIn, TestCase):
+class IngestFootprintBrowse4(IngestTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100719_105257.xml"
     
     expected_ingested_browse_ids = ("b_id_9",)
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['ATS_TOA_1P_20100719_105257_proc.tif']
     expected_deleted_files = ['ATS_TOA_1P_20100719_105257.jpg']
+    expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 16, 7: 24, 8: 48}
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -316,13 +327,14 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 </bsi:ingestBrowseResponse>
 """
 
-class IngestFootprintBrowse5(IngestTestCaseMixIn, HttpMixIn, TestCase):
+class IngestFootprintBrowse5(IngestTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100719_213253.xml"
     
     expected_ingested_browse_ids = ("b_id_10",)
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['ATS_TOA_1P_20100719_213253_proc.tif']
     expected_deleted_files = ['ATS_TOA_1P_20100719_213253.jpg']
+    expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 16, 7: 24, 8: 48}
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -343,13 +355,14 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 </bsi:ingestBrowseResponse>
 """
 
-class IngestFootprintBrowse6(IngestTestCaseMixIn, HttpMixIn, TestCase):
+class IngestFootprintBrowse6(IngestTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606.xml"
     
     expected_ingested_browse_ids = ("b_id_11",)
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['ATS_TOA_1P_20100722_101606_proc.tif']
     expected_deleted_files = ['ATS_TOA_1P_20100722_101606.jpg']
+    expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 16, 7: 24, 8: 48}
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -374,13 +387,14 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 # Arbitrary ingests
 #===============================================================================
 
-class IngestBrowseNoID(IngestTestCaseMixIn, HttpMixIn, TestCase):
+class IngestBrowseNoID(IngestTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     
     expected_ingested_browse_ids = (None,)
     expected_ingested_coverage_ids = ("TEST_OPTICAL_20100722101606000000_20100722101722000000",)
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['ATS_TOA_1P_20100722_101606_proc.tif']
     expected_deleted_files = ['ATS_TOA_1P_20100722_101606.jpg']
+    expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 16, 7: 24, 8: 48}
     
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -421,13 +435,14 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 </bsi:ingestBrowseResponse>
 """
 
-class IngestBrowseSpecialID(IngestTestCaseMixIn, HttpMixIn, TestCase):
+class IngestBrowseSpecialID(IngestTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     
     expected_ingested_browse_ids = ("some:special:id",)
     expected_ingested_coverage_ids = ("TEST_OPTICAL_20100722101606000000_20100722101722000000",)
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['ATS_TOA_1P_20100722_101606_proc.tif']
     expected_deleted_files = ['ATS_TOA_1P_20100722_101606.jpg']
+    expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 16, 7: 24, 8: 48}
     
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -473,7 +488,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 # Ingest a browse report with multiple browses inside
 #===============================================================================
 
-class IngestFootprintBrowseGroup(IngestTestCaseMixIn, HttpMixIn, TestCase):
+class IngestFootprintBrowseGroup(IngestTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"
     
     expected_ingested_browse_ids = ("b_id_6", "b_id_7", "b_id_8")
@@ -484,6 +499,7 @@ class IngestFootprintBrowseGroup(IngestTestCaseMixIn, HttpMixIn, TestCase):
     expected_deleted_files = ['ASA_WS__0P_20100719_101023.jpg',
                               'ASA_WS__0P_20100722_101601.jpg',
                               'ASA_WS__0P_20100725_102231.jpg']
+    expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 36, 7: 76, 8: 196}
 
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -516,7 +532,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 # Ingest a browse report which includes a replacement of a previous browse
 #===============================================================================
 
-class IngestFootprintBrowseReplace(IngestReplaceTestCaseMixIn, HttpMixIn, TestCase):
+class IngestFootprintBrowseReplace(IngestReplaceTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     fixtures = IngestReplaceTestCaseMixIn.fixtures + ["browse_ASA_IM__0P_20100807_101327.json"]
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_new.xml"
     
@@ -526,6 +542,7 @@ class IngestFootprintBrowseReplace(IngestReplaceTestCaseMixIn, HttpMixIn, TestCa
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['ASA_IM__0P_20100807_101327_new_proc.tif']
     expected_deleted_files = ['ASA_IM__0P_20100807_101327_new.jpg']
+    expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 36, 7: 76, 8: 196}
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>

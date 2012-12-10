@@ -7,10 +7,12 @@ from cStringIO import StringIO
 from lxml import etree
 import logging
 
+import sqlite3
 from osgeo import gdal, osr
 from django.conf import settings
 from django.test.client import Client
 from django.core.management import execute_from_command_line
+from django.template.loader import render_to_string
 from eoxserver.core.system import System
 from eoxserver.resources.coverages import models as eoxs_models
 from eoxserver.resources.coverages.geo import getExtentFromRectifiedDS
@@ -18,8 +20,10 @@ from eoxserver.resources.coverages.geo import getExtentFromRectifiedDS
 from ngeo_browse_server.config import get_ngeo_config, reset_ngeo_config
 from ngeo_browse_server.config import models
 from ngeo_browse_server.control.ingest import safe_makedirs
-from ngeo_browse_server.control.ingest.config import INGEST_SECTION
+from ngeo_browse_server.control.ingest.config import INGEST_SECTION,\
+    MAPCACHE_SECTION
 from ngeo_browse_server.mapcache import models as mapcache_models
+
 
 
 logger = logging.getLogger(__name__)
@@ -116,6 +120,9 @@ class BaseTestCaseMixIn(object):
     def tearDown(self):
         super(BaseTestCaseMixIn, self).tearDown()
         self.tearDown_files()
+        
+        # reset the config settings
+        reset_ngeo_config()
 
         
     def setUp_files(self):
@@ -147,6 +154,18 @@ class BaseTestCaseMixIn(object):
             safe_makedirs(dirname(filename_dst))
             shutil.copy(filename_src, filename_dst)
         
+        # setup mapcache config/files as retrieved from template
+        self.temp_mapcache_dir = tempfile.mkdtemp() + "/"
+        db_file = settings.DATABASES["mapcache"]["TEST_NAME"]
+        mapcache_config_file = join(self.temp_mapcache_dir, "seed_mapcache.xml")
+        with open(mapcache_config_file, "w+") as f:
+            f.write(render_to_string("control/seed_mapcache.xml",
+                                     {"mapcache_dir": self.temp_mapcache_dir,
+                                      "mapcache_test_db": db_file,
+                                      "base_url": getattr(self, "live_server_url", None)}))
+        
+        config.set(MAPCACHE_SECTION, "config_file", mapcache_config_file)
+    
     
     def setUp_config(self):
         # set up default config and specific config
@@ -164,11 +183,10 @@ class BaseTestCaseMixIn(object):
         # remove the created temporary directories
         
         for d in (self.temp_storage_dir, self.temp_optimized_files_dir,
-                  self.temp_success_dir, self.temp_failure_dir):
+                  self.temp_success_dir, self.temp_failure_dir,
+                  self.temp_mapcache_dir):
             shutil.rmtree(d)
         
-        # reset the config settings
-        reset_ngeo_config()
     
     def add_counts(self, *model_classes):
         # save the count of each model class to be checked later on.
@@ -305,6 +323,7 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
     
     expected_generated_success_browse_report = None
     
+    expected_tiles = None     # dict. key: zoom level, value: count 
     
     def test_expected_ingested_browses(self):
         """ Check that the expected browse IDs are ingested, rectified datasets
@@ -403,10 +422,23 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
     
     def test_seed(self):
         """ Check that the seeding is done. """
-        # TODO: implement
-        self.skipTest("Not yet implemented.")
-        pass
-    
+        
+        db_filename = join(self.temp_mapcache_dir, 
+                           self.expected_inserted_into_series + ".sqlite")
+        
+        # check that the file exists
+        self.assertTrue(exists(db_filename))
+        
+        # expected tiles, check the zoomlevel counts        
+        if self.expected_tiles:
+            with sqlite3.connect(db_filename) as connection:
+                cur = connection.cursor()
+                
+                cur.execute("SELECT zoom_level, count(zoom_level) "
+                            "FROM tiles GROUP BY zoom_level;")
+            
+                tiles = dict(cur.fetchall())
+                self.assertEqual(self.expected_tiles, tiles)
     
     def test_model_counts(self):
         """ Check that the models have been created correctly. """
@@ -532,7 +564,7 @@ class SizeMixIn(RasterMixIn):
 
 
 class ProjectionMixIn(RasterMixIn):
-    expected_projection_srid = None # WKT format
+    expected_projection_srid = None # EPSG integer
     
     def test_projection(self):
         if self.expected_projection_srid is None:
