@@ -61,7 +61,7 @@ sudo chown apache:apache /var/ngeob_data/mapcache.sqlite
 #python manage.py loaddata --database=mapcache ngeo_mapcache.json
 
 # Reset ngEO Browse Server
-rm -rf /var/ngeob_data/optimized/TEST_*
+sudo rm -rf /var/ngeob_data/optimized/TEST_*
 rm -f /var/ngeob_data/success/*.jpg /var/ngeob_data/success/*.xml
 rm -f /var/ngeob_data/failure/*.jpg /var/ngeob_data/failure/*.xml
 rm -f /var/ngeob/autotest/logs/eoxserver.log /var/ngeob/autotest/logs/ngeo.log
