@@ -31,6 +31,7 @@ python manage.py runserver 0.0.0.0:8000
 # How to build ngEO Browse Server                                      #
 ########################################################################
 
+cd git/deliverables/developments/ngeo_browse_server/
 git pull
 git archive --format=tar --prefix=ngeob-0.1dev/ master | gzip > ngeob-0.1dev.tar.gz
 scp ngeob-0.1dev.tar.gz eox@ngeo:.
@@ -39,10 +40,10 @@ ssh eox@ngeo.eox.at
 cd build/
 tar xzf ../ngeob-0.1dev.tar.gz
 rm ../ngeob-0.1dev.tar.gz
-cd ngeob-0.1dev/ngeo_browse_server/
+cd ngeob-0.1dev/
 python setup.py bdist_rpm --requires "EOxServer mapcache httpd" --release <NO>
 # scp packages
-cd ../..
+cd ..
 rm -r ngeob-0.1dev/
 
 ########################################################################
