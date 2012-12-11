@@ -75,5 +75,7 @@ chmod go+w /var/www/cache/TEST_SAR.sqlite /var/www/cache/TEST_OPTICAL.sqlite
 
 # Upload test data
 cp /var/ngeob/autotest/data/reference_test_data/*.jpg /var/ngeob_data/storage/
+cp /var/ngeob/autotest/data/test_data/*.tif /var/ngeob_data/storage/
+cp /var/ngeob/autotest/data/feed_test_data/*.png /var/ngeob_data/storage/
 
 sudo service httpd restart
