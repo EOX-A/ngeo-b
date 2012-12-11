@@ -763,6 +763,55 @@ EPSG coordinate system?</bsi:exceptionMessage>
 """
 
 
+class IngestFailureRAWReferenceSystem(IngestFailureTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+    expected_failed_browse_ids = ("FAILURE",)
+    expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
+    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000.xml"
+    
+    request = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
+    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
+    <rep:browseType>OPTICAL</rep:browseType>
+    <rep:browse>
+        <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
+        <rep:fileName>ATS_TOA_1P_20100722_101606.jpg</rep:fileName>
+        <rep:imageType>Jpeg</rep:imageType>
+        <rep:referenceSystemIdentifier>RAW</rep:referenceSystemIdentifier> 
+        <rep:footprint nodeNumber="5">
+            <rep:colRowList>0 0 128 0 128 129 0 129 0 0</rep:colRowList>
+            <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
+        </rep:footprint>
+        <rep:startTime>2010-07-22T10:16:06Z</rep:startTime>
+        <rep:endTime>2010-07-22T10:17:22Z</rep:endTime>
+    </rep:browse>
+</rep:browseReport>"""
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>partial</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>0</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>FAILURE</bsi:identifier>
+            <bsi:status>failure</bsi:status>
+            <bsi:error>
+                <bsi:exceptionCode>IngestionException</bsi:exceptionCode>
+                <bsi:exceptionMessage>Given referenceSystemIdentifier &#39;RAW&#39; not valid.</bsi:exceptionMessage>
+            </bsi:error>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+
 class IngestFailureEndBeforeStart(IngestFailureTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
     expected_failed_browse_ids = ("FAILURE",)
     expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
