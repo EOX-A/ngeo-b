@@ -675,7 +675,7 @@ class IngestFailureTestCaseMixIn(BaseTestCaseMixIn):
             files = self.get_file_list(self.temp_failure_dir)
             self.assertItemsEqual(expected_failed_files, files)
         else:
-            pass # TODO
+            pass # nothing to test in case of an early exception
 
 
     def test_model_counts(self):

@@ -30,7 +30,7 @@
 from os.path import join
 
 from django.conf import settings
-from django.test import TestCase, LiveServerTestCase
+from django.test import TestCase, TransactionTestCase, LiveServerTestCase
 
 from ngeo_browse_server.control.testbase import (
     BaseTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, CliMixIn, 
@@ -527,6 +527,58 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 """
 
 #===============================================================================
+# Ingest partial (some success and some failure) tests
+#===============================================================================
+
+class IngestFootprintBrowseGroupPartial(IngestTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TransactionTestCase):
+    request_file = "reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group_partial.xml"
+    
+    expected_ingested_browse_ids = ("b_id_6", "b_id_8")
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['ASA_WS__0P_20100719_101023_proc.tif',
+                                'ASA_WS__0P_20100725_102231_proc.tif']
+    expected_deleted_files = ['ASA_WS__0P_20100719_101023.jpg',
+                              'ASA_WS__0P_20100725_102231.jpg']
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>partial</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>3</bsi:toBeReplaced>
+        <bsi:actuallyInserted>2</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>b_id_6</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+        <bsi:briefRecord>
+            <bsi:identifier>7_FAILURE</bsi:identifier>
+            <bsi:status>failure</bsi:status>
+            <bsi:error>
+                <bsi:exceptionCode>ValidationError</bsi:exceptionCode>
+                <bsi:exceptionMessage>{&#39;value&#39;: [u&#39;This field must contain a valid Name i.e. beginning with a letter, an underscore, or a colon, and continuing with letters, digits, hyphens, underscores, colons, or full stops.&#39;]}</bsi:exceptionMessage>
+            </bsi:error>
+        </bsi:briefRecord>
+        <bsi:briefRecord>
+            <bsi:identifier>b_id_8</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+class SeedFootprintBrowseGroupPartial(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
+    request_file = "reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group_partial.xml"
+    
+    expected_inserted_into_series = "TEST_SAR"
+    expected_tiles = {0: 4, 1: 16, 2: 16, 3: 16, 4: 16, 5: 32, 6: 40, 7: 96, 8: 236}
+
+
+#===============================================================================
 # Ingest Failure tests
 #===============================================================================
 
@@ -562,7 +614,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 """ % self.temp_storage_dir
 
 
-class IngestFailureIDStartsWithNumber(IngestFailureTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+class IngestFailureIDStartsWithNumber(IngestFailureTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TransactionTestCase):
     expected_failed_browse_ids = ("11_id_starts_with_number",)
     expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
     expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000.xml"
