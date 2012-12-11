@@ -132,10 +132,17 @@ class BaseTestCaseMixIn(object):
     
     configuration = {}
     
+    # in case of a replace test we need to load something during setUp
+    request_before_replace = None
+    request_before_replace_file = None
+    
     def setUp(self):
         super(BaseTestCaseMixIn, self).setUp()
         self.setUp_files()
         self.setUp_config()
+        
+        # load browse to be replaced
+        self.setUp_replace()
         
         # check the number of DS, Browse and Time models in the database
         self.model_counts = {}
@@ -208,15 +215,24 @@ class BaseTestCaseMixIn(object):
                 else:
                     config.remove_option(section, option)
     
+    def setUp_replace(self):
+        self.before_replace_files = 0
+        
+        if self.request_before_replace_file is not None:
+            filename = join(settings.PROJECT_DIR, "data", self.request_before_replace_file)
+            with open(filename) as f:
+                self.request_before_replace = str(f.read())
+        
+        if self.request_before_replace is not None:
+            self.execute(self.request_before_replace)
+            self.before_replace_files = 2 # only one browse is expected in this request plus browse report
     
     def tearDown_files(self):
         # remove the created temporary directories
-        
         for d in (self.temp_storage_dir, self.temp_optimized_files_dir,
                   self.temp_success_dir, self.temp_failure_dir,
                   self.temp_mapcache_dir):
             shutil.rmtree(d)
-        
     
     def add_counts(self, *model_classes):
         # save the count of each model class to be checked later on.
@@ -399,7 +415,7 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
         # test that the correct number of files was moved/created in the success
         # directory
         files = self.get_file_list(self.temp_success_dir)
-        self.assertEqual(len(browse_ids) + browse_report_file_mod, len(files))
+        self.assertEqual(len(browse_ids) + browse_report_file_mod + self.before_replace_files, len(files))
     
     
     def test_expected_inserted_into_series(self):
@@ -504,8 +520,7 @@ class SeedTestCaseMixIn(BaseTestCaseMixIn):
 class IngestReplaceTestCaseMixIn(IngestTestCaseMixIn):
     """ Test case mixin for testing replacement tests. """
     
-    request_before_replace = None
-    request_before_replace_file = None
+    expected_deleted_optimized_files = None
     
     expected_num_replaced = 1
     
@@ -526,9 +541,11 @@ class IngestReplaceTestCaseMixIn(IngestTestCaseMixIn):
     def test_delete_previous_file(self):
         """ Check that the previous raster file is deleted. """
         
-        # TODO: implement
-        self.skipTest("Not yet implemented.")
-        pass
+        if self.expected_deleted_optimized_files is None:
+            self.skipTest("No expected optimized files to delete given.")
+            
+        for filename in self.expected_deleted_optimized_files:
+            self.assertFalse(exists(join(self.temp_optimized_files_dir, filename)))
 
 
 class RasterMixIn(object):
