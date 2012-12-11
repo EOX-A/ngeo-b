@@ -301,9 +301,6 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         
             # initialize a GeoReference for the preprocessor
             geo_reference = _georef_from_parsed(parsed_browse)
-            if not geo_reference.srid or geo_reference.srid == "":
-                raise IngestionException("Given referenceSystemIdentifier '%s' not valid."
-                                         % parsed_browse.reference_system_identifier)
             
             # assert that the input file exists
             if not exists(input_filename):
@@ -563,6 +560,18 @@ def _model_from_parsed(parsed_browse, browse_report, browse_layer,
 
 def _georef_from_parsed(parsed_browse):
     srid = fromShortCode(parsed_browse.reference_system_identifier)
+    
+    if (parsed_browse.reference_system_identifier == "RAW" and
+        parsed_browse.geo_type != "modelInGeotiffBrowse"):
+        raise IngestionException("Given referenceSystemIdentifier '%s' not "
+                                 "valid for a '%s'."
+                                 % (parsed_browse.reference_system_identifier,
+                                    parsed_browse.geo_type))
+    
+    if srid is None and parsed_browse.reference_system_identifier != "RAW":
+        raise IngestionException("Given referenceSystemIdentifier '%s' not valid."
+                                 % parsed_browse.reference_system_identifier)
+    
     swap_axes = hasSwappedAxes(srid)
     
     if parsed_browse.geo_type == "rectifiedBrowse":
