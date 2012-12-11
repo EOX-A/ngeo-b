@@ -301,6 +301,9 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         
             # initialize a GeoReference for the preprocessor
             geo_reference = _georef_from_parsed(parsed_browse)
+            if not geo_reference.srid or geo_reference.srid == "":
+                raise IngestionException("Given referenceSystemIdentifier '%s' not valid."
+                                         % parsed_browse.reference_system_identifier)
             
             # assert that the input file exists
             if not exists(input_filename):
