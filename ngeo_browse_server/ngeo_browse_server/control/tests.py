@@ -162,6 +162,41 @@ class SeedRegularGridBrowse(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     expected_inserted_into_series = "TEST_SAR"
     expected_tiles = {0: 2, 1: 4, 2: 8, 3: 4, 4: 16, 5: 16, 6: 24, 7: 48, 8: 96}
 
+class IngestRegularGridBrowse2(IngestTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+    storage_dir = "data/feed_test_data"
+    request_file = "feed_test_data/BrowseReport.xml"
+    
+    expected_ingested_browse_ids = ("a20120101T043724405923",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['quick-look_proc.tif']
+    expected_deleted_files = ['quick-look.png']
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>a20120101T043724405923</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+class SeedRegularGridBrowse2(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
+    storage_dir = "data/feed_test_data"
+    request_file = "feed_test_data/BrowseReport.xml"
+    
+    expected_inserted_into_series = "TEST_SAR"
+    expected_tiles = {0: 2, 1: 4, 2: 8, 3: 4, 4: 16, 5: 16, 6: 24, 7: 48, 8: 96}
+
 
 #===============================================================================
 # Ingest Footprint browse test cases
@@ -804,7 +839,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
             <bsi:status>failure</bsi:status>
             <bsi:error>
                 <bsi:exceptionCode>IngestionException</bsi:exceptionCode>
-                <bsi:exceptionMessage>Given referenceSystemIdentifier &#39;RAW&#39; not valid.</bsi:exceptionMessage>
+                <bsi:exceptionMessage>Given referenceSystemIdentifier &#39;RAW&#39; not valid for a &#39;footprintBrowse&#39;.</bsi:exceptionMessage>
             </bsi:error>
         </bsi:briefRecord>
     </bsi:ingestionResult>
