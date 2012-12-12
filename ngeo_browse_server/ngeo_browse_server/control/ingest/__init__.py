@@ -599,11 +599,11 @@ def _georef_from_parsed(parsed_browse):
     elif parsed_browse.geo_type == "regularGridBrowse":
         # calculate a list of pixel coordinates according to the values of the
         # parsed browse report (col_node_number * row_node_number)
-        range_x = arange(
+        range_y = arange(
             0.0, parsed_browse.col_node_number * parsed_browse.col_step,
             parsed_browse.col_step
         )
-        range_y = arange(
+        range_x = arange(
             0.0, parsed_browse.row_node_number * parsed_browse.row_step,
             parsed_browse.row_step
         )
