@@ -80,6 +80,14 @@ if ! grep -Fxq "    <service type=\"demo\" enabled=\"true\"/>" $MAPCACHE_CONF ; 
         <dbfile>$MAPCACHE_DIR/TEST_OPTICAL.sqlite</dbfile>
     </cache>
 
+    <cache name="TEST_ASA_WSM" type="sqlite3">
+        <dbfile>$MAPCACHE_DIR/TEST_ASA_WSM.sqlite</dbfile>
+    </cache>
+
+    <cache name="TEST_MER_FRS" type="sqlite3">
+        <dbfile>$MAPCACHE_DIR/TEST_MER_FRS.sqlite</dbfile>
+    </cache>
+
     <tileset name="TEST_SAR">
         <cache>TEST_SAR</cache>
         <grid>WGS84</grid>
@@ -106,6 +114,32 @@ if ! grep -Fxq "    <service type=\"demo\" enabled=\"true\"/>" $MAPCACHE_CONF ; 
         </timedimension>
     </tileset>
 
+    <tileset name="TEST_ASA_WSM">
+        <cache>TEST_ASA_WSM</cache>
+        <grid>WGS84</grid>
+        <format>mixed</format>
+        <metatile>2 2</metatile>
+        <metabuffer>10</metabuffer>
+        <expires>3600</expires>
+        <timedimension type="sqlite" default="2010">
+            <dbfile>$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/data/mapcache.sqlite</dbfile>
+            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&gt;=datetime(:start_timestamp,'unixepoch') and end_time&lt;=datetime(:end_timestamp,'unixepoch') order by end_time</query>
+        </timedimension>
+    </tileset>
+
+    <tileset name="TEST_MER_FRS">
+        <cache>TEST_MER_FRS</cache>
+        <grid>WGS84</grid>
+        <format>mixed</format>
+        <metatile>2 2</metatile>
+        <metabuffer>10</metabuffer>
+        <expires>3600</expires>
+        <timedimension type="sqlite" default="2010">
+            <dbfile>$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/data/mapcache.sqlite</dbfile>
+            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&gt;=datetime(:start_timestamp,'unixepoch') and end_time&lt;=datetime(:end_timestamp,'unixepoch') order by end_time</query>
+        </timedimension>
+    </tileset>
+
     <service type="demo" enabled="true"/>
 </mapcache>
 EOF
@@ -117,6 +151,14 @@ EOF
 
     <cache name="TEST_OPTICAL" type="sqlite3">
         <dbfile>$MAPCACHE_DIR/TEST_OPTICAL.sqlite</dbfile>
+    </cache>
+
+    <cache name="TEST_ASA_WSM" type="sqlite3">
+        <dbfile>$MAPCACHE_DIR/TEST_ASA_WSM.sqlite</dbfile>
+    </cache>
+
+    <cache name="TEST_MER_FRS" type="sqlite3">
+        <dbfile>$MAPCACHE_DIR/TEST_MER_FRS.sqlite</dbfile>
     </cache>
 
     <source name="TEST_SAR" type="wms">
@@ -143,6 +185,30 @@ EOF
         </http>
     </source>
 
+    <source name="TEST_ASA_WSM" type="wms">
+        <getmap>
+            <params>
+                <LAYERS>TEST_ASA_WSM</LAYERS>
+                <TRANSPARENT>true</TRANSPARENT>
+            </params>
+        </getmap>
+        <http>
+            <url>http://localhost/browse/ows?</url>
+        </http>
+    </source>
+
+    <source name="TEST_MER_FRS" type="wms">
+        <getmap>
+            <params>
+                <LAYERS>TEST_MER_FRS</LAYERS>
+                <TRANSPARENT>true</TRANSPARENT>
+            </params>
+        </getmap>
+        <http>
+            <url>http://localhost/browse/ows?</url>
+        </http>
+    </source>
+
     <tileset name="TEST_SAR">
         <source>TEST_SAR</source>
         <cache>TEST_SAR</cache>
@@ -160,6 +226,34 @@ EOF
     <tileset name="TEST_OPTICAL">
         <source>TEST_OPTICAL</source>
         <cache>TEST_OPTICAL</cache>
+        <grid>WGS84</grid>
+        <format>mixed</format>
+        <metatile>2 2</metatile>
+        <metabuffer>10</metabuffer>
+        <expires>3600</expires>
+        <timedimension type="sqlite" default="2010">
+            <dbfile>$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/data/mapcache.sqlite</dbfile>
+            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&gt;=datetime(:start_timestamp,'unixepoch') and end_time&lt;=datetime(:end_timestamp,'unixepoch') order by end_time</query>
+        </timedimension>
+    </tileset>
+
+    <tileset name="TEST_ASA_WSM">
+        <source>TEST_ASA_WSM</source>
+        <cache>TEST_ASA_WSM</cache>
+        <grid>WGS84</grid>
+        <format>mixed</format>
+        <metatile>2 2</metatile>
+        <metabuffer>10</metabuffer>
+        <expires>3600</expires>
+        <timedimension type="sqlite" default="2010">
+            <dbfile>$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/data/mapcache.sqlite</dbfile>
+            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&gt;=datetime(:start_timestamp,'unixepoch') and end_time&lt;=datetime(:end_timestamp,'unixepoch') order by end_time</query>
+        </timedimension>
+    </tileset>
+
+    <tileset name="TEST_MER_FRS">
+        <source>TEST_MER_FRS</source>
+        <cache>TEST_MER_FRS</cache>
         <grid>WGS84</grid>
         <format>mixed</format>
         <metatile>2 2</metatile>

@@ -52,7 +52,7 @@ class IngestModelInGeotiffBrowse(IngestTestCaseMixIn, HttpTestCaseMixin, HttpMix
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.xml"
     
     expected_ingested_browse_ids = ("MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced",)
-    expected_inserted_into_series = "TEST_OPTICAL"
+    expected_inserted_into_series = "TEST_MER_FRS"
     expected_optimized_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_proc.tif']
     expected_deleted_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.tif']
     
@@ -79,7 +79,7 @@ class SeedModelInGeotiffBrowse(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase)
     storage_dir = "data/test_data"
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.xml"
     
-    expected_inserted_into_series = "TEST_OPTICAL"
+    expected_inserted_into_series = "TEST_MER_FRS"
     expected_tiles = {0: 2, 1: 4, 2: 4, 3: 16, 4: 16, 5: 36, 6: 80, 7: 168, 8: 624}
 
 
@@ -92,7 +92,7 @@ class IngestRectifiedBrowse(IngestTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, T
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_nogeo.xml"
     
     expected_ingested_browse_ids = ("MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced",)
-    expected_inserted_into_series = "TEST_OPTICAL"
+    expected_inserted_into_series = "TEST_MER_FRS"
     expected_optimized_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_nogeo_proc.tif']
     expected_deleted_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_nogeo.tif']
     
@@ -119,7 +119,7 @@ class SeedRectifiedBrowse(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     storage_dir = "data/test_data/"
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_nogeo.xml"
     
-    expected_inserted_into_series = "TEST_OPTICAL"
+    expected_inserted_into_series = "TEST_MER_FRS"
     expected_tiles = {0: 2, 1: 4, 2: 4, 3: 16, 4: 16, 5: 36, 6: 80, 7: 168, 8: 624}
 
 
@@ -132,7 +132,7 @@ class IngestRegularGridBrowse(IngestTestCaseMixIn, HttpTestCaseMixin, HttpMixIn,
     request_file = "test_data/ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775.xml"
     
     expected_ingested_browse_ids = ("ASAR",)
-    expected_inserted_into_series = "TEST_SAR"
+    expected_inserted_into_series = "TEST_ASA_WSM"
     expected_optimized_files = ['ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775_proc.tif']
     expected_deleted_files = ['ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775.tif']
 
@@ -159,7 +159,7 @@ class SeedRegularGridBrowse(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     storage_dir = "data/test_data"
     request_file = "test_data/ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775.xml"
     
-    expected_inserted_into_series = "TEST_SAR"
+    expected_inserted_into_series = "TEST_ASA_WSM"
     expected_tiles = {0: 2, 1: 4, 2: 8, 3: 4, 4: 16, 5: 16, 6: 24, 7: 48, 8: 96}
 
 class IngestRegularGridBrowse2(IngestTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
@@ -195,7 +195,7 @@ class SeedRegularGridBrowse2(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "feed_test_data/BrowseReport.xml"
     
     expected_inserted_into_series = "TEST_SAR"
-    expected_tiles = {0: 2, 1: 4, 2: 8, 3: 4, 4: 16, 5: 16, 6: 24, 7: 48, 8: 96}
+    expected_tiles = {0: 2, 1: 4, 2: 4, 3: 8, 4: 8, 5: 8, 6: 8, 7: 16, 8: 16}
 
 
 #===============================================================================
@@ -358,7 +358,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class SeedFootprintBrowse7(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     storage_dir = "data/aiv_test_data"
-    request_file = "aiv_test_data/browseReport.xml"
+    request_file = "aiv_test_data/BrowseReport.xml"
     
     expected_inserted_into_series = "TEST_SAR"
     expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 16, 7: 36, 8: 36}

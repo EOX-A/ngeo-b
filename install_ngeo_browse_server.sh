@@ -276,7 +276,7 @@ if [ ! -d "$MAPCACHE_DIR" ] ; then
     cat << EOF > "$MAPCACHE_DIR/$MAPCACHE_CONF"
 <?xml version="1.0" encoding="UTF-8"?>
 <mapcache>
-    <default_format>PNG</default_format>
+    <default_format>mixed</default_format>
     <format name="mypng" type ="PNG">
         <compression>fast</compression>
     </format>
@@ -305,7 +305,7 @@ EOF
     cat << EOF > "$MAPCACHE_DIR/seed_$MAPCACHE_CONF"
 <?xml version="1.0" encoding="UTF-8"?>
 <mapcache>
-    <default_format>PNG</default_format>
+    <default_format>mixed</default_format>
     <format name="mypng" type ="PNG">
         <compression>fast</compression>
     </format>

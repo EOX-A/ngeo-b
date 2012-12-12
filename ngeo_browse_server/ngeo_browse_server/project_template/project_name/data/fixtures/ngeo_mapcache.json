@@ -8,5 +8,15 @@
         "pk": "TEST_OPTICAL", 
         "model": "mapcache.source", 
         "fields": {}
+    }, 
+    {
+        "pk": "TEST_ASA_WSM", 
+        "model": "mapcache.source", 
+        "fields": {}
+    }, 
+    {
+        "pk": "TEST_MER_FRS", 
+        "model": "mapcache.source", 
+        "fields": {}
     }
 ]

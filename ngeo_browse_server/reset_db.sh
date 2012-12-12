@@ -69,13 +69,14 @@ touch /var/ngeob/autotest/logs/eoxserver.log /var/ngeob/autotest/logs/ngeo.log
 chmod go+w /var/ngeob/autotest/logs/eoxserver.log /var/ngeob/autotest/logs/ngeo.log
 
 # Reset MapCache
-rm -f /var/www/cache/TEST_SAR.sqlite /var/www/cache/TEST_OPTICAL.sqlite
-touch /var/www/cache/TEST_SAR.sqlite /var/www/cache/TEST_OPTICAL.sqlite
-chmod go+w /var/www/cache/TEST_SAR.sqlite /var/www/cache/TEST_OPTICAL.sqlite
+rm -f /var/www/cache/TEST_SAR.sqlite /var/www/cache/TEST_OPTICAL.sqlite /var/www/cache/TEST_ASA_WSM.sqlite /var/www/cache/TEST_MER_FRS.sqlite
+touch /var/www/cache/TEST_SAR.sqlite /var/www/cache/TEST_OPTICAL.sqlite /var/www/cache/TEST_ASA_WSM.sqlite /var/www/cache/TEST_MER_FRS.sqlite
+chmod go+w /var/www/cache/TEST_SAR.sqlite /var/www/cache/TEST_OPTICAL.sqlite /var/www/cache/TEST_ASA_WSM.sqlite /var/www/cache/TEST_MER_FRS.sqlite
 
 # Upload test data
 cp /var/ngeob/autotest/data/reference_test_data/*.jpg /var/ngeob_data/storage/
 cp /var/ngeob/autotest/data/test_data/*.tif /var/ngeob_data/storage/
 cp /var/ngeob/autotest/data/feed_test_data/*.png /var/ngeob_data/storage/
+cp /var/ngeob/autotest/data/aiv_test_data/*.jpg /var/ngeob_data/storage/
 
 sudo service httpd restart
