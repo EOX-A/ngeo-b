@@ -303,7 +303,7 @@ class SeedFootprintBrowse3(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
 
 class IngestFootprintBrowse7(IngestTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
     storage_dir = "data/aiv_test_data"
-    request_file = "aiv_test_data/browseReport.xml"
+    request_file = "aiv_test_data/BrowseReport.xml"
     
     expected_ingested_browse_ids = ("NGEO-FEED-VTC-0040_1",
                                     "NGEO-FEED-VTC-0040_2",

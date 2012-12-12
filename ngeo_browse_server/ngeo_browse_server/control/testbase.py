@@ -113,7 +113,7 @@ class BaseTestCaseMixIn(object):
     
     default_configuration = {
         (INGEST_SECTION, "optimized_files_postfix"): "_proc",
-        (INGEST_SECTION, "compression"): "NONE",
+        (INGEST_SECTION, "compression"): "LZW",
         (INGEST_SECTION, "jpeg_quality"): "75",
         (INGEST_SECTION, "zlevel"): "6",
         (INGEST_SECTION, "tiling"): "true",
