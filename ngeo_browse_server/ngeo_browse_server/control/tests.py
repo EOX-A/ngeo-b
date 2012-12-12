@@ -301,6 +301,69 @@ class SeedFootprintBrowse3(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     expected_inserted_into_series = "TEST_SAR"
     expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 16, 7: 36, 8: 36}
 
+class IngestFootprintBrowse7(IngestTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+    storage_dir = "data/aiv_test_data"
+    request_file = "aiv_test_data/browseReport.xml"
+    
+    expected_ingested_browse_ids = ("NGEO-FEED-VTC-0040_1",
+                                    "NGEO-FEED-VTC-0040_2",
+                                    "NGEO-FEED-VTC-0040_3",
+                                    "NGEO-FEED-VTC-0040_4",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['NGEO-FEED-VTC-0040_1_proc.tif',
+                                'NGEO-FEED-VTC-0040_2_proc.tif',
+                                'NGEO-FEED-VTC-0040_3_proc.tif',
+                                'NGEO-FEED-VTC-0040_4_proc.tif']
+    expected_deleted_files = ['NGEO-FEED-VTC-0040_1.jpg',
+                              'NGEO-FEED-VTC-0040_2.jpg',
+                              'NGEO-FEED-VTC-0040_3.jpg',
+                              'NGEO-FEED-VTC-0040_4.jpg']
+    
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>4</bsi:toBeReplaced>
+        <bsi:actuallyInserted>4</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>NGEO-FEED-VTC-0040_1</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>NGEO-FEED-VTC-0040_2</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>NGEO-FEED-VTC-0040_3</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>NGEO-FEED-VTC-0040_4</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+class SeedFootprintBrowse7(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
+    storage_dir = "data/aiv_test_data"
+    request_file = "aiv_test_data/browseReport.xml"
+    
+    expected_inserted_into_series = "TEST_SAR"
+    expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 16, 7: 36, 8: 36}
+
+
 #===============================================================================
 # Ingest into layer OPTICAL
 #===============================================================================
