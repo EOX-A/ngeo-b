@@ -349,9 +349,6 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                          "`failure_dir` '%s'. Error was: '%s'."
                          % (input_filename, failure_dir, str(e)))
         
-        # mapcache models are not encapsulated with transactions
-        
-        
         # re-raise the exception
         raise exc_info[0], exc_info[1], exc_info[2]
     
@@ -599,22 +596,27 @@ def _georef_from_parsed(parsed_browse):
     elif parsed_browse.geo_type == "regularGridBrowse":
         # calculate a list of pixel coordinates according to the values of the
         # parsed browse report (col_node_number * row_node_number)
-        range_y = arange(
-            0.0, parsed_browse.col_node_number * parsed_browse.col_step,
-            parsed_browse.col_step
-        )
         range_x = arange(
             0.0, parsed_browse.row_node_number * parsed_browse.row_step,
             parsed_browse.row_step
         )
+        range_y = arange(
+            0.0, parsed_browse.col_node_number * parsed_browse.col_step,
+            parsed_browse.col_step
+        )
         
         # Python is cool!
-        pixels = [(x, y) for y in range_y for x in range_x]
+        pixels = [(x, y) for x in range_x for y in range_y]
         
         # get the lat-lon coordinates as tuple-lists
         coords = []
         for coord_list in parsed_browse.coord_lists:
             coords.extend(parse_coord_list(coord_list, swap_axes))
+        
+        # check validity of regularGrid
+        if ((len(parsed_browse.coord_lists) != parsed_browse.row_node_number) or 
+           (len(coords)/len(parsed_browse.coord_lists) != parsed_browse.col_node_number)):
+            raise IngestionException("Invalid regularGrid.")
         
         gcps = [(x, y, pixel, line) 
                 for (x, y), (pixel, line) in zip(coords, pixels)]
