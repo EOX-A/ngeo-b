@@ -47,7 +47,7 @@ from ngeo_browse_server.control.ingest.config import (
 # Ingest ModelInGeoTiff browse test cases
 #===============================================================================
 
-class IngestModelInGeotiffBrowse(IngestTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+class IngestModelInGeotiffBrowse(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     storage_dir = "data/test_data"
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.xml"
     
@@ -87,7 +87,7 @@ class SeedModelInGeotiffBrowse(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase)
 # Ingest Rectified browse test cases
 #===============================================================================
 
-class IngestRectifiedBrowse(IngestTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+class IngestRectifiedBrowse(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     storage_dir = "data/test_data/"
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_nogeo.xml"
     
@@ -127,7 +127,7 @@ class SeedRectifiedBrowse(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
 # Ingest Regular Grid browse test cases
 #===============================================================================
 
-class IngestRegularGridBrowse(IngestTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+class IngestRegularGridBrowse(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     storage_dir = "data/test_data"
     request_file = "test_data/ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775.xml"
     
@@ -162,7 +162,7 @@ class SeedRegularGridBrowse(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     expected_inserted_into_series = "TEST_ASA_WSM"
     expected_tiles = {0: 2, 1: 4, 2: 8, 3: 4, 4: 16, 5: 16, 6: 24, 7: 48, 8: 96}
 
-class IngestRegularGridBrowse2(IngestTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+class IngestRegularGridBrowse2(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     storage_dir = "data/feed_test_data"
     request_file = "feed_test_data/BrowseReport.xml"
     
@@ -202,7 +202,7 @@ class SeedRegularGridBrowse2(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
 # Ingest Footprint browse test cases
 #===============================================================================
     
-class IngestFootprintBrowse(IngestTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+class IngestFootprintBrowse(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     
     expected_ingested_browse_ids = ("b_id_1",)
@@ -235,7 +235,7 @@ class SeedFootprintBrowse(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     expected_inserted_into_series = "TEST_SAR"
     expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 16, 7: 24, 8: 48}
 
-class IngestFootprintBrowse2(IngestTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+class IngestFootprintBrowse2(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100731_103315.xml"
     
     expected_ingested_browse_ids = ("b_id_2",)
@@ -268,7 +268,7 @@ class SeedFootprintBrowse2(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     expected_inserted_into_series = "TEST_SAR"
     expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 16, 7: 16, 8: 36}
 
-class IngestFootprintBrowse3(IngestTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+class IngestFootprintBrowse3(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100813_102453.xml"
     
     expected_ingested_browse_ids = ("b_id_5",)
@@ -301,7 +301,7 @@ class SeedFootprintBrowse3(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     expected_inserted_into_series = "TEST_SAR"
     expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 16, 7: 36, 8: 36}
 
-class IngestFootprintBrowse7(IngestTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+class IngestFootprintBrowse7(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     storage_dir = "data/aiv_test_data"
     request_file = "aiv_test_data/BrowseReport.xml"
     
@@ -368,7 +368,7 @@ class SeedFootprintBrowse7(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
 # Ingest into layer OPTICAL
 #===============================================================================
 
-class IngestFootprintBrowse4(IngestTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+class IngestFootprintBrowse4(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100719_105257.xml"
     
     expected_ingested_browse_ids = ("b_id_9",)
@@ -401,7 +401,7 @@ class SeedFootprintBrowse4(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 36, 7: 60, 8: 216}
 
-class IngestFootprintBrowse5(IngestTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+class IngestFootprintBrowse5(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100719_213253.xml"
     
     expected_ingested_browse_ids = ("b_id_10",)
@@ -434,7 +434,7 @@ class SeedFootprintBrowse5(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 36, 7: 60, 8: 160}
 
-class IngestFootprintBrowse6(IngestTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+class IngestFootprintBrowse6(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606.xml"
     
     expected_ingested_browse_ids = ("b_id_11",)
@@ -472,7 +472,7 @@ class SeedFootprintBrowse6(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
 # Arbitrary ingests
 #===============================================================================
 
-class IngestBrowseNoID(IngestTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+class IngestBrowseNoID(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606_noid.xml"
     
     expected_ingested_browse_ids = (None,)
@@ -506,7 +506,7 @@ class SeedBrowseNoID(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_tiles = {0: 2, 1: 4, 2: 4, 3: 4, 4: 4, 5: 16, 6: 24, 7: 80, 8: 168}
 
-class IngestBrowseSpecialID(IngestTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+class IngestBrowseSpecialID(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606_specialid.xml"
     
     expected_ingested_browse_ids = ("some:special:id",)
@@ -544,7 +544,7 @@ class SeedBrowseSpecialID(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
 # Ingest a browse report with multiple browses inside
 #===============================================================================
 
-class IngestFootprintBrowseGroup(IngestTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+class IngestFootprintBrowseGroup(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"
     
     expected_ingested_browse_ids = ("b_id_6", "b_id_7", "b_id_8")
@@ -593,7 +593,7 @@ class SeedFootprintBrowseGroup(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase)
 # Ingest a browse report which includes a replacement of a previous browse
 #===============================================================================
 
-class IngestFootprintBrowseReplace(IngestReplaceTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+class IngestFootprintBrowseReplace(IngestReplaceTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_before_replace_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327.xml"
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_new.xml"
     
@@ -628,7 +628,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 # Ingest partial (some success and some failure) tests
 #===============================================================================
 
-class IngestFootprintBrowseGroupPartial(IngestTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TransactionTestCase):
+class IngestFootprintBrowseGroupPartial(IngestTestCaseMixIn, HttpTestCaseMixin, TransactionTestCase):
     request_file = "reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group_partial.xml"
     
     expected_ingested_browse_ids = ("b_id_6", "b_id_8")
@@ -680,7 +680,7 @@ class SeedFootprintBrowseGroupPartial(SeedTestCaseMixIn, HttpMixIn, LiveServerTe
 # Ingest Failure tests
 #===============================================================================
 
-class IngestFailureNoInputFile(IngestFailureTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+class IngestFailureNoInputFile(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     expected_failed_browse_ids = ("FAILURE",)
     expected_generated_failure_browse_report = "SAR_EOX_20121002093000000000.xml"
 
@@ -712,7 +712,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 """ % self.temp_storage_dir
 
 
-class IngestFailureIDStartsWithNumber(IngestFailureTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TransactionTestCase):
+class IngestFailureIDStartsWithNumber(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TransactionTestCase):
     expected_failed_browse_ids = ("11_id_starts_with_number",)
     expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
     expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000.xml"
@@ -762,7 +762,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 """
 
 
-class IngestFailureFootprintNoCircle(IngestFailureTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+class IngestFailureFootprintNoCircle(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     expected_failed_browse_ids = ("FAILURE",)
     expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
     expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000.xml"
@@ -811,7 +811,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 """
 
 
-class IngestFailureUnknownReferenceSystem(IngestFailureTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+class IngestFailureUnknownReferenceSystem(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     expected_failed_browse_ids = ("FAILURE",)
     expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
     expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000.xml"
@@ -861,7 +861,7 @@ EPSG coordinate system?</bsi:exceptionMessage>
 """
 
 
-class IngestFailureRAWReferenceSystem(IngestFailureTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+class IngestFailureRAWReferenceSystem(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     expected_failed_browse_ids = ("FAILURE",)
     expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
     expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000.xml"
@@ -910,7 +910,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 """
 
 
-class IngestFailureEndBeforeStart(IngestFailureTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+class IngestFailureEndBeforeStart(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     expected_failed_browse_ids = ("FAILURE",)
     expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
     expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000.xml"
@@ -959,7 +959,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 """
 
 
-class IngestFailureFileOverwrite(IngestFailureTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+class IngestFailureFileOverwrite(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     """ Test to check that the program fails when a file in the optimized files
         dir would be overwritten.
     """
@@ -1017,7 +1017,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 """ % self.temp_optimized_files_dir
 
 
-class IngestFailureInvalidXML(IngestFailureTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, TestCase):
+class IngestFailureInvalidXML(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     expect_exception = True
     
     request = ""

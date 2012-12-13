@@ -283,7 +283,7 @@ class HttpMixIn(object):
         return client.post(url, request, "text/xml")
 
 
-class HttpTestCaseMixin(object):
+class HttpTestCaseMixin(HttpMixIn):
     """ Holds status code and comparison to expected response test. """
 
     def test_expected_status(self):
