@@ -42,6 +42,10 @@ def ns_rep(tag):
     "Namespacify a given tag name for the use with etree"
     return "{http://ngeo.eo.esa.int/schema/browseReport}" + tag
 
+def ns_bsi(tag):
+    "Namespacify a given tag name for the use with etree"
+    return "{http://ngeo.eo.esa.int/schema/browse/ingestion}" + tag
+
 
 def pairwise(iterable):
     "s -> (s0,s1), (s2,s3), (s4, s5), ..."
@@ -56,7 +60,7 @@ def parse_browse_report(browse_report):
     
     logger.info("Start parsing browse report.")
     
-    assert(browse_report.tag in (ns_rep("ingestBrowse"), 
+    assert(browse_report.tag in (ns_bsi("ingestBrowse"), 
                                  ns_rep("browseReport")))
     
     browse_report = data.BrowseReport(
