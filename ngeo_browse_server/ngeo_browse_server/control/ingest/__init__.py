@@ -114,14 +114,42 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
     format_selection = get_format_selection("GTiff",
                                             **get_format_config(config))
     if do_preprocessing:
-        preprocessor = WMSPreProcessor(format_selection, crs=crs,
-                                       **get_optimization_config(config))
+        # add config parameters and custom params
+        params = get_optimization_config(config)
+        
+        # add radiometric interval
+        rad_min = browse_layer.radiometric_interval_min
+        if rad_min is not None:
+            params["radiometric_interval_min"] = rad_min
+        else:
+            rad_min = "min"
+        rad_max = browse_layer.radiometric_interval_max
+        if rad_max is not None:
+            params["radiometric_interval_max"] = rad_max
+        else:
+            rad_max = "max"
+        
+        # add band selection
+        if (browse_layer.r_band is not None and 
+            browse_layer.g_band is not None and 
+            browse_layer.b_band is not None):
+            
+            bands = [(browse_layer.r_band, rad_min, rad_max), 
+                     (browse_layer.g_band, rad_min, rad_max), 
+                     (browse_layer.b_band, rad_min, rad_max)]
+            
+            if params["bandmode"] == RGBA:
+                # RGBA
+                bands.append((0, 0, 0))
+            
+            params["bands"] = bands
+        
+        preprocessor = WMSPreProcessor(format_selection, crs=crs, **params)
     else:
         preprocessor = None # TODO: CopyPreprocessor
     
     succeded = []
     failed = []
-
     
     report_result = IngestBrowseReportResult()
     
