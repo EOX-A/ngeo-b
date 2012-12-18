@@ -56,8 +56,11 @@ def parse_browse_report(browse_report):
     
     logger.info("Start parsing browse report.")
     
-    assert(browse_report.tag in (ns_rep("ingestBrowse"), 
-                                 ns_rep("browseReport")))
+    expected_tags = ns_rep("ingestBrowse"), ns_rep("browseReport")
+    if browse_report.tag not in expected_tags:
+        raise ParsingException("Invalid root tag '%s'. Expected one of '%s'."
+                               % (browse_report.tag, expected_tags),
+                               code="parsing")
     
     browse_report = data.BrowseReport(
         date_time=getDateTime(browse_report.find(ns_rep("dateTime")).text),
