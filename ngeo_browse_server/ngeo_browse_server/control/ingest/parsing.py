@@ -60,7 +60,7 @@ def parse_browse_report(browse_report):
     
     logger.info("Start parsing browse report.")
     
-    expected_tags = ns_rep("ingestBrowse"), ns_bsi("browseReport")
+    expected_tags = ns_bsi("ingestBrowse"), ns_rep("browseReport")
     if browse_report.tag not in expected_tags:
         raise ParsingException("Invalid root tag '%s'. Expected one of '%s'."
                                % (browse_report.tag, expected_tags),
