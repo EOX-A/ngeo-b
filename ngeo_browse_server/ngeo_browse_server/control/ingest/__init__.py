@@ -617,6 +617,7 @@ def _georef_from_parsed(parsed_browse):
         if not gcps[0] == gcps[-1]:
             raise IngestionException("The last value of the footprint is not "
                                      "equal to the first.")
+        gcps.pop()
         
         return GCPList(gcps, srid)
         
