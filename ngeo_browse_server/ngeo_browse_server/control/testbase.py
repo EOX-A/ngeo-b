@@ -28,7 +28,8 @@
 #-------------------------------------------------------------------------------
 
 import sys
-from os import walk
+from os import walk, remove, chmod, stat
+from stat import S_IEXEC
 from os.path import join, exists, dirname
 import tempfile
 import shutil
@@ -50,8 +51,9 @@ from eoxserver.resources.coverages.geo import getExtentFromRectifiedDS
 from ngeo_browse_server.config import get_ngeo_config, reset_ngeo_config
 from ngeo_browse_server.config import models
 from ngeo_browse_server.control.ingest import safe_makedirs
-from ngeo_browse_server.control.ingest.config import INGEST_SECTION,\
-    MAPCACHE_SECTION
+from ngeo_browse_server.control.ingest.config import (
+    INGEST_SECTION, MAPCACHE_SECTION
+)
 from ngeo_browse_server.mapcache import models as mapcache_models
 
 
@@ -125,9 +127,8 @@ class BaseTestCaseMixIn(object):
         (INGEST_SECTION, "footprint_alpha"): "true",
         (INGEST_SECTION, "delete_on_success"): "false",
         (INGEST_SECTION, "leave_original"): "false",
-        (MAPCACHE_SECTION, "seed_command"): "/var/ngeob/mapcache_seed_dummy",
-        # storage_dir, success_dir, failure_dir and optimized_files_dir are set
-        # automatically.
+        # storage_dir, success_dir, failure_dir, optimized_files_dir, and 
+        # seed_command are set automatically in setUp_files.
     }
     
     configuration = {}
@@ -202,7 +203,16 @@ class BaseTestCaseMixIn(object):
                                                           "http://localhost/browse")}))
         
         config.set(MAPCACHE_SECTION, "config_file", mapcache_config_file)
-    
+        
+        # setup mapcache dummy seed command
+        seed_command_file = tempfile.NamedTemporaryFile(delete=False)
+        seed_command_file.write("#!/bin/sh\nexit 0")
+        self.seed_command = seed_command_file.name
+        seed_command_file.close()
+        st = stat(self.seed_command)
+        chmod(self.seed_command, st.st_mode | S_IEXEC)
+        
+        config.set(MAPCACHE_SECTION, "seed_command", self.seed_command)
     
     def setUp_config(self):
         # set up default config and specific config
@@ -233,6 +243,7 @@ class BaseTestCaseMixIn(object):
                   self.temp_success_dir, self.temp_failure_dir,
                   self.temp_mapcache_dir):
             shutil.rmtree(d)
+        remove(self.seed_command)
     
     def add_counts(self, *model_classes):
         # save the count of each model class to be checked later on.
@@ -471,8 +482,15 @@ class SeedTestCaseMixIn(BaseTestCaseMixIn):
     the specified IDs have been correctly seeded in MapCache.  
     """
 
+    if exists("/usr/bin/mapcache_seed"):
+        seed_command = "/usr/bin/mapcache_seed"
+    elif exists("/usr/local/bin/mapcache_seed"):
+        seed_command = "/usr/local/bin/mapcache_seed"
+    else:
+        raise IOError("MapCache seed command not found.")
+    
     configuration = {
-        (MAPCACHE_SECTION, "seed_command"): "/usr/local/bin/mapcache_seed",
+        (MAPCACHE_SECTION, "seed_command"): seed_command,
     }
 
     def test_seed(self):

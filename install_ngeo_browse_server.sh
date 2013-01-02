@@ -163,9 +163,10 @@ if [ ! -f "/var/lib/pgsql/data/PG_VERSION" ] ; then
     service postgresql initdb
 fi
 
-# Allow DB_USER to access DB_NAME with password
+# Allow DB_USER to access DB_NAME and test_DB_NAME with password
 if ! grep -Fxq "local   $DB_NAME $DB_USER               md5" /var/lib/pgsql/data/pg_hba.conf ; then
-    sed -e "s/^# \"local\" is for Unix domain socket connections only$/&\nlocal   $DB_NAME $DB_USER               md5/" -i /var/lib/pgsql/data/pg_hba.conf
+    sed -e "s/^# \"local\" is for Unix domain socket connections only$/&\nlocal   $DB_NAME $DB_USER               md5\nlocal   test_$DB_NAME $DB_USER          md5/" \
+		-i /var/lib/pgsql/data/pg_hba.conf
 fi
 
 # Reload PostgreSQL
@@ -192,7 +193,7 @@ if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='template_p
 fi
 if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'")" != 1 ] ; then
     echo "Creating ngEO database user."
-    psql postgres -tAc "CREATE USER $DB_USER NOSUPERUSER NOCREATEDB NOCREATEROLE ENCRYPTED PASSWORD '$DB_PASSWORD'"
+    psql postgres -tAc "CREATE USER $DB_USER NOSUPERUSER CREATEDB NOCREATEROLE ENCRYPTED PASSWORD '$DB_PASSWORD'"
 fi
 if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'")" != 1 ] ; then
     echo "Creating ngEO Browse Server database."
@@ -231,6 +232,7 @@ if [ ! -d ngeo_browse_server_instance ] ; then
     sed -e "/#'TEST_NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/test-config.sqlite', # Required for certain test cases, but slower!/d" -i ngeo_browse_server_instance/settings.py
     sed -e "/'HOST': '',                                                             # Set to empty string for localhost. Not used with spatialite./d" -i ngeo_browse_server_instance/settings.py
     sed -e "/'PORT': '',                                                             # Set to empty string for default. Not used with spatialite./d" -i ngeo_browse_server_instance/settings.py
+    sed -e "s/#'TEST_NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/test-mapcache.sqlite',/'TEST_NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/test-mapcache.sqlite',/" -i ngeo_browse_server_instance/settings.py
 
     # Configure instance
     sed -e "s,http_service_url=http://localhost:8000/ows,http_service_url=$NGEOB_URL$APACHE_NGEO_BROWSE_ALIAS/ows," -i ngeo_browse_server_instance/conf/eoxserver.conf

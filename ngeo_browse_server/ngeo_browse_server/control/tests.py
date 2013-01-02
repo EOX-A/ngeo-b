@@ -1154,17 +1154,17 @@ class IngestRasterExtent(BaseTestCaseMixIn, HttpMixIn, ExtentMixIn, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "ASA_IM__0P_20100722_213840_proc.tif"))
     
-    expected_extent = (-2.774285714285714, 
-                       49.459259284618561, 
-                       0.0023992109516033366, 
-                       53.079999999999991)
+    expected_extent = (-2.7625000000000002, 
+                       49.461072913649971, 
+                       -0.001983356685690385, 
+                       53.079999999999998)
 
 
 class IngestRasterSize(BaseTestCaseMixIn, HttpMixIn, SizeMixIn, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "ASA_IM__0P_20100722_213840_proc.tif"))
     
-    expected_size = (1181, 1540)
+    expected_size = (1177, 1543)
 
 
 class IngestRasterProjectionEPSG4326(BaseTestCaseMixIn, HttpMixIn, ProjectionMixIn, TestCase):
