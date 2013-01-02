@@ -305,19 +305,10 @@ class IngestFootprintBrowse7(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     storage_dir = "data/aiv_test_data"
     request_file = "aiv_test_data/BrowseReport.xml"
     
-    expected_ingested_browse_ids = ("NGEO-FEED-VTC-0040_1",
-                                    "NGEO-FEED-VTC-0040_2",
-                                    "NGEO-FEED-VTC-0040_3",
-                                    "NGEO-FEED-VTC-0040_4",)
+    expected_ingested_browse_ids = ("NGEO-FEED-VTC-0040",)
     expected_inserted_into_series = "TEST_SAR"
-    expected_optimized_files = ['NGEO-FEED-VTC-0040_1_proc.tif',
-                                'NGEO-FEED-VTC-0040_2_proc.tif',
-                                'NGEO-FEED-VTC-0040_3_proc.tif',
-                                'NGEO-FEED-VTC-0040_4_proc.tif']
-    expected_deleted_files = ['NGEO-FEED-VTC-0040_1.jpg',
-                              'NGEO-FEED-VTC-0040_2.jpg',
-                              'NGEO-FEED-VTC-0040_3.jpg',
-                              'NGEO-FEED-VTC-0040_4.jpg']
+    expected_optimized_files = ['NGEO-FEED-VTC-0040_proc.tif']
+    expected_deleted_files = ['NGEO-FEED-VTC-0040.jpg']
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -325,31 +316,13 @@ class IngestFootprintBrowse7(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
 xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <bsi:status>success</bsi:status>
     <bsi:ingestionSummary>
-        <bsi:toBeReplaced>4</bsi:toBeReplaced>
-        <bsi:actuallyInserted>4</bsi:actuallyInserted>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
         <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
     </bsi:ingestionSummary>
     <bsi:ingestionResult>
         <bsi:briefRecord>
-            <bsi:identifier>NGEO-FEED-VTC-0040_1</bsi:identifier>
-            <bsi:status>success</bsi:status>
-        </bsi:briefRecord>
-    </bsi:ingestionResult>
-    <bsi:ingestionResult>
-        <bsi:briefRecord>
-            <bsi:identifier>NGEO-FEED-VTC-0040_2</bsi:identifier>
-            <bsi:status>success</bsi:status>
-        </bsi:briefRecord>
-    </bsi:ingestionResult>
-    <bsi:ingestionResult>
-        <bsi:briefRecord>
-            <bsi:identifier>NGEO-FEED-VTC-0040_3</bsi:identifier>
-            <bsi:status>success</bsi:status>
-        </bsi:briefRecord>
-    </bsi:ingestionResult>
-    <bsi:ingestionResult>
-        <bsi:briefRecord>
-            <bsi:identifier>NGEO-FEED-VTC-0040_4</bsi:identifier>
+            <bsi:identifier>NGEO-FEED-VTC-0040</bsi:identifier>
             <bsi:status>success</bsi:status>
         </bsi:briefRecord>
     </bsi:ingestionResult>
@@ -361,7 +334,7 @@ class SeedFootprintBrowse7(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "aiv_test_data/BrowseReport.xml"
     
     expected_inserted_into_series = "TEST_SAR"
-    expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 16, 7: 36, 8: 36}
+    expected_tiles = {0: 2, 1: 4, 2: 4, 3: 4, 4: 8, 5: 4, 6: 16, 7: 8, 8: 4}
 
 
 #===============================================================================
@@ -1029,6 +1002,59 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
     <bsi:exceptionMessage>Could not parse request XML. Error was: &#39;Start tag expected, &#39;&lt;&#39; not found, line 1, column 1&#39;.</bsi:exceptionMessage>
 </bsi:ingestException>
 """
+
+
+class IngestFailureGCPTransformException(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    storage_dir = "data/aiv_test_data"
+    
+    expected_failed_browse_ids = ("FAILURE",)
+    expected_failed_files = ["NGEO-FEED-VTC-0040.jpg"]
+    expected_generated_failure_browse_report = "SAR_ESA_20121002093000000000.xml"
+    
+    request = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.1">
+    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
+    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
+    <rep:browseType>SAR</rep:browseType>
+    <rep:browse>
+        <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
+        <rep:fileName>NGEO-FEED-VTC-0040.jpg</rep:fileName>
+        <rep:imageType>PNG</rep:imageType>
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:footprint nodeNumber="7">
+            <rep:colRowList>0 0 7 0 0 0</rep:colRowList>
+            <rep:coordList>48.46 16.1001 48.48 16.1 48.46 16.1001</rep:coordList>
+        </rep:footprint>
+        <rep:startTime>2012-10-02T09:20:00Z</rep:startTime>
+        <rep:endTime>2012-10-02T09:20:00Z</rep:endTime>
+    </rep:browse>
+</rep:browseReport>
+"""
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>partial</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>0</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>FAILURE</bsi:identifier>
+            <bsi:status>failure</bsi:status>
+            <bsi:error>
+                <bsi:exceptionCode>GCPTransformException</bsi:exceptionCode>
+                <bsi:exceptionMessage>Could not find a valid transform method.</bsi:exceptionMessage>
+            </bsi:error>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
 
 #===============================================================================
 # Raster test cases
