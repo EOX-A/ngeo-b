@@ -36,6 +36,7 @@ from cStringIO import StringIO
 from lxml import etree
 import logging
 import numpy
+import re
 
 import sqlite3
 from osgeo import gdal, osr
@@ -669,10 +670,21 @@ class IngestFailureTestCaseMixIn(BaseTestCaseMixIn):
             
             # make sure that the generated browse report is present aswell
             expected_failed_files = list(self.expected_failed_files)
-            expected_failed_files.append(self.expected_generated_failure_browse_report)
+            #expected_failed_files.append(self.expected_generated_failure_browse_report)
+            
+            # find the generated browse report by regex and remove it from the
+            # list of files in the directory. Fail, if it was not found.
+            files = self.get_file_list(self.temp_failure_dir)
+            if self.expected_generated_failure_browse_report:
+                for idx, filename in enumerate(files):
+                    if re.match(self.expected_generated_failure_browse_report, filename):
+                        del files[idx]
+                        break
+                else:
+                    self.fail("Generated failure browse report was not found.")
             
             # get file list of failure_dir and compare the count
-            files = self.get_file_list(self.temp_failure_dir)
+            
             self.assertItemsEqual(expected_failed_files, files)
         else:
             pass # nothing to test in case of an early exception

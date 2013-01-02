@@ -655,7 +655,7 @@ class SeedFootprintBrowseGroupPartial(SeedTestCaseMixIn, HttpMixIn, LiveServerTe
 
 class IngestFailureNoInputFile(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     expected_failed_browse_ids = ("FAILURE",)
-    expected_generated_failure_browse_report = "SAR_EOX_20121002093000000000.xml"
+    expected_generated_failure_browse_report = "SAR_EOX_20121002093000000000_(.*).xml"
 
     request_file = "test_data/BrowseReport_FAILURE.xml" 
     
@@ -688,7 +688,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 class IngestFailureIDStartsWithNumber(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TransactionTestCase):
     expected_failed_browse_ids = ("11_id_starts_with_number",)
     expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
-    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000.xml"
+    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
     
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -738,7 +738,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 class IngestFailureFootprintNoCircle(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     expected_failed_browse_ids = ("FAILURE",)
     expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
-    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000.xml"
+    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
     
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -787,7 +787,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 class IngestFailureUnknownReferenceSystem(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     expected_failed_browse_ids = ("FAILURE",)
     expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
-    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000.xml"
+    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
     
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -837,7 +837,7 @@ EPSG coordinate system?</bsi:exceptionMessage>
 class IngestFailureRAWReferenceSystem(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     expected_failed_browse_ids = ("FAILURE",)
     expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
-    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000.xml"
+    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
     
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -886,7 +886,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 class IngestFailureEndBeforeStart(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     expected_failed_browse_ids = ("FAILURE",)
     expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
-    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000.xml"
+    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
     
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -939,7 +939,7 @@ class IngestFailureFileOverwrite(IngestFailureTestCaseMixIn, HttpTestCaseMixin, 
     
     expected_failed_browse_ids = ("FAILURE",)
     expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
-    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000.xml"
+    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
     expected_optimized_files = ["ATS_TOA_1P_20100722_101606_proc.tif"]
     
     copy_to_optimized = [("reference_test_data/ATS_TOA_1P_20100722_101606.jpg", "TEST_OPTICAL/ATS_TOA_1P_20100722_101606_proc.tif")]
@@ -1009,7 +1009,7 @@ class IngestFailureGCPTransformException(IngestFailureTestCaseMixIn, HttpTestCas
     
     expected_failed_browse_ids = ("FAILURE",)
     expected_failed_files = ["NGEO-FEED-VTC-0040.jpg"]
-    expected_generated_failure_browse_report = "SAR_ESA_20121002093000000000.xml"
+    expected_generated_failure_browse_report = "SAR_ESA_20121002093000000000_(.*).xml"
     
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
