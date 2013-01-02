@@ -34,6 +34,7 @@ import shutil
 from numpy import arange
 import logging
 import traceback
+from datetime import datetime
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -670,9 +671,11 @@ def _save_result_browse_report(browse_report, path):
     
     if isdir(path):
         # generate a filename
-        path = join(path, "%s_%s_%s.xml" % (browse_report.browse_type, 
-                                            browse_report.responsible_org_name,
-                                            browse_report.date_time.strftime("%Y%m%d%H%M%S%f")))
+        path = join(path, "%s_%s_%s_%s.xml" % (
+            browse_report.browse_type, browse_report.responsible_org_name,
+            browse_report.date_time.strftime("%Y%m%d%H%M%S%f"),
+            datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
+        ))
     
     safe_makedirs(dirname(path))
     
