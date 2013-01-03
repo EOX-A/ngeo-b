@@ -48,6 +48,7 @@ from django.template.loader import render_to_string
 from eoxserver.core.system import System
 from eoxserver.resources.coverages import models as eoxs_models
 from eoxserver.resources.coverages.geo import getExtentFromRectifiedDS
+from eoxserver.processing.preprocessing.util import create_mem_copy
 
 from ngeo_browse_server.config import get_ngeo_config, reset_ngeo_config
 from ngeo_browse_server.config import models
@@ -665,6 +666,35 @@ class ProjectionMixIn(RasterMixIn):
         sr.ImportFromWkt(ds.GetProjectionRef())
         
         self.assertTrue(exp_sr.IsSame(sr))
+
+
+class StatisticsMixIn(RasterMixIn):
+    expected_statistics = []
+    
+    def test_statistics(self):
+        if not self.expected_statistics:
+            self.skipTest("No expected statistics given.")
+        
+        ds = create_mem_copy(self.open_raster())
+        self.assertEqual(len(self.expected_statistics), ds.RasterCount)
+        for index, stats in enumerate(self.expected_statistics, 1):
+            band = ds.GetRasterBand(index)
+            rmin, rmax, mean, stddev = band.ComputeStatistics(False)
+            
+            if "min" in stats:
+                self.assertAlmostEqual(stats["min"], rmin, delta=0.1)
+                
+            if "max" in stats:
+                self.assertAlmostEqual(stats["max"], rmax, delta=0.1)
+                
+            if "mean" in stats:
+                self.assertAlmostEqual(stats["mean"], mean, delta=0.1)
+                
+            if "stddev" in stats:
+                self.assertAlmostEqual(stats["stddev"], stddev, delta=0.1)
+                
+            if "checksum" in stats:
+                self.assertEqual(stats["checksum"], band.Checksum())
 
 
 class IngestFailureTestCaseMixIn(BaseTestCaseMixIn):

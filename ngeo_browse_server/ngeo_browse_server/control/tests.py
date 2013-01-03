@@ -36,7 +36,8 @@ from ngeo_browse_server.control.testbase import (
     BaseTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, CliMixIn, 
     IngestTestCaseMixIn, SeedTestCaseMixIn, IngestReplaceTestCaseMixIn, 
     OverviewMixIn, CompressionMixIn, BandCountMixIn, HasColorTableMixIn, 
-    ExtentMixIn, SizeMixIn, ProjectionMixIn, IngestFailureTestCaseMixIn
+    ExtentMixIn, SizeMixIn, ProjectionMixIn, StatisticsMixIn,
+    IngestFailureTestCaseMixIn
 )
 from ngeo_browse_server.control.ingest.config import (
     INGEST_SECTION, MAPCACHE_SECTION
@@ -1172,6 +1173,37 @@ class IngestRasterProjectionEPSG4326(BaseTestCaseMixIn, HttpMixIn, ProjectionMix
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "ASA_IM__0P_20100722_213840_proc.tif"))
     
     expected_projection_srid = 4326
+
+
+class IngestRasterStatistics(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, TestCase):
+    request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
+    raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "ASA_IM__0P_20100722_213840_proc.tif"))
+    
+    expected_statistics = [{
+        "min": 0.0,
+        "max": 255.0,
+        "mean": 63.9,
+        "stddev": 75.9,
+        "checksum": 61578
+    }, {
+        "min": 0.0,
+        "max": 255.0,
+        "mean": 63.9,
+        "stddev": 75.9,
+        "checksum": 61578
+    }, {
+        "min": 0.0,
+        "max": 255.0,
+        "mean": 63.9,
+        "stddev": 75.9,
+        "checksum": 61578
+    }, {
+        "min": 0.0,
+        "max": 255.0,
+        "mean": 138.4,
+        "stddev": 127.0,
+        "checksum": 44546
+    }]
 
 
 #===============================================================================
