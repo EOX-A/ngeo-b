@@ -659,19 +659,25 @@ class StatisticsMixIn(RasterMixIn):
         
         ds = create_mem_copy(self.open_raster())
         self.assertEqual(len(self.expected_statistics), ds.RasterCount)
-        for index, expected_stats in enumerate(self.expected_statistics, 1):
+        for index, stats in enumerate(self.expected_statistics, 1):
             band = ds.GetRasterBand(index)
             rmin, rmax, mean, stddev = band.ComputeStatistics(False)
             
-            
-            stats = {}
-            if "min" in expected_stats: stats["min"] = rmin
-            if "max" in expected_stats: stats["max"] = rmax
-            if "mean" in expected_stats: stats["mean"] = mean
-            if "stddev" in expected_stats: stats["stddev"] = stddev
-            if "checksum" in expected_stats: stats["checksum"] = band.Checksum()
-            
-            self.assertDictEqual(expected_stats, stats)
+            if "min" in stats:
+                self.assertAlmostEqual(stats["min"], rmin, delta=0.1)
+                
+            if "max" in stats:
+                self.assertAlmostEqual(stats["max"], rmax, delta=0.1)
+                
+            if "mean" in stats:
+                self.assertAlmostEqual(stats["mean"], mean, delta=0.1)
+                
+            if "stddev" in stats:
+                self.assertAlmostEqual(stats["stddev"], stddev, delta=0.1)
+                
+            if "checksum" in stats:
+                self.assertEqual(stats["checksum"], band.Checksum())
+
 
 class IngestFailureTestCaseMixIn(BaseTestCaseMixIn):
     """ Test failures in ingestion. """
