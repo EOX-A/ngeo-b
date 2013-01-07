@@ -61,7 +61,7 @@
   </complexType>
   <complexType name="browseLayerIdsType">
     <sequence>
-      <element name="browseLayerId" type="cfg:string255" minOccurs="0" maxOccurs="unbounded"/>
+      <element name="browseLayerId" type="cfg:string255RestrictedChars" minOccurs="0" maxOccurs="unbounded"/>
     </sequence>
   </complexType>
   <complexType name="datasetDefinitions">
@@ -132,7 +132,7 @@ Optional threshold value used by the Web Client to display a message to the User
         </annotation>
       </element>
     </sequence>
-    <attribute name="datasetId" type="cfg:string255" use="required"/>
+    <attribute name="datasetId" type="cfg:string255RestrictedChars" use="required"/>
   </complexType>
   <complexType name="extraInformationType">
     <sequence>
@@ -584,7 +584,7 @@ Value is provided by the text content of the element. Value presented to the use
   </complexType>
   <complexType name="browseLayerType">
     <sequence>
-      <element name="browseType" type="cfg:string255">
+      <element name="browseType" type="cfg:string255RestrictedChars">
         <annotation>
           <documentation>Browse type associated to this browse layer. 
 One browse type is associated to one and only one browse layer.</documentation>
@@ -625,7 +625,7 @@ Mapped to the Abstract property for this layer in the  capability file.</documen
         </annotation>
         <complexType>
           <sequence>
-            <element name="datasetId" type="cfg:string255" maxOccurs="unbounded"/>
+            <element name="datasetId" type="cfg:string255RestrictedChars" maxOccurs="unbounded"/>
           </sequence>
         </complexType>
       </element>
@@ -660,7 +660,7 @@ These zoom level refer to the tile definition provided in the specific configura
         <element name="lowestMapLevel" type="int"/>
       </sequence>
     </sequence>
-    <attribute name="browseLayerId" type="cfg:string255" use="required">
+    <attribute name="browseLayerId" type="cfg:string255RestrictedChars" use="required">
       <annotation>
         <documentation>Browse layer identifier.
 Mapped to ‘identifier’ in the WMTS capabilities file and to ‘name’ in the WMS capabilities file.</documentation>
@@ -734,7 +734,7 @@ Content of this field is formulated as an OpenSearch fragment</documentation>
               </annotation>
             </element>
           </sequence>
-          <attribute name="datasetId" type="cfg:string255" use="required"/>
+          <attribute name="datasetId" type="cfg:string255RestrictedChars" use="required"/>
         </complexType>
       </element>
     </sequence>
@@ -867,7 +867,7 @@ These additional attributes are stored in the vendor-specific part.</documentati
         </annotation>
         <complexType>
           <sequence>
-            <element name="nativeDatasetId" type="cfg:string255" maxOccurs="unbounded"/>
+            <element name="nativeDatasetId" type="cfg:string255RestrictedChars" maxOccurs="unbounded"/>
           </sequence>
           <attribute name="combinationName" type="cfg:string255" use="required">
             <annotation>
@@ -889,4 +889,10 @@ These additional attributes are stored in the vendor-specific part.</documentati
       <maxLength value="255"/>
     </restriction>
   </simpleType>
+  <simpleType name="string255RestrictedChars">
+    <restriction base="string">
+      <maxLength value="255"/>
+      <pattern value="[a-zA-z_:][a-zA-Z0-9.\-_:]*"/>
+    </restriction>
+  </simpleType>   
 </schema>
