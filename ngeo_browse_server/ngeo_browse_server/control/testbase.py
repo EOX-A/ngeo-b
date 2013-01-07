@@ -59,7 +59,6 @@ from ngeo_browse_server.control.ingest.config import (
 from ngeo_browse_server.mapcache import models as mapcache_models
 
 
-
 logger = logging.getLogger(__name__)
 
 gdal.UseExceptions()
@@ -197,10 +196,12 @@ class BaseTestCaseMixIn(object):
         self.temp_mapcache_dir = tempfile.mkdtemp() + "/"
         db_file = settings.DATABASES["mapcache"]["TEST_NAME"]
         mapcache_config_file = join(self.temp_mapcache_dir, "seed_mapcache.xml")
+        
         with open(mapcache_config_file, "w+") as f:
             f.write(render_to_string("test_control/seed_mapcache.xml",
                                      {"mapcache_dir": self.temp_mapcache_dir,
                                       "mapcache_test_db": db_file,
+                                      "browse_layers": models.BrowseLayer.objects.all(),
                                       "base_url": getattr(self, "live_server_url",
                                                           "http://localhost/browse")}))
         
