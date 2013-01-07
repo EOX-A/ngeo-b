@@ -40,7 +40,9 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
         "-z", "%d,%d" % (minzoom, maxzoom),
         "-D", "TIME=%sZ/%sZ" % (start_time.isoformat(), end_time.isoformat()),
         "-m", "seed" if not delete else "delete",
-        "-q", "-f"
+        "-q",
+        "-f",
+        "-M", "8,8",
     ]
     
     logger.debug("mapcache seeding command: '%s'. raw: '%s'."

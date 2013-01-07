@@ -81,7 +81,7 @@ class SeedModelInGeotiffBrowse(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase)
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.xml"
     
     expected_inserted_into_series = "TEST_MER_FRS"
-    expected_tiles = {0: 2, 1: 4, 2: 4, 3: 16, 4: 16, 5: 36, 6: 80, 7: 168, 8: 624}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 128, 6: 256, 7: 576, 8: 1024}
 
 
 #===============================================================================
@@ -121,7 +121,7 @@ class SeedRectifiedBrowse(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_nogeo.xml"
     
     expected_inserted_into_series = "TEST_MER_FRS"
-    expected_tiles = {0: 2, 1: 4, 2: 4, 3: 16, 4: 16, 5: 36, 6: 80, 7: 168, 8: 624}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 128, 6: 256, 7: 576, 8: 1024}
 
 
 #===============================================================================
@@ -161,7 +161,7 @@ class SeedRegularGridBrowse(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "test_data/ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775.xml"
     
     expected_inserted_into_series = "TEST_ASA_WSM"
-    expected_tiles = {0: 2, 1: 4, 2: 8, 3: 4, 4: 16, 5: 16, 6: 24, 7: 48, 8: 96}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 64, 6: 128, 7: 256, 8: 384}
 
 class IngestRegularGridBrowse2(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     storage_dir = "data/feed_test_data"
@@ -196,7 +196,7 @@ class SeedRegularGridBrowse2(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "feed_test_data/BrowseReport.xml"
     
     expected_inserted_into_series = "TEST_SAR"
-    expected_tiles = {0: 2, 1: 4, 2: 4, 3: 8, 4: 8, 5: 8, 6: 8, 7: 16, 8: 16}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 64, 6: 64, 7: 64, 8: 128}
 
 
 #===============================================================================
@@ -234,7 +234,7 @@ class SeedFootprintBrowse(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     
     expected_inserted_into_series = "TEST_SAR"
-    expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 16, 7: 24, 8: 48}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 256}
 
 class IngestFootprintBrowse2(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100731_103315.xml"
@@ -267,7 +267,7 @@ class SeedFootprintBrowse2(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100731_103315.xml"
     
     expected_inserted_into_series = "TEST_SAR"
-    expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 16, 7: 16, 8: 36}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 128}
 
 class IngestFootprintBrowse3(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100813_102453.xml"
@@ -300,7 +300,7 @@ class SeedFootprintBrowse3(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100813_102453.xml"
     
     expected_inserted_into_series = "TEST_SAR"
-    expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 16, 7: 36, 8: 36}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 256}
 
 class IngestFootprintBrowse7(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     storage_dir = "data/aiv_test_data"
@@ -335,7 +335,7 @@ class SeedFootprintBrowse7(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "aiv_test_data/BrowseReport.xml"
     
     expected_inserted_into_series = "TEST_SAR"
-    expected_tiles = {0: 2, 1: 4, 2: 4, 3: 4, 4: 8, 5: 4, 6: 16, 7: 8, 8: 4}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 64, 6: 64, 7: 64, 8: 64}
 
 
 #===============================================================================
@@ -373,7 +373,7 @@ class SeedFootprintBrowse4(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100719_105257.xml"
     
     expected_inserted_into_series = "TEST_OPTICAL"
-    expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 36, 7: 60, 8: 216}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 384}
 
 class IngestFootprintBrowse5(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100719_213253.xml"
@@ -406,7 +406,7 @@ class SeedFootprintBrowse5(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100719_213253.xml"
     
     expected_inserted_into_series = "TEST_OPTICAL"
-    expected_tiles = {0: 2, 1: 8, 2: 8, 3: 8, 4: 8, 5: 16, 6: 36, 7: 60, 8: 160}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 384}
 
 class IngestFootprintBrowse6(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606.xml"
@@ -439,7 +439,7 @@ class SeedFootprintBrowse6(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606.xml"
     
     expected_inserted_into_series = "TEST_OPTICAL"
-    expected_tiles = {0: 2, 1: 4, 2: 4, 3: 4, 4: 4, 5: 16, 6: 24, 7: 80, 8: 168}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 64, 6: 64, 7: 128, 8: 256}
 
 
 #===============================================================================
@@ -478,7 +478,7 @@ class SeedBrowseNoID(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606_noid.xml"
     
     expected_inserted_into_series = "TEST_OPTICAL"
-    expected_tiles = {0: 2, 1: 4, 2: 4, 3: 4, 4: 4, 5: 16, 6: 24, 7: 80, 8: 168}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 64, 6: 64, 7: 128, 8: 256}
 
 class IngestBrowseSpecialID(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606_specialid.xml"
@@ -512,7 +512,7 @@ class SeedBrowseSpecialID(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606_specialid.xml"
     
     expected_inserted_into_series = "TEST_OPTICAL"
-    expected_tiles = {0: 2, 1: 4, 2: 4, 3: 4, 4: 4, 5: 16, 6: 24, 7: 80, 8: 168}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 64, 6: 64, 7: 128, 8: 256}
 
 #===============================================================================
 # Ingest a browse report with multiple browses inside
@@ -561,7 +561,7 @@ class SeedFootprintBrowseGroup(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase)
     request_file = "reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"
     
     expected_inserted_into_series = "TEST_SAR"
-    expected_tiles = {0: 6, 1: 24, 2: 24, 3: 24, 4: 24, 5: 48, 6: 76, 7: 144, 8: 348}
+    expected_tiles = {0: 6, 1: 24, 2: 96, 3: 384, 4: 384, 5: 384, 6: 384, 7: 384, 8: 896}
 
 #===============================================================================
 # Ingest a browse report which includes a replacement of a previous browse
@@ -647,7 +647,7 @@ class SeedFootprintBrowseGroupPartial(SeedTestCaseMixIn, HttpMixIn, LiveServerTe
     request_file = "reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group_partial.xml"
     
     expected_inserted_into_series = "TEST_SAR"
-    expected_tiles = {0: 4, 1: 16, 2: 16, 3: 16, 4: 16, 5: 32, 6: 40, 7: 96, 8: 236}
+    expected_tiles = {0: 4, 1: 16, 2: 64, 3: 256, 4: 256, 5: 256, 6: 256, 7: 256, 8: 640}
 
 
 #===============================================================================

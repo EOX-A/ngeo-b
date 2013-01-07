@@ -10,6 +10,10 @@ ln -s <ngeo_browse_server> ngeo_browse_server
 vagrant up
 vagrant ssh
 
+# vagrant add-ons:
+vagrant gem install sahara          # Sandboxing
+vagrant gem install vagrant-vbguest # Check for Virtualbox Guest Additions
+
 # Install:
 cd /var/eoxserver/
 sudo python setup.py develop
