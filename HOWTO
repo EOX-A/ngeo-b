@@ -66,12 +66,14 @@ python setup.py bdist_rpm --requires "Django14 >= 1.4.2 gdal-python mapserver-py
 ssh eox@ngeo.eox.at
 cd build/mapcache/
 git pull
-git archive --format=tar --prefix=mapcache-1.1dev/ timedimension | gzip > ../../rpmbuild/SOURCES/mapcache-1.1dev.tar.gz
+# Merge branches timedimension and ro-tileset in ngeo
+git archive --format=tar --prefix=mapcache-1.1dev/ ngeo | gzip > ../../rpmbuild/SOURCES/mapcache-1.1dev.tar.gz
 cd ../../rpmbuild/SPECS/
 vi mapcache.spec
 # Adjust Release
-rpmbuild -ba mapcache.spec 
+rpmbuild -ba mapcache.spec
 cd ..
 mv RPMS/x86_64/ .
-tar czf tmp.tar.gz x86_64/ SRPMS/
+tar czf t x86_64/ SRPMS/
+rm -r x86_64/ SRPMS/
 # Install at packages@yum.packages.eox.at
