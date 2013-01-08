@@ -59,7 +59,6 @@ from ngeo_browse_server.control.ingest.config import (
 from ngeo_browse_server.mapcache import models as mapcache_models
 
 
-
 logger = logging.getLogger(__name__)
 
 gdal.UseExceptions()
@@ -197,10 +196,12 @@ class BaseTestCaseMixIn(object):
         self.temp_mapcache_dir = tempfile.mkdtemp() + "/"
         db_file = settings.DATABASES["mapcache"]["TEST_NAME"]
         mapcache_config_file = join(self.temp_mapcache_dir, "seed_mapcache.xml")
+        
         with open(mapcache_config_file, "w+") as f:
             f.write(render_to_string("test_control/seed_mapcache.xml",
                                      {"mapcache_dir": self.temp_mapcache_dir,
                                       "mapcache_test_db": db_file,
+                                      "browse_layers": models.BrowseLayer.objects.all(),
                                       "base_url": getattr(self, "live_server_url",
                                                           "http://localhost/browse")}))
         
@@ -569,7 +570,7 @@ class IngestReplaceTestCaseMixIn(IngestTestCaseMixIn):
 
 
 class RasterMixIn(object):
-    """ Test case mix-in to test (GDAL-)raster files. """
+    """ Test case mix-in to test the optimized (GDAL-)raster files. """
     raster_file = None
     
     def open_raster(self, dirname=None, raster_file=None):
@@ -584,6 +585,34 @@ class RasterMixIn(object):
             return gdal.Open(filename)
         except RuntimeError:
             self.fail("Raster file '%s' is not present." % filename)
+
+
+class WMSRasterMixIn(RasterMixIn):
+    """ Test case mix-in to test WMS raster responses instead of the optimized 
+    files.
+    """
+    
+    wms_request = None
+    
+    def open_raster(self):
+        # dispatch wms request
+        response = self.client.get(self.wms_request)
+        
+        if response.status_code != 200:
+            self.fail("WMS received response with status '%d'"
+                      % response.status_code) 
+        
+        filename = '/vsimem/wms_temp'
+        
+        
+        try:
+            gdal.FileFromMemBuffer(filename, response.content)
+            ds = gdal.Open(filename, gdal.GA_ReadOnly)
+        
+        finally:
+            gdal.Unlink(filename)
+        
+        return ds
 
 
 class OverviewMixIn(RasterMixIn):
@@ -670,31 +699,26 @@ class ProjectionMixIn(RasterMixIn):
 
 class StatisticsMixIn(RasterMixIn):
     expected_statistics = []
+    maxDiff = None
     
     def test_statistics(self):
         if not self.expected_statistics:
             self.skipTest("No expected statistics given.")
         
+        # Use in-memory dataset here to not create a statistics metadata file on
+        # the disc.
         ds = create_mem_copy(self.open_raster())
         self.assertEqual(len(self.expected_statistics), ds.RasterCount)
-        for index, stats in enumerate(self.expected_statistics, 1):
-            band = ds.GetRasterBand(index)
-            rmin, rmax, mean, stddev = band.ComputeStatistics(False)
+        
+        statistics = []
+        for index in range(1, ds.RasterCount + 1):
+            names = ("min", "max", "mean", "stddev", "checksum")
             
-            if "min" in stats:
-                self.assertAlmostEqual(stats["min"], rmin, delta=0.1)
-                
-            if "max" in stats:
-                self.assertAlmostEqual(stats["max"], rmax, delta=0.1)
-                
-            if "mean" in stats:
-                self.assertAlmostEqual(stats["mean"], mean, delta=0.1)
-                
-            if "stddev" in stats:
-                self.assertAlmostEqual(stats["stddev"], stddev, delta=0.1)
-                
-            if "checksum" in stats:
-                self.assertEqual(stats["checksum"], band.Checksum())
+            band = ds.GetRasterBand(index)
+            stats = band.ComputeStatistics(False) + [band.Checksum()]
+            statistics.append(dict(zip(names, stats)))
+            
+        self.assertEqual(self.expected_statistics, statistics)
 
 
 class IngestFailureTestCaseMixIn(BaseTestCaseMixIn):

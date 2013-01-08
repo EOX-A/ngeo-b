@@ -11,7 +11,7 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
 
     # translate grid
     if grid == "urn:ogc:def:wkss:OGC:1.0:GoogleMapsCompatible":
-        grid = "G"
+        grid = "GoogleMapsCompatible"
     elif grid == "urn:ogc:def:wkss:OGC:1.0:GoogleCRS84Quad":
         grid = "WGS84"
     else:

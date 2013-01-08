@@ -36,7 +36,7 @@ from ngeo_browse_server.control.testbase import (
     BaseTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, CliMixIn, 
     IngestTestCaseMixIn, SeedTestCaseMixIn, IngestReplaceTestCaseMixIn, 
     OverviewMixIn, CompressionMixIn, BandCountMixIn, HasColorTableMixIn, 
-    ExtentMixIn, SizeMixIn, ProjectionMixIn, StatisticsMixIn,
+    ExtentMixIn, SizeMixIn, ProjectionMixIn, StatisticsMixIn, WMSRasterMixIn,
     IngestFailureTestCaseMixIn
 )
 from ngeo_browse_server.control.ingest.config import (
@@ -82,6 +82,42 @@ class SeedModelInGeotiffBrowse(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase)
     
     expected_inserted_into_series = "TEST_MER_FRS"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 128, 6: 256, 7: 576, 8: 1024}
+
+
+class IngestModelInGeotiffBrowseGoogleMercator(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    storage_dir = "data/test_data"
+    request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_GOOGLE_MERCATOR.xml"
+    
+    expected_ingested_browse_ids = ("MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced",)
+    expected_inserted_into_series = "TEST_GOOGLE_MERCATOR"
+    expected_optimized_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_proc.tif']
+    expected_deleted_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.tif']
+    
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+class SeedModelInGeotiffBrowseGoogleMercator(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
+    storage_dir = "data/test_data"
+    request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_GOOGLE_MERCATOR.xml"
+    
+    expected_inserted_into_series = "TEST_GOOGLE_MERCATOR"
+    expected_tiles = {0: 1, 1: 4, 2: 16, 3: 64, 4: 64, 5: 64, 6: 128, 7: 256, 8: 384}
 
 
 #===============================================================================
@@ -1204,6 +1240,139 @@ class IngestRasterStatistics(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, Test
         "stddev": 127.0,
         "checksum": 44546
     }]
+    
+
+#===============================================================================
+# Raster tests for browses with more than 3 input bands
+#===============================================================================
+
+
+class IngestRasterStatisticsMultipleBands(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, TestCase):
+    storage_dir = "data/test_data"
+    request_file = "test_data/MER_FRS_1PNPDE20060816_090929_000001972050_00222_23322_0058_uint16_reduced_compressed.xml"
+    
+    raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_MER_FRS_FULL", "MER_FRS_1PNPDE20060816_090929_000001972050_00222_23322_0058_uint16_reduced_compressed_proc.tif"))
+    
+    expected_statistics = [
+        {'max': 255.0, 'checksum': 30191, 'mean': 15.659451199310894, 'stddev': 22.103667727281124, 'min': 0.0},
+        {'max': 255.0, 'checksum': 35428, 'mean': 13.540062615955472, 'stddev': 21.258531872828733, 'min': 0.0},
+        {'max': 255.0, 'checksum': 16276, 'mean': 13.158705771269547, 'stddev': 21.48301977479764, 'min': 0.0},
+        {'max': 255.0, 'checksum': 22831, 'mean': 165.51471806254969, 'stddev': 121.70099100099743, 'min': 0.0} 
+    ]
+
+
+class IngestRasterStatisticsMultipleBandsNoDefinition(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, TestCase):
+    storage_dir = "data/test_data"
+    request_file = "test_data/MER_FRS_1PNPDE20060816_090929_000001972050_00222_23322_0058_uint16_reduced_compressed_NO_BANDS.xml"
+    
+    raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_MER_FRS_FULL_NO_BANDS", "MER_FRS_1PNPDE20060816_090929_000001972050_00222_23322_0058_uint16_reduced_compressed_proc.tif"))
+    
+    expected_statistics = [
+        {'max': 255.0, 'checksum': 33522, 'mean': 17.049554399681952, 'stddev': 22.625493105759691, 'min': 0.0},
+        {'max': 255.0, 'checksum': 30191, 'mean': 15.659451199310894, 'stddev': 22.103667727281124, 'min': 0.0},
+        {'max': 255.0, 'checksum': 6918, 'mean': 14.176099092234296, 'stddev': 21.602771443516307, 'min': 0.0},
+        {'max': 255.0, 'checksum': 22822, 'mean': 165.51471806254969, 'stddev': 121.70099100099743, 'min': 0.0} 
+    ]
+    
+
+#===============================================================================
+# WMS Raster test cases
+#===============================================================================
+
+class IngestModelInGeoTiffWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
+    wms_request = ("/ows?service=WMS&request=GetMap&version=1.3.0&"
+                   "layers=%(layers)s&crs=EPSG:4326&bbox=%(bbox)s&"
+                   "width=%(width)d&height=%(height)d&format=image/png" % {
+                       "layers": "MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced",
+                       "bbox": ",".join(map(str, (
+                            32.1902500,
+                            8.4784500,  
+                            46.2686450, 
+                            25.4101500))),
+                       "width": 100,
+                       "height": 100,
+                    }
+                   )
+    
+    storage_dir = "data/test_data"
+    request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.xml"
+    
+    expected_statistics = [
+        {'max': 255.0, 'checksum': 9204, 'mean': 40.346400000000003, 'stddev': 41.657126725687647, 'min': 0.0},
+        {'max': 255.0, 'checksum': 8685, 'mean': 39.574100000000001, 'stddev': 40.424179759025414, 'min': 0.0},
+        {'max': 255.0, 'checksum': 10797, 'mean': 41.883000000000003, 'stddev': 38.541726881394403, 'min': 0.0}
+    ]
+
+
+class IngestRectifiedWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
+    wms_request = ("/ows?service=WMS&request=GetMap&version=1.3.0&"
+                   "layers=%(layers)s&crs=EPSG:4326&bbox=%(bbox)s&"
+                   "width=%(width)d&height=%(height)d&format=image/png" % {
+                       "layers": "MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced",
+                       "bbox": ",".join(map(str, (
+                            32.1902500,
+                            8.4784500,  
+                            46.2686450, 
+                            25.4101500))),
+                       "width": 100,
+                       "height": 100,
+                    }
+                   )
+
+    storage_dir = "data/test_data/"
+    request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_nogeo.xml"
+    
+    expected_statistics = [
+        {'max': 255.0, 'checksum': 9204, 'mean': 40.346400000000003, 'stddev': 41.657126725687647, 'min': 0.0},
+        {'max': 255.0, 'checksum': 8685, 'mean': 39.574100000000001, 'stddev': 40.424179759025414, 'min': 0.0},
+        {'max': 255.0, 'checksum': 10797, 'mean': 41.883000000000003, 'stddev': 38.541726881394403, 'min': 0.0}
+    ]
+
+
+class IngestFootprintWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
+    wms_request = ("/ows?service=WMS&request=GetMap&version=1.3.0&"
+                   "layers=%(layers)s&crs=EPSG:4326&bbox=%(bbox)s&"
+                   "width=%(width)d&height=%(height)d&format=image/png" % {
+                       "layers": "b_id_1",
+                       "bbox": ",".join(map(str, (
+                            49.461072913649971,
+                            -2.7625000000000002,  
+                            53.079999999999998, 
+                            -0.001983356685690385))),
+                       "width": 100,
+                       "height": 100,
+                    }
+                   )
+    
+    request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
+    
+    expected_statistics = [{
+        "min": 0.0,
+        "max": 255.0,
+        "mean": 63.9,
+        "stddev": 76.0,
+        "checksum": 56631
+    }] * 3
+
+
+class IngestRegularGridWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
+    storage_dir = "data/test_data"
+    request_file = "test_data/ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775.xml"
+
+    wms_request = ("/ows?service=WMS&request=GetMap&version=1.3.0&"
+                   "layers=%(layers)s&crs=EPSG:4326&bbox=%(bbox)s&"
+                   "width=%(width)d&height=%(height)d&format=image/png" % {
+                       "layers": "ASAR",
+                       "bbox": ",".join(map(str, 
+                           (-36.259107, 16.727605000000001, -31.984922000000001, 22.301753999999999))),
+                       "width": 100,
+                       "height": 100,
+                    }
+                   )
+    
+    expected_statistics = [
+        {'max': 251.0, 'checksum': 11342, 'mean': 29.2577, 'stddev': 33.854823743596718, 'min': 0.0}
+    ] * 3
 
 
 #===============================================================================
