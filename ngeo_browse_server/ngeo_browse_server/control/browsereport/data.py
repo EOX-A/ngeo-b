@@ -152,11 +152,11 @@ class ModelInGeotiffBrowse(Browse):
 class BrowseReport(object):
     """ Browse report data model. """
     
-    def __init__(self, browse_type, date_time, responsible_org_name, browses):
+    def __init__(self, browse_type, date_time, responsible_org_name, browses=None):
         self._browse_type = browse_type
         self._date_time = date_time
         self._responsible_org_name = responsible_org_name
-        self._browses = list(browses)
+        self._browses = list(browses) if browses else []
     
     
     def __iter__(self):
