@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfg:browseLayers xmlns:cfg="http://ngeo.eo.esa.int/schema/configurationElements" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/configurationElements http://ngeo.eo.esa.int/schema/configurationElements/ConfigurationElements.xsd">
+    <cfg:browseLayer browseLayerId="TEST_SAR">
+        <cfg:browseType>SAR</cfg:browseType>
+        <cfg:title>TESTTITLE_SAR</cfg:title>
+        <cfg:browseAccessPolicy>OPEN</cfg:browseAccessPolicy>
+        <cfg:hostingBrowseServerName>DUMMY_SERVER</cfg:hostingBrowseServerName>
+        <cfg:relatedDatasetIds>
+            <cfg:datasetId>SAR</cfg:datasetId>
+        </cfg:relatedDatasetIds>
+        <cfg:containsVerticalCurtains>false</cfg:containsVerticalCurtains>
+        <cfg:rgbBands>1,2,3</cfg:rgbBands>
+        <cfg:radiometricInterval>
+            <cfg:min>0</cfg:min>
+            <cfg:max>255</cfg:max>
+        </cfg:radiometricInterval>
+        <cfg:highestMapLevel>0</cfg:highestMapLevel>
+        <cfg:lowestMapLevel>8</cfg:lowestMapLevel>
+        <cfg:grid>urn:ogc:def:wkss:OGC:1.0:GoogleCRS84Quad</cfg:grid>
+    </cfg:browseLayer>
+</cfg:browseLayers>

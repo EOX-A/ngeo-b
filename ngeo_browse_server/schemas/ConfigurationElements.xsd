@@ -659,6 +659,17 @@ These zoom level refer to the tile definition provided in the specific configura
         <element name="highestMapLevel" type="int"/>
         <element name="lowestMapLevel" type="int"/>
       </sequence>
+      <element name="grid">
+        <annotation>
+          <documentation>Grid of a browse layer.</documentation>
+        </annotation>
+        <simpleType>
+          <restriction base="cfg:string255">
+            <enumeration value="urn:ogc:def:wkss:OGC:1.0:GoogleMapsCompatible"/>
+            <enumeration value="urn:ogc:def:wkss:OGC:1.0:GoogleCRS84Quad"/>
+          </restriction>
+        </simpleType>
+      </element>
     </sequence>
     <attribute name="browseLayerId" type="cfg:string255RestrictedChars" use="required">
       <annotation>
