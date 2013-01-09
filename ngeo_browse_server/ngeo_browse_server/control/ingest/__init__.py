@@ -71,6 +71,7 @@ from ngeo_browse_server.control.ingest.config import (
 from ngeo_browse_server.control.ingest.exceptions import IngestionException
 from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.mapcache.tasks import seed_mapcache
+from control.browsereport.serialization import serialize_browse_report
 
 
 logger = logging.getLogger(__name__)
@@ -704,5 +705,4 @@ def _save_result_browse_report(browse_report, path):
     safe_makedirs(dirname(path))
     
     with open(path, "w+") as f:
-        f.write(render_to_string("control/browse_report.xml",
-                                 {"browse_report": browse_report}))
+        serialize_browse_report(browse_report, f)
