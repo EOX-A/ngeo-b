@@ -29,11 +29,11 @@
 
 
 class BrowseLayer(object):
-    def __init__(self, browse_layer_identifier, browse_type, title, description, grid,
-                 browse_access_policy="OPEN", contains_vertical_curtains=False,
-                 r_band=None, g_band=None, b_band=None,
-                 radiometric_interval_min=None, radiometric_interval_max=None,
-                 highest_map_level=None, lowest_map_level=None):
+    def __init__(self, browse_layer_identifier, browse_type, title, grid,
+                 browse_access_policy, contains_vertical_curtains, 
+                 highest_map_level, lowest_map_level,
+                 description=None, r_band=None, g_band=None, b_band=None,
+                 radiometric_interval_min=None, radiometric_interval_max=None):
         self._browse_layer_identifier = browse_layer_identifier
         self._browse_type = browse_type
         self._title = title
