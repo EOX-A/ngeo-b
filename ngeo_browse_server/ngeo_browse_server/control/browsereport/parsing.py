@@ -33,19 +33,12 @@ from lxml import etree
 
 from eoxserver.core.util.timetools import getDateTime
 
-from ngeo_browse_server.control.ingest import data  
-from ngeo_browse_server.control.ingest.exceptions import ParsingException
+from ngeo_browse_server.control.browsereport import data  
+from ngeo_browse_server.control.browsereport.exceptions import ParsingException
+from ngeo_browse_server.control.namespace import ns_rep, ns_bsi
 
 
 logger = logging.getLogger(__name__)
-
-def ns_rep(tag):
-    "Namespacify a given tag name for the use with etree"
-    return "{http://ngeo.eo.esa.int/schema/browseReport}" + tag
-
-def ns_bsi(tag):
-    "Namespacify a given tag name for the use with etree"
-    return "{http://ngeo.eo.esa.int/schema/browse/ingestion}" + tag
 
 
 def pairwise(iterable):
