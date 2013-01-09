@@ -10,39 +10,11 @@ from eoxserver.resources.coverages.management.commands import CommandOutputMixIn
 from ngeo_browse_server.control.ingest import ingest_browse_report
 from ngeo_browse_server.control.browsereport.parsing import parse_browse_report
 from ngeo_browse_server.config import get_ngeo_config
+from ngeo_browse_server.control.management.commands import LogToConsoleMixIn
 
 
 logger = logging.getLogger(__name__)
 
-class LogToConsoleMixIn(object):
-    """ Helper mix-in to redirect logs to the `sys.stderr` stream. """
-    
-    def set_up_logging(self, loggernames, verbosity=None, traceback=False):
-        verbosity = int(verbosity)
-        if verbosity is None:
-            verbosity = 1
-        
-        VERBOSITY_TO_LEVEL = {
-            0: logging.CRITICAL,
-            1: logging.WARNING,
-            2: logging.INFO,
-            3: logging.DEBUG
-        }
-        level = VERBOSITY_TO_LEVEL[verbosity]
-        
-        # set up logging
-        handler = logging.StreamHandler()
-        handler.setLevel(level)
-        handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
-        
-        for name in loggernames:
-            logging.getLogger(name).addHandler(handler)
-        
-        # TODO: don't interfere with CommandOutputMixIn   
-        #logging.getLogger(
-        #    "eoxserver.resources.coverages.management.commands"
-        #).
-        
 
 class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
     
