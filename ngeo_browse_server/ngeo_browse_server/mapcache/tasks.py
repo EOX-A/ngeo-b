@@ -1,6 +1,8 @@
 import logging
 import subprocess
+
 from ngeo_browse_server.mapcache.exceptions import SeedException
+from ngeo_browse_server.mapcache.tileset import URN_TO_GRID
 
 
 logger = logging.getLogger(__name__)
@@ -9,12 +11,10 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
                   minx, miny, maxx, maxy, minzoom, maxzoom,
                   start_time, end_time, threads, delete):
 
-    # translate grid
-    if grid == "urn:ogc:def:wkss:OGC:1.0:GoogleMapsCompatible":
-        grid = "GoogleMapsCompatible"
-    elif grid == "urn:ogc:def:wkss:OGC:1.0:GoogleCRS84Quad":
-        grid = "WGS84"
-    else:
+    # translate grid URN to mapcache grid name
+    try:
+        grid = URN_TO_GRID[grid]
+    except KeyError:
         raise Exception("Invalid grid '%s'." % grid)
     
     if minzoom is None: minzoom = 0
