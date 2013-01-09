@@ -50,10 +50,10 @@ from eoxserver.resources.coverages.models import NCNameValidator
 
 from ngeo_browse_server.config import get_ngeo_config, safe_get
 from ngeo_browse_server.config import models
-from ngeo_browse_server.control.ingest.parsing import (
+from ngeo_browse_server.control.browsereport.parsing import (
     parse_browse_report, parse_coord_list
 )
-from ngeo_browse_server.control.ingest import data
+from ngeo_browse_server.control.browsereport import data
 from ngeo_browse_server.control.ingest.result import (
     IngestBrowseReportResult, IngestBrowseResult, IngestBrowseReplaceResult,
     IngestBrowseFailureResult

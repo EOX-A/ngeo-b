@@ -1,10 +1,5 @@
+from ngeo_browse_server.control.exception import NGEOException
 
-
-class IngestionException(Exception):
+class IngestionException(NGEOException):
     """ Base class for ingestion related exceptions. """
-    def __init__(self, message=None, code=None):
-        super(IngestionException, self).__init__(message)
-        self.code = code
 
-class ParsingException(IngestionException):
-    pass

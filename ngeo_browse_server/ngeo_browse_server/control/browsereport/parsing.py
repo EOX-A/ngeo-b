@@ -29,6 +29,7 @@
 
 import logging
 from itertools import izip
+from lxml import etree 
 
 from eoxserver.core.util.timetools import getDateTime
 
@@ -77,6 +78,16 @@ def parse_browse_report(browse_report):
     logger.info("Finished parsing browse report.")
 
     return browse_report
+
+
+def parse_browse_iteratively(source):
+    parser = etree.iterparse(source, events=("start", "end",))
+    
+    _, root = parser.next()
+    
+    # TODO: implement
+    
+    
 
 
 def parse_browse(browse_elem, browse_report=None):
