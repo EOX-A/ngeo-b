@@ -28,42 +28,129 @@
 #-------------------------------------------------------------------------------
 
 import os
-from os.path import exists, basename, dirname
+from os.path import exists, basename, dirname, join
 import tarfile
+from datetime import datetime
+from ngeo_browse_server.control.exceptions import NGEOException
 
 """
 tar-file structure is like that:
 
 archive.tar.gz
-├── browseLayer.xml
-├── reports
-│   ├── <browseReport1>.xml
-│   ├── <browseReport2>.xml
-│   ├── <browseReport3>.xml
-│   └── ...
-├── optimized
-│   ├── browse1_proc.tif
-│   ├── browse1_proc.xml
-│   ├── browse2_proc.tif
-│   ├── browse2_proc.xml
-│   ├── browse3_proc.tif
-│   ├── browse3_proc.xml
-│   └── ...
-└── (cache)
-    └── <tileset>
-        └── <grid>
-            ├── <x>-<y>-<z>-<dim>.png
-            ├── <x>-<y>-<z>-<dim>.png
-            ├── <x>-<y>-<z>-<dim>.png
-            └── ...
+|-- browseLayer.xml
+|-- reports
+|   |-- <browseReport1>.xml
+|   |-- <browseReport2>.xml
+|   |-- <browseReport3>.xml
+|   `-- ...
+|-- optimized
+|   |-- browse1_proc.tif
+|   |-- browse1_proc.xml
+|   |-- browse2_proc.tif
+|   |-- browse2_proc.xml
+|   |-- browse3_proc.tif
+|   |-- browse3_proc.xml
+|   `-- ...
+`-- (cache)
+    `-- <tileset>
+        `-- <grid>
+            |-- <x>-<y>-<z>-<dim>.png
+            |-- <x>-<y>-<z>-<dim>.png
+            |-- <x>-<y>-<z>-<dim>.png
+            `-- ...
 """
 
 
+COMPRESSION_TO_EXT = {
+    "none": ".tar",
+    "gzip": ".tar.gz",
+    "gz": ".tar.gz",
+    "bzip2": ".tar.bz2",
+    "bz2": ".tar.bz2"
+}
+
+COMPRESSION_TO_SPECIFIER = {
+    "none": "",
+    "gzip": "gz",
+    "gz": "gz",
+    "bzip2": "bz2",
+    "bz2": "bz2"
+}
 
 
-
-def create(path, browse_report, cache_tileset=None):
+class PackageException(NGEOException):
     pass
+
+
+class PackageWriter(object):
+    def __init__(self, path, compression):
+        self._path = path
+        self._tarfile = tarfile.open(
+            path, "w:" + COMPRESSION_TO_SPECIFIER[compression]
+        )
+    
+    
+    def set_browse_layer(self, browse_layer_file):
+        info = tarfile.TarInfo("browseLayer.xml")
+        self._tarfile.addfile(info, browse_layer_file)
+    
+    
+    def add_browse_report(self, browse_report_file, name=None):
+        if not name:
+            name = "TODO"
+        info = tarfile.TarInfo(join("reports", name))
+        self._tarfile.addfile(info, browse_report_file)
+    
+    
+    def add_browse(self, browse_file, name):
+        info = tarfile.TarInfo(join("optimized", name))
+        self._tarfile.addfile(info, browse_file)
+    
+    
+    def add_cache_file(self, tileset, grid, x, y, z, dim):
+        pass
+    
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, etype, value, traceback):
+        " End of critical block. Either close/save tarfile or remove it. "
+
+        # on success
+        if (etype, value, traceback) == (None, None, None):
+            # TODO: error handling
+            self.close()
+        
+        else:
+            # remove the archive file
+            self.close()
+            os.remove(self._path)
+    
+    
+    def close(self):
+        self._tarfile.close()
+
+
+def create(path, compression, force=False):
+    if force and exists(path):
+        print "P"
+        raise PackageException("Output file already exists.")
+    elif exists(path):
+        os.remove(path)
+    
+    print "P"
+    
+    return PackageWriter(path, compression)
+
+
+def open(path):
+    pass
+
+
+def generate_filename(compression):
+    now = datetime.utcnow()
+    return now.strftime("export_%Y%m%d%H%M%S%f") + COMPRESSION_TO_EXT[compression]
 
 
 def save(pacakge, path):
@@ -81,7 +168,6 @@ def save(pacakge, path):
     #  - if a cache is present, create a folder structure cache/<tileset>/<grid>/
     #  - loop over all items in the cache tileset, create a filename like ...
     #    and save the cache tile under that name in the folder in the archive
-    
 
 def load(path):
     pass
