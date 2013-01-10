@@ -27,7 +27,7 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
-from ngeo_browse_server.control.exception import NGEOException
+from ngeo_browse_server.control.exceptions import NGEOException
 
 
 class ParsingException(NGEOException):
