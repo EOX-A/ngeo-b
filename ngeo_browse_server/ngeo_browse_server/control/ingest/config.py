@@ -27,24 +27,17 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
-from os.path import isabs, join, basename, splitext
+from os.path import join, basename, splitext
 
-from django.conf import settings
 from eoxserver.processing.preprocessing import RGB, RGBA
 
-from ngeo_browse_server.config import get_ngeo_config, safe_get
+from ngeo_browse_server.config import (
+    get_ngeo_config, safe_get, get_project_relative_path
+)
 
 
 INGEST_SECTION = "control.ingest"
-MAPCACHE_SECTION = "control.ingest.mapcache"
 
-def get_project_relative_path(path):
-    """ Returns a path, relative to the defined `PROJECT_DIR` directory. """
-    
-    if isabs(path):
-        return path
-    
-    return join(settings.PROJECT_DIR, path)
 
 
 def get_storage_path(file_name, storage_dir=None, config=None):
@@ -165,15 +158,3 @@ def get_optimization_config(config=None):
     
     return values
 
-
-def get_mapcache_config(config=None):
-    """ Returns a dicitonary with all mapcache related config settings. """
-    
-    values = {}
-    config = config or get_ngeo_config()
-    
-    values["seed_command"] = safe_get(config, MAPCACHE_SECTION, "seed_command", "mapcache_seed")
-    values["config_file"] = config.get(MAPCACHE_SECTION, "config_file")
-    values["threads"] = int(safe_get(config, MAPCACHE_SECTION, "threads", 1))
-    
-    return values

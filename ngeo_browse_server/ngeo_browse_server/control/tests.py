@@ -40,7 +40,7 @@ from ngeo_browse_server.control.testbase import (
     IngestFailureTestCaseMixIn
 )
 from ngeo_browse_server.control.ingest.config import (
-    INGEST_SECTION, MAPCACHE_SECTION
+    INGEST_SECTION
 )
 
 

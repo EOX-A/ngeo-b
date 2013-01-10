@@ -54,9 +54,10 @@ from ngeo_browse_server.config import get_ngeo_config, reset_ngeo_config
 from ngeo_browse_server.config import models
 from ngeo_browse_server.control.ingest import safe_makedirs
 from ngeo_browse_server.control.ingest.config import (
-    INGEST_SECTION, MAPCACHE_SECTION
+    INGEST_SECTION, 
 )
 from ngeo_browse_server.mapcache import models as mapcache_models
+from ngeo_browse_server.mapcache.config import SEED_SECTION
 
 
 logger = logging.getLogger(__name__)
@@ -205,7 +206,7 @@ class BaseTestCaseMixIn(object):
                                       "base_url": getattr(self, "live_server_url",
                                                           "http://localhost/browse")}))
         
-        config.set(MAPCACHE_SECTION, "config_file", mapcache_config_file)
+        config.set(SEED_SECTION, "config_file", mapcache_config_file)
         
         # setup mapcache dummy seed command
         seed_command_file = tempfile.NamedTemporaryFile(delete=False)
@@ -215,7 +216,7 @@ class BaseTestCaseMixIn(object):
         st = stat(self.seed_command)
         chmod(self.seed_command, st.st_mode | S_IEXEC)
         
-        config.set(MAPCACHE_SECTION, "seed_command", self.seed_command)
+        config.set(SEED_SECTION, "seed_command", self.seed_command)
     
     def setUp_config(self):
         # set up default config and specific config
@@ -493,7 +494,7 @@ class SeedTestCaseMixIn(BaseTestCaseMixIn):
         raise IOError("MapCache seed command not found.")
     
     configuration = {
-        (MAPCACHE_SECTION, "seed_command"): seed_command,
+        (SEED_SECTION, "seed_command"): seed_command,
     }
 
     def test_seed(self):
