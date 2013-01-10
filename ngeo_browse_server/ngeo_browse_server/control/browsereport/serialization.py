@@ -41,7 +41,6 @@ def serialize_browse_report(browse_report, stream, pretty_print=False):
     SubElement(browse_report_elem, ns_rep("browseType")).text = browse_report.browse_type
     
     for browse in browse_report:
-        # TODO: wrap in adapter, necessary for models
         browse_report_elem.append(SERIALIZE_FUNCTIONS[browse.geo_type](browse))
     
 

@@ -85,6 +85,10 @@ class RectifiedBrowse(Browse):
         return kwargs
 
 class FootprintBrowse(Browse):
+    @classmethod
+    def from_model(cls, browse_model):
+        return FootprintBrowse(
+        )
     
     def __init__(self, node_number, col_row_list, coord_list, *args, **kwargs):
         super(FootprintBrowse, self).__init__(*args, **kwargs)
@@ -149,8 +153,53 @@ class ModelInGeotiffBrowse(Browse):
     geo_type = property(lambda self: "modelInGeotiffBrowse")
 
 
+def browse_from_model(browse_model):
+    kwargs = {
+        "file_name": browse_model.file_name,
+        "image_type": browse_model.image_type,
+        "reference_system_identifier": browse_model.reference_system_identifier,
+        "start_time": browse_model.start_time,
+        "end_time": browse_model.end_time
+    }
+    
+    
+    if browse_model.rectifiedbrowse:
+        return RectifiedBrowse(browse_model.rectifiedbrowse.coord_list, **kwargs)
+    elif browse_model.footprintbrowse:
+        return FootprintBrowse(
+            browse_model.footprintbrowse.node_number, 
+            browse_model.footprintbrowse.col_row_list, 
+            browse_model.footprintbrowse.coord_list,
+            **kwargs
+        )
+    elif browse_model.regulargridbrowse:
+        return RegularGridBrowse(
+            browse_model.footprintbrowse.col_node_number,
+            browse_model.footprintbrowse.row_node_number, 
+            browse_model.footprintbrowse.col_step,
+            browse_model.footprintbrowse.row_step,
+            [coord_list.coord_list
+             for coord_list in browse_model.footprintbrowse.coord_lists.all()]
+        )
+    elif browse_model.modelingeotiffbrowse:
+        return ModelInGeotiffBrowse(**kwargs)
+
 class BrowseReport(object):
     """ Browse report data model. """
+    
+    @classmethod
+    def from_model(cls, browse_report_model, browses_qs=None):
+        if browses_qs is None:
+            browses_qs = browse_report_model.browses.all()
+        
+        return BrowseReport(
+            browse_report_model.browse_layer.browse_type,
+            browse_report_model.date_time,
+            browse_report_model.responsible_org_name,
+            browses=[browse_from_model(browse_model) 
+                     for browse_model in browses_qs]
+        )
+    
     
     def __init__(self, browse_type, date_time, responsible_org_name, browses=None):
         self._browse_type = browse_type
@@ -178,3 +227,5 @@ class BrowseReport(object):
             "date_time": self._date_time,
             "responsible_org_name": self._responsible_org_name
         }
+
+
