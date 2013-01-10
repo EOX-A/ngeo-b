@@ -60,7 +60,7 @@ from ngeo_browse_server.control.ingest.result import (
 )
 from ngeo_browse_server.control.ingest.config import (
     get_project_relative_path, get_storage_path, get_optimized_path, 
-    get_format_config, get_optimization_config, get_mapcache_config
+    get_format_config, get_optimization_config
 )
 from ngeo_browse_server.control.ingest.filetransaction import (
     IngestionTransaction
@@ -71,7 +71,10 @@ from ngeo_browse_server.control.ingest.config import (
 from ngeo_browse_server.control.ingest.exceptions import IngestionException
 from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.mapcache.tasks import seed_mapcache
-from control.browsereport.serialization import serialize_browse_report
+from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
+from ngeo_browse_server.control.browsereport.serialization import (
+    serialize_browse_report
+)
 
 
 logger = logging.getLogger(__name__)
@@ -208,7 +211,7 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
                                       start_time=result.time_interval[0],
                                       end_time=result.time_interval[1],
                                       delete=False,
-                                      **get_mapcache_config(config))
+                                      **get_mapcache_seed_config(config))
                         logger.info("Successfully finished seeding.")
                         
                     except Exception, e:
@@ -473,7 +476,7 @@ def cleanup_replaced(browse, browse_layer, coverage_id, config=None):
                       start_time=browse.start_time,
                       end_time=browse.end_time,
                       delete=True,
-                      **get_mapcache_config(config))
+                      **get_mapcache_seed_config(config))
     
     
     except Exception, e:
