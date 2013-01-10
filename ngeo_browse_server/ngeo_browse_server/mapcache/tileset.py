@@ -27,6 +27,7 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
+from os.path import exists
 import sqlite3
 
 
@@ -36,34 +37,27 @@ URN_TO_GRID = {
 }
 
 
+class TileSetException(Exception):
+    pass
+
+
+def open(path):
+    if not exists:
+        raise TileSetException("TileSet '%s' does not exist.")
+    return TileSet(path)
+
+
 class TileSet(object):
-    def __init__(self, path, grid=None, tileset=None, begin_time=None,
-                 end_time=None, minx=None, miny=None, maxx=None, maxy=None,
-                 min_zoom=None, max_zoom=None, rows=None):
+    def __init__(self, path):
         self.path = path
-        self.grid = grid
-        self.tileset = tileset
-        self.begin_time = begin_time
-        self.end_time = end_time
-        self.minx = minx
-        self.miny = miny
-        self.maxx = maxx
-        self.maxy = maxy
-        self.min_zoom = min_zoom
-        self.max_zoom = max_zoom
-        self.rows = rows
-    
             
-    def __iter__(self):
+    def get_tiles(self, tileset, grid, dim=None, minzoom=None, maxzoom=None):
         with sqlite3.connect(self.path) as connection:
             cur = connection.cursor()
-            where_clauses = []
-            
-            if self.grid:
-                where_clauses.append("tiles.grid = '%s'" % self.grid)
-            
-            if self.tileset:
-                where_clauses.append("tiles.tileset = '%s'" % self.tileset)
+            where_clauses = [
+                "tiles.grid = '%s'" % grid,
+                "tiles.tileset = '%s'" % tileset
+            ]
             
             # TODO: make this work properly
             """
@@ -80,32 +74,17 @@ class TileSet(object):
                                      % self.end_time)#.isoformat("T"))
             """
             
+            if minzoom is not None:
+                where_clauses.append("tiles.z >= %d" % minzoom)
             
-            # TODO: translate bbox to x/y values
+            if maxzoom is not None:
+                where_clauses.append("tiles.z <= %d" % maxzoom)
             
-            if self.minx is not None:
-                where_clauses.append("tiles.x >= %f" % self.minx)
+            #rows = self.rows or "tileset, grid, x, y, z, dim, data"
             
-            if self.miny is not None:
-                where_clauses.append("tiles.y >= %f" % self.miny)
-            
-            if self.maxx is not None:
-                where_clauses.append("tiles.x <= %f" % self.maxx)
-            
-            if self.maxy is not None:
-                where_clauses.append("tiles.y <= %f" % self.maxy)
-            
-            if self.min_zoom is not None:
-                where_clauses.append("tiles.z >= %d" % self.min_zoom)
-            
-            if self.max_zoom is not None:
-                where_clauses.append("tiles.z <= %d" % self.max_zoom)
-            
-            rows = self.rows or "tileset, grid, x, y, z, dim, data"
-            
-            sql = ("SELECT %s FROM tiles%s;" 
-                   % (rows, (" WHERE " + " AND ".join(where_clauses) 
-                             if len(where_clauses) else "")))
+            sql = ("SELECT tileset, grid, x, y, z, dim, data FROM tiles%s;" 
+                   % (" WHERE " + " AND ".join(where_clauses) 
+                      if len(where_clauses) else ""))
             
             print sql
             
