@@ -38,7 +38,7 @@ def serialize_browse_layers(browse_layers, stream, pretty_print=False):
     for browse_layer in browse_layers:
         bl_elem = etree.SubElement(
             browse_layers_elem, ns_cfg("browseLayer"), 
-            attrib={"browseLayerId": browse_layer.browse_layer_identifier}
+            attrib={"browseLayerId": browse_layer.id}
         )
         
         rgb = browse_layer.r_band, browse_layer.g_band, browse_layer.b_band
@@ -67,4 +67,5 @@ def serialize_browse_layers(browse_layers, stream, pretty_print=False):
         etree.SubElement(bl_elem, ns_cfg("lowestMapLevel")).text = str(browse_layer.lowest_map_level)
     
     # TODO: encoding
-    browse_layers_elem.write(file, pretty_print=pretty_print)
+    et = etree.ElementTree(browse_layers_elem)
+    et.write(stream, pretty_print=pretty_print)

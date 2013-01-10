@@ -49,7 +49,7 @@ class BrowseLayer(object):
         self._highest_map_level = highest_map_level
         self._lowest_map_level = lowest_map_level
     
-    browse_layer_identifier = property(lambda self: self._browse_layer_identifier)
+    id = property(lambda self: self._browse_layer_identifier)
     browse_type = property(lambda self: self._browse_type)
     title = property(lambda self: self._title)
     description = property(lambda self: self._description)
