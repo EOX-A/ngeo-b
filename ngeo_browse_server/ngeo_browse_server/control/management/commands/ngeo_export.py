@@ -50,6 +50,7 @@ from ngeo_browse_server.control.browselayer.serialization import serialize_brows
 from ngeo_browse_server.mapcache import tileset
 from ngeo_browse_server.mapcache.config import get_tileset_path
 from ngeo_browse_server.mapcache.tileset import URN_TO_GRID
+from django.db.models.aggregates import Count
 
 
 logger = logging.getLogger(__name__)
@@ -77,7 +78,7 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         make_option('--compression',
             dest='compression', default="gzip",
             choices=["none", "gzip", "gz", "bzip2", "bz2"],
-            help=("Declare the compression algorithm for the output archive. "
+            help=("Declare the compression algorithm for the output package. "
                   "Default is 'gzip'.")
         ),
         make_option('--export-cache', action="store_true",
@@ -87,20 +88,23 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         ),
         make_option('--output', '--output-path',
             dest='output_path',
-            help=("The path for the result archive. Per default, a suitable "
+            help=("The path for the result package. Per default, a suitable "
                   "filename will be generated and the file will be stored in "
                   "the current working directory.")
         )
     )
     
     # TODO
-    args = ("<browse-report-xml-file1> [<browse-report-xml-file2>] "
-            "[--on-error=<on-error>] [--delete-on-success] [--use-store-path | "
-            "--path-prefix=<path-to-dir>]")
-    help = ("Ingests the specified ngEO Browse Reports. All referenced browse "
-            "images are optimized and saved to the configured directory as " 
-            "specified in the 'ngeo.conf'. Optionally deletes the original "
-            "browse raster files if they were successfully ingested.")
+    args = ("--layer=<layer-id> | --browse-type=<browse-type> "
+            "[--start=<start-date-time>] [--end=<end-date-time>] "
+            "[--compression=none|gzip|bz2] [--export-cache] "
+            "[--output=<output-path>]")
+    help = ("Exports the given browse layer specified by either the layer ID "
+            "or its browse type. The output is a package, a tar archive, "
+            "containing metadata of the browse layer, and all browse reports "
+            "and browses that are associated. The processed browse images are "
+            "inserted as well. The export can be refined by stating a time "
+            "window.")
 
     def handle(self, *args, **kwargs):
         System.init()
@@ -150,14 +154,24 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
             
             stream = StringIO()
             serialize_browse_layers((browse_layer,), stream, pretty_print=True)
-            stream.seek(0)
             p.set_browse_layer(stream)
             
-            # query browse reports and create XML
-            browse_reports_qs = BrowseReport.objects.filter(browse_layer=browse_layer)
+            # query browse reports; optionally filter for start/end time
+            browse_reports_qs = BrowseReport.objects.all()
+            
+            if start:
+                browse_reports_qs = browse_reports_qs.filter(browses__start_time__gte=start)
+            if end:
+                browse_reports_qs = browse_reports_qs.filter(browses__end_time__lte=end)
+                
+            browse_reports_qs = browse_reports_qs.annotate(
+                browse_count=Count('browses')
+            ).filter(browse_layer=browse_layer, browse_count__gt=0)
+            
+            print len(browse_reports_qs)
         
-        
-            # query Browses for the given reports + start/end (if given)
+            # iterate over all browse reports
+            # TODO: only include browse reports that fall into 
             for browse_report_model in browse_reports_qs:
                 browses_qs = Browse.objects.filter(
                     browse_report=browse_report_model
@@ -171,13 +185,17 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                     browse_report_model, browses_qs
                 )
                 
-                # save browse report xml
-                stream = StringIO()
-                serialize_browse_report(browse_report, stream, pretty_print=True)
-                stream.seek(0)
-                p.add_browse_report(stream) # TODO: name?
+                # save browse report xml and add it to the package
+                p.add_browse_report(
+                    serialize_browse_report(browse_report, pretty_print=True),
+                    name="%s_%s_%s.xml" % (
+                        browse_report.browse_type,
+                        browse_report.responsible_org_name,
+                        browse_report.date_time.strftime("%Y%m%d%H%M%S%f")
+                    )
+                )
                 
-                # TODO: get optimized files via browse->coverageid->coverage
+                # iterate over all browses in the query
                 for browse_model in browses_qs:
                     coverage_wrapper = System.getRegistry().getFromFactory(
                         "resources.coverages.wrappers.EOCoverageFactory",
@@ -197,7 +215,10 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                                browse_model.end_time.isoformat("T"))
                         
                         # get path to sqlite tileset and open it
-                        ts = tileset.open(get_tileset_path(browse_layer.browse_type))
+                        ts = tileset.open(
+                            get_tileset_path(browse_layer.browse_type)
+                        )
+                        
                         for tile_desc in ts.get_tiles(
                             browse_layer.browse_type, 
                             URN_TO_GRID[browse_layer.grid], dim=dim,
