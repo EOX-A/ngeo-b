@@ -31,6 +31,7 @@ import os
 from os.path import exists, basename, dirname, join
 import tarfile
 from datetime import datetime
+
 from ngeo_browse_server.control.exceptions import NGEOException
 
 """
@@ -77,69 +78,120 @@ COMPRESSION_TO_SPECIFIER = {
     "bz2": "bz2"
 }
 
+SEC_REPORTS = "reports"
+SEC_OPTIMIZED = "optimized"
+SEC_CACHE = "cache"
+BROWSE_LAYER_NAME = "browseLayer.xml"
 
 class PackageException(NGEOException):
     pass
 
 
 class PackageWriter(object):
+    ""
+    
     def __init__(self, path, compression):
+        " Initialize a package writer. "
         self._path = path
         self._tarfile = tarfile.open(
             path, "w:" + COMPRESSION_TO_SPECIFIER[compression]
         )
+        self._dirs = set()
     
     
     def set_browse_layer(self, browse_layer_file):
-        info = tarfile.TarInfo("browseLayer.xml")
-        self._tarfile.addfile(info, browse_layer_file)
+        " Set the browse layer in the archive. "
+        
+        self._add_file(browse_layer_file, BROWSE_LAYER_NAME)
     
     
     def add_browse_report(self, browse_report_file, name=None):
+        " Add a browse report to the archive. "
+        
         if not name:
             name = "TODO"
-        info = tarfile.TarInfo(join("reports", name))
-        self._tarfile.addfile(info, browse_report_file)
+        self._check_dir(SEC_REPORTS)
+        name = join(SEC_REPORTS, name)
+        self._add_file(browse_report_file, name)
     
     
     def add_browse(self, browse_file, name):
-        info = tarfile.TarInfo(join("optimized", name))
-        self._tarfile.addfile(info, browse_file)
+        " Add a browse file to the achive. "
+        
+        self._check_dir(SEC_OPTIMIZED)
+        name = join(SEC_OPTIMIZED, name)
+        self._add_file(browse_file, name)
+        
+
+    def add_cache_file(self, tileset, grid, x, y, z, dim, tile_file):
+        " Add a cache file to the archive. "
+        
+        # construct dir name
+        d = join(SEC_CACHE, tileset, grid)
+        self._check_dir(d)
+        
+        # construct file name
+        name = join(d, "%d-%d-%d-%s" % (x, y, z, dim))
+        self._add_file(tile_file, name)
+    
+
+    def close(self):
+        self._tarfile.close()
+    
+
+    def _check_dir(self, name):
+        """ Recursively add directory entries to the archive if they do not yet 
+        exist. """
+        
+        #check all subpaths as well
+        dirs = name.split("/")
+        for i in range(len(dirs)):
+            d = "/".join(dirs[:i+1])
+            if not d in self._dirs:
+                self._dirs.add(d)
+                info = tarfile.TarInfo(d)
+                info.type = tarfile.DIRTYPE
+                self._tarfile.addfile(info)
     
     
-    def add_cache_file(self, tileset, grid, x, y, z, dim):
-        pass
+    def _add_file(self, f, name):
+        " Add a file-like object `f` to the archive with the given `name`. "
+        
+        info = tarfile.TarInfo(name)
+        # get file size
+        f.seek(0, os.SEEK_END)
+        info.size = f.tell()
+        f.seek(0)
+        
+        # actually insert the file
+        self._tarfile.addfile(info, f) 
     
+    
+    # Section protocol
     
     def __enter__(self):
         return self
+    
     
     def __exit__(self, etype, value, traceback):
         " End of critical block. Either close/save tarfile or remove it. "
 
         # on success
         if (etype, value, traceback) == (None, None, None):
-            # TODO: error handling
             self.close()
-        
+    
+        # on error    
         else:
             # remove the archive file
             self.close()
             os.remove(self._path)
     
-    
-    def close(self):
-        self._tarfile.close()
-
 
 def create(path, compression, force=False):
     if force and exists(path):
-        print "P"
         raise PackageException("Output file already exists.")
     elif exists(path):
         os.remove(path)
-    
-    print "P"
     
     return PackageWriter(path, compression)
 
@@ -153,35 +205,8 @@ def generate_filename(compression):
     return now.strftime("export_%Y%m%d%H%M%S%f") + COMPRESSION_TO_EXT[compression]
 
 
-def save(pacakge, path):
-    if exists(path):
-        os.remove(path)
-    
-    archive = tarfile.open(path, "w:gz")
-    
-    # TODO:
-    #  - serialize the browse report to XML and save it as BrowseReport.xml in 
-    #    the root of the tarfile
-    #  - add a folder `browses` to the archive root
-    #  - loop over all browses in the report and get the filename. Add the file
-    #    to the archive.
-    #  - if a cache is present, create a folder structure cache/<tileset>/<grid>/
-    #  - loop over all items in the cache tileset, create a filename like ...
-    #    and save the cache tile under that name in the folder in the archive
 
-def load(path):
-    pass
-
-
-class Package(object):
-    def __init__(self, browse_report, cache_tileset=None):
-        self.browse_report = browse_report
-        self.cache_tileset = cache_tileset
-
-    def save(self, path):
-        save(self, path)
-
-
+# TODO
 class ArchivedTileSet(object):
     def __init__(self, archive, basepath=None):
         self.archive = archive
