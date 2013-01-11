@@ -28,11 +28,19 @@
 #-------------------------------------------------------------------------------
 
 
-def ns_rep(tag):
-    return "{http://ngeo.eo.esa.int/schema/browseReport}" + tag
+class NameSpace(object):
+    def __init__(self, uri):
+        self._uri = uri
+        self._lxml_uri = "{%s}" % uri
 
-def ns_bsi(tag):
-    return "{http://ngeo.eo.esa.int/schema/browse/ingestion}" + tag
+    @property
+    def uri(self):
+        return self._uri
+    
+    def __call__(self, tag):
+        return self._lxml_uri + tag
 
-def ns_cfg(tag):
-    return "{http://ngeo.eo.esa.int/schema/configurationElements}" + tag
+
+ns_rep = NameSpace("http://ngeo.eo.esa.int/schema/browseReport")
+ns_bsi = NameSpace("http://ngeo.eo.esa.int/schema/browse/ingestion")
+ns_cfg = NameSpace("http://ngeo.eo.esa.int/schema/configurationElements")
