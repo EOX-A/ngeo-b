@@ -27,6 +27,11 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
+from django.db.models.base import Model
+
+from ngeo_browse_server.config import models
+
+
 """\ 
 This module contains intermediary (runtime) data for ingestion or the like.
 The classes in this module are explicitly not tied to database models, but
@@ -163,16 +168,18 @@ def browse_from_model(browse_model):
     }
     
     
-    if browse_model.rectifiedbrowse:
+    try: 
         return RectifiedBrowse(browse_model.rectifiedbrowse.coord_list, **kwargs)
-    elif browse_model.footprintbrowse:
+    except models.RectifiedBrowse.DoesNotExist: pass
+    try:
         return FootprintBrowse(
             browse_model.footprintbrowse.node_number, 
             browse_model.footprintbrowse.col_row_list, 
             browse_model.footprintbrowse.coord_list,
             **kwargs
         )
-    elif browse_model.regulargridbrowse:
+    except models.FootprintBrowse.DoesNotExist: pass
+    try:
         return RegularGridBrowse(
             browse_model.footprintbrowse.col_node_number,
             browse_model.footprintbrowse.row_node_number, 
@@ -181,8 +188,11 @@ def browse_from_model(browse_model):
             [coord_list.coord_list
              for coord_list in browse_model.footprintbrowse.coord_lists.all()]
         )
-    elif browse_model.modelingeotiffbrowse:
+    except models.RegularGridBrowse.DoesNotExist: pass
+    try: 
+        _ = browse_model.modelingeotiffbrowse
         return ModelInGeotiffBrowse(**kwargs)
+    except models.ModelInGeotiffBrowse.DoesNotExist: pass
 
 class BrowseReport(object):
     """ Browse report data model. """
