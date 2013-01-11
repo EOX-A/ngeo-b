@@ -27,16 +27,21 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
+from cStringIO import StringIO
 
-from lxml import etree
+from lxml.etree import Element, SubElement, ElementTree
+
 from ngeo_browse_server.control.namespace import ns_cfg
 
-def serialize_browse_layers(browse_layers, stream, pretty_print=False):
-    browse_layers_elem = etree.Element(ns_cfg("browseLayers"),
-                                       nsmap={"cfg": ns_cfg("")})
+
+def serialize_browse_layers(browse_layers, stream=None, pretty_print=False):
+    if not stream:
+        stream = StringIO()
+    browse_layers_elem = Element(ns_cfg("browseLayers"),
+                                       nsmap={"cfg": ns_cfg.uri})
     
     for browse_layer in browse_layers:
-        bl_elem = etree.SubElement(
+        bl_elem = SubElement(
             browse_layers_elem, ns_cfg("browseLayer"), 
             attrib={"browseLayerId": browse_layer.id}
         )
@@ -47,25 +52,27 @@ def serialize_browse_layers(browse_layers, stream, pretty_print=False):
         ri = browse_layer.radiometric_interval_min, browse_layer.radiometric_interval_max
         has_ri = len(filter(lambda v: v is not None, ri)) == 2 
         
-        etree.SubElement(bl_elem, ns_cfg("browseType")).text = browse_layer.browse_type
-        etree.SubElement(bl_elem, ns_cfg("title")).text = browse_layer.title
+        SubElement(bl_elem, ns_cfg("browseType")).text = browse_layer.browse_type
+        SubElement(bl_elem, ns_cfg("title")).text = browse_layer.title
         if browse_layer.description is not None:
-            etree.SubElement(bl_elem, ns_cfg("description")).text = browse_layer.description
-        etree.SubElement(bl_elem, ns_cfg("browseAccessPolicy")).text = browse_layer.browse_access_policy
-        etree.SubElement(bl_elem, ns_cfg("hostingBrowseServerName")).text = ""
-        etree.SubElement(bl_elem, ns_cfg("relatedDatasetIds")) # TODO
-        etree.SubElement(bl_elem, ns_cfg("containsVerticalCurtains")).text = "true" if browse_layer.contains_vertical_curtains else "false"
+            SubElement(bl_elem, ns_cfg("description")).text = browse_layer.description
+        SubElement(bl_elem, ns_cfg("browseAccessPolicy")).text = browse_layer.browse_access_policy
+        SubElement(bl_elem, ns_cfg("hostingBrowseServerName")).text = ""
+        SubElement(bl_elem, ns_cfg("relatedDatasetIds")) # TODO
+        SubElement(bl_elem, ns_cfg("containsVerticalCurtains")).text = "true" if browse_layer.contains_vertical_curtains else "false"
         if has_rgb:
-            etree.SubElement(bl_elem, ns_cfg("rgbBands")).text = ",".join(map(str, rgb))
+            SubElement(bl_elem, ns_cfg("rgbBands")).text = ",".join(map(str, rgb))
         
         if has_ri:
-            ri_elem = etree.SubElement(bl_elem, ns_cfg("radiometricInterval"))
-            etree.SubElement(ri_elem, ns_cfg("min")).text = str(ri[0])
-            etree.SubElement(ri_elem, ns_cfg("max")).text = str(ri[1])
+            ri_elem = SubElement(bl_elem, ns_cfg("radiometricInterval"))
+            SubElement(ri_elem, ns_cfg("min")).text = str(ri[0])
+            SubElement(ri_elem, ns_cfg("max")).text = str(ri[1])
         
-        etree.SubElement(bl_elem, ns_cfg("highestMapLevel")).text = str(browse_layer.highest_map_level)
-        etree.SubElement(bl_elem, ns_cfg("lowestMapLevel")).text = str(browse_layer.lowest_map_level)
+        SubElement(bl_elem, ns_cfg("highestMapLevel")).text = str(browse_layer.highest_map_level)
+        SubElement(bl_elem, ns_cfg("lowestMapLevel")).text = str(browse_layer.lowest_map_level)
     
     # TODO: encoding
-    et = etree.ElementTree(browse_layers_elem)
+    et = ElementTree(browse_layers_elem)
     et.write(stream, pretty_print=pretty_print)
+    
+    return stream

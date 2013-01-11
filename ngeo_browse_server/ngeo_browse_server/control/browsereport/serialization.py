@@ -27,14 +27,21 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
-from lxml.etree import Element, SubElement
+
+from cStringIO import StringIO
+
+from lxml.etree import Element, SubElement, ElementTree
+
 from ngeo_browse_server.control.namespace import ns_rep
 
 
-def serialize_browse_report(browse_report, stream, pretty_print=False):
+def serialize_browse_report(browse_report, stream=None, pretty_print=False):
+    if not stream:
+        stream = StringIO()
+    
     browse_report_elem = Element(ns_rep("browseReport"), 
-                                       nsmap={"rep": ns_rep("")},
-                                       attrib={"version": "1.1"})
+                                 nsmap={"rep": ns_rep.uri},
+                                 attrib={"version": "1.1"})
     
     SubElement(browse_report_elem, ns_rep("responsibleOrgName")).text = browse_report.responsible_org_name
     SubElement(browse_report_elem, ns_rep("dateTime")).text = browse_report.date_time.isoformat("T")
@@ -42,6 +49,11 @@ def serialize_browse_report(browse_report, stream, pretty_print=False):
     
     for browse in browse_report:
         browse_report_elem.append(SERIALIZE_FUNCTIONS[browse.geo_type](browse))
+    
+    et = ElementTree(browse_report_elem)
+    et.write(stream, pretty_print=pretty_print)
+    
+    return stream
     
 
 def _serialize_basic_browse(browse, tag, attrib=None):
