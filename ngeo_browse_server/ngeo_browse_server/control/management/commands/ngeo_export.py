@@ -29,28 +29,26 @@
 
 from os.path import basename
 import logging
-from cStringIO import StringIO
 from optparse import make_option
 
 from django.core.management.base import BaseCommand, CommandError
+from django.db.models.aggregates import Count
 from eoxserver.resources.coverages.management.commands import CommandOutputMixIn
 from eoxserver.core.system import System
-from eoxserver.core.util.timetools import getDateTime
+from eoxserver.core.util.timetools import getDateTime, isotime
 
 from ngeo_browse_server.control.management.commands import LogToConsoleMixIn
-
 from ngeo_browse_server.config.models import ( 
-    BrowseReport, BrowseLayer, RectifiedBrowse, FootprintBrowse, 
-    RegularGridBrowse, ModelInGeotiffBrowse, Browse
+    BrowseReport, BrowseLayer, Browse
 )
-from ngeo_browse_server.control.browsereport import data
-from ngeo_browse_server.control.migration import package
+from ngeo_browse_server.control.browsereport import data as browsereport_data
 from ngeo_browse_server.control.browsereport.serialization import serialize_browse_report
+from ngeo_browse_server.control.browselayer import data as browselayer_data
 from ngeo_browse_server.control.browselayer.serialization import serialize_browse_layers
+from ngeo_browse_server.control.migration import package
 from ngeo_browse_server.mapcache import tileset
 from ngeo_browse_server.mapcache.config import get_tileset_path
 from ngeo_browse_server.mapcache.tileset import URN_TO_GRID
-from django.db.models.aggregates import Count
 
 
 logger = logging.getLogger(__name__)
@@ -94,7 +92,6 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         )
     )
     
-    # TODO
     args = ("--layer=<layer-id> | --browse-type=<browse-type> "
             "[--start=<start-date-time>] [--end=<end-date-time>] "
             "[--compression=none|gzip|bz2] [--export-cache] "
@@ -136,25 +133,25 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         if not output_path:
             output_path = package.generate_filename(compression)
         
-        
         with package.create(output_path, compression) as p:
             # query the browse layer
             if browse_layer_id:
                 try:
-                    browse_layer = BrowseLayer.objects.get(id=browse_layer_id)
+                    browse_layer_model = BrowseLayer.objects.get(id=browse_layer_id)
                 except BrowseLayer.DoesNotExist:
                     raise CommandError("Browse layer '%s' does not exist" 
                                        % browse_layer_id)
             else:
                 try:
-                    browse_layer = BrowseLayer.objects.get(browse_type=browse_type)
+                    browse_layer_model = BrowseLayer.objects.get(browse_type=browse_type)
                 except BrowseLayer.DoesNotExist:
                     raise CommandError("Browse layer with browse type'%s' does "
                                        "not exist" % browse_type)
             
-            stream = StringIO()
-            serialize_browse_layers((browse_layer,), stream, pretty_print=True)
-            p.set_browse_layer(stream)
+            browse_layer = browselayer_data.BrowseLayer.from_model(browse_layer_model)
+            p.set_browse_layer(
+                serialize_browse_layers((browse_layer,), pretty_print=True)
+            )
             
             # query browse reports; optionally filter for start/end time
             browse_reports_qs = BrowseReport.objects.all()
@@ -163,15 +160,13 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                 browse_reports_qs = browse_reports_qs.filter(browses__start_time__gte=start)
             if end:
                 browse_reports_qs = browse_reports_qs.filter(browses__end_time__lte=end)
-                
+            
+            # TODO: this won't work as expected
             browse_reports_qs = browse_reports_qs.annotate(
                 browse_count=Count('browses')
-            ).filter(browse_layer=browse_layer, browse_count__gt=0)
+            ).filter(browse_layer=browse_layer_model, browse_count__gt=0)
             
-            print len(browse_reports_qs)
-        
             # iterate over all browse reports
-            # TODO: only include browse reports that fall into 
             for browse_report_model in browse_reports_qs:
                 browses_qs = Browse.objects.filter(
                     browse_report=browse_report_model
@@ -181,7 +176,12 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                 if end:
                     browses_qs = browses_qs.filter(end_time__lte=end)
                 
-                browse_report = data.BrowseReport.from_model(
+                # we don't want any empty browse reports
+                # TODO: this won't be necessary if the above TODO works
+                if not len(browses_qs):
+                    continue
+                
+                browse_report = browsereport_data.BrowseReport.from_model(
                     browse_report_model, browses_qs
                 )
                 
@@ -211,18 +211,18 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                     
                     if export_cache:
                         # get "dim" parameter
-                        dim = (browse_model.start_time.isoformat("T") + "/" +
-                               browse_model.end_time.isoformat("T"))
+                        dim = (isotime(browse_model.start_time) + "/" +
+                               isotime(browse_model.end_time))
                         
                         # get path to sqlite tileset and open it
                         ts = tileset.open(
-                            get_tileset_path(browse_layer.browse_type)
+                            get_tileset_path(browse_layer.id)
                         )
                         
                         for tile_desc in ts.get_tiles(
-                            browse_layer.browse_type, 
+                            browse_layer.id, 
                             URN_TO_GRID[browse_layer.grid], dim=dim,
                             minzoom=browse_layer.highest_map_level,
                             maxzoom=browse_layer.lowest_map_level
                         ):
-                            p.add_cache(*tile_desc)
+                            p.add_cache_file(*tile_desc)
