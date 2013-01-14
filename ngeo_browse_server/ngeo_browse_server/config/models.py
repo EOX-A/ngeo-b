@@ -110,7 +110,7 @@ class RelatedDataset(models.Model):
     
     """
     dataset_id = models.CharField(max_length=1024, unique=True, validators=[NameValidator])
-    browse_layer = models.ForeignKey(BrowseLayer, verbose_name="Browse Layer")
+    browse_layer = models.ForeignKey(BrowseLayer, related_name="related_datasets", verbose_name="Browse Layer")
     
     class Meta:
         verbose_name = "Related Dataset"
