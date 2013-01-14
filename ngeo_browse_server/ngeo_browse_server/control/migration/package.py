@@ -83,12 +83,15 @@ SEC_OPTIMIZED = "optimized"
 SEC_CACHE = "cache"
 BROWSE_LAYER_NAME = "browseLayer.xml"
 
+CACHE_FILE_FRMT = "%s-%d-%d-%d"
+CACHE_FILE_REGEX = ""
+
 class PackageException(NGEOException):
     pass
 
 
 class PackageWriter(object):
-    ""
+    "ngEO data migration package writer."
     
     def __init__(self, path, compression):
         " Initialize a package writer. "
@@ -130,10 +133,11 @@ class PackageWriter(object):
         d = join(SEC_CACHE, tileset, grid)
         self._check_dir(d)
         
+        # replace slashes.
         dim = dim.replace("/", "_")
         
         # construct file name
-        name = join(d, "%s-%d-%d-%d" % (dim, z, x, y))
+        name = join(d, CACHE_FILE_FRMT % (dim, z, x, y))
         self._add_file(tile_file, name)
     
 
@@ -197,24 +201,49 @@ class PackageReader(object):
     
     
     def get_browse_layer(self):
-        pass
+        return self._open_file(BROWSE_LAYER_NAME)
     
     
     def get_browse_reports(self):
-        pass
+        for member in self._filter_files(SEC_REPORTS):
+            yield self._open_file(member)
     
     
-    def get_browse(self, filename):
-        pass
+    def get_browse_files(self, filename):
+        return self._open_file(join(SEC_OPTIMIZED, filename))
     
     
-    def get_cache_files(self):
-        pass
+    def get_cache_files(self, tileset, grid):
+        for member in self._filter_files(join(SEC_CACHE, tileset, grid)):
+            # TODO: x, y, z, dim
+            yield self._open_file(member)
     
     
-    def _filter(self):
-        pass
+    def has_cache(self):
+        return self._has_file(SEC_CACHE)
+    
+    
+    def _filter_files(self, d):
+        for member in self._tarfile.getmembers():
+            if not member.isfile() or not member.info.startswith(d): # TODO: make better path check
+                continue
+            
+            yield member
+    
+    
+    def _open_file(self, name):
+        try:
+            self._tarfile.extractfile(name)
+        except KeyError:
+            raise PackageException("File '%s' is not present in the package."
+                                   % name)
         
+    def _has_file(self, name):
+        try:
+            self._tarfile.getmember(name)
+            return True
+        except KeyError:
+            return False
         
 
 
