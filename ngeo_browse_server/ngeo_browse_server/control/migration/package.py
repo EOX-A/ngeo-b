@@ -130,8 +130,10 @@ class PackageWriter(object):
         d = join(SEC_CACHE, tileset, grid)
         self._check_dir(d)
         
+        dim = dim.replace("/", "_")
+        
         # construct file name
-        name = join(d, "%d-%d-%d-%s" % (x, y, z, dim))
+        name = join(d, "%s-%d-%d-%d" % (dim, z, x, y))
         self._add_file(tile_file, name)
     
 
@@ -186,6 +188,36 @@ class PackageWriter(object):
             self.close()
             os.remove(self._path)
     
+
+
+class PackageReader(object):
+    def __init__(self, path):
+        self._tarfile = tarfile.open(path, "r:*")
+    
+    
+    
+    def get_browse_layer(self):
+        pass
+    
+    
+    def get_browse_reports(self):
+        pass
+    
+    
+    def get_browse(self, filename):
+        pass
+    
+    
+    def get_cache_files(self):
+        pass
+    
+    
+    def _filter(self):
+        pass
+        
+        
+
+
 
 def create(path, compression, force=False):
     if force and exists(path):

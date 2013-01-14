@@ -29,7 +29,7 @@
 
 from os.path import exists
 import sqlite3
-
+from io import BytesIO 
 
 URN_TO_GRID = {
     "urn:ogc:def:wkss:OGC:1.0:GoogleMapsCompatible": "GoogleMapsCompatible",
@@ -42,7 +42,7 @@ class TileSetException(Exception):
 
 
 def open(path):
-    if not exists:
+    if not exists(path):
         raise TileSetException("TileSet '%s' does not exist.")
     return TileSet(path)
 
@@ -75,18 +75,19 @@ class TileSet(object):
             """
             
             if minzoom is not None:
-                where_clauses.append("tiles.z >= %d" % minzoom)
+                where_clauses.append("tiles.z <= %d" % minzoom)
             
             if maxzoom is not None:
-                where_clauses.append("tiles.z <= %d" % maxzoom)
+                where_clauses.append("tiles.z >= %d" % maxzoom)
+                
+            if dim:
+                where_clauses.append("tiles.dim = '%s'" % dim)
             
             #rows = self.rows or "tileset, grid, x, y, z, dim, data"
             
             sql = ("SELECT tileset, grid, x, y, z, dim, data FROM tiles%s;" 
                    % (" WHERE " + " AND ".join(where_clauses) 
                       if len(where_clauses) else ""))
-            
-            print sql
             
             cur.execute(sql)
             
@@ -95,5 +96,5 @@ class TileSet(object):
                 if not row:
                     break
                 
-                yield row 
+                yield row[:-1] + (BytesIO(row[-1]),)
         
