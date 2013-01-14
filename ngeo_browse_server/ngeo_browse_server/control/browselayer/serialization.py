@@ -37,8 +37,8 @@ from ngeo_browse_server.control.namespace import ns_cfg
 def serialize_browse_layers(browse_layers, stream=None, pretty_print=False):
     if not stream:
         stream = StringIO()
-    browse_layers_elem = Element(ns_cfg("browseLayers"),
-                                       nsmap={"cfg": ns_cfg.uri})
+    browse_layers_elem = Element(ns_cfg("browseLayers"), 
+                                 nsmap={"cfg": ns_cfg.uri})
     
     for browse_layer in browse_layers:
         bl_elem = SubElement(
@@ -58,7 +58,9 @@ def serialize_browse_layers(browse_layers, stream=None, pretty_print=False):
             SubElement(bl_elem, ns_cfg("description")).text = browse_layer.description
         SubElement(bl_elem, ns_cfg("browseAccessPolicy")).text = browse_layer.browse_access_policy
         SubElement(bl_elem, ns_cfg("hostingBrowseServerName")).text = ""
-        SubElement(bl_elem, ns_cfg("relatedDatasetIds")) # TODO
+        rel_ds_elem = SubElement(bl_elem, ns_cfg("relatedDatasetIds"))
+        for rel_ds_id in browse_layer.related_dataset_ids:
+            SubElement(rel_ds_elem, ns_cfg("datasetId")).text = rel_ds_id
         SubElement(bl_elem, ns_cfg("containsVerticalCurtains")).text = "true" if browse_layer.contains_vertical_curtains else "false"
         if has_rgb:
             SubElement(bl_elem, ns_cfg("rgbBands")).text = ",".join(map(str, rgb))
@@ -73,6 +75,7 @@ def serialize_browse_layers(browse_layers, stream=None, pretty_print=False):
     
     # TODO: encoding
     et = ElementTree(browse_layers_elem)
-    et.write(stream, pretty_print=pretty_print)
+    et.write(stream, pretty_print=pretty_print, encoding="utf-8", 
+             xml_declaration=True)
     
     return stream

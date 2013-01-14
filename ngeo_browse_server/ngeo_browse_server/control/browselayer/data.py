@@ -31,7 +31,8 @@
 class BrowseLayer(object):
     def __init__(self, browse_layer_identifier, browse_type, title, grid,
                  browse_access_policy, contains_vertical_curtains, 
-                 highest_map_level, lowest_map_level,
+                 highest_map_level, lowest_map_level, 
+                 hosting_browse_server_name, related_dataset_ids,
                  description=None, r_band=None, g_band=None, b_band=None,
                  radiometric_interval_min=None, radiometric_interval_max=None):
         self._browse_layer_identifier = browse_layer_identifier
@@ -40,6 +41,8 @@ class BrowseLayer(object):
         self._description = description
         self._grid = grid
         self._browse_access_policy = browse_access_policy
+        self._hosting_browse_server_name = hosting_browse_server_name
+        self._related_dataset_ids = related_dataset_ids
         self._contains_vertical_curtains = contains_vertical_curtains
         self._r_band = r_band
         self._g_band = g_band
@@ -55,6 +58,8 @@ class BrowseLayer(object):
     description = property(lambda self: self._description)
     grid = property(lambda self: self._grid)
     browse_access_policy = property(lambda self: self._browse_access_policy)
+    hosting_browse_server_name = property(lambda self: self._hosting_browse_server_name)
+    related_dataset_ids = property(lambda self: self._related_dataset_ids)
     contains_vertical_curtains = property(lambda self: self._contains_vertical_curtains)
     r_band = property(lambda self: self._r_band)
     g_band = property(lambda self: self._g_band)
@@ -81,4 +86,20 @@ class BrowseLayer(object):
             "highest_map_level": self.highest_map_level,
             "lowest_map_level": self.lowest_map_level
         }
-        
+
+    @classmethod
+    def from_model(cls, model):
+        return cls(
+            browse_layer_identifier=model.id, browse_type=model.browse_type,
+            title=model.title, description=model.description, grid=model.grid, 
+            browse_access_policy=model.browse_access_policy,
+            hosting_browse_server_name="",
+            related_dataset_ids=[rel_ds.dataset_id 
+                                 for rel_ds in model.related_datasets.all()],
+            contains_vertical_curtains=model.contains_vertical_curtains,
+            r_band=model.r_band, g_band=model.g_band, b_band=model.b_band,
+            radiometric_interval_min=model.radiometric_interval_min,
+            radiometric_interval_max=model.radiometric_interval_max,
+            highest_map_level=model.highest_map_level,
+            lowest_map_level=model.lowest_map_level
+        )
