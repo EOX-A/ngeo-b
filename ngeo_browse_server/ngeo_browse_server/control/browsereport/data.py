@@ -167,7 +167,6 @@ def browse_from_model(browse_model):
         "end_time": browse_model.end_time
     }
     
-    
     try: 
         return RectifiedBrowse(browse_model.rectifiedbrowse.coord_list, **kwargs)
     except models.RectifiedBrowse.DoesNotExist: pass
@@ -193,6 +192,7 @@ def browse_from_model(browse_model):
         _ = browse_model.modelingeotiffbrowse
         return ModelInGeotiffBrowse(**kwargs)
     except models.ModelInGeotiffBrowse.DoesNotExist: pass
+
 
 class BrowseReport(object):
     """ Browse report data model. """

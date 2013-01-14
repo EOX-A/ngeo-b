@@ -48,45 +48,58 @@ def serialize_browse_report(browse_report, stream=None, pretty_print=False):
     SubElement(browse_report_elem, ns_rep("browseType")).text = browse_report.browse_type
     
     for browse in browse_report:
-        browse_report_elem.append(SERIALIZE_FUNCTIONS[browse.geo_type](browse))
+        browse_report_elem.append(_serialize_browse(browse))
     
     et = ElementTree(browse_report_elem)
-    et.write(stream, pretty_print=pretty_print)
+    et.write(stream, pretty_print=pretty_print, encoding="utf-8", 
+             xml_declaration=True)
     
     return stream
     
 
-def _serialize_basic_browse(browse, tag, attrib=None):
-    browse_elem = Element(tag, attrib=attrib)
-    return browse_elem
+def _serialize_browse(browse):
+    browse_elem = Element(ns_rep("browse"))
+    SubElement(browse_elem, ns_rep("browseIdentifier")).text = browse.browse_identifier
+    SubElement(browse_elem, ns_rep("fileName")).text = browse.file_name
+    SubElement(browse_elem, ns_rep("imageType")).text = browse.image_type
+    SubElement(browse_elem, ns_rep("referenceSystemIdentifier")).text = browse.reference_system_identifier
     
-def _serialize_rectified_browse(browse):
-    browse_elem = _serialize_basic_browse(browse, ns_rep("rectifiedBrowse"))
-    SubElement(browse_elem, ns_rep("coordList")).text = browse.coord_list
+    browse_elem.append(GEO_TYPE_TO_XML[browse.geo_type](browse))
+    
+    SubElement(browse_elem, ns_rep("startTime")).text = browse.start_time.isoformat("T")
+    SubElement(browse_elem, ns_rep("endTime")).text = browse.end_time.isoformat("T")
     return browse_elem
+
+
+def _serialize_rectified_browse(browse):
+    georef_elem = Element(ns_rep("rectifiedBrowse"))
+    SubElement(georef_elem, ns_rep("coordList")).text = browse.coord_list
+    return georef_elem
 
 def _serialize_footprint_browse(browse):
-    browse_elem = _serialize_basic_browse(browse, ns_rep("footprint"), attrib={"nodeNumber": str(browse.node_number)})
-    SubElement(browse_elem, ns_rep("colRowList")).text = browse.col_row_list
-    SubElement(browse_elem, ns_rep("coordList")).text = browse.coord_list
-    return browse_elem
+    georef_elem = Element(ns_rep("footprint"), attrib={"nodeNumber": str(browse.node_number)})
+    SubElement(georef_elem, ns_rep("colRowList")).text = browse.col_row_list
+    SubElement(georef_elem, ns_rep("coordList")).text = browse.coord_list
+    return georef_elem
 
 def _serialize_regular_grid_browse(browse):
-    browse_elem = _serialize_basic_browse(browse, ns_rep("regularGrid"))
-    SubElement(browse_elem, ns_rep("colNodeNumber")).text = str(browse.col_node_number)
-    SubElement(browse_elem, ns_rep("rowNodeNumber")).text = str(browse.row_node_number)
-    SubElement(browse_elem, ns_rep("colStep")).text = str(browse.col_step)
-    SubElement(browse_elem, ns_rep("rowStep")).text = str(browse.row_step)
+    georef_elem = Element(browse, ns_rep("regularGrid"))
+    SubElement(georef_elem, ns_rep("colNodeNumber")).text = str(browse.col_node_number)
+    SubElement(georef_elem, ns_rep("rowNodeNumber")).text = str(browse.row_node_number)
+    SubElement(georef_elem, ns_rep("colStep")).text = str(browse.col_step)
+    SubElement(georef_elem, ns_rep("rowStep")).text = str(browse.row_step)
     for coord_list in browse.coord_lists:
-        SubElement(browse_elem, ns_rep("coordList")).text = coord_list
-    return browse_elem
+        SubElement(georef_elem, ns_rep("coordList")).text = coord_list
+    return georef_elem
+
 
 def _serialize_model_in_geotiff_browse(browse):
-    elem = _serialize_basic_browse(browse, ns_rep("rectifiedBrowse"))
-    elem.text = "true"
-    return elem
+    georef_elem = Element(ns_rep("rectifiedBrowse"))
+    georef_elem.text = "true"
+    return georef_elem
 
-SERIALIZE_FUNCTIONS = {
+
+GEO_TYPE_TO_XML = {
     "rectifiedBrowse": _serialize_rectified_browse,
     "footprintBrowse": _serialize_footprint_browse,
     "regularGridBrowse": _serialize_regular_grid_browse,
