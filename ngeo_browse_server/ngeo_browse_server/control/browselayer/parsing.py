@@ -36,7 +36,7 @@ from ngeo_browse_server.control.namespace import ns_cfg
 logger = logging.getLogger(__name__)
 
 
-def parse_browse_layer(browse_layers_elem):
+def parse_browse_layers(browse_layers_elem):
     logger.info("Start parsing browse layer.")
     
     #TODO: browse_layers_elem.tag == ns_cfg("browseLayers")
@@ -48,6 +48,9 @@ def parse_browse_layer(browse_layers_elem):
         description_elem = browse_layer_elem.find(ns_cfg("description"))
         if description_elem:
             opt["description"] = description_elem.text
+        
+        related_dataset_ids_elem = browse_layer_elem.find(ns_cfg("relatedDatasetIds"))
+        related_dataset_ids = [elem.text for elem in related_dataset_ids_elem]
         
         rgb_bands_elem = browse_layer_elem.find(ns_cfg("rgbBands"))
         if rgb_bands_elem:
@@ -65,6 +68,8 @@ def parse_browse_layer(browse_layers_elem):
             browse_layer_elem.fing(ns_cfg("title")).text,
             browse_layer_elem.fing(ns_cfg("grid")).text,
             browse_layer_elem.fing(ns_cfg("browseAccessPolicy")).text,
+            browse_layer_elem.fing(ns_cfg("hostingBrowseServerName")).text,
+            related_dataset_ids,
             browse_layer_elem.fing(ns_cfg("containsVerticalCurtains")).text == "true",
             int(browse_layer_elem.fing(ns_cfg("highestMapLevel")).text),
             int(browse_layer_elem.fing(ns_cfg("lowestMapLevel")).text),
