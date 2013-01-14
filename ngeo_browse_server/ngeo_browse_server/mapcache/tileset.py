@@ -59,21 +59,6 @@ class TileSet(object):
                 "tiles.tileset = '%s'" % tileset
             ]
             
-            # TODO: make this work properly
-            """
-            if self.begin_time:
-                where_clauses.append("ctime >= datetime('%s')"
-                                     % self.begin_time)#.isoformat("T"))
-            
-            if self.begin_time:
-                where_clauses.append("ctime >= datetime('%s')"
-                                     % self.begin_time)#.isoformat("T"))
-            
-            if self.end_time:
-                where_clauses.append("ctime <= datetime('%s')"
-                                     % self.end_time)#.isoformat("T"))
-            """
-            
             if minzoom is not None:
                 where_clauses.append("tiles.z <= %d" % minzoom)
             

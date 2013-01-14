@@ -202,7 +202,7 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                         {"obj_id": browse_model.coverage_id}
                     )
                     
-                    # add browse to
+                    # add optimized browse image to package
                     data_package = coverage_wrapper.getData()
                     data_package.prepareAccess()
                     browse_file_path = data_package.getGDALDatasetIdentifier()
