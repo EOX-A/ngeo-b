@@ -156,12 +156,16 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
             # query browse reports; optionally filter for start/end time
             browse_reports_qs = BrowseReport.objects.all()
             
-            if start:
+            # apply start/end filter
+            if start and not end:
                 browse_reports_qs = browse_reports_qs.filter(browses__start_time__gte=start)
-            if end:
+            elif end and not start:
                 browse_reports_qs = browse_reports_qs.filter(browses__end_time__lte=end)
+            elif start and end:
+                browse_reports_qs = browse_reports_qs.filter(browses__start_time__gte=start, 
+                                                             browses__end_time__lte=end)
             
-            # TODO: this won't work as expected
+            # use count annotation to exclude all browse reports with no browses
             browse_reports_qs = browse_reports_qs.annotate(
                 browse_count=Count('browses')
             ).filter(browse_layer=browse_layer_model, browse_count__gt=0)
@@ -176,14 +180,13 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                 if end:
                     browses_qs = browses_qs.filter(end_time__lte=end)
                 
-                # we don't want any empty browse reports
-                # TODO: this won't be necessary if the above TODO works
-                if not len(browses_qs):
-                    continue
-                
                 browse_report = browsereport_data.BrowseReport.from_model(
                     browse_report_model, browses_qs
                 )
+                
+                # TODO: correct the file_name attribute to match the one that is
+                # stored in the package
+                
                 
                 # save browse report xml and add it to the package
                 p.add_browse_report(
