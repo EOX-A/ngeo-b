@@ -30,28 +30,20 @@
 
 
 
-from os.path import basename
+from os.path import exists
+from os import remove
 import logging
 from optparse import make_option
 
 from django.core.management.base import BaseCommand, CommandError
-from django.db.models.aggregates import Count
+from django.db import transaction 
 from eoxserver.resources.coverages.management.commands import CommandOutputMixIn
 from eoxserver.core.system import System
-from eoxserver.core.util.timetools import getDateTime, isotime
+from eoxserver.core.util.timetools import getDateTime
 
 from ngeo_browse_server.control.management.commands import LogToConsoleMixIn
-from ngeo_browse_server.config.models import ( 
-    BrowseReport, BrowseLayer, Browse
-)
-from ngeo_browse_server.control.browsereport import data as browsereport_data
-from ngeo_browse_server.control.browsereport.serialization import serialize_browse_report
-from ngeo_browse_server.control.browselayer import data as browselayer_data
-from ngeo_browse_server.control.browselayer.serialization import serialize_browse_layers
-from ngeo_browse_server.control.migration import package
-from ngeo_browse_server.mapcache import tileset
-from ngeo_browse_server.mapcache.config import get_tileset_path
-from ngeo_browse_server.mapcache.tileset import URN_TO_GRID
+from ngeo_browse_server.config.models import (BrowseLayer, Browse)
+
 
 
 logger = logging.getLogger(__name__)
@@ -62,11 +54,11 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
     option_list = BaseCommand.option_list + (
         make_option('--layer', '--browse-layer',
             dest='browse_layer_id',
-            help=("The browse layer to be exported.")
+            help=("The browse layer to be deleted.")
         ),
         make_option('--browse-type',
             dest='browse_type',
-            help=("The browse type to be exported.")
+            help=("The browses of browse type to be deleted.")
         ),
         make_option('--start',
             dest='start',
@@ -75,36 +67,13 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         make_option('--end',
             dest='end',
             help=("The end date and time in ISO 8601 format.")
-        ),
-        make_option('--compression',
-            dest='compression', default="gzip",
-            choices=["none", "gzip", "gz", "bzip2", "bz2"],
-            help=("Declare the compression algorithm for the output package. "
-                  "Default is 'gzip'.")
-        ),
-        make_option('--export-cache', action="store_true",
-            dest='export_cache', default=False,
-            help=("If this option is set, the tile cache will be exported "
-                  "aswell.")
-        ),
-        make_option('--output', '--output-path',
-            dest='output_path',
-            help=("The path for the result package. Per default, a suitable "
-                  "filename will be generated and the file will be stored in "
-                  "the current working directory.")
         )
     )
     
     args = ("--layer=<layer-id> | --browse-type=<browse-type> "
-            "[--start=<start-date-time>] [--end=<end-date-time>] "
-            "[--compression=none|gzip|bz2] [--export-cache] "
-            "[--output=<output-path>]")
-    help = ("Exports the given browse layer specified by either the layer ID "
-            "or its browse type. The output is a package, a tar archive, "
-            "containing metadata of the browse layer, and all browse reports "
-            "and browses that are associated. The processed browse images are "
-            "inserted as well. The export can be refined by stating a time "
-            "window.")
+            "[--start=<start-date-time>] [--end=<end-date-time>] " )
+    help = ("Deletes the browses specified by either the layer ID "
+            ", its browse type and optionally start and or end time" )
 
     def handle(self, *args, **kwargs):
         System.init()
@@ -114,19 +83,90 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         traceback = kwargs.get("traceback", False)
         self.set_up_logging(["ngeo_browse_server"], self.verbosity, traceback)
         
+        browse_layer_id = kwargs.get("browse_layer_id")
+        browse_type = kwargs.get("browse_type")
+        if not browse_layer_id and not browse_type:
+            raise CommandError("No browse layer or browse type was specified.")
+        elif browse_layer_id and browse_type:
+            raise CommandError("Both browse layer and browse type were specified.")
+        
+        start = kwargs.get("start")
+        end = kwargs.get("end")
+        
+        
+        # parse start/end if given
+        if start: 
+            start = getDateTime(start)
+        if end:
+            end = getDateTime(end)
+        
+        with transaction.commit_on_success():
+            self._handle(start, end, browse_layer_id, browse_type)
+            
+    
+    
+    def _handle(self, start, end, browse_layer_id, browse_type):
+            
+        # query the browse layer
+        if browse_layer_id:
+            try:
+                browse_layer_model = BrowseLayer.objects.get(id=browse_layer_id)
+            except BrowseLayer.DoesNotExist:
+                raise CommandError("Browse layer '%s' does not exist" % browse_layer_id)
+        else:
+            try:
+                browse_layer_model = BrowseLayer.objects.get(browse_type=browse_type)
+            except BrowseLayer.DoesNotExist:
+                raise CommandError("Browse layer with browse type'%s' does "
+                                       "not exist" % browse_type)
+        
+        
+        # get all browses of browse layer
+        browses_qs = Browse.objects.all().filter(browse_layer=browse_layer_model);
+        
+        # apply start/end filter
+        if start and not end:
+            browses_qs = browses_qs.filter(start_time__gte=start)
+        elif end and not start:
+            browses_qs = browses_qs.filter(end_time__lte=end)
+        elif start and end:
+            browses_qs = browses_qs.filter(start_time__gte=start, end_time__lte=end)
+        
+        # go through all browses to be deleted
+        for browse_model in browses_qs:
+            
+            coverage_wrapper = System.getRegistry().getFromFactory(
+                "resources.coverages.wrappers.EOCoverageFactory",
+                {"obj_id": browse_model.coverage_id}
+            )
+            
+            # delete optimized browse image
+            data_package = coverage_wrapper.getData()
+            data_package.prepareAccess()
+            browse_file_path = data_package.getGDALDatasetIdentifier()
+            
+            #TODO: Think about possibilities for rollback (Maybe create list of 
+            #      paths and delete files after all model are successfully deleted)
+            if exists(browse_file_path):
+                remove(browse_file_path)
+                logger.info("File deleted: %s"%browse_file_path) 
+            
+
+            mgr = System.getRegistry().findAndBind(
+                intf_id="resources.coverages.interfaces.Manager",
+                params={
+                    "resources.coverages.interfaces.res_type": "eo.rect_stitched_mosaic"
+                }
+            )
+            
+            # delete coverage
+            mgr.delete(browse_model.coverage_id)
+
+            # delete browse
+            browse_model.delete()
+            logger.info("Browse model deleted: %s"%browse_model)
+        
+        
         # TODO: 
-        # - parse parameters
-        
-        # - query all browses that are within start/stop/layer
-        
-        # - iterate over all browses in the queryset
-        
-        #   - get the coverage wrapper from the browse
-        
-        #   - delete the raster file on the disk
-        
-        #   - delete the coverage 
-        
-        #   - delete the browse
-        
-        #   - delete the browse report (????)
+        #   - think about what to do with brows report
+        #   - think about what to do with cache
