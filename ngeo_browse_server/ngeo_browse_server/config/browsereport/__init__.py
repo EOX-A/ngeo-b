@@ -28,8 +28,4 @@
 #-------------------------------------------------------------------------------
 
 
-class NGEOException(Exception):
-    """ Base class for ingestion related exceptions. """
-    def __init__(self, message=None, code=None):
-        super(NGEOException, self).__init__(message)
-        self.code = code
+from data import *
