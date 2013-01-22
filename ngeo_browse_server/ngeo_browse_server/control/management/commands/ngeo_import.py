@@ -28,31 +28,16 @@
 #-------------------------------------------------------------------------------
 
 
-from os.path import basename
 import logging
 from optparse import make_option
 
-from lxml import etree
 from django.core.management.base import BaseCommand, CommandError
-from django.db.models.aggregates import Count
 from eoxserver.resources.coverages.management.commands import CommandOutputMixIn
 from eoxserver.core.system import System
-from eoxserver.core.util.timetools import getDateTime, isotime
 
 from ngeo_browse_server.control.management.commands import LogToConsoleMixIn
-from ngeo_browse_server.config.models import ( 
-    BrowseReport, BrowseLayer, Browse
-)
-from ngeo_browse_server.control.browsereport import data as browsereport_data
-from ngeo_browse_server.control.browsereport.parsing import parse_browse_report
-from ngeo_browse_server.control.browsereport.serialization import serialize_browse_report
-from ngeo_browse_server.control.browselayer import data as browselayer_data
-from ngeo_browse_server.control.browselayer.serialization import serialize_browse_layers
-from ngeo_browse_server.control.browselayer.parsing import parse_browse_layers
-from ngeo_browse_server.control.migration import package
-from ngeo_browse_server.mapcache import tileset
-from ngeo_browse_server.mapcache.config import get_tileset_path
-from ngeo_browse_server.mapcache.tileset import URN_TO_GRID
+from ngeo_browse_server.config import get_ngeo_config
+from ngeo_browse_server.control.migration.imp import import_package
 
 
 logger = logging.getLogger(__name__)
@@ -67,7 +52,7 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                   "server will be tested. No actual data is imported.")
         ),
         make_option('--ignore-cache', action="store_true",
-            dest='check_integrity', default=False,
+            dest='ignore_cache', default=False,
             help=("If this option is set, the tile cache of the package will "
                   "be ignored and the tiles will be re-seeded after each "
                   "browse was imported.")
@@ -95,34 +80,11 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         check_integrity = kwargs["check_integrity"]
         ignore_cache = kwargs["ignore_cache"]
         
-        for package_path in package_paths:
-            self.handle_package(package_path, check_integrity, ignore_cache)
+        config = get_ngeo_config()
         
-    
-    def handle_package(self, package_path, check_integrity, ignore_cache):
-        with package.open(package_path) as p:
-            browse_layer = parse_browse_layers(etree.parse(p.get_browse_layer()))
+        for package_path in package_paths:
+            # TODO: handle each package in a transaction
+            # TODO: create a transaction class that accumulates filenames to be 
+            # deleted upon error
             
-            for browse_report_file in p.get_browse_reports():
-                browse_report = parse_browse_report(etree.parse(browse_report_file))
-                
-                # TODO: ingest browse report
-                
-                
-            if check_integrity:
-                
-                
-                return
-            
-            
-            
-            if not ignore_cache and p.has_cache():
-                # TODO: get cache tiles and insert them
-                return
-            
-            
-            else:
-                # reseed cache
-                pass
-            
-            
+            import_package(package_path, check_integrity, ignore_cache, config)
