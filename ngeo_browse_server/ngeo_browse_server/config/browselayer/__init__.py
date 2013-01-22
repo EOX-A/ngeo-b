@@ -27,8 +27,4 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
-from ngeo_browse_server.control.exceptions import NGEOException
-
-
-class ParsingException(NGEOException):
-    pass
+from data import BrowseLayer
