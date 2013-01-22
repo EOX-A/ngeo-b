@@ -131,6 +131,8 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
             browses_qs = browses_qs.filter(end_time__lte=end)
         elif start and end:
             browses_qs = browses_qs.filter(start_time__gte=start, end_time__lte=end)
+            
+        paths_to_delete = []
         
         # go through all browses to be deleted
         for browse_model in browses_qs:
@@ -140,18 +142,12 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                 {"obj_id": browse_model.coverage_id}
             )
             
-            # delete optimized browse image
+            # save paths to optimized browse image
             data_package = coverage_wrapper.getData()
             data_package.prepareAccess()
             browse_file_path = data_package.getGDALDatasetIdentifier()
+            paths_to_delete.append(browse_file_path)
             
-            #TODO: Think about possibilities for rollback (Maybe create list of 
-            #      paths and delete files after all model are successfully deleted)
-            if exists(browse_file_path):
-                remove(browse_file_path)
-                logger.info("File deleted: %s"%browse_file_path) 
-            
-
             mgr = System.getRegistry().findAndBind(
                 intf_id="resources.coverages.interfaces.Manager",
                 params={
@@ -159,13 +155,26 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                 }
             )
             
-            # delete coverage
+            id_to_delete = browse_model.coverage_id
+            
+            # delete coverage      
             mgr.delete(browse_model.coverage_id)
-
-            # delete browse
+            
+            # delete browse          
             browse_model.delete()
-            logger.info("Browse model deleted: %s"%browse_model)
+            
+            logger.info("Coverage and browse with id %s deleted."%id_to_delete) 
+            
         
+        # loop through optimized browse images and delete them
+        # This is done at this point to make sure a rollback is possible
+        # if there is an error while deleting the browses and coverages
+        for file_path in paths_to_delete:
+            if exists(file_path):
+                remove(file_path)
+                logger.info("Optimized browse image deleted: %s"%file_path) 
+            else:
+                logger.warning("Optimized browse image to be deleted not found in path: %s"%file_path)
         
         # TODO: 
         #   - think about what to do with brows report
