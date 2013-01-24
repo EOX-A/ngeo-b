@@ -95,7 +95,9 @@ class IngestResult(object):
     records = property(lambda self: self._records)
     successful = property(lambda self: [record for record in self._records if record[1] == "success"])
     failed = property(lambda self: [record for record in self._records if record[1] == "failure"])
-    
+
+
+        
 
 class BaseTestCaseMixIn(object):
     """ Base Mixin for ngEO test cases. """
@@ -135,6 +137,9 @@ class BaseTestCaseMixIn(object):
     
     configuration = {}
     
+    # check the number of DS, Browse and Time models in the database
+    model_counts = {}
+    
     # in case of a replace test we need to load something during setUp
     request_before_replace = None
     request_before_replace_file = None
@@ -147,8 +152,6 @@ class BaseTestCaseMixIn(object):
         # load browse to be replaced
         self.setUp_replace()
         
-        # check the number of DS, Browse and Time models in the database
-        self.model_counts = {}
         
         # wrap the ingestion with model counter
         self.add_counts(*self.surveilled_model_classes)
@@ -248,7 +251,7 @@ class BaseTestCaseMixIn(object):
                   self.temp_mapcache_dir):
             shutil.rmtree(d)
         remove(self.seed_command)
-    
+        
     def add_counts(self, *model_classes):
         # save the count of each model class to be checked later on.
         for model_cls in model_classes:
@@ -480,7 +483,62 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
             self.assertEqual(value[0] + num_ingested_models, value[1],
                              "Model '%s' count mismatch." % model)
 
-
+class DeleteTestCaseMixIn(BaseTestCaseMixIn):
+    """ Mixin for ngEO delete test cases. Checks whether or not the browses are
+    deleted correctly based on the specified parameters.  
+    """
+      
+    surveilled_model_classes = (
+        models.Browse,
+        eoxs_models.RectifiedDatasetRecord,
+        #mapcache_models.Time
+    )
+    
+    expected_remaining_browses = None
+    
+    expected_deleted_files = []
+   
+    def setUp(self):
+        self.setUp_files()
+        self.setUp_config()
+        
+        # swap given command and args with ingest attributes
+        tmp_cmd = self.command
+        self.command = "ngeo_ingest_browse_report" 
+        tmp_args = self.args
+        self.args = (join(settings.PROJECT_DIR, self.request_before_replace_file),)
+        
+        # execute ingest
+        self.execute()
+        
+        # swap command and args back to given values
+        self.command = tmp_cmd
+        self.args = tmp_args
+        
+        # first addition to model counter (allows check if ingestion 
+        # of data added expected number of models)
+        self.add_counts(*self.surveilled_model_classes)
+        
+        # execute deletion
+        self.response = self.execute()
+        
+        # second addition to model counter (allows to check if 
+        # the expected number of models was deleted)
+        self.add_counts(*self.surveilled_model_classes)
+    
+    def test_deleted_optimized_files(self):
+        """ Check that all optimized files have been deleted """
+        for filename in self.expected_deleted_files:
+            self.assertFalse(exists(join(self.temp_optimized_files_dir,"TEST_SAR", filename)), 
+                             "Optimized file not deleted.")
+            
+    def test_browse_deletion(self):
+        """ Check that all browses and their corresponding coverage have been deleted """
+        for model, value in self.model_counts.items():
+            self.assertEqual(value[1], self.expected_remaining_browses,
+                             "Model '%s' count is not expected value." % model)
+     
+    
 class SeedTestCaseMixIn(BaseTestCaseMixIn):
     """ Mixin for ngEO seed test cases. Checks whether or not the browses with
     the specified IDs have been correctly seeded in MapCache.  

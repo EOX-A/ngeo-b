@@ -37,7 +37,7 @@ from ngeo_browse_server.control.testbase import (
     IngestTestCaseMixIn, SeedTestCaseMixIn, IngestReplaceTestCaseMixIn, 
     OverviewMixIn, CompressionMixIn, BandCountMixIn, HasColorTableMixIn, 
     ExtentMixIn, SizeMixIn, ProjectionMixIn, StatisticsMixIn, WMSRasterMixIn,
-    IngestFailureTestCaseMixIn
+    IngestFailureTestCaseMixIn, DeleteTestCaseMixIn
 )
 from ngeo_browse_server.control.ingest.config import (
     INGEST_SECTION
@@ -1376,7 +1376,7 @@ class IngestRegularGridWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, 
 
 
 #===============================================================================
-# Command line ingestion test cases
+# Command line test cases
 #===============================================================================
 
 class IngestFromCommand(IngestTestCaseMixIn, CliMixIn, TestCase):
@@ -1386,3 +1386,55 @@ class IngestFromCommand(IngestTestCaseMixIn, CliMixIn, TestCase):
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ("ASA_IM__0P_20100807_101327_proc.tif",)
     expected_deleted_files = ['ASA_IM__0P_20100807_101327.jpg']
+    
+    
+    
+class DeleteFromCommand(DeleteTestCaseMixIn, CliMixIn, TestCase):
+   
+    args = ('--layer', 'TEST_SAR',)
+    command = "ngeo_delete"
+    
+    request_before_replace_file = "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"
+    
+    expect_failure = False
+
+    expected_remaining_browses = 0
+    expected_deleted_files = ['ASA_WS__0P_20100719_101023_proc.tif','ASA_WS__0P_20100722_101601_proc.tif','ASA_WS__0P_20100725_102231_proc.tif']
+    
+class DeleteFromCommandStart(DeleteTestCaseMixIn, CliMixIn, TestCase):
+   
+    args = ('--layer', 'TEST_SAR', '--start', '2010-07-25T10:22Z')
+    command = "ngeo_delete"
+    
+    request_before_replace_file = "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"
+    
+    expect_failure = False
+    
+    expected_remaining_browses = 2
+    expected_deleted_files = ['ASA_WS__0P_20100725_102231_proc.tif']
+    
+class DeleteFromCommandEnd(DeleteTestCaseMixIn, CliMixIn, TestCase):
+   
+    args = ('--layer', 'TEST_SAR', '--end', '2010-07-25T10:13Z')
+    command = "ngeo_delete"
+    
+    request_before_replace_file = "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"
+    
+    expect_failure = False
+    
+    expected_remaining_browses = 1
+    expected_deleted_files = ['ASA_WS__0P_20100719_101023_proc.tif','ASA_WS__0P_20100722_101601_proc.tif']
+    
+class DeleteFromCommandStartEnd(DeleteTestCaseMixIn, CliMixIn, TestCase):
+   
+    args = ('--layer', 'TEST_SAR', '--start', '2010-07-22T10:15Z', '--end', '2010-07-22T10:18Z')
+    command = "ngeo_delete"
+    
+    request_before_replace_file = "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"
+    
+    expect_failure = False
+    
+    expected_remaining_browses = 2
+    expected_deleted_files = ['ASA_WS__0P_20100722_101601_proc.tif']
+    
+    
