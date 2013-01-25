@@ -44,16 +44,15 @@ from eoxserver.core.system import System
 from eoxserver.processing.preprocessing import WMSPreProcessor, RGB, RGBA, ORIG_BANDS
 from eoxserver.processing.preprocessing.format import get_format_selection
 from eoxserver.processing.preprocessing.georeference import Extent, GCPList
-from eoxserver.resources.coverages.metadata import EOMetadata
 from eoxserver.resources.coverages.crss import fromShortCode, hasSwappedAxes
 from eoxserver.resources.coverages.models import NCNameValidator
 
 from ngeo_browse_server.config import get_ngeo_config, safe_get
 from ngeo_browse_server.config import models
-from ngeo_browse_server.control.browsereport.parsing import (
+from ngeo_browse_server.config.browsereport.parsing import (
     parse_browse_report, parse_coord_list
 )
-from ngeo_browse_server.control.browsereport import data
+from ngeo_browse_server.config.browsereport import data
 from ngeo_browse_server.control.ingest.result import (
     IngestBrowseReportResult, IngestBrowseResult, IngestBrowseReplaceResult,
     IngestBrowseFailureResult
@@ -62,9 +61,7 @@ from ngeo_browse_server.control.ingest.config import (
     get_project_relative_path, get_storage_path, get_optimized_path, 
     get_format_config, get_optimization_config
 )
-from ngeo_browse_server.control.ingest.filetransaction import (
-    IngestionTransaction
-)
+from ngeo_browse_server.control.ingest.filetransaction import FileTransaction
 from ngeo_browse_server.control.ingest.config import (
     get_success_dir, get_failure_dir
 )
@@ -72,8 +69,11 @@ from ngeo_browse_server.control.ingest.exceptions import IngestionException
 from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.mapcache.tasks import seed_mapcache
 from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
-from ngeo_browse_server.control.browsereport.serialization import (
+from ngeo_browse_server.config.browsereport.serialization import (
     serialize_browse_report
+)
+from ngeo_browse_server.control.queries import (
+    get_existing_browse, create_browse_report, create_browse, remove_browse
 )
 
 
@@ -100,11 +100,7 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
                                  "exist." % parsed_browse_report.browse_type)
     
     # generate a browse report model
-    browse_report = models.BrowseReport(
-        browse_layer=browse_layer, **parsed_browse_report.get_kwargs()
-    )
-    browse_report.full_clean()
-    browse_report.save()
+    browse_report = create_browse_report(parsed_browse_report, browse_layer)
     
     # initialize the preprocessor with configuration values
     crs = None
@@ -301,34 +297,26 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
             coverage_id = _generate_coverage_id(parsed_browse, browse_layer)
             logger.info("Browse ID '%s' is not a valid coverage ID. Using "
                         "generated ID '%s'." % (old_id, coverage_id))
-        
+    
     # check if a browse already exists and delete it in order to replace it
-    try:
-        browse = None
-        if parsed_browse.browse_identifier:
-            # try to get a previous browse. IDs are unique within a browse layer
-            browse = models.Browse.objects.get(
-                browse_identifier__value=parsed_browse.browse_identifier,
-                browse_layer=browse_layer
-            )
-            
-        else:
-            # if no browse ID is given, try to get the browse by browse layer,
-            # start- and end-time
-            browse = models.Browse.objects.get(
-                start_time=parsed_browse.start_time,
-                end_time=parsed_browse.end_time,
-                browse_layer=browse_layer
-            )
+    existing_browse_model = get_existing_browse(parsed_browse, browse_layer.id)
+    if existing_browse_model:
+        identifier = existing_browse_model.browse_identifier
+        if (identifier and parsed_browse.identifier
+            and  identifier.value != parsed_browse.identifier):
+            raise IngestionException("Existing browse does not have the "
+                                     "same browse ID as the ingested.") 
         
-        replaced_time_interval = browse.start_time, browse.end_time
-        replaced_extent, replaced_filename = cleanup_replaced(
-            browse, browse_layer, coverage_id, config
+        replaced_time_interval = (existing_browse_model.start_time,
+                                  existing_browse_model.end_time)
+        
+        replaced_extent, replaced_filename = remove_browse(
+            existing_browse_model, browse_layer, coverage_id, config
         )
         replaced = True
         logger.info("Existing browse found, replacing it.")
             
-    except models.Browse.DoesNotExist:
+    else:
         # A browse with that identifier does not exist, so just create a new one
         logger.info("Creating new browse.")
     
@@ -355,7 +343,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                                      % output_filename)
         
         # wrap all file operations with IngestionTransaction
-        with IngestionTransaction(output_filename, replaced_filename):
+        with FileTransaction(output_filename, replaced_filename):
         
             # initialize a GeoReference for the preprocessor
             geo_reference = _georef_from_parsed(parsed_browse)
@@ -381,10 +369,11 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                                          % result.num_bands)
             
             logger.info("Creating database models.")
-            extent, time_interval = create_models(parsed_browse, browse_report, 
-                                                  browse_layer, coverage_id, 
-                                                  crs, replaced, result, 
-                                                  config=config)
+            extent, time_interval = create_browse(
+                parsed_browse, browse_report, browse_layer, coverage_id, 
+                crs, replaced, result.footprint_geom, result.num_bands, 
+                output_filename, config=config
+            )
             
         
     except:
@@ -437,156 +426,6 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                                          replaced_time_interval)
 
 
-
-#===============================================================================
-# model creation/cleanup functions
-#===============================================================================
-
-def cleanup_replaced(browse, browse_layer, coverage_id, config=None):
-    """ Delete all models and files associated with a to be replaced browse. 
-    Returns the extent of the replaced image.
-    """
-    
-    # get previous extent to "un-seed" MapCache in that area
-    rect_ds = System.getRegistry().getFromFactory(
-        "resources.coverages.wrappers.EOCoverageFactory",
-        {"obj_id": browse.coverage_id}
-    )
-    replaced_extent = rect_ds.getExtent()
-    replaced_filename = rect_ds.getData().getLocation().getPath()
-    
-    # delete the EOxServer rectified dataset entry
-    rect_mgr = System.getRegistry().findAndBind(
-        intf_id="resources.coverages.interfaces.Manager",
-        params={
-            "resources.coverages.interfaces.res_type": "eo.rect_dataset"
-        }
-    )
-    rect_mgr.delete(obj_id=browse.coverage_id)
-    browse.delete()
-    
-    
-    # unseed here
-    try:
-        seed_mapcache(tileset=browse_layer.id, grid=browse_layer.grid, 
-                      minx=replaced_extent[0], miny=replaced_extent[1],
-                      maxx=replaced_extent[2], maxy=replaced_extent[3], 
-                      minzoom=browse_layer.lowest_map_level, 
-                      maxzoom=browse_layer.highest_map_level,
-                      start_time=browse.start_time,
-                      end_time=browse.end_time,
-                      delete=True,
-                      **get_mapcache_seed_config(config))
-    
-    
-    except Exception, e:
-        logger.warn("Un-seeding failed: %s" % str(e))
-    
-    
-    # delete *one* of the fitting Time objects
-    mapcache_models.Time.objects.filter(
-        start_time=browse.start_time,
-        end_time=browse.end_time,
-        source__name=browse_layer.id
-    )[0].delete()
-    
-    return replaced_extent, replaced_filename
-
-
-def create_models(parsed_browse, browse_report, browse_layer, coverage_id, crs,
-                  replaced, preprocess_result, config=None):
-    """ Creates all required database models for the browse and returns the
-        calculated extent of the registered coverage.
-    """
-    
-    srid = fromShortCode(parsed_browse.reference_system_identifier)
-    
-    # create the correct model from the pared browse
-    if parsed_browse.geo_type == "rectifiedBrowse":
-        browse = _model_from_parsed(parsed_browse, browse_report, browse_layer,
-                                    coverage_id, models.RectifiedBrowse)
-        browse.full_clean()
-        browse.save()
-        
-    elif parsed_browse.geo_type == "footprintBrowse":
-        browse = _model_from_parsed(parsed_browse, browse_report, browse_layer,
-                                    coverage_id, models.FootprintBrowse)
-        browse.full_clean()
-        browse.save()
-        
-    elif parsed_browse.geo_type == "regularGridBrowse":
-        browse = _model_from_parsed(parsed_browse, browse_report, browse_layer,
-                                    coverage_id, models.RegularGridBrowse)
-        browse.full_clean()
-        browse.save()
-        
-        for coord_list in parsed_browse.coord_lists:
-            coord_list = models.RegularGridCoordList(regular_grid_browse=browse,
-                                                     coord_list=coord_list)
-            coord_list.full_clean()
-            coord_list.save()
-    
-    elif parsed_browse.geo_type == "modelInGeotiffBrowse":
-        browse = _model_from_parsed(parsed_browse, browse_report, browse_layer,
-                                    coverage_id, models.ModelInGeotiffBrowse)
-        browse.full_clean()
-        browse.save()
-    
-    else:
-        raise NotImplementedError
-    
-    # if the browse contains an identifier, create the according model
-    if parsed_browse.browse_identifier is not None:
-        browse_identifier = models.BrowseIdentifier(
-            value=parsed_browse.browse_identifier, browse=browse, 
-            browse_layer=browse_layer
-        )
-        browse_identifier.full_clean()
-        browse_identifier.save()
-    
-    # initialize the Coverage Manager for Rectified Datasets to register the
-    # datasets in the database
-    rect_mgr = System.getRegistry().findAndBind(
-        intf_id="resources.coverages.interfaces.Manager",
-        params={
-            "resources.coverages.interfaces.res_type": "eo.rect_dataset"
-        }
-    )
-    
-    # create EO metadata necessary for registration
-    eo_metadata = EOMetadata(
-        coverage_id, parsed_browse.start_time, parsed_browse.end_time,
-        preprocess_result.footprint_geom
-    )
-    
-    # get dataset series ID from browse layer, if available
-    container_ids = []
-    if browse_layer:
-        container_ids.append(browse_layer.id)
-    
-    range_type_name = "RGB" if preprocess_result.num_bands == 3 else "RGBA"
-    
-    # register the optimized dataset
-    logger.info("Creating Rectified Dataset.")
-    coverage = rect_mgr.create(obj_id=coverage_id, 
-                               range_type_name=range_type_name,
-                               default_srid=srid, visible=False, 
-                               local_path=preprocess_result.output_filename,
-                               eo_metadata=eo_metadata, force=False, 
-                               container_ids=container_ids)
-    
-    extent = coverage.getExtent()
-    
-    # create mapcache models
-    source, _ = mapcache_models.Source.objects.get_or_create(name=browse_layer.id)
-    time = mapcache_models.Time(start_time=browse.start_time,
-                                end_time=browse.end_time,
-                                source=source)
-    time.full_clean()
-    time.save()
-    
-    return extent, (browse.start_time, browse.end_time)
-
 #===============================================================================
 # helper functions
 #===============================================================================
@@ -598,13 +437,6 @@ def safe_makedirs(path):
     
     if not exists(path):
         makedirs(path)
-
-
-def _model_from_parsed(parsed_browse, browse_report, browse_layer, 
-                       coverage_id, model_cls):
-    model = model_cls(browse_report=browse_report, browse_layer=browse_layer, 
-                      coverage_id=coverage_id, **parsed_browse.get_kwargs())
-    return model
 
 
 def _georef_from_parsed(parsed_browse):

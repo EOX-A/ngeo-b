@@ -28,7 +28,7 @@
 #-------------------------------------------------------------------------------
 
 
-from ngeo_browse_server.control.exceptions import NGEOException
+from ngeo_browse_server.exceptions import NGEOException
 
 
 class IngestionException(NGEOException):
