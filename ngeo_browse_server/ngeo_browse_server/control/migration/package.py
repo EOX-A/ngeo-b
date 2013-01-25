@@ -28,11 +28,22 @@
 #-------------------------------------------------------------------------------
 
 import os
-from os.path import exists, basename, dirname, join
+from os.path import exists, join, basename
 import tarfile
 from datetime import datetime
+import logging
+from collections import deque
+from cStringIO import StringIO
 
-from ngeo_browse_server.control.exceptions import NGEOException
+from eoxserver.core.util.xmltools import DOMElementToXML
+from eoxserver.resources.coverages.metadata import (
+    NativeMetadataFormatEncoder, NativeMetadataFormat
+)
+from ngeo_browse_server.exceptions import NGEOException
+
+
+
+logger = logging.getLogger(__name__)
 
 """
 tar-file structure is like that:
@@ -45,19 +56,19 @@ archive.tar.gz
 |   |-- <browseReport3>.xml
 |   `-- ...
 |-- optimized
-|   |-- browse1_proc.tif
-|   |-- browse1_proc.xml
-|   |-- browse2_proc.tif
-|   |-- browse2_proc.xml
-|   |-- browse3_proc.tif
-|   |-- browse3_proc.xml
+|   |-- <coverage-id1>.tif
+|   |-- <coverage-id1>.xml
+|   |-- <coverage-id2>.tif
+|   |-- <coverage-id2>.xml
+|   |-- <coverage-id3>.tif
+|   |-- <coverage-id3>.xml
 |   `-- ...
 `-- (cache)
     `-- <tileset>
         `-- <grid>
-            |-- <x>-<y>-<z>-<dim>.png
-            |-- <x>-<y>-<z>-<dim>.png
-            |-- <x>-<y>-<z>-<dim>.png
+            |-- <dim>-<x>-<y>-<z>-.png
+            |-- <dim>-<x>-<y>-<z>.png
+            |-- <dim>-<x>-<y>-<z>.png
             `-- ...
 """
 
@@ -124,6 +135,17 @@ class PackageWriter(object):
         self._check_dir(SEC_OPTIMIZED)
         name = join(SEC_OPTIMIZED, name)
         self._add_file(browse_file, name)
+    
+    
+    def add_browse_metadata(self, name, coverage_id, begin_time, end_time, footprint):
+        " Add browse metadata to the archive. "
+        
+        self._check_dir(SEC_OPTIMIZED)
+        encoder = NativeMetadataFormatEncoder()
+        xml = DOMElementToXML(encoder.encodeMetadata(coverage_id,
+                                                     begin_time, end_time,
+                                                     footprint))
+        self._add_file(StringIO(xml), join(SEC_OPTIMIZED, name))
         
 
     def add_cache_file(self, tileset, grid, x, y, z, dim, tile_file):
@@ -199,7 +221,6 @@ class PackageReader(object):
         self._tarfile = tarfile.open(path, "r:*")
     
     
-    
     def get_browse_layer(self):
         return self._open_file(BROWSE_LAYER_NAME)
     
@@ -209,14 +230,44 @@ class PackageReader(object):
             yield self._open_file(member)
     
     
-    def get_browse_files(self, filename):
+    def get_browse_file(self, filename):
         return self._open_file(join(SEC_OPTIMIZED, filename))
     
     
-    def get_cache_files(self, tileset, grid):
+    def extract_browse_file(self, browse_filename, path=None):
+        with open(path, "w+") as f:
+            tf = self._tarfile.extractfile(join(SEC_OPTIMIZED, browse_filename))
+            f.write(tf.read())
+        
+    
+    def get_browse_file_names(self):
+        return self._filter_files(SEC_OPTIMIZED)
+    
+    
+    def get_browse_metadata(self, metadata_filename):
+        xml = self._open_file(join(SEC_OPTIMIZED, metadata_filename)).read()
+        md_format = NativeMetadataFormat()
+        md = md_format.getEOMetadata(xml)
+        return md.eo_id, md.begin_time, md.end_time, md.footprint
+
+    
+    def get_cache_files(self, tileset, grid, dim):
+        print tileset, grid, dim
         for member in self._filter_files(join(SEC_CACHE, tileset, grid)):
-            # TODO: x, y, z, dim
-            yield self._open_file(member)
+            name = basename(member.name)
+            actual_dim = name[:41] # TODO: replace this
+            z, x, y = name[42:].split("-")
+            actual_dim = actual_dim.replace("_", "/")
+            
+            print dim, actual_dim
+            if dim != actual_dim:
+                continue
+            
+            z = int(z)
+            x = int(x)
+            y = int(y)
+            
+            yield x, y, z, self._open_file(member)
     
     
     def has_cache(self):
@@ -225,7 +276,7 @@ class PackageReader(object):
     
     def _filter_files(self, d):
         for member in self._tarfile.getmembers():
-            if not member.isfile() or not member.info.startswith(d): # TODO: make better path check
+            if not member.isfile() or not member.name.startswith(d): # TODO: make better path check
                 continue
             
             yield member
@@ -233,7 +284,7 @@ class PackageReader(object):
     
     def _open_file(self, name):
         try:
-            self._tarfile.extractfile(name)
+            return self._tarfile.extractfile(name)
         except KeyError:
             raise PackageException("File '%s' is not present in the package."
                                    % name)
@@ -244,8 +295,19 @@ class PackageReader(object):
             return True
         except KeyError:
             return False
-        
 
+        
+    def close(self):
+        self._tarfile.close()
+
+    def __enter__(self):
+        return self
+    
+    
+    def __exit__(self, etype, value, traceback):
+        " End of critical block. Either close/save tarfile or remove it. "
+
+        self.close()
 
 
 def create(path, compression, force=False):
@@ -257,8 +319,8 @@ def create(path, compression, force=False):
     return PackageWriter(path, compression)
 
 
-def open(path):
-    pass
+def read(path):
+    return PackageReader(path)
 
 
 def generate_filename(compression):
@@ -266,27 +328,39 @@ def generate_filename(compression):
     return now.strftime("export_%Y%m%d%H%M%S%f") + COMPRESSION_TO_EXT[compression]
 
 
-
-# TODO
-class ArchivedTileSet(object):
-    def __init__(self, archive, basepath=None):
-        self.archive = archive
-        self.basepath = basepath or "cache/"
-
+class ImportTransaction(object):
+    """ Helper class to keep track of files that need to be removed upon error.
+    """
     
-    def __iter__(self):
-        # TODO: yield archive/cache entries
-        for info in self.archive.getmembers():
-            if not info.name.startswith(self.basepath):
-                continue
-            
-            _, tileset, grid = dirname(info.name).split("/")
-            x, y, z, dim = basename(info.name).split("-")
-            x = float(x); y = float(y); z = int(z)
-            
-            yield tileset, grid, x, y, z, dim, self.archive.extractfile(info)
-            
-            # TODO: split filename to "tileset", "grid", "x", "y", "z", "dim", "data"
+    def __init__(self, package_reader, optimized_dir):
+        self._package_reader = package_reader
+        self._optimized_dir = optimized_dir
+        self._filenames = deque()
     
     
+    def add_file(self, filename):
+        " Add a file to the transaction. "
+        self._filenames.append(filename)
+    
+    
+    def __enter__(self):
+        " Enter the context. This removes all surveilled files. "
         
+        self._filenames.clear()
+        return self
+        
+    
+    def __exit__(self, etype, value, traceback):
+        """ Exit the context. If an error occurred, all surveilled files are 
+            deleted.
+        """
+        
+        if (etype, value, traceback) == (None, None, None):
+            self._filenames.clear()
+        
+        else: # on error
+            # remove all files that were added to the transaction
+            while self._filenames:
+                filename = self._filenames.pop()
+                os.remove(filename)
+

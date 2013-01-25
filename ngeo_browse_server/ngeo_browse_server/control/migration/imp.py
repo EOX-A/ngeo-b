@@ -37,7 +37,7 @@ from django.db import transaction
 
 from ngeo_browse_server.exceptions import NGEOException
 from ngeo_browse_server.config.browselayer.parsing import parse_browse_layers
-from ngeo_browse_server.config.models import BrowseLayer
+from ngeo_browse_server.config.models import BrowseLayer, BrowseIdentifier
 from ngeo_browse_server.config.browsereport.parsing import parse_browse_report
 from ngeo_browse_server.control.migration import package
 from ngeo_browse_server.control.queries import (
@@ -47,9 +47,15 @@ from ngeo_browse_server.control.ingest.config import get_optimized_path
 from ngeo_browse_server.control.ingest.filetransaction import FileTransaction
 from ngeo_browse_server.control.ingest.result import (
     IngestBrowseResult, IngestBrowseReplaceResult
-)
-from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
+, IngestBrowseReportResult, IngestBrowseFailureResult)
+from ngeo_browse_server.mapcache.config import get_mapcache_seed_config,\
+    get_tileset_path
 from ngeo_browse_server.mapcache.tasks import seed_mapcache
+from eoxserver.core.util.timetools import isotime
+from ngeo_browse_server.mapcache.tileset import URN_TO_GRID
+from ngeo_browse_server.mapcache import tileset
+import traceback
+
 
 
 logger = logging.getLogger(__name__)
@@ -86,40 +92,112 @@ def import_package(package_path, check_integrity, ignore_cache, config):
             return
         
         
+        import_cache_levels = []
+        seed_cache_levels = []
+        
+        if not p.has_cache() or ignore_cache:
+            seed_cache_levels.append((browse_layer_model.lowest_map_level, 
+                                      browse_layer_model.highest_map_level))
+        else:
+            if browse_layer_model.lowest_map_level < browse_layer.lowest_map_level:
+                seed_cache_levels.append((browse_layer_model.lowest_map_level,
+                                          browse_layer.lowest_map_level))
+            
+            if browse_layer_model.highest_map_level > browse_layer.highest_map_level:
+                seed_cache_levels.append((browse_layer.highest_map_level,
+                                          browse_layer_model.highest_map_level))
+            
+            import_cache_levels.append((max(browse_layer_model.lowest_map_level,
+                                            browse_layer.lowest_map_level),
+                                        min(browse_layer_model.highest_map_level,
+                                            browse_layer.highest_map_level)))
+        
+        logger.debug("Importing cache levels %s" %import_cache_levels)
+        logger.debug("Seeding cache levels %s" %seed_cache_levels)
+        
+        
         for browse_report_file in p.get_browse_reports():
-            import_browse_report(p, browse_report_file, browse_layer_model, crs, config)
+            import_browse_report(p, browse_report_file, browse_layer_model, crs,
+                                 seed_cache_levels, import_cache_levels, config)
             
 
-def import_browse_report(p, browse_report_file, browse_layer_model, crs, config):
+def import_browse_report(p, browse_report_file, browse_layer_model, crs,
+                         seed_cache_levels, import_cache_levels, config):
+    """ 
+    """
+    
+    report_result = IngestBrowseReportResult()
+    
     browse_report = parse_browse_report(etree.parse(browse_report_file))
     browse_report_model = create_browse_report(browse_report,
                                                browse_layer_model)
     for browse in browse_report:
-        print "XXX"
         with transaction.commit_manually():
             with transaction.commit_manually(using="mapcache"):
                 try:
-                    result = import_browse(p, browse, browse_report_model, browse_layer_model, crs, config)
-                except:
+                    
+                    result = import_browse(p, browse, browse_report_model,
+                                           browse_layer_model, crs, config)
+                    report_result.add(result)
+                    
+                    transaction.commit() 
+                    transaction.commit(using="mapcache")
+                    
+                except Exception, e:
+                    logger.error("Failure during import of browse '%s'." %
+                                 browse.browse_identifier)
+                    logger.debug(traceback.format_exc() + "\n")
                     transaction.rollback()
                     transaction.rollback(using="mapcache")
                     
-                    raise
+                    report_result.add(IngestBrowseFailureResult(
+                        browse.browse_identifier, 
+                        type(e).__name__, str(e))
+                    )
+                    
                     continue
-            
-                transaction.commit() 
-                transaction.commit(using="mapcache")
         
-        seed_mapcache(tileset=browse_layer_model.id, grid=browse_layer_model.grid, 
-                      minx=result.extent[0], miny=result.extent[1],
-                      maxx=result.extent[2], maxy=result.extent[3], 
-                      minzoom=browse_layer_model.lowest_map_level, 
-                      maxzoom=browse_layer_model.highest_map_level,
-                      start_time=result.time_interval[0],
-                      end_time=result.time_interval[1],
-                      delete=False,
-                      **get_mapcache_seed_config(config))
-        logger.info("Successfully finished seeding.")
+        tileset_name = browse_layer_model.id
+        dim = isotime(browse.start_time) + "/" + isotime(browse.end_time)
+        ts = tileset.open(get_tileset_path(tileset_name, config), mode="w")
+        
+        grid = URN_TO_GRID[browse_layer_model.grid]
+        tile_num = 0
+        
+        # import cache
+        for minzoom, maxzoom in import_cache_levels:
+            logger.info("Importing cached tiles from zoom level %d to %d." 
+                        % (minzoom, maxzoom))
+            
+            for x, y, z, f in p.get_cache_files(tileset_name, grid, dim):
+                if z < minzoom or z > maxzoom:
+                    continue
+                
+                ts.add_tile(tileset_name, grid, dim, x, y, z, f)
+                tile_num += 1
+
+        logger.info("Imported %d cached tiles." % tile_num)
+        
+        # seed cache
+        for minzoom, maxzoom in seed_cache_levels:
+            logger.info("Re-seeding tile cache from zoom level %d to %d."
+                        % (minzoom, maxzoom))
+            
+            seed_mapcache(tileset=browse_layer_model.id,
+                          grid=browse_layer_model.grid, 
+                          minx=result.extent[0], miny=result.extent[1],
+                          maxx=result.extent[2], maxy=result.extent[3], 
+                          minzoom=minzoom, 
+                          maxzoom=maxzoom,
+                          start_time=result.time_interval[0],
+                          end_time=result.time_interval[1],
+                          delete=False,
+                          **get_mapcache_seed_config(config))
+        
+            logger.info("Successfully finished seeding.")
+            
+            
+        
             
 
 def import_browse(p, browse, browse_report_model, browse_layer_model, crs, config):
@@ -133,7 +211,11 @@ def import_browse(p, browse, browse_report_model, browse_layer_model, crs, confi
     
     existing_browse_model = get_existing_browse(browse, browse_layer_model.id)
     if existing_browse_model:
-        identifier = existing_browse_model.browse_identifier
+        try:
+            identifier = existing_browse_model.browse_identifier
+        except BrowseIdentifier.DoesNotExist:
+            identifier = None
+        
         if (identifier and browse.identifier
             and  identifier.value != browse.identifier):
             raise ImportException("Existing browse does not have the same "
@@ -164,7 +246,8 @@ def import_browse(p, browse, browse_report_model, browse_layer_model, crs, confi
         ((replaced_filename and
           not samefile(output_filename, replaced_filename))
          or not replaced_filename)):
-        raise ImportException("")
+        #raise ImportException("")
+        pass
     
     with FileTransaction(output_filename):
         try: makedirs(dirname(output_filename))
