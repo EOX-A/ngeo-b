@@ -38,6 +38,7 @@ from lxml import etree
 import logging
 import numpy
 import re
+import tarfile
 
 import sqlite3
 from osgeo import gdal, osr
@@ -57,7 +58,10 @@ from ngeo_browse_server.control.ingest.config import (
     INGEST_SECTION, 
 )
 from ngeo_browse_server.mapcache import models as mapcache_models
-from ngeo_browse_server.mapcache.config import SEED_SECTION
+from ngeo_browse_server.mapcache.config import SEED_SECTION 
+from ngeo_browse_server.control.migration.package import (
+    SEC_CACHE, BROWSE_LAYER_NAME, SEC_OPTIMIZED
+)
 
 
 logger = logging.getLogger(__name__)
@@ -323,20 +327,23 @@ class CliMixIn(object):
     args = ()
     kwargs = {}
     
-    def execute(self, *args):
+    expect_failure = False
+    
+    def execute(self, args=None):
         # construct command line parameters
-        args = ["manage.py", self.command]
-        if isinstance(args, (list, tuple)):
-            args.extend(self.args)
-        elif isinstance(args, basestring):
-            args.extend(self.args.split(" "))
-        
-        for key, value in self.kwargs.items():
-            args.append("-%s" % key if len(key) == 1 else "--%s" % key)
-            if isinstance(value, (list, tuple)):
-                args.extend(value)
-            else: 
-                args.append(value)
+        if not args:
+            args = ["manage.py", self.command]
+            if isinstance(args, (list, tuple)):
+                args.extend(self.args)
+            elif isinstance(args, basestring):
+                args.extend(self.args.split(" "))
+            
+            for key, value in self.kwargs.items():
+                args.append("-%s" % key if len(key) == 1 else "--%s" % key)
+                if isinstance(value, (list, tuple)):
+                    args.extend(value)
+                else: 
+                    args.append(value)
         
         # redirect stdio/stderr to buffer
         sys.stdout = StringIO()
@@ -827,3 +834,51 @@ class IngestFailureTestCaseMixIn(BaseTestCaseMixIn):
         for model, value in self.model_counts.items():
             self.assertEqual(value[0], value[1],
                              "Model '%s' count mismatch." % model)
+
+
+class ExportTestCaseMixIn(BaseTestCaseMixIn):
+    expected_exported_browses = ()
+    expected_cache_tiles = None
+    
+    def setUp_files(self):
+        super(ExportTestCaseMixIn, self).setUp_files()
+        self.temp_export_file = tempfile.mktemp(suffix=".tar.gz")
+
+
+    def tearDown_files(self):
+        super(ExportTestCaseMixIn, self).tearDown_files()
+        remove(self.temp_export_file)
+
+    
+    def test_archive_content(self):
+        """ Test that the archive contains the expected files.
+        """
+        
+        print "XXXX"
+        
+        try:
+            archive = tarfile.open(self.temp_export_file)
+        except tarfile.TarError, e:
+            self.fail(str(e))
+        
+        try:
+            archive.getmember(BROWSE_LAYER_NAME)
+        except KeyError:
+            self.fail("Archive does not contain %s." % BROWSE_LAYER_NAME)
+        
+        for browse_id in self.expected_exported_browses:
+            try:
+                archive.getmember(join(SEC_OPTIMIZED, browse_id + ".tif"))
+                archive.getmember(join(SEC_OPTIMIZED, browse_id + ".xml"))
+            except KeyError:
+                self.fail("Archive does not contain %s.tif or %s.xml."
+                          % (browse_id, browse_id))
+        
+        if self.expected_cache_tiles is not None:
+            cache_tiles = 0
+            for member in archive:
+                if member.name.startswith(SEC_CACHE) and member.isfile():
+                    cache_tiles += 1
+            
+            self.assertEqual(self.expected_cache_tiles, cache_tiles)
+    

@@ -37,12 +37,11 @@ from ngeo_browse_server.control.testbase import (
     IngestTestCaseMixIn, SeedTestCaseMixIn, IngestReplaceTestCaseMixIn, 
     OverviewMixIn, CompressionMixIn, BandCountMixIn, HasColorTableMixIn, 
     ExtentMixIn, SizeMixIn, ProjectionMixIn, StatisticsMixIn, WMSRasterMixIn,
-    IngestFailureTestCaseMixIn, DeleteTestCaseMixIn
+    IngestFailureTestCaseMixIn, DeleteTestCaseMixIn, ExportTestCaseMixIn
 )
 from ngeo_browse_server.control.ingest.config import (
     INGEST_SECTION
 )
-
 
 #===============================================================================
 # Ingest ModelInGeoTiff browse test cases
@@ -1376,7 +1375,7 @@ class IngestRegularGridWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, 
 
 
 #===============================================================================
-# Command line test cases
+# Ingest command line test cases
 #===============================================================================
 
 class IngestFromCommand(IngestTestCaseMixIn, CliMixIn, TestCase):
@@ -1387,7 +1386,10 @@ class IngestFromCommand(IngestTestCaseMixIn, CliMixIn, TestCase):
     expected_optimized_files = ("ASA_IM__0P_20100807_101327_proc.tif",)
     expected_deleted_files = ['ASA_IM__0P_20100807_101327.jpg']
     
-    
+
+#===============================================================================
+# Delete test cases
+#===============================================================================
     
 class DeleteFromCommand(DeleteTestCaseMixIn, CliMixIn, TestCase):
    
@@ -1438,3 +1440,70 @@ class DeleteFromCommandStartEnd(DeleteTestCaseMixIn, CliMixIn, TestCase):
     expected_deleted_files = ['ASA_WS__0P_20100722_101601_proc.tif']
     
     
+#===============================================================================
+# Export test cases
+#===============================================================================
+
+class ExportGroupFull(ExportTestCaseMixIn, CliMixIn, TestCase):
+    request_before_replace = ("manage.py", "ngeo_ingest_browse_report",
+                              "reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group_partial.xml",)
+    
+    command = "ngeo_export"
+    
+    kwargs = {
+        "layer" : "TEST_SAR"
+    }
+    
+    expected_exported_browses = ("b_id_6", "b_id_7", "b_id_8")
+    expected_cache_files = 0
+    
+    
+class ExportGroupFullCache(ExportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, TestCase):
+    request_before_replace = ("manage.py", "ngeo_ingest_browse_report",
+                              "reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group_partial.xml",)
+    
+    command = "ngeo_export"
+    
+    kwargs = {
+        "layer" : "TEST_SAR"
+    }
+    args = ("--export-cache")
+    
+    expected_exported_browses = ("b_id_6", "b_id_7", "b_id_8")
+    expected_cache_files = 0
+
+class ExportGroupStart(ExportTestCaseMixIn, CliMixIn, TestCase):
+    request_before_replace = ("manage.py", "ngeo_ingest_browse_report",
+                              "reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group_partial.xml",)
+    
+    command = "ngeo_export"
+    
+    kwargs = {
+        "layer" : "TEST_SAR",
+        "start": "2010-07-22T10:16:01Z"
+    }
+    
+    expected_exported_browses = ("b_id_7", "b_id_8")
+    expected_cache_files = 0
+    
+    
+class ExportGroupEnd(ExportTestCaseMixIn, CliMixIn, TestCase):
+    request_before_replace = ("manage.py", "ngeo_ingest_browse_report",
+                              "reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group_partial.xml",)
+    
+    command = "ngeo_export"
+    
+    kwargs = {
+        "layer" : "TEST_SAR",
+        "end": "2010-07-22T10:17:02Z"
+    }
+    
+    expected_exported_browses = ("b_id_6", "b_id_7")
+    expected_cache_files = 0
+    
+
+
+
+#===============================================================================
+# Import test cases
+#===============================================================================
