@@ -27,9 +27,9 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
-from os.path import basename
 import logging
 from optparse import make_option
+from itertools import izip
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models.aggregates import Count
@@ -41,10 +41,10 @@ from ngeo_browse_server.control.management.commands import LogToConsoleMixIn
 from ngeo_browse_server.config.models import ( 
     BrowseReport, BrowseLayer, Browse
 )
-from ngeo_browse_server.control.browsereport import data as browsereport_data
-from ngeo_browse_server.control.browsereport.serialization import serialize_browse_report
-from ngeo_browse_server.control.browselayer import data as browselayer_data
-from ngeo_browse_server.control.browselayer.serialization import serialize_browse_layers
+from ngeo_browse_server.config.browsereport import data as browsereport_data
+from ngeo_browse_server.config.browsereport.serialization import serialize_browse_report
+from ngeo_browse_server.config.browselayer import data as browselayer_data
+from ngeo_browse_server.config.browselayer.serialization import serialize_browse_layers
 from ngeo_browse_server.control.migration import package
 from ngeo_browse_server.mapcache import tileset
 from ngeo_browse_server.mapcache.config import get_tileset_path
@@ -184,33 +184,38 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                     browse_report_model, browses_qs
                 )
                 
-                # TODO: correct the file_name attribute to match the one that is
-                # stored in the package
-                
-                
-                # save browse report xml and add it to the package
-                p.add_browse_report(
-                    serialize_browse_report(browse_report, pretty_print=True),
-                    name="%s_%s_%s.xml" % (
-                        browse_report.browse_type,
-                        browse_report.responsible_org_name,
-                        browse_report.date_time.strftime("%Y%m%d%H%M%S%f")
-                    )
-                )
+                print len(browse_report), len(browses_qs
+                                              )
                 
                 # iterate over all browses in the query
-                for browse_model in browses_qs:
+                for browse, browse_model in izip(browse_report, browses_qs):
                     coverage_wrapper = System.getRegistry().getFromFactory(
                         "resources.coverages.wrappers.EOCoverageFactory",
                         {"obj_id": browse_model.coverage_id}
                     )
+                    
+                    # set the 
+                    base_filename = browse_model.coverage_id
+                    data_filename = base_filename + ".tif"
+                    md_filename = base_filename + ".xml"
+                    
+                    browse._file_name = data_filename
                     
                     # add optimized browse image to package
                     data_package = coverage_wrapper.getData()
                     data_package.prepareAccess()
                     browse_file_path = data_package.getGDALDatasetIdentifier()
                     with open(browse_file_path) as f:
-                        p.add_browse(f, basename(browse_file_path))
+                        p.add_browse(f, data_filename)
+                        # TODO: metadata
+                        
+                        p.add_browse_metadata(md_filename, 
+                                              browse_model.coverage_id, 
+                                              coverage_wrapper.getBeginTime(),
+                                              coverage_wrapper.getEndTime(),
+                                              coverage_wrapper.getFootprint())
+                        
+                        
                     
                     if export_cache:
                         # get "dim" parameter
@@ -229,3 +234,25 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                             maxzoom=browse_layer.lowest_map_level
                         ):
                             p.add_cache_file(*tile_desc)
+                            
+                        """ 
+                        tiles_qs = tileset.open_queryset(get_tileset_path(browse_layer.id))
+                        tiles_qs.filter(grid=URN_TO_GRID[browse_layer.grid], tileset=browse_layer.id,
+                                        dim=dim, z__lte=browse_layer.highest_map_level,
+                                        z__gte=browse_layer.lowest_map_level)
+                        
+                        for tile_model in tiles_qs:
+                            p.add_cache_file(tile_model.tileset, tile_model.grid,
+                                             tile_model.x, tile_model.y, tile_model.z,
+                                             tile_model.dim, tile_model.data)
+                        """ 
+                
+                # save browse report xml and add it to the package
+                p.add_browse_report(
+                    serialize_browse_report(browse_report, pretty_print=True),
+                    name="%s_%s_%s.xml" % (
+                        browse_report.browse_type,
+                        browse_report.responsible_org_name,
+                        browse_report.date_time.strftime("%Y%m%d%H%M%S%f")
+                    )
+                )

@@ -83,8 +83,5 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         config = get_ngeo_config()
         
         for package_path in package_paths:
-            # TODO: handle each package in a transaction
-            # TODO: create a transaction class that accumulates filenames to be 
-            # deleted upon error
-            
-            import_package(package_path, check_integrity, ignore_cache, config)
+            result = import_package(package_path, check_integrity,
+                                    ignore_cache, config)
