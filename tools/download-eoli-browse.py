@@ -56,6 +56,8 @@ def main(args):
     parser.add_argument("--browse-type", dest="browse_type", default=None)
     parser.add_argument("--pretty-print", dest="pretty_print",
                         action="store_true", default=False)
+    parser.add_argument("--browses-per-report", dest="browses_per_report",
+                        type=int, default=0)
     parser.add_argument("input_filename", metavar="infile", nargs=1)
     parser.add_argument("output_directory", metavar="outdir", nargs=1)
 
@@ -64,6 +66,7 @@ def main(args):
     browse_report = args.browse_report
     input_filename = args.input_filename[0]
     output_dir = args.output_directory[0]
+    browses_per_report = args.browses_per_report
 
     if not exists(input_filename):
         exit("Input file does not exist.")
@@ -81,10 +84,16 @@ def main(args):
     download_urls(urls_and_path_list, args.num_concurrent, args.skip_existing)
 
     if browse_report is not None:
-        report_data = [(start, stop, footprint, join(output_dir, filename))
+        report_datas = [(start, stop, footprint, join(output_dir, filename))
                        for start, stop, footprint, _, filename in datasets]
-        write_browse_report(browse_report, report_data, args.browse_type,
-                            args.pretty_print)
+        if browses_per_report <= 0:
+            browses_per_report = len(report_data)
+        report_datas = chunks(report_datas, browses_per_report)
+        for i, report_data in enumerate(report_data, start=1):
+            filename, ext = splitext(browse_report)
+            filename = filename + "_" + str(i) + ext
+            write_browse_report(filename, report_data, args.browse_type,
+                                args.pretty_print)
 
 
 def error(message, exit=True):
@@ -97,6 +106,13 @@ def pairwise(iterable):
     "s -> (s0,s1), (s2,s3), (s4, s5), ..."
     a = iter(iterable)
     return izip(a, a)
+
+
+def chunks(l, n):
+    """ Yield successive n-sized chunks from l.
+    """
+    for i in xrange(0, len(l), n):
+        yield l[i:i+n]
 
 
 def parse_browse_csv(input_filename):
