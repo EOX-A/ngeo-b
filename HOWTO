@@ -3,8 +3,15 @@
 ########################################################################
 
 # Prepare local environment:
+
+# svn checkout https://eoxserver.org/svn/trunk <eoxserver_trunk>
 ln -s <eoxserver_trunk> share/eoxserver
+# git clone https://github.com/EOX-A/mapcache.git <mapcache_ngeo_branch>
+# cd <mapcache_ngeo_branch>
+# git checkout ngeo
+# cd -
 ln -s <mapcache_ngeo_branch> share/mapcache
+# git clone git@gitlab.eox.at:ngeo-b.git <ngeo_browse_server>
 ln -s <ngeo_browse_server> ngeo_browse_server
 
 # vagrant add-ons:
