@@ -4,15 +4,16 @@
 
 # Prepare local environment:
 ln -s <eoxserver_trunk> share/eoxserver
+ln -s <mapcache_ngeo_branch> share/mapcache
 ln -s <ngeo_browse_server> ngeo_browse_server
-
-# Run vagrant:
-vagrant up
-vagrant ssh
 
 # vagrant add-ons:
 vagrant gem install sahara          # Sandboxing
 vagrant gem install vagrant-vbguest # Check for Virtualbox Guest Additions
+
+# Run vagrant:
+vagrant up
+vagrant ssh
 
 # Install:
 cd /var/eoxserver/
@@ -72,6 +73,27 @@ cd ../../rpmbuild/SPECS/
 vi mapcache.spec
 # Adjust Release
 rpmbuild -ba mapcache.spec
+cd ..
+mv RPMS/x86_64/ .
+tar czf t x86_64/ SRPMS/
+rm -r x86_64/ SRPMS/
+# Install at packages@yum.packages.eox.at
+
+
+########################################################################
+# How to build MapServer                                               #
+########################################################################
+
+ssh eox@ngeo.eox.at
+cd build/mapserver/
+git pull
+vi mapserver.h
+# Adjust MS_VERSION: #define MS_VERSION "6.3dev"
+git archive --format=tar --prefix=mapserver-6.3dev/ master | gzip > ../../rpmbuild/SOURCES/mapserver-6.3dev.tar.gz
+cd ../../rpmbuild/SPECS/
+vi mapserver.spec
+# Adjust Release
+rpmbuild -ba mapserver.spec
 cd ..
 mv RPMS/x86_64/ .
 tar czf t x86_64/ SRPMS/
