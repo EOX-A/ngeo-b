@@ -1,1 +1,8 @@
+########################################################################
+# How to update model graphs                                           #
+########################################################################
+
+cd /var/ngeob/
+
 python manage.py graph_models --output=docs/model_config.png -e config
+python manage.py graph_models --output=docs/model_mapcache.png -e mapcache
