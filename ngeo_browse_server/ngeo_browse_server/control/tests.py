@@ -37,7 +37,8 @@ from ngeo_browse_server.control.testbase import (
     IngestTestCaseMixIn, SeedTestCaseMixIn, IngestReplaceTestCaseMixIn, 
     OverviewMixIn, CompressionMixIn, BandCountMixIn, HasColorTableMixIn, 
     ExtentMixIn, SizeMixIn, ProjectionMixIn, StatisticsMixIn, WMSRasterMixIn,
-    IngestFailureTestCaseMixIn, DeleteTestCaseMixIn, ExportTestCaseMixIn
+    IngestFailureTestCaseMixIn, DeleteTestCaseMixIn, ExportTestCaseMixIn,
+    ImportTestCaseMixIn
 )
 from ngeo_browse_server.control.ingest.config import (
     INGEST_SECTION
@@ -1458,7 +1459,7 @@ class ExportGroupFull(ExportTestCaseMixIn, CliMixIn, TestCase):
     expected_cache_files = 0
     
     
-class ExportGroupFullCache(ExportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, TestCase):
+class ExportGroupFullCache(ExportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
     request_before_replace = ("manage.py", "ngeo_ingest_browse_report",
                               "reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group_partial.xml",)
     
@@ -1500,10 +1501,12 @@ class ExportGroupEnd(ExportTestCaseMixIn, CliMixIn, TestCase):
     
     expected_exported_browses = ("b_id_6", "b_id_7")
     expected_cache_files = 0
-    
-
 
 
 #===============================================================================
 # Import test cases
 #===============================================================================
+
+class ImportIgnoreCache(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
+    args = ("data/export/export.tar.gz")
+    

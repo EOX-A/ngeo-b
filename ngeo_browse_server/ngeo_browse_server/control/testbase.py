@@ -381,19 +381,16 @@ class CliMixIn(object):
     def get_response(self):
         # return either stout
         return self.response[0]
-        
 
 
-class IngestTestCaseMixIn(BaseTestCaseMixIn):
-    """ Mixin for ngEO ingest test cases. Checks whether or not the browses with
-    the specified IDs have been correctly registered.  
+class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
+    """ Common base class for insertion (ingestion or import) test cases.
     """
     
     expected_ingested_browse_ids = ()
     expected_ingested_coverage_ids = None # Defaults to expected_ingested_browse_ids
     expected_inserted_into_series = None
     expected_optimized_files = ()
-    expected_deleted_files = None
     expected_tiles = None     # dict. key: zoom level, value: count 
     
     def test_expected_ingested_browses(self):
@@ -469,16 +466,6 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
         # check that all optimized files are beeing created
         files = self.get_file_list(self.temp_optimized_files_dir)
         self.assertItemsEqual(self.expected_optimized_files, files)
-        
-    
-    def test_deleted_storage_files(self):
-        """ Check that the storage files were deleted/moved from the storage dir. """
-        
-        if self.expected_deleted_files is None:
-            self.skipTest("No expected files to delete given.")
-            
-        for filename in self.expected_deleted_files:
-            self.assertFalse(exists(join(self.temp_storage_dir, filename)))
 
 
     def test_model_counts(self):
@@ -489,6 +476,31 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
         for model, value in self.model_counts.items():
             self.assertEqual(value[0] + num_ingested_models, value[1],
                              "Model '%s' count mismatch." % model)
+
+
+class IngestTestCaseMixIn(BaseInsertTestCaseMixIn):
+    """ Mixin for ngEO ingest test cases. Checks whether or not the browses with
+    the specified IDs have been correctly registered.  
+    """
+    
+    expected_deleted_files = None
+    
+    
+    def test_deleted_storage_files(self):
+        """ Check that the storage files were deleted/moved from the storage dir. """
+        
+        if self.expected_deleted_files is None:
+            self.skipTest("No expected files to delete given.")
+            
+        for filename in self.expected_deleted_files:
+            self.assertFalse(exists(join(self.temp_storage_dir, filename)))
+
+class ImportTestCaseMixIn(BaseInsertTestCaseMixIn):
+    """ Mixin for import tests.
+    """
+    
+    command = "ngeo_import"
+    
 
 class DeleteTestCaseMixIn(BaseTestCaseMixIn):
     """ Mixin for ngEO delete test cases. Checks whether or not the browses are
