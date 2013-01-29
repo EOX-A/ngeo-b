@@ -36,13 +36,13 @@ from collections import deque
 from cStringIO import StringIO
 from io import BytesIO
 
+from django.contrib.gis.geos.geometry import GEOSGeometry
 from eoxserver.core.util.xmltools import DOMElementToXML
 from eoxserver.resources.coverages.metadata import (
     NativeMetadataFormatEncoder, NativeMetadataFormat
 )
-from ngeo_browse_server.exceptions import NGEOException
-from django.contrib.gis.geos.geometry import GEOSGeometry
 
+from ngeo_browse_server.exceptions import NGEOException
 
 
 logger = logging.getLogger(__name__)
