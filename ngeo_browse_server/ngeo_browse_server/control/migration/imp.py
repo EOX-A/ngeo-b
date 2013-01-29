@@ -204,6 +204,7 @@ def import_browse(p, browse, browse_report_model, browse_layer_model, crs, confi
     filename = browse.file_name
     coverage_id = splitext(filename)[0]
     md_filename = coverage_id + ".xml"
+    footprint_filename = coverage_id + ".wkb"
     print filename
     
     logger.info("Importing browse with data file '%s' and metadata file '%s'." 
@@ -260,7 +261,8 @@ def import_browse(p, browse, browse_report_model, browse_layer_model, crs, confi
         ds = gdal.Open(output_filename)
         num_bands = ds.RasterCount
         
-        _, _, _, footprint = p.get_browse_metadata(md_filename)
+        #_, _, _, footprint = p.get_browse_metadata(md_filename)
+        footprint = p.get_footprint(footprint_filename)
         
         extent, time_interval = create_browse(
             browse, browse_report_model, browse_layer_model,

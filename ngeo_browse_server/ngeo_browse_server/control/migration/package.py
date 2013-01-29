@@ -34,12 +34,14 @@ from datetime import datetime
 import logging
 from collections import deque
 from cStringIO import StringIO
+from io import BytesIO
 
 from eoxserver.core.util.xmltools import DOMElementToXML
 from eoxserver.resources.coverages.metadata import (
     NativeMetadataFormatEncoder, NativeMetadataFormat
 )
 from ngeo_browse_server.exceptions import NGEOException
+from django.contrib.gis.geos.geometry import GEOSGeometry
 
 
 
@@ -147,6 +149,14 @@ class PackageWriter(object):
                                                      footprint))
         self._add_file(StringIO(xml), join(SEC_OPTIMIZED, name))
         
+    
+    def add_footprint(self, name, wkb):
+        " Add browse metadata to the archive. "
+        
+        self._check_dir(SEC_OPTIMIZED)
+
+        self._add_file(BytesIO(wkb), join(SEC_OPTIMIZED, name))
+        
 
     def add_cache_file(self, tileset, grid, x, y, z, dim, tile_file):
         " Add a cache file to the archive. "
@@ -249,6 +259,11 @@ class PackageReader(object):
         md_format = NativeMetadataFormat()
         md = md_format.getEOMetadata(xml)
         return md.eo_id, md.begin_time, md.end_time, md.footprint
+    
+    
+    def get_footprint(self, footprint_filename):
+        wkb = self._open_file(join(SEC_OPTIMIZED, footprint_filename)).read()
+        return GEOSGeometry(buffer(wkb), 4326)
 
     
     def get_cache_files(self, tileset, grid, dim):
@@ -272,7 +287,7 @@ class PackageReader(object):
     
     def has_cache(self):
         return self._has_file(SEC_CACHE)
-    
+            
     
     def _filter_files(self, d):
         for member in self._tarfile.getmembers():

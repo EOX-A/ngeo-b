@@ -198,6 +198,7 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                     base_filename = browse_model.coverage_id
                     data_filename = base_filename + ".tif"
                     md_filename = base_filename + ".xml"
+                    footprint_filename = base_filename + ".wkb"
                     
                     browse._file_name = data_filename
                     
@@ -209,11 +210,14 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                         p.add_browse(f, data_filename)
                         # TODO: metadata
                         
-                        p.add_browse_metadata(md_filename, 
-                                              browse_model.coverage_id, 
-                                              coverage_wrapper.getBeginTime(),
-                                              coverage_wrapper.getEndTime(),
-                                              coverage_wrapper.getFootprint())
+                        #p.add_browse_metadata(md_filename, 
+                        #                      browse_model.coverage_id, 
+                        #                      coverage_wrapper.getBeginTime(),
+                        #                      coverage_wrapper.getEndTime(),
+                        #                      coverage_wrapper.getFootprint())
+                        
+                        wkb = coverage_wrapper.getFootprint().wkb
+                        p.add_footprint(footprint_filename, wkb)
                         
                         
                     
