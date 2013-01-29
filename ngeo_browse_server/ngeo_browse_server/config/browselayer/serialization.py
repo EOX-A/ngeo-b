@@ -56,6 +56,7 @@ def serialize_browse_layers(browse_layers, stream=None, pretty_print=False):
         SubElement(bl_elem, ns_cfg("title")).text = browse_layer.title
         if browse_layer.description is not None:
             SubElement(bl_elem, ns_cfg("description")).text = browse_layer.description
+        SubElement(bl_elem, ns_cfg("grid")).text = browse_layer.grid
         SubElement(bl_elem, ns_cfg("browseAccessPolicy")).text = browse_layer.browse_access_policy
         SubElement(bl_elem, ns_cfg("hostingBrowseServerName")).text = ""
         rel_ds_elem = SubElement(bl_elem, ns_cfg("relatedDatasetIds"))
