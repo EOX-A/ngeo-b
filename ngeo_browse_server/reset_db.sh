@@ -52,6 +52,9 @@ python manage.py loaddata auth_data.json ngeo_browse_layer.json eoxs_dataset_ser
 python manage.py loaddata --database=mapcache ngeo_mapcache.json
 sudo chown apache:apache /var/ngeob_data/mapcache.sqlite
 
+# TODO: REMOVE THIS LINE FOR PRODUCTION ENVIRONMENT
+sudo chmod a+w /var/ngeob_data/mapcache.sqlite
+
 ## Reset DB with Django:
 ## Note, schema changes are not applied.
 #cd /var/ngeob/

@@ -80,16 +80,16 @@ def main(args):
     datasets = parse_browse_csv(input_filename)
 
     urls_and_path_list = [(url, join(output_dir, filename))
-                          for _, _, _, url, filename in datasets]
+                          for _, _, _, url, filename, _ in datasets]
     download_urls(urls_and_path_list, args.num_concurrent, args.skip_existing)
 
     if browse_report is not None:
-        report_datas = [(start, stop, footprint, join(output_dir, filename))
-                       for start, stop, footprint, _, filename in datasets]
+        report_datas = [(start, stop, footprint, join(output_dir, filename), pass_dir)
+                       for start, stop, footprint, _, filename, pass_dir in datasets]
         if browses_per_report <= 0:
-            browses_per_report = len(report_data)
+            browses_per_report = len(report_datas)
         report_datas = chunks(report_datas, browses_per_report)
-        for i, report_data in enumerate(report_data, start=1):
+        for i, report_data in enumerate(report_datas, start=1):
             filename, ext = splitext(browse_report)
             filename = filename + "_" + str(i) + ext
             write_browse_report(filename, report_data, args.browse_type,
@@ -137,9 +137,9 @@ def parse_browse_csv(input_filename):
                            datetime.strptime(line[7], dt_frmt), # stop
                            footprint,                           # footprint
                            line[18],                            # url
-                           basename(urlparse(line[18]).path)    # filename
+                           "_"+basename(urlparse(line[18]).path),    # filename
+                           line[14]								#pass direction 
                           ))
-    
     return result
 
 
@@ -214,7 +214,7 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print):
     if browse_type:
         etree.SubElement(root, ns_rep("browseType")).text = browse_type
     
-    for start, stop, footprint, filename in datasets:
+    for start, stop, footprint, filename, pass_dir in datasets:
         # open the browse image and retrieve width and height
         try:
             ds = gdal.Open(filename)
@@ -232,13 +232,22 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print):
 
         assert(len(right) == len(left))
 
-        pixel_coords = [0, 0]
-        for y in numpy.linspace(0, sizey, len(right)):
-            pixel_coords.extend((sizex, y))
+        if pass_dir == "A":
+            pixel_coords = [sizex, sizey]
+            for y in numpy.linspace(sizey, 0, len(left)):
+                pixel_coords.extend((0, y))
+				
+            for y in numpy.linspace(0, sizey, len(right)):
+                pixel_coords.extend((sizex, y))
 
-        for y in numpy.linspace(sizey, 0, len(left)):
-            pixel_coords.extend((0, y))
+        elif pass_dir == "D":
+            pixel_coords = [0, 0]
+            for y in numpy.linspace(0, sizey, len(right)):
+                pixel_coords.extend((sizex, y))
 
+            for y in numpy.linspace(sizey, 0, len(left)):
+                pixel_coords.extend((0, y))
+        
         ll_coords = [coord for pair in right for coord in pair] + \
                     [coord for pair in left for coord in pair]
         ll_coords.insert(0, ll_coords[-2])
