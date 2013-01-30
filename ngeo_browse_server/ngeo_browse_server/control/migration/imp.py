@@ -217,7 +217,7 @@ def import_browse(p, browse, browse_report_model, browse_layer_model, crs, confi
         except BrowseIdentifier.DoesNotExist:
             identifier = None
         
-        if (identifier and browse.identifier
+        if (identifier and browse.browse_identifier
             and  identifier.value != browse.identifier):
             raise ImportException("Existing browse does not have the same "
                                   "browse ID as the ingested.") 

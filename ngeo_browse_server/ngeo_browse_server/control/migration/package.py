@@ -59,16 +59,16 @@ archive.tar.gz
 |   `-- ...
 |-- optimized
 |   |-- <coverage-id1>.tif
-|   |-- <coverage-id1>.xml
+|   |-- <coverage-id1>.wkb
 |   |-- <coverage-id2>.tif
-|   |-- <coverage-id2>.xml
+|   |-- <coverage-id2>.wkb
 |   |-- <coverage-id3>.tif
-|   |-- <coverage-id3>.xml
+|   |-- <coverage-id3>.wkb
 |   `-- ...
 `-- (cache)
     `-- <tileset>
         `-- <grid>
-            |-- <dim>-<x>-<y>-<z>-.png
+            |-- <dim>-<x>-<y>-<z>.png
             |-- <dim>-<x>-<y>-<z>.png
             |-- <dim>-<x>-<y>-<z>.png
             `-- ...
@@ -154,6 +154,8 @@ class PackageWriter(object):
         " Add browse metadata to the archive. "
         
         self._check_dir(SEC_OPTIMIZED)
+        
+        if not name.endswith(".wkb"): name += ".wkb"
 
         self._add_file(BytesIO(wkb), join(SEC_OPTIMIZED, name))
         
@@ -267,14 +269,12 @@ class PackageReader(object):
 
     
     def get_cache_files(self, tileset, grid, dim):
-        print tileset, grid, dim
         for member in self._filter_files(join(SEC_CACHE, tileset, grid)):
             name = basename(member.name)
             actual_dim = name[:41] # TODO: replace this
             z, x, y = name[42:].split("-")
             actual_dim = actual_dim.replace("_", "/")
             
-            print dim, actual_dim
             if dim != actual_dim:
                 continue
             
