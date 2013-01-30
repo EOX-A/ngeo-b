@@ -165,6 +165,11 @@ def browse_from_model(browse_model):
         "end_time": browse_model.end_time
     }
     
+    try:
+        kwargs["browse_identifier"] = browse_model.browse_identifier.value
+    except models.BrowseIdentifier.DoesNotExist:
+        pass
+    
     try: 
         return RectifiedBrowse(browse_model.rectifiedbrowse.coord_list, **kwargs)
     except models.RectifiedBrowse.DoesNotExist: pass

@@ -59,7 +59,8 @@ def serialize_browse_report(browse_report, stream=None, pretty_print=False):
 
 def _serialize_browse(browse):
     browse_elem = Element(ns_rep("browse"))
-    SubElement(browse_elem, ns_rep("browseIdentifier")).text = browse.browse_identifier
+    if browse.browse_identifier:
+        SubElement(browse_elem, ns_rep("browseIdentifier")).text = browse.browse_identifier
     SubElement(browse_elem, ns_rep("fileName")).text = browse.file_name
     SubElement(browse_elem, ns_rep("imageType")).text = browse.image_type
     SubElement(browse_elem, ns_rep("referenceSystemIdentifier")).text = browse.reference_system_identifier
