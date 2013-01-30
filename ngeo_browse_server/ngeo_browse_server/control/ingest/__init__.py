@@ -302,8 +302,8 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
     existing_browse_model = get_existing_browse(parsed_browse, browse_layer.id)
     if existing_browse_model:
         identifier = existing_browse_model.browse_identifier
-        if (identifier and parsed_browse.identifier
-            and  identifier.value != parsed_browse.identifier):
+        if (identifier and parsed_browse.browse_identifier
+            and  identifier.value != parsed_browse.browse_identifier):
             raise IngestionException("Existing browse does not have the "
                                      "same browse ID as the ingested.") 
         
