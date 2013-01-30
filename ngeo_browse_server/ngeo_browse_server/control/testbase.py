@@ -510,7 +510,7 @@ class DeleteTestCaseMixIn(BaseTestCaseMixIn):
     surveilled_model_classes = (
         models.Browse,
         eoxs_models.RectifiedDatasetRecord,
-        #mapcache_models.Time
+        mapcache_models.Time
     )
     
     expected_remaining_browses = None

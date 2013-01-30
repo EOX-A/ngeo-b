@@ -43,6 +43,9 @@ from eoxserver.core.util.timetools import getDateTime
 
 from ngeo_browse_server.control.management.commands import LogToConsoleMixIn
 from ngeo_browse_server.config.models import (BrowseLayer, Browse)
+from ngeo_browse_server.mapcache.tasks import seed_mapcache
+from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
+from ngeo_browse_server.mapcache import models as mapcache_models
 
 
 
@@ -155,6 +158,9 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                 }
             )
             
+            
+            replaced_extent = coverage_wrapper.getExtent()
+                
             id_to_delete = browse_model.coverage_id
             
             # delete coverage      
@@ -163,7 +169,29 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
             # delete browse          
             browse_model.delete()
             
-            logger.info("Coverage and browse with id %s deleted."%id_to_delete) 
+            
+            # unseed
+            try:
+                seed_mapcache(tileset=browse_layer_model.id, grid=browse_layer_model.grid, 
+                    minx=replaced_extent[0], miny=replaced_extent[1],
+                    maxx=replaced_extent[2], maxy=replaced_extent[3], 
+                    minzoom=browse_layer_model.lowest_map_level, 
+                    maxzoom=browse_layer_model.highest_map_level,
+                    start_time=browse_model.start_time,
+                    end_time=browse_model.end_time,
+                    delete=True,
+                    **get_mapcache_seed_config(None))
+            except Exception, e:
+                logger.warn("Un-seeding failed: %s" % str(e))
+                
+            # delete *one* of the fitting Time objects
+            mapcache_models.Time.objects.filter(
+                start_time=browse_model.start_time,
+                end_time=browse_model.end_time,
+                source__name=browse_layer_model.id
+            )[0].delete()
+                
+            logger.info("Coverage, browse and seed for id %s deleted."%id_to_delete) 
             
         
         # loop through optimized browse images and delete them
