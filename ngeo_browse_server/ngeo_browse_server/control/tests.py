@@ -1458,7 +1458,7 @@ class ExportGroupFull(ExportTestCaseMixIn, CliMixIn, TestCase):
     expected_exported_browses = ("b_id_6", "b_id_7", "b_id_8")
     expected_cache_files = 0
     
-    
+
 class ExportGroupFullCache(ExportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
     request_before_replace = ("manage.py", "ngeo_ingest_browse_report",
                               "reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group_partial.xml",)
@@ -1472,6 +1472,7 @@ class ExportGroupFullCache(ExportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, Liv
     
     expected_exported_browses = ("b_id_6", "b_id_7", "b_id_8")
     expected_cache_files = 0
+
 
 class ExportGroupStart(ExportTestCaseMixIn, CliMixIn, TestCase):
     request_before_replace = ("manage.py", "ngeo_ingest_browse_report",
@@ -1508,5 +1509,18 @@ class ExportGroupEnd(ExportTestCaseMixIn, CliMixIn, TestCase):
 #===============================================================================
 
 class ImportIgnoreCache(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
-    args = ("data/export/export.tar.gz")
+    args = ("autotest/data/export/export.tar.gz", "--ignore-cache")
     
+    expected_ingested_browse_ids = ("b_id_1",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ("b_id_1_proc.tif",)
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 256}
+
+
+class ImportWithCache(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
+    args = ("autotest/data/export/export.tar.gz",)
+    
+    expected_ingested_browse_ids = ("b_id_1",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ("b_id_1_proc.tif",)
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 256}

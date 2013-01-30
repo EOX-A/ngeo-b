@@ -214,6 +214,7 @@ class BaseTestCaseMixIn(object):
                                                           "http://localhost/browse")}))
         
         config.set(SEED_SECTION, "config_file", mapcache_config_file)
+        config.set("mapcache", "tileset_root", self.temp_mapcache_dir)
         
         # setup mapcache dummy seed command
         seed_command_file = tempfile.NamedTemporaryFile(delete=False)
@@ -393,8 +394,8 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
     expected_optimized_files = ()
     expected_tiles = None     # dict. key: zoom level, value: count 
     
-    def test_expected_ingested_browses(self):
-        """ Check that the expected browses are ingested and the files correctly moved. """
+    def test_expected_inserted_browses(self):
+        """ Check that the expected browses are inserted. """
         
         System.init()
         
@@ -428,17 +429,6 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
             )
             self.assertTrue(coverage_wrapper is not None)
         
-        browse_report_file_mod = 0
-        if len(browse_ids) > 0:
-            # if at least one browse was successfully ingested, a browse report
-            # must also be present.
-            browse_report_file_mod = 1
-        
-        # test that the correct number of files was moved/created in the success
-        # directory
-        files = self.get_file_list(self.temp_success_dir)
-        self.assertEqual(len(browse_ids) + browse_report_file_mod + self.before_replace_files, len(files))
-    
     
     def test_expected_inserted_into_series(self):
         """ Check that the browses are inserted into the corresponding browse layer. """
@@ -494,6 +484,25 @@ class IngestTestCaseMixIn(BaseInsertTestCaseMixIn):
             
         for filename in self.expected_deleted_files:
             self.assertFalse(exists(join(self.temp_storage_dir, filename)))
+    
+    
+    def test_expected_inserted_browses(self):
+        """ Check that the expected browses are ingested and the files correctly moved. """
+        super(IngestTestCaseMixIn, self).test_expected_inserted_browses()
+        
+        browse_ids = self.expected_ingested_browse_ids
+        
+        browse_report_file_mod = 0
+        if len(browse_ids) > 0:
+            # if at least one browse was successfully ingested, a browse report
+            # must also be present.
+            browse_report_file_mod = 1
+        
+        # test that the correct number of files was moved/created in the success
+        # directory
+        files = self.get_file_list(self.temp_success_dir)
+        self.assertEqual(len(browse_ids) + browse_report_file_mod + self.before_replace_files, len(files))
+    
 
 class ImportTestCaseMixIn(BaseInsertTestCaseMixIn):
     """ Mixin for import tests.
@@ -575,7 +584,7 @@ class SeedTestCaseMixIn(BaseTestCaseMixIn):
     }
 
     def test_seed(self):
-        """ Check that the seeding is done. """
+        """ Check that the seeding is done correctly. """
         
         db_filename = join(self.temp_mapcache_dir, 
                            self.expected_inserted_into_series + ".sqlite")
