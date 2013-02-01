@@ -25,7 +25,7 @@
           </elementProp>
           <elementProp name="iterations" elementType="Argument">
             <stringProp name="Argument.name">iterations</stringProp>
-            <stringProp name="Argument.value">1115</stringProp>
+            <stringProp name="Argument.value">300</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="server" elementType="Argument">
@@ -36,6 +36,11 @@
           <elementProp name="port" elementType="Argument">
             <stringProp name="Argument.name">port</stringProp>
             <stringProp name="Argument.value">3080</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="csvfiles_path" elementType="Argument">
+            <stringProp name="Argument.name">csvfiles_path</stringProp>
+            <stringProp name="Argument.value">/home/daniel/Development/ngeo-b/deliverables/developments/tools/</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
         </collectionProp>
@@ -80,7 +85,7 @@
         </HTTPSampler>
         <hashTree/>
         <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="CSV Data Set Config" enabled="true">
-          <stringProp name="filename">${results_path}browselist.csv</stringProp>
+          <stringProp name="filename">${csvfiles_path}browselist.csv</stringProp>
           <stringProp name="fileEncoding"></stringProp>
           <stringProp name="variableNames">browsename</stringProp>
           <stringProp name="delimiter"></stringProp>
@@ -107,7 +112,7 @@
               <encoding>false</encoding>
               <assertions>true</assertions>
               <subresults>true</subresults>
-              <responseData>false</responseData>
+              <responseData>true</responseData>
               <samplerData>false</samplerData>
               <xml>true</xml>
               <fieldNames>false</fieldNames>
@@ -119,7 +124,7 @@
               <bytes>true</bytes>
             </value>
           </objProp>
-          <stringProp name="filename"></stringProp>
+          <stringProp name="filename">${results_path}ingest_result_tree__${__time(YMD)}_${__time(HMS)}.jtl</stringProp>
         </ResultCollector>
         <hashTree/>
         <ResultCollector guiclass="GraphVisualizer" testclass="ResultCollector" testname="Graph Results" enabled="true">
@@ -139,7 +144,7 @@
               <encoding>false</encoding>
               <assertions>true</assertions>
               <subresults>true</subresults>
-              <responseData>false</responseData>
+              <responseData>true</responseData>
               <samplerData>false</samplerData>
               <xml>true</xml>
               <fieldNames>false</fieldNames>
@@ -151,7 +156,7 @@
               <bytes>true</bytes>
             </value>
           </objProp>
-          <stringProp name="filename"></stringProp>
+          <stringProp name="filename">${results_path}ingest_results_${__time(YMD)}_${__time(HMS)}.jtl</stringProp>
         </ResultCollector>
         <hashTree/>
       </hashTree>
