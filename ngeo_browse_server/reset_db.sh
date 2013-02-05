@@ -65,8 +65,8 @@ sudo chmod a+w /var/ngeob_data/mapcache.sqlite
 
 # Reset ngEO Browse Server
 sudo rm -rf /var/ngeob_data/optimized/TEST_*
-rm -f /var/ngeob_data/success/*
-rm -f /var/ngeob_data/failure/*
+sudo rm -rf /var/ngeob_data/success/*
+sudo rm -rf /var/ngeob_data/failure/*
 rm -f /var/ngeob/autotest/logs/eoxserver.log /var/ngeob/autotest/logs/ngeo.log
 touch /var/ngeob/autotest/logs/eoxserver.log /var/ngeob/autotest/logs/ngeo.log
 chmod go+w /var/ngeob/autotest/logs/eoxserver.log /var/ngeob/autotest/logs/ngeo.log
@@ -81,5 +81,6 @@ cp /var/ngeob/autotest/data/reference_test_data/*.jpg /var/ngeob_data/storage/
 cp /var/ngeob/autotest/data/test_data/*.tif /var/ngeob_data/storage/
 cp /var/ngeob/autotest/data/feed_test_data/*.png /var/ngeob_data/storage/
 cp /var/ngeob/autotest/data/aiv_test_data/*.jpg /var/ngeob_data/storage/
+cp /var/ngeob/autotest/data/performance_test_data/*.jpg /var/ngeob_data/storage/
 
 sudo service httpd restart

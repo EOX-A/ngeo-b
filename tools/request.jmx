@@ -15,12 +15,12 @@
         <collectionProp name="Arguments.arguments">
           <elementProp name="results_path" elementType="Argument">
             <stringProp name="Argument.name">results_path</stringProp>
-            <stringProp name="Argument.value">/home/daniel/Development/ngeo-b/deliverables/developments/tools/</stringProp>
+            <stringProp name="Argument.value"></stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="iterations" elementType="Argument">
             <stringProp name="Argument.name">iterations</stringProp>
-            <stringProp name="Argument.value">223</stringProp>
+            <stringProp name="Argument.value">412</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="server" elementType="Argument">
@@ -35,7 +35,7 @@
           </elementProp>
           <elementProp name="csvfiles_path" elementType="Argument">
             <stringProp name="Argument.name">csvfiles_path</stringProp>
-            <stringProp name="Argument.value">/home/daniel/Development/ngeo-b/deliverables/developments/tools/</stringProp>
+            <stringProp name="Argument.value"></stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
         </collectionProp>
@@ -154,6 +154,7 @@
             </value>
           </objProp>
           <stringProp name="filename">${results_path}request_results_${__time(YMD)}_${__time(HMS)}.jtl</stringProp>
+          <boolProp name="ResultCollector.success_only_logging">true</boolProp>
         </ResultCollector>
         <hashTree/>
       </hashTree>
