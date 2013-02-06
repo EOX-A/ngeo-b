@@ -49,6 +49,22 @@ xmllint --noout --schema schemas/IF-ngEO-BrowseReport-1.1.xsd tmp_report.xml
 
 
 ########################################################################
+# How to run JMeter tests                                              #
+########################################################################
+
+# Get test data (browse reports and browse images)
+# Store browse reports local
+# Store browse images in VM
+cd ngeo_browse_server/autotest/integration_tests # Important because of relative paths in tests!
+jmeter &
+# Load ingestion test plan "performance_ingest.jmx"
+# Configure test plan. Optional leave the relative paths.
+# Run test plan (<strg>-<r>)
+# Evaluate logs
+# Repeat for retrieval test plan "performance_retrieval.jmx"
+
+
+########################################################################
 # How to warp browse image                                             #
 ########################################################################
 
