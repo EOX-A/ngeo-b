@@ -33,6 +33,7 @@
 # This script resets the autotest instance used in testing via vagrant.
 #
 # Use with caution as data is deleted and may be lost.
+# Particularly only use in testing and never in production environments.
 
 # Running:
 # =======
@@ -51,8 +52,6 @@ python manage.py syncdb --database=mapcache --noinput
 python manage.py loaddata auth_data.json ngeo_browse_layer.json eoxs_dataset_series.json initial_rangetypes.json
 python manage.py loaddata --database=mapcache ngeo_mapcache.json
 sudo chown apache:apache /var/ngeob_data/mapcache.sqlite
-
-# TODO: REMOVE THIS LINE FOR PRODUCTION ENVIRONMENT
 sudo chmod a+w /var/ngeob_data/mapcache.sqlite
 
 ## Reset DB with Django:
@@ -77,10 +76,10 @@ touch /var/www/cache/TEST_SAR.sqlite /var/www/cache/TEST_OPTICAL.sqlite /var/www
 chmod go+w /var/www/cache/TEST_SAR.sqlite /var/www/cache/TEST_OPTICAL.sqlite /var/www/cache/TEST_ASA_WSM.sqlite /var/www/cache/TEST_MER_FRS.sqlite
 
 # Upload test data
-cp /var/ngeob/autotest/data/reference_test_data/*.jpg /var/ngeob_data/storage/
-cp /var/ngeob/autotest/data/test_data/*.tif /var/ngeob_data/storage/
-cp /var/ngeob/autotest/data/feed_test_data/*.png /var/ngeob_data/storage/
-cp /var/ngeob/autotest/data/aiv_test_data/*.jpg /var/ngeob_data/storage/
-cp /var/ngeob/autotest/data/performance_test_data/*.jpg /var/ngeob_data/storage/
+sudo cp /var/ngeob/autotest/data/reference_test_data/*.jpg /var/ngeob_data/storage/
+sudo cp /var/ngeob/autotest/data/test_data/*.tif /var/ngeob_data/storage/
+sudo cp /var/ngeob/autotest/data/feed_test_data/*.png /var/ngeob_data/storage/
+sudo cp /var/ngeob/autotest/data/aiv_test_data/*.jpg /var/ngeob_data/storage/
+sudo cp /var/ngeob/autotest/data/performance_test_data/*.jpg /var/ngeob_data/storage/
 
 sudo service httpd restart
