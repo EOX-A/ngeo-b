@@ -44,7 +44,12 @@ logger = logging.getLogger(__name__)
 def get_existing_browse(browse, browse_layer_id):
     """ Check that either the browse with the same Start/End time is registered 
     in the same browse layer. """
+    
     try:
+        if browse.browse_identifier:
+            return models.Browse.objects.get(
+                browse_identifier__value=browse.browse_identifier
+            )
         return models.Browse.objects.get(
             start_time=browse.start_time,
             end_time=browse.end_time,
