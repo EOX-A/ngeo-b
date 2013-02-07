@@ -54,9 +54,13 @@ rm -r ngeob-0.1dev/
 # How to build EOxServer                                               #
 ########################################################################
 
-ssh eox@ngeo.eox.at
-cd build/eoxserver-trunk/
-svn up
+# Generate new and clean CentOS host
+ssh root@...
+yum install svn gdal-devel rpm-build gcc python-devel
+adduser eox
+su - eox
+svn checkout https://eoxserver.org/svn/trunk
+cd trunk
 python setup.py bdist_rpm --requires "Django14 >= 1.4.2 gdal-python mapserver-python libxml2-python python-lxml" --release <NO>
 
 ########################################################################
