@@ -1218,29 +1218,29 @@ class IngestRasterStatistics(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, Test
     expected_statistics = [{
         "min": 0.0,
         "max": 255.0,
-        "mean": 63.9,
-        "stddev": 75.9,
+        "mean": 63.925277695030758,
+        "stddev": 75.959146309249874,
         "checksum": 61578
     }, {
         "min": 0.0,
         "max": 255.0,
-        "mean": 63.9,
-        "stddev": 75.9,
+        "mean": 63.925277695030758,
+        "stddev": 75.959146309249874,
         "checksum": 61578
     }, {
         "min": 0.0,
         "max": 255.0,
-        "mean": 63.9,
-        "stddev": 75.9,
+        "mean": 63.925277695030758,
+        "stddev": 75.959146309249874,
         "checksum": 61578
     }, {
         "min": 0.0,
         "max": 255.0,
-        "mean": 138.4,
-        "stddev": 127.0,
+        "mean": 138.47156093432616,
+        "stddev": 127.02706345761268,
         "checksum": 44546
     }]
-    
+
 
 #===============================================================================
 # Raster tests for browses with more than 3 input bands
@@ -1349,8 +1349,8 @@ class IngestFootprintWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
     expected_statistics = [{
         "min": 0.0,
         "max": 255.0,
-        "mean": 63.9,
-        "stddev": 76.0,
+        "mean": 63.942,
+        "stddev": 76.043258978031716,
         "checksum": 56631
     }] * 3
 

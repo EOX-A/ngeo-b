@@ -655,12 +655,16 @@ class WMSRasterMixIn(RasterMixIn):
         # dispatch wms request
         response = self.client.get(self.wms_request)
         
+        # enable to manually inspect wms response
+        #tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+        #tmp.write(response.content)
+        #tmp.close()
+        
         if response.status_code != 200:
             self.fail("WMS received response with status '%d'"
                       % response.status_code) 
         
         filename = '/vsimem/wms_temp'
-        
         
         try:
             gdal.FileFromMemBuffer(filename, response.content)
