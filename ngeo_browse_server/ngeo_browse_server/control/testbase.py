@@ -165,6 +165,7 @@ class BaseTestCaseMixIn(object):
     def tearDown(self):
         super(BaseTestCaseMixIn, self).tearDown()
         self.tearDown_files()
+        self.model_counts.clear()
         
         # reset the config settings
         reset_ngeo_config()
@@ -258,7 +259,7 @@ class BaseTestCaseMixIn(object):
                   self.temp_mapcache_dir):
             shutil.rmtree(d)
         remove(self.seed_command)
-        
+    
     def add_counts(self, *model_classes):
         # save the count of each model class to be checked later on.
         for model_cls in model_classes:
@@ -829,25 +830,23 @@ class IngestFailureTestCaseMixIn(BaseTestCaseMixIn):
 class ExportTestCaseMixIn(BaseTestCaseMixIn):
     """ Mixin for export tests.
     """
-
+    
     command = "ngeo_export"
-
+    
     expected_exported_browses = ()
     expected_cache_tiles = None
     
     @property
     def args(self):
         return ("--output", self.temp_export_file)
-     
+    
     def setUp_files(self):
         super(ExportTestCaseMixIn, self).setUp_files()
         self.temp_export_file = tempfile.mktemp(suffix=".tar.gz")
-
-
+    
     def tearDown_files(self):
         super(ExportTestCaseMixIn, self).tearDown_files()
         remove(self.temp_export_file)
-
     
     def test_archive_content(self):
         """ Test that the archive contains the expected files.
