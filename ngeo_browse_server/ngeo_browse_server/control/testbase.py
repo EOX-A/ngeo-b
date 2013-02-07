@@ -101,8 +101,6 @@ class IngestResult(object):
     failed = property(lambda self: [record for record in self._records if record[1] == "failure"])
 
 
-        
-
 class BaseTestCaseMixIn(object):
     """ Base Mixin for ngEO test cases. """
     
@@ -144,24 +142,25 @@ class BaseTestCaseMixIn(object):
     # check the number of DS, Browse and Time models in the database
     model_counts = {}
     
-    # in case of a replace test we need to load something during setUp
-    request_before_replace = None
-    request_before_replace_file = None
+    # in case of certain tests (replace, export, etc.) we need to ingest 
+    # something during setUp
+    request_before_test = None
+    request_before_test_file = None
+    args_before_test = ()
     
     def setUp(self):
         super(BaseTestCaseMixIn, self).setUp()
         self.setUp_files()
         self.setUp_config()
         
-        # load browse to be replaced
-        self.setUp_replace()
+        # ingest browse(s) to be replaced, exported, etc.
+        self.setUp_ingest()
         
-        
-        # wrap the ingestion with model counter
+        # wrap the ingestion with model counter to check if operation added or 
+        # deleted expected number of models
         self.add_counts(*self.surveilled_model_classes)
         self.response = self.execute()
         self.add_counts(*self.surveilled_model_classes)
-    
     
     def tearDown(self):
         super(BaseTestCaseMixIn, self).tearDown()
@@ -169,8 +168,7 @@ class BaseTestCaseMixIn(object):
         
         # reset the config settings
         reset_ngeo_config()
-
-        
+    
     def setUp_files(self):
         # create a temporary storage directory, copy the reference test data
         # into it, and point the control.ingest.storage_dir to this location
@@ -237,17 +235,21 @@ class BaseTestCaseMixIn(object):
                 else:
                     config.remove_option(section, option)
     
-    def setUp_replace(self):
-        self.before_replace_files = 0
+    def setUp_ingest(self):
+        self.before_test_files = 0
         
-        if self.request_before_replace_file is not None:
-            filename = join(settings.PROJECT_DIR, "data", self.request_before_replace_file)
+        # get request from file
+        if self.request_before_test_file is not None:
+            filename = join(settings.PROJECT_DIR, "data", self.request_before_test_file)
             with open(filename) as f:
-                self.request_before_replace = str(f.read())
+                self.request_before_test = str(f.read())
         
-        if self.request_before_replace is not None:
-            self.execute(self.request_before_replace)
-            self.before_replace_files = 2 # only one browse is expected in this request plus browse report
+        # execute request or command
+        if self.request_before_test is not None:
+            self.execute(self.request_before_test)
+            self.before_test_files = 2 # one browse plus browse report
+        elif self.args_before_test:
+            self.execute(self.args_before_test)
     
     def tearDown_files(self):
         # remove the created temporary directories
@@ -501,7 +503,7 @@ class IngestTestCaseMixIn(BaseInsertTestCaseMixIn):
         # test that the correct number of files was moved/created in the success
         # directory
         files = self.get_file_list(self.temp_success_dir)
-        self.assertEqual(len(browse_ids) + browse_report_file_mod + self.before_replace_files, len(files))
+        self.assertEqual(len(browse_ids) + browse_report_file_mod + self.before_test_files, len(files))
     
 
 class ImportTestCaseMixIn(BaseInsertTestCaseMixIn):
@@ -515,53 +517,20 @@ class DeleteTestCaseMixIn(BaseTestCaseMixIn):
     """ Mixin for ngEO delete test cases. Checks whether or not the browses are
     deleted correctly based on the specified parameters.  
     """
-      
-    surveilled_model_classes = (
-        models.Browse,
-        eoxs_models.RectifiedDatasetRecord,
-        mapcache_models.Time
-    )
+    
+    command = "ngeo_delete"
     
     expected_remaining_browses = None
-    
     expected_deleted_files = []
    
-    def setUp(self):
-        self.setUp_files()
-        self.setUp_config()
-        
-        # swap given command and args with ingest attributes
-        tmp_cmd = self.command
-        self.command = "ngeo_ingest_browse_report" 
-        tmp_args = self.args
-        self.args = (join(settings.PROJECT_DIR, self.request_before_replace_file),)
-        
-        # execute ingest
-        self.execute()
-        
-        # swap command and args back to given values
-        self.command = tmp_cmd
-        self.args = tmp_args
-        
-        # first addition to model counter (allows check if ingestion 
-        # of data added expected number of models)
-        self.add_counts(*self.surveilled_model_classes)
-        
-        # execute deletion
-        self.response = self.execute()
-        
-        # second addition to model counter (allows to check if 
-        # the expected number of models was deleted)
-        self.add_counts(*self.surveilled_model_classes)
-    
     def test_deleted_optimized_files(self):
-        """ Check that all optimized files have been deleted """
+        """ Check that all optimized files have been deleted. """
         for filename in self.expected_deleted_files:
-            self.assertFalse(exists(join(self.temp_optimized_files_dir,"TEST_SAR", filename)), 
+            self.assertFalse(exists(join(self.temp_optimized_files_dir, filename)), 
                              "Optimized file not deleted.")
             
     def test_browse_deletion(self):
-        """ Check that all browses and their corresponding coverage have been deleted """
+        """ Check that all browses and their corresponding coverages have been deleted. """
         for model, value in self.model_counts.items():
             self.assertEqual(value[1], self.expected_remaining_browses,
                              "Model '%s' count is not expected value." % model)
@@ -858,9 +827,18 @@ class IngestFailureTestCaseMixIn(BaseTestCaseMixIn):
 
 
 class ExportTestCaseMixIn(BaseTestCaseMixIn):
+    """ Mixin for export tests.
+    """
+
+    command = "ngeo_export"
+
     expected_exported_browses = ()
     expected_cache_tiles = None
     
+    @property
+    def args(self):
+        return ("--output", self.temp_export_file)
+     
     def setUp_files(self):
         super(ExportTestCaseMixIn, self).setUp_files()
         self.temp_export_file = tempfile.mktemp(suffix=".tar.gz")
@@ -875,8 +853,6 @@ class ExportTestCaseMixIn(BaseTestCaseMixIn):
         """ Test that the archive contains the expected files.
         """
         
-        print "XXXX"
-        
         try:
             archive = tarfile.open(self.temp_export_file)
         except tarfile.TarError, e:
@@ -890,9 +866,9 @@ class ExportTestCaseMixIn(BaseTestCaseMixIn):
         for browse_id in self.expected_exported_browses:
             try:
                 archive.getmember(join(SEC_OPTIMIZED, browse_id + ".tif"))
-                archive.getmember(join(SEC_OPTIMIZED, browse_id + ".xml"))
+                archive.getmember(join(SEC_OPTIMIZED, browse_id + ".wkb"))
             except KeyError:
-                self.fail("Archive does not contain %s.tif or %s.xml."
+                self.fail("Archive does not contain %s.tif or %s.wkb."
                           % (browse_id, browse_id))
         
         if self.expected_cache_tiles is not None:
@@ -902,4 +878,3 @@ class ExportTestCaseMixIn(BaseTestCaseMixIn):
                     cache_tiles += 1
             
             self.assertEqual(self.expected_cache_tiles, cache_tiles)
-    
