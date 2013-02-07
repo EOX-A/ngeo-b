@@ -28,9 +28,4 @@
 #-------------------------------------------------------------------------------
 
 
-from ngeo_browse_server.exceptions import NGEOException
-
-
-class IngestionException(NGEOException):
-    """ Base class for ingestion related exceptions. """
-
+from data import *

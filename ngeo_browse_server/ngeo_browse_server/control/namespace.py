@@ -28,9 +28,19 @@
 #-------------------------------------------------------------------------------
 
 
-from ngeo_browse_server.exceptions import NGEOException
+class NameSpace(object):
+    def __init__(self, uri):
+        self._uri = uri
+        self._lxml_uri = "{%s}" % uri
+
+    @property
+    def uri(self):
+        return self._uri
+    
+    def __call__(self, tag):
+        return self._lxml_uri + tag
 
 
-class IngestionException(NGEOException):
-    """ Base class for ingestion related exceptions. """
-
+ns_rep = NameSpace("http://ngeo.eo.esa.int/schema/browseReport")
+ns_bsi = NameSpace("http://ngeo.eo.esa.int/schema/browse/ingestion")
+ns_cfg = NameSpace("http://ngeo.eo.esa.int/schema/configurationElements")

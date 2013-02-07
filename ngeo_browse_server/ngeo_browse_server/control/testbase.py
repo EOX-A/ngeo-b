@@ -38,6 +38,7 @@ from lxml import etree
 import logging
 import numpy
 import re
+import tarfile
 
 import sqlite3
 from osgeo import gdal, osr
@@ -54,9 +55,13 @@ from ngeo_browse_server.config import get_ngeo_config, reset_ngeo_config
 from ngeo_browse_server.config import models
 from ngeo_browse_server.control.ingest import safe_makedirs
 from ngeo_browse_server.control.ingest.config import (
-    INGEST_SECTION, MAPCACHE_SECTION
+    INGEST_SECTION, 
 )
 from ngeo_browse_server.mapcache import models as mapcache_models
+from ngeo_browse_server.mapcache.config import SEED_SECTION 
+from ngeo_browse_server.control.migration.package import (
+    SEC_CACHE, BROWSE_LAYER_NAME, SEC_OPTIMIZED
+)
 
 
 logger = logging.getLogger(__name__)
@@ -94,7 +99,7 @@ class IngestResult(object):
     records = property(lambda self: self._records)
     successful = property(lambda self: [record for record in self._records if record[1] == "success"])
     failed = property(lambda self: [record for record in self._records if record[1] == "failure"])
-    
+
 
 class BaseTestCaseMixIn(object):
     """ Base Mixin for ngEO test cases. """
@@ -134,35 +139,37 @@ class BaseTestCaseMixIn(object):
     
     configuration = {}
     
-    # in case of a replace test we need to load something during setUp
-    request_before_replace = None
-    request_before_replace_file = None
+    # check the number of DS, Browse and Time models in the database
+    model_counts = {}
+    
+    # in case of certain tests (replace, export, etc.) we need to ingest 
+    # something during setUp
+    request_before_test = None
+    request_before_test_file = None
+    args_before_test = ()
     
     def setUp(self):
         super(BaseTestCaseMixIn, self).setUp()
         self.setUp_files()
         self.setUp_config()
         
-        # load browse to be replaced
-        self.setUp_replace()
+        # ingest browse(s) to be replaced, exported, etc.
+        self.setUp_ingest()
         
-        # check the number of DS, Browse and Time models in the database
-        self.model_counts = {}
-        
-        # wrap the ingestion with model counter
+        # wrap the ingestion with model counter to check if operation added or 
+        # deleted expected number of models
         self.add_counts(*self.surveilled_model_classes)
         self.response = self.execute()
         self.add_counts(*self.surveilled_model_classes)
     
-    
     def tearDown(self):
         super(BaseTestCaseMixIn, self).tearDown()
         self.tearDown_files()
+        self.model_counts.clear()
         
         # reset the config settings
         reset_ngeo_config()
-
-        
+    
     def setUp_files(self):
         # create a temporary storage directory, copy the reference test data
         # into it, and point the control.ingest.storage_dir to this location
@@ -205,7 +212,8 @@ class BaseTestCaseMixIn(object):
                                       "base_url": getattr(self, "live_server_url",
                                                           "http://localhost/browse")}))
         
-        config.set(MAPCACHE_SECTION, "config_file", mapcache_config_file)
+        config.set(SEED_SECTION, "config_file", mapcache_config_file)
+        config.set("mapcache", "tileset_root", self.temp_mapcache_dir)
         
         # setup mapcache dummy seed command
         seed_command_file = tempfile.NamedTemporaryFile(delete=False)
@@ -215,7 +223,7 @@ class BaseTestCaseMixIn(object):
         st = stat(self.seed_command)
         chmod(self.seed_command, st.st_mode | S_IEXEC)
         
-        config.set(MAPCACHE_SECTION, "seed_command", self.seed_command)
+        config.set(SEED_SECTION, "seed_command", self.seed_command)
     
     def setUp_config(self):
         # set up default config and specific config
@@ -228,17 +236,21 @@ class BaseTestCaseMixIn(object):
                 else:
                     config.remove_option(section, option)
     
-    def setUp_replace(self):
-        self.before_replace_files = 0
+    def setUp_ingest(self):
+        self.before_test_files = 0
         
-        if self.request_before_replace_file is not None:
-            filename = join(settings.PROJECT_DIR, "data", self.request_before_replace_file)
+        # get request from file
+        if self.request_before_test_file is not None:
+            filename = join(settings.PROJECT_DIR, "data", self.request_before_test_file)
             with open(filename) as f:
-                self.request_before_replace = str(f.read())
+                self.request_before_test = str(f.read())
         
-        if self.request_before_replace is not None:
-            self.execute(self.request_before_replace)
-            self.before_replace_files = 2 # only one browse is expected in this request plus browse report
+        # execute request or command
+        if self.request_before_test is not None:
+            self.execute(self.request_before_test)
+            self.before_test_files = 2 # one browse plus browse report
+        elif self.args_before_test:
+            self.execute(self.args_before_test)
     
     def tearDown_files(self):
         # remove the created temporary directories
@@ -319,20 +331,23 @@ class CliMixIn(object):
     args = ()
     kwargs = {}
     
-    def execute(self, *args):
+    expect_failure = False
+    
+    def execute(self, args=None):
         # construct command line parameters
-        args = ["manage.py", self.command]
-        if isinstance(args, (list, tuple)):
-            args.extend(self.args)
-        elif isinstance(args, basestring):
-            args.extend(self.args.split(" "))
-        
-        for key, value in self.kwargs.items():
-            args.append("-%s" % key if len(key) == 1 else "--%s" % key)
-            if isinstance(value, (list, tuple)):
-                args.extend(value)
-            else: 
-                args.append(value)
+        if not args:
+            args = ["manage.py", self.command]
+            if isinstance(args, (list, tuple)):
+                args.extend(self.args)
+            elif isinstance(args, basestring):
+                args.extend(self.args.split(" "))
+            
+            for key, value in self.kwargs.items():
+                args.append("-%s" % key if len(key) == 1 else "--%s" % key)
+                if isinstance(value, (list, tuple)):
+                    args.extend(value)
+                else: 
+                    args.append(value)
         
         # redirect stdio/stderr to buffer
         sys.stdout = StringIO()
@@ -370,23 +385,20 @@ class CliMixIn(object):
     def get_response(self):
         # return either stout
         return self.response[0]
-        
 
 
-class IngestTestCaseMixIn(BaseTestCaseMixIn):
-    """ Mixin for ngEO ingest test cases. Checks whether or not the browses with
-    the specified IDs have been correctly registered.  
+class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
+    """ Common base class for insertion (ingestion or import) test cases.
     """
     
     expected_ingested_browse_ids = ()
     expected_ingested_coverage_ids = None # Defaults to expected_ingested_browse_ids
     expected_inserted_into_series = None
     expected_optimized_files = ()
-    expected_deleted_files = None
     expected_tiles = None     # dict. key: zoom level, value: count 
     
-    def test_expected_ingested_browses(self):
-        """ Check that the expected browses are ingested and the files correctly moved. """
+    def test_expected_inserted_browses(self):
+        """ Check that the expected browses are inserted. """
         
         System.init()
         
@@ -420,17 +432,6 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
             )
             self.assertTrue(coverage_wrapper is not None)
         
-        browse_report_file_mod = 0
-        if len(browse_ids) > 0:
-            # if at least one browse was successfully ingested, a browse report
-            # must also be present.
-            browse_report_file_mod = 1
-        
-        # test that the correct number of files was moved/created in the success
-        # directory
-        files = self.get_file_list(self.temp_success_dir)
-        self.assertEqual(len(browse_ids) + browse_report_file_mod + self.before_replace_files, len(files))
-    
     
     def test_expected_inserted_into_series(self):
         """ Check that the browses are inserted into the corresponding browse layer. """
@@ -458,16 +459,6 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
         # check that all optimized files are beeing created
         files = self.get_file_list(self.temp_optimized_files_dir)
         self.assertItemsEqual(self.expected_optimized_files, files)
-        
-    
-    def test_deleted_storage_files(self):
-        """ Check that the storage files were deleted/moved from the storage dir. """
-        
-        if self.expected_deleted_files is None:
-            self.skipTest("No expected files to delete given.")
-            
-        for filename in self.expected_deleted_files:
-            self.assertFalse(exists(join(self.temp_storage_dir, filename)))
 
 
     def test_model_counts(self):
@@ -480,6 +471,72 @@ class IngestTestCaseMixIn(BaseTestCaseMixIn):
                              "Model '%s' count mismatch." % model)
 
 
+class IngestTestCaseMixIn(BaseInsertTestCaseMixIn):
+    """ Mixin for ngEO ingest test cases. Checks whether or not the browses with
+    the specified IDs have been correctly registered.  
+    """
+    
+    expected_deleted_files = None
+    
+    
+    def test_deleted_storage_files(self):
+        """ Check that the storage files were deleted/moved from the storage dir. """
+        
+        if self.expected_deleted_files is None:
+            self.skipTest("No expected files to delete given.")
+            
+        for filename in self.expected_deleted_files:
+            self.assertFalse(exists(join(self.temp_storage_dir, filename)))
+    
+    
+    def test_expected_inserted_browses(self):
+        """ Check that the expected browses are ingested and the files correctly moved. """
+        super(IngestTestCaseMixIn, self).test_expected_inserted_browses()
+        
+        browse_ids = self.expected_ingested_browse_ids
+        
+        browse_report_file_mod = 0
+        if len(browse_ids) > 0:
+            # if at least one browse was successfully ingested, a browse report
+            # must also be present.
+            browse_report_file_mod = 1
+        
+        # test that the correct number of files was moved/created in the success
+        # directory
+        files = self.get_file_list(self.temp_success_dir)
+        self.assertEqual(len(browse_ids) + browse_report_file_mod + self.before_test_files, len(files))
+    
+
+class ImportTestCaseMixIn(BaseInsertTestCaseMixIn):
+    """ Mixin for import tests.
+    """
+    
+    command = "ngeo_import"
+    
+
+class DeleteTestCaseMixIn(BaseTestCaseMixIn):
+    """ Mixin for ngEO delete test cases. Checks whether or not the browses are
+    deleted correctly based on the specified parameters.  
+    """
+    
+    command = "ngeo_delete"
+    
+    expected_remaining_browses = None
+    expected_deleted_files = []
+   
+    def test_deleted_optimized_files(self):
+        """ Check that all optimized files have been deleted. """
+        for filename in self.expected_deleted_files:
+            self.assertFalse(exists(join(self.temp_optimized_files_dir, filename)), 
+                             "Optimized file not deleted.")
+            
+    def test_browse_deletion(self):
+        """ Check that all browses and their corresponding coverages have been deleted. """
+        for model, value in self.model_counts.items():
+            self.assertEqual(value[1], self.expected_remaining_browses,
+                             "Model '%s' count is not expected value." % model)
+     
+    
 class SeedTestCaseMixIn(BaseTestCaseMixIn):
     """ Mixin for ngEO seed test cases. Checks whether or not the browses with
     the specified IDs have been correctly seeded in MapCache.  
@@ -493,11 +550,11 @@ class SeedTestCaseMixIn(BaseTestCaseMixIn):
         raise IOError("MapCache seed command not found.")
     
     configuration = {
-        (MAPCACHE_SECTION, "seed_command"): seed_command,
+        (SEED_SECTION, "seed_command"): seed_command,
     }
 
     def test_seed(self):
-        """ Check that the seeding is done. """
+        """ Check that the seeding is done correctly. """
         
         db_filename = join(self.temp_mapcache_dir, 
                            self.expected_inserted_into_series + ".sqlite")
@@ -598,12 +655,16 @@ class WMSRasterMixIn(RasterMixIn):
         # dispatch wms request
         response = self.client.get(self.wms_request)
         
+        # enable to manually inspect wms response
+        #tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+        #tmp.write(response.content)
+        #tmp.close()
+        
         if response.status_code != 200:
             self.fail("WMS received response with status '%d'"
                       % response.status_code) 
         
         filename = '/vsimem/wms_temp'
-        
         
         try:
             gdal.FileFromMemBuffer(filename, response.content)
@@ -768,3 +829,55 @@ class IngestFailureTestCaseMixIn(BaseTestCaseMixIn):
         for model, value in self.model_counts.items():
             self.assertEqual(value[0], value[1],
                              "Model '%s' count mismatch." % model)
+
+
+class ExportTestCaseMixIn(BaseTestCaseMixIn):
+    """ Mixin for export tests.
+    """
+    
+    command = "ngeo_export"
+    
+    expected_exported_browses = ()
+    expected_cache_tiles = None
+    
+    @property
+    def args(self):
+        return ("--output", self.temp_export_file)
+    
+    def setUp_files(self):
+        super(ExportTestCaseMixIn, self).setUp_files()
+        self.temp_export_file = tempfile.mktemp(suffix=".tar.gz")
+    
+    def tearDown_files(self):
+        super(ExportTestCaseMixIn, self).tearDown_files()
+        remove(self.temp_export_file)
+    
+    def test_archive_content(self):
+        """ Test that the archive contains the expected files.
+        """
+        
+        try:
+            archive = tarfile.open(self.temp_export_file)
+        except tarfile.TarError, e:
+            self.fail(str(e))
+        
+        try:
+            archive.getmember(BROWSE_LAYER_NAME)
+        except KeyError:
+            self.fail("Archive does not contain %s." % BROWSE_LAYER_NAME)
+        
+        for browse_id in self.expected_exported_browses:
+            try:
+                archive.getmember(join(SEC_OPTIMIZED, browse_id + ".tif"))
+                archive.getmember(join(SEC_OPTIMIZED, browse_id + ".wkb"))
+            except KeyError:
+                self.fail("Archive does not contain %s.tif or %s.wkb."
+                          % (browse_id, browse_id))
+        
+        if self.expected_cache_tiles is not None:
+            cache_tiles = 0
+            for member in archive:
+                if member.name.startswith(SEC_CACHE) and member.isfile():
+                    cache_tiles += 1
+            
+            self.assertEqual(self.expected_cache_tiles, cache_tiles)

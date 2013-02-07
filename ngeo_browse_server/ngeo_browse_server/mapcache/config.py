@@ -27,10 +27,34 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
+from os.path import join
 
-from ngeo_browse_server.exceptions import NGEOException
+from ngeo_browse_server.config import get_ngeo_config, safe_get, get_project_relative_path
 
 
-class IngestionException(NGEOException):
-    """ Base class for ingestion related exceptions. """
+MAPCACHE_SECTION = "mapcache"
+SEED_SECTION = "mapcache.seed"
 
+
+def get_mapcache_seed_config(config=None):
+    """ Returns a dicitonary with all mapcache related config settings. """
+    
+    values = {}
+    config = config or get_ngeo_config()
+    
+    values["seed_command"] = safe_get(config, SEED_SECTION, "seed_command", "mapcache_seed")
+    values["config_file"] = config.get(SEED_SECTION, "config_file")
+    values["threads"] = int(safe_get(config, SEED_SECTION, "threads", 1))
+    
+    return values
+
+
+def get_tileset_path(browse_type, config=None):
+    """ Returns the path to a tileset SQLite file in the `tileset_root` dir. """
+    
+    config = config or get_ngeo_config()
+    
+    tileset_root = config.get(MAPCACHE_SECTION, "tileset_root")
+    tileset = browse_type + ".sqlite" if not browse_type.endswith(".sqlite") else ""
+    
+    return join(get_project_relative_path(tileset_root), tileset)

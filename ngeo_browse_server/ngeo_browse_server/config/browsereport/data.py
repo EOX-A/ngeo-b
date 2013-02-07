@@ -27,6 +27,9 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
+from ngeo_browse_server.config import models
+
+
 """\ 
 This module contains intermediary (runtime) data for ingestion or the like.
 The classes in this module are explicitly not tied to database models, but
@@ -85,6 +88,10 @@ class RectifiedBrowse(Browse):
         return kwargs
 
 class FootprintBrowse(Browse):
+    @classmethod
+    def from_model(cls, browse_model):
+        return FootprintBrowse(
+        )
     
     def __init__(self, node_number, col_row_list, coord_list, *args, **kwargs):
         super(FootprintBrowse, self).__init__(*args, **kwargs)
@@ -149,14 +156,69 @@ class ModelInGeotiffBrowse(Browse):
     geo_type = property(lambda self: "modelInGeotiffBrowse")
 
 
+def browse_from_model(browse_model):
+    kwargs = {
+        "file_name": browse_model.file_name,
+        "image_type": browse_model.image_type,
+        "reference_system_identifier": browse_model.reference_system_identifier,
+        "start_time": browse_model.start_time,
+        "end_time": browse_model.end_time
+    }
+    
+    try:
+        kwargs["browse_identifier"] = browse_model.browse_identifier.value
+    except models.BrowseIdentifier.DoesNotExist:
+        pass
+    
+    try: 
+        return RectifiedBrowse(browse_model.rectifiedbrowse.coord_list, **kwargs)
+    except models.RectifiedBrowse.DoesNotExist: pass
+    try:
+        return FootprintBrowse(
+            browse_model.footprintbrowse.node_number, 
+            browse_model.footprintbrowse.col_row_list, 
+            browse_model.footprintbrowse.coord_list,
+            **kwargs
+        )
+    except models.FootprintBrowse.DoesNotExist: pass
+    try:
+        return RegularGridBrowse(
+            browse_model.footprintbrowse.col_node_number,
+            browse_model.footprintbrowse.row_node_number, 
+            browse_model.footprintbrowse.col_step,
+            browse_model.footprintbrowse.row_step,
+            [coord_list.coord_list
+             for coord_list in browse_model.footprintbrowse.coord_lists.all()]
+        )
+    except models.RegularGridBrowse.DoesNotExist: pass
+    try: 
+        _ = browse_model.modelingeotiffbrowse
+        return ModelInGeotiffBrowse(**kwargs)
+    except models.ModelInGeotiffBrowse.DoesNotExist: pass
+
+
 class BrowseReport(object):
     """ Browse report data model. """
     
-    def __init__(self, browse_type, date_time, responsible_org_name, browses):
+    @classmethod
+    def from_model(cls, browse_report_model, browses_qs=None):
+        if browses_qs is None:
+            browses_qs = browse_report_model.browses.all()
+        
+        return BrowseReport(
+            browse_report_model.browse_layer.browse_type,
+            browse_report_model.date_time,
+            browse_report_model.responsible_org_name,
+            browses=[browse_from_model(browse_model) 
+                     for browse_model in browses_qs]
+        )
+    
+    
+    def __init__(self, browse_type, date_time, responsible_org_name, browses=None):
         self._browse_type = browse_type
         self._date_time = date_time
         self._responsible_org_name = responsible_org_name
-        self._browses = list(browses)
+        self._browses = list(browses) if browses else []
     
     
     def __iter__(self):
@@ -178,3 +240,5 @@ class BrowseReport(object):
             "date_time": self._date_time,
             "responsible_org_name": self._responsible_org_name
         }
+
+

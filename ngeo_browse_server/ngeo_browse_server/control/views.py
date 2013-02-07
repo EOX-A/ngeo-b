@@ -34,8 +34,7 @@ from lxml import etree
 from django.shortcuts import render_to_response
 
 from ngeo_browse_server.control.ingest import ingest_browse_report
-from ngeo_browse_server.control.ingest.parsing import parse_browse_report
-from django.http import HttpRequest
+from ngeo_browse_server.config.browsereport.parsing import parse_browse_report
 from ngeo_browse_server.control.ingest.exceptions import IngestionException
 
 

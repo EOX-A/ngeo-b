@@ -28,9 +28,4 @@
 #-------------------------------------------------------------------------------
 
 
-from ngeo_browse_server.exceptions import NGEOException
-
-
-class IngestionException(NGEOException):
-    """ Base class for ingestion related exceptions. """
-
+from ngeo_browse_server.control.management.commands.ngeo_ingest_browse_report import Command

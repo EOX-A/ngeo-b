@@ -37,12 +37,12 @@ from ngeo_browse_server.control.testbase import (
     IngestTestCaseMixIn, SeedTestCaseMixIn, IngestReplaceTestCaseMixIn, 
     OverviewMixIn, CompressionMixIn, BandCountMixIn, HasColorTableMixIn, 
     ExtentMixIn, SizeMixIn, ProjectionMixIn, StatisticsMixIn, WMSRasterMixIn,
-    IngestFailureTestCaseMixIn
+    IngestFailureTestCaseMixIn, DeleteTestCaseMixIn, ExportTestCaseMixIn,
+    ImportTestCaseMixIn
 )
 from ngeo_browse_server.control.ingest.config import (
-    INGEST_SECTION, MAPCACHE_SECTION
+    INGEST_SECTION
 )
-
 
 #===============================================================================
 # Ingest ModelInGeoTiff browse test cases
@@ -604,7 +604,7 @@ class SeedFootprintBrowseGroup(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase)
 #===============================================================================
 
 class IngestFootprintBrowseReplace(IngestReplaceTestCaseMixIn, HttpTestCaseMixin, TestCase):
-    request_before_replace_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327.xml"
+    request_before_test_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327.xml"
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_new.xml"
     
     expected_num_replaced = 1
@@ -1218,29 +1218,29 @@ class IngestRasterStatistics(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, Test
     expected_statistics = [{
         "min": 0.0,
         "max": 255.0,
-        "mean": 63.9,
-        "stddev": 75.9,
+        "mean": 63.925277695030758,
+        "stddev": 75.959146309249874,
         "checksum": 61578
     }, {
         "min": 0.0,
         "max": 255.0,
-        "mean": 63.9,
-        "stddev": 75.9,
+        "mean": 63.925277695030758,
+        "stddev": 75.959146309249874,
         "checksum": 61578
     }, {
         "min": 0.0,
         "max": 255.0,
-        "mean": 63.9,
-        "stddev": 75.9,
+        "mean": 63.925277695030758,
+        "stddev": 75.959146309249874,
         "checksum": 61578
     }, {
         "min": 0.0,
         "max": 255.0,
-        "mean": 138.4,
-        "stddev": 127.0,
+        "mean": 138.47156093432616,
+        "stddev": 127.02706345761268,
         "checksum": 44546
     }]
-    
+
 
 #===============================================================================
 # Raster tests for browses with more than 3 input bands
@@ -1349,8 +1349,8 @@ class IngestFootprintWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
     expected_statistics = [{
         "min": 0.0,
         "max": 255.0,
-        "mean": 63.9,
-        "stddev": 76.0,
+        "mean": 63.942,
+        "stddev": 76.043258978031716,
         "checksum": 56631
     }] * 3
 
@@ -1376,7 +1376,7 @@ class IngestRegularGridWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, 
 
 
 #===============================================================================
-# Command line ingestion test cases
+# Ingest command line test cases
 #===============================================================================
 
 class IngestFromCommand(IngestTestCaseMixIn, CliMixIn, TestCase):
@@ -1386,3 +1386,145 @@ class IngestFromCommand(IngestTestCaseMixIn, CliMixIn, TestCase):
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ("ASA_IM__0P_20100807_101327_proc.tif",)
     expected_deleted_files = ['ASA_IM__0P_20100807_101327.jpg']
+
+
+#===============================================================================
+# Delete test cases
+#===============================================================================
+
+class DeleteFromCommand(DeleteTestCaseMixIn, CliMixIn, TestCase):
+    kwargs = {
+        "layer" : "TEST_SAR"
+    }
+    
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report", 
+                        join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
+    
+    expected_remaining_browses = 0
+    expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100719_101023_proc.tif',
+                              'TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif',
+                              'TEST_SAR/ASA_WS__0P_20100725_102231_proc.tif']
+
+class DeleteFromCommandStart(DeleteTestCaseMixIn, CliMixIn, TestCase):
+    kwargs = {
+        "layer" : "TEST_SAR",
+        "start": "2010-07-25T10:22Z"
+    }
+    
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report", 
+                        join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
+    
+    expected_remaining_browses = 2
+    expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100725_102231_proc.tif']
+
+class DeleteFromCommandEnd(DeleteTestCaseMixIn, CliMixIn, TestCase):
+    kwargs = {
+        "layer" : "TEST_SAR",
+        "end": "2010-07-25T10:22Z"
+    }
+    
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report", 
+                        join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
+    
+    expected_remaining_browses = 1
+    expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100719_101023_proc.tif',
+                              'TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
+
+class DeleteFromCommandStartEnd(DeleteTestCaseMixIn, CliMixIn, TestCase):
+    kwargs = {
+        "layer" : "TEST_SAR",
+        "start": "2010-07-22T10:15Z",
+        "end": "2010-07-22T10:18Z"
+    }
+    
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report", 
+                        join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
+    
+    expected_remaining_browses = 2
+    expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
+
+
+#===============================================================================
+# Export test cases
+#===============================================================================
+
+class ExportGroupFull(ExportTestCaseMixIn, CliMixIn, TestCase):
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
+                        join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
+    
+    kwargs = {
+        "layer" : "TEST_SAR"
+    }
+    
+    expected_exported_browses = ("b_id_6", "b_id_7", "b_id_8")
+
+class ExportGroupFullCache(ExportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
+                        join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
+    
+    kwargs = {
+        "layer" : "TEST_SAR"
+    }
+    @property
+    def args(self):
+        return ("--output", self.temp_export_file, "--export-cache")
+    
+    expected_inserted_into_series = "TEST_SAR"
+    expected_tiles = {0: 6, 1: 24, 2: 96, 3: 384, 4: 384, 5: 384, 6: 384, 7: 384, 8: 896}
+    expected_exported_browses = ("b_id_6", "b_id_7", "b_id_8")
+    expected_cache_tiles = 2942
+
+class ExportGroupStart(ExportTestCaseMixIn, CliMixIn, TestCase):
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
+                        join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
+    
+    kwargs = {
+        "layer" : "TEST_SAR",
+        "start": "2010-07-22T10:16:01Z"
+    }
+    
+    expected_exported_browses = ("b_id_7", "b_id_8")
+
+class ExportGroupEnd(ExportTestCaseMixIn, CliMixIn, TestCase):
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
+                        join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
+    
+    kwargs = {
+        "layer" : "TEST_SAR",
+        "end": "2010-07-22T10:17:02Z"
+    }
+    
+    expected_exported_browses = ("b_id_6", "b_id_7")
+
+class ExportGroupStartEnd(ExportTestCaseMixIn, CliMixIn, TestCase):
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
+                        join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
+    
+    kwargs = {
+        "layer" : "TEST_SAR",
+        "start": "2010-07-22T10:16:01Z",
+        "end": "2010-07-22T10:17:02Z"
+    }
+    
+    expected_exported_browses = ("b_id_7",)
+
+
+#===============================================================================
+# Import test cases
+#===============================================================================
+
+class ImportIgnoreCache(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
+    args = ("autotest/data/export/export.tar.gz", "--ignore-cache")
+    
+    expected_ingested_browse_ids = ("b_id_1",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ("b_id_1_proc.tif",)
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 256}
+
+class ImportWithCache(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
+    args = ("autotest/data/export/export.tar.gz",)
+    
+    expected_ingested_browse_ids = ("b_id_1",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ("b_id_1_proc.tif",)
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 256}

@@ -1,4 +1,4 @@
-from os.path import join
+from os.path import isabs, join
 from django.conf import settings
 
 from ConfigParser import ConfigParser
@@ -25,7 +25,8 @@ def reset_ngeo_config():
     global _config_instance
     _config_instance = ConfigParser()
     _config_instance.read([join(settings.PROJECT_DIR, "conf", "ngeo.conf"),
-                           ]) # TODO: read default conf?
+                           ])
+
 
 def safe_get(config, section, option, default=None):
     """ Convenience function to get a value from a config or retrieve the 
@@ -36,3 +37,12 @@ def safe_get(config, section, option, default=None):
         return config.get(section, option)
     except:
         return default
+
+
+def get_project_relative_path(path):
+    """ Returns a path, relative to the defined `PROJECT_DIR` directory. """
+    
+    if isabs(path):
+        return path
+    
+    return join(settings.PROJECT_DIR, path)

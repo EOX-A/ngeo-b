@@ -29,22 +29,16 @@
 
 import logging
 from itertools import izip
+from lxml import etree 
 
 from eoxserver.core.util.timetools import getDateTime
 
-from ngeo_browse_server.control.ingest import data  
-from ngeo_browse_server.control.ingest.exceptions import ParsingException
+from ngeo_browse_server.namespace import ns_rep, ns_bsi
+from ngeo_browse_server.config.browsereport import data
+from ngeo_browse_server.config.browsereport.exceptions import ParsingException
 
 
 logger = logging.getLogger(__name__)
-
-def ns_rep(tag):
-    "Namespacify a given tag name for the use with etree"
-    return "{http://ngeo.eo.esa.int/schema/browseReport}" + tag
-
-def ns_bsi(tag):
-    "Namespacify a given tag name for the use with etree"
-    return "{http://ngeo.eo.esa.int/schema/browse/ingestion}" + tag
 
 
 def pairwise(iterable):
@@ -59,6 +53,11 @@ def parse_browse_report(browse_report):
     """
     
     logger.info("Start parsing browse report.")
+    
+    try:
+        browse_report = browse_report.getroot()
+    except AttributeError:
+        pass
     
     expected_tags = ns_bsi("ingestBrowse"), ns_rep("browseReport")
     if browse_report.tag not in expected_tags:
@@ -77,6 +76,16 @@ def parse_browse_report(browse_report):
     logger.info("Finished parsing browse report.")
 
     return browse_report
+
+
+def parse_browse_iteratively(source):
+    parser = etree.iterparse(source, events=("start", "end",))
+    
+    _, root = parser.next()
+    
+    # TODO: implement
+    
+    
 
 
 def parse_browse(browse_elem, browse_report=None):
