@@ -1457,7 +1457,6 @@ class ExportGroupFull(ExportTestCaseMixIn, CliMixIn, TestCase):
     }
     
     expected_exported_browses = ("b_id_6", "b_id_7", "b_id_8")
-    expected_cache_files = 0
 
 class ExportGroupFullCache(ExportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
     args_before_test = ["manage.py", "ngeo_ingest_browse_report",
@@ -1466,10 +1465,14 @@ class ExportGroupFullCache(ExportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, Liv
     kwargs = {
         "layer" : "TEST_SAR"
     }
-    args = ("--export-cache")
+    @property
+    def args(self):
+        return ("--output", self.temp_export_file, "--export-cache")
     
+    expected_inserted_into_series = "TEST_SAR"
+    expected_tiles = {0: 6, 1: 24, 2: 96, 3: 384, 4: 384, 5: 384, 6: 384, 7: 384, 8: 896}
     expected_exported_browses = ("b_id_6", "b_id_7", "b_id_8")
-    expected_cache_files = 0
+    expected_cache_tiles = 2942
 
 class ExportGroupStart(ExportTestCaseMixIn, CliMixIn, TestCase):
     args_before_test = ["manage.py", "ngeo_ingest_browse_report",
@@ -1481,7 +1484,6 @@ class ExportGroupStart(ExportTestCaseMixIn, CliMixIn, TestCase):
     }
     
     expected_exported_browses = ("b_id_7", "b_id_8")
-    expected_cache_files = 0
 
 class ExportGroupEnd(ExportTestCaseMixIn, CliMixIn, TestCase):
     args_before_test = ["manage.py", "ngeo_ingest_browse_report",
@@ -1493,7 +1495,18 @@ class ExportGroupEnd(ExportTestCaseMixIn, CliMixIn, TestCase):
     }
     
     expected_exported_browses = ("b_id_6", "b_id_7")
-    expected_cache_files = 0
+
+class ExportGroupStartEnd(ExportTestCaseMixIn, CliMixIn, TestCase):
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
+                        join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
+    
+    kwargs = {
+        "layer" : "TEST_SAR",
+        "start": "2010-07-22T10:16:01Z",
+        "end": "2010-07-22T10:17:02Z"
+    }
+    
+    expected_exported_browses = ("b_id_7",)
 
 
 #===============================================================================
