@@ -202,10 +202,10 @@ class BaseTestCaseMixIn(object):
         # setup mapcache config/files as retrieved from template
         self.temp_mapcache_dir = tempfile.mkdtemp() + "/"
         db_file = settings.DATABASES["mapcache"]["TEST_NAME"]
-        mapcache_config_file = join(self.temp_mapcache_dir, "seed_mapcache.xml")
+        mapcache_config_file = join(self.temp_mapcache_dir, "mapcache.xml")
         
         with open(mapcache_config_file, "w+") as f:
-            f.write(render_to_string("test_control/seed_mapcache.xml",
+            f.write(render_to_string("test_control/mapcache.xml",
                                      {"mapcache_dir": self.temp_mapcache_dir,
                                       "mapcache_test_db": db_file,
                                       "browse_layers": models.BrowseLayer.objects.all(),
