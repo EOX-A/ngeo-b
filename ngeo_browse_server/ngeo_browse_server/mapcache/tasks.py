@@ -41,11 +41,10 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
         "-D", "TIME=%sZ/%sZ" % (start_time.isoformat(), end_time.isoformat()),
         "-m", "seed" if not delete else "delete",
         "-q",
+        "-M", "8,8",
     ]
     if not delete:
         args.append("-f")
-        args.append("-M")
-        args.append("8,8")
     
     logger.debug("mapcache seeding command: '%s'. raw: '%s'."
                  % (" ".join(args), args))
