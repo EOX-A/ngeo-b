@@ -68,14 +68,12 @@ def parse_browse_layers(browse_layers_elem):
             browse_layer_elem.find(ns_cfg("title")).text,
             browse_layer_elem.find(ns_cfg("grid")).text,
             browse_layer_elem.find(ns_cfg("browseAccessPolicy")).text,
-            browse_layer_elem.find(ns_cfg("hostingBrowseServerName")).text,
-            related_dataset_ids,
             browse_layer_elem.find(ns_cfg("containsVerticalCurtains")).text == "true",
             int(browse_layer_elem.find(ns_cfg("highestMapLevel")).text),
             int(browse_layer_elem.find(ns_cfg("lowestMapLevel")).text),
+            browse_layer_elem.find(ns_cfg("hostingBrowseServerName")).text,
+            related_dataset_ids,
             **opt
         ))
     
     return browse_layers
-
-    
