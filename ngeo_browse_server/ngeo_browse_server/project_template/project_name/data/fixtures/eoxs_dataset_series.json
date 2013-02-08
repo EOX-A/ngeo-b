@@ -38,6 +38,36 @@
             "timestamp_begin": "2012-11-02T15:14:24.999Z", 
             "eo_gml": ""
         }
+    },  
+    {
+        "pk": 5, 
+        "model": "coverages.eometadatarecord", 
+        "fields": {
+            "footprint": "MULTIPOLYGON (((0.0000000000000000 0.0000000000000000, 0.0000000000000000 1.0000000000000000, 1.0000000000000000 1.0000000000000000, 1.0000000000000000 0.0000000000000000, 0.0000000000000000 0.0000000000000000)))", 
+            "timestamp_end": "2012-11-02T15:14:24.999Z", 
+            "timestamp_begin": "2012-11-02T15:14:24.999Z", 
+            "eo_gml": ""
+        }
+    },  
+    {
+        "pk": 6, 
+        "model": "coverages.eometadatarecord", 
+        "fields": {
+            "footprint": "MULTIPOLYGON (((0.0000000000000000 0.0000000000000000, 0.0000000000000000 1.0000000000000000, 1.0000000000000000 1.0000000000000000, 1.0000000000000000 0.0000000000000000, 0.0000000000000000 0.0000000000000000)))", 
+            "timestamp_end": "2012-11-02T15:14:24.999Z", 
+            "timestamp_begin": "2012-11-02T15:14:24.999Z", 
+            "eo_gml": ""
+        }
+    },   
+    {
+        "pk": 7, 
+        "model": "coverages.eometadatarecord", 
+        "fields": {
+            "footprint": "MULTIPOLYGON (((0.0000000000000000 0.0000000000000000, 0.0000000000000000 1.0000000000000000, 1.0000000000000000 1.0000000000000000, 1.0000000000000000 0.0000000000000000, 0.0000000000000000 0.0000000000000000)))", 
+            "timestamp_end": "2012-11-02T15:14:24.999Z", 
+            "timestamp_begin": "2012-11-02T15:14:24.999Z", 
+            "eo_gml": ""
+        }
     }, 
     {
         "pk": 1, 
@@ -102,6 +132,54 @@
             "rect_datasets": [], 
             "eo_id": "TEST_MER_FRS"
         }
+    },  
+    {
+        "pk": 5, 
+        "model": "coverages.datasetseriesrecord", 
+        "fields": {
+            "rect_stitched_mosaics": [], 
+            "data_sources": [], 
+            "layer_metadata": [
+                1, 
+                2
+            ], 
+            "ref_datasets": [], 
+            "eo_metadata": 5, 
+            "rect_datasets": [], 
+            "eo_id": "TEST_MER_FRS_FULL"
+        }
+    },  
+    {
+        "pk": 6, 
+        "model": "coverages.datasetseriesrecord", 
+        "fields": {
+            "rect_stitched_mosaics": [], 
+            "data_sources": [], 
+            "layer_metadata": [
+                1, 
+                2
+            ], 
+            "ref_datasets": [], 
+            "eo_metadata": 6, 
+            "rect_datasets": [], 
+            "eo_id": "TEST_MER_FRS_FULL_NO_BANDS"
+        }
+    },  
+    {
+        "pk": 7, 
+        "model": "coverages.datasetseriesrecord", 
+        "fields": {
+            "rect_stitched_mosaics": [], 
+            "data_sources": [], 
+            "layer_metadata": [
+                1, 
+                2
+            ], 
+            "ref_datasets": [], 
+            "eo_metadata": 7, 
+            "rect_datasets": [], 
+            "eo_id": "TEST_GOOGLE_MERCATOR"
+        }
     }, 
     {
         "pk": 1, 
@@ -120,6 +198,21 @@
     },
     {
         "pk": 4, 
+        "model": "core.resource", 
+        "fields": {}
+    },
+    {
+        "pk": 5, 
+        "model": "core.resource", 
+        "fields": {}
+    },
+    {
+        "pk": 6, 
+        "model": "core.resource", 
+        "fields": {}
+    },
+    {
+        "pk": 7, 
         "model": "core.resource", 
         "fields": {}
     },

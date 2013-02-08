@@ -74,5 +74,62 @@
             "lowest_map_level": 0, 
             "highest_map_level": 8
         }
+    },
+    {
+        "pk": "TEST_MER_FRS_FULL", 
+        "model": "config.browselayer", 
+        "fields": {
+            "browse_type": "MER_FRS_FULL", 
+            "title": "TESTTITLE_MER_FRS_FULL", 
+            "description": "", 
+            "browse_access_policy": "OPEN", 
+            "contains_vertical_curtains": false, 
+            "r_band": 2, 
+            "g_band": 4, 
+            "b_band": 6, 
+            "radiometric_interval_min": null, 
+            "radiometric_interval_max": null, 
+            "grid": "urn:ogc:def:wkss:OGC:1.0:GoogleCRS84Quad", 
+            "lowest_map_level": 0, 
+            "highest_map_level": 8
+        }
+    },
+    {
+        "pk": "TEST_MER_FRS_FULL_NO_BANDS", 
+        "model": "config.browselayer", 
+        "fields": {
+            "browse_type": "MER_FRS_FULL_NO_BANDS", 
+            "title": "TESTTITLE_MER_FRS_FULL_NO_BANDS", 
+            "description": "", 
+            "browse_access_policy": "OPEN", 
+            "contains_vertical_curtains": false, 
+            "r_band": null, 
+            "g_band": null, 
+            "b_band": null, 
+            "radiometric_interval_min": null, 
+            "radiometric_interval_max": null, 
+            "grid": "urn:ogc:def:wkss:OGC:1.0:GoogleCRS84Quad", 
+            "lowest_map_level": 0, 
+            "highest_map_level": 8
+        }
+    }, 
+    {
+        "pk": "TEST_GOOGLE_MERCATOR", 
+        "model": "config.browselayer", 
+        "fields": {
+            "browse_type": "GOOGLE_MERCATOR", 
+            "title": "TESTTITLE_GOOGLE_MERCATOR", 
+            "description": "", 
+            "browse_access_policy": "OPEN", 
+            "contains_vertical_curtains": false, 
+            "r_band": null, 
+            "g_band": null, 
+            "b_band": null, 
+            "radiometric_interval_min": null, 
+            "radiometric_interval_max": null, 
+            "grid": "urn:ogc:def:wkss:OGC:1.0:GoogleMapsCompatible", 
+            "lowest_map_level": 0, 
+            "highest_map_level": 8
+        }
     }
 ]
