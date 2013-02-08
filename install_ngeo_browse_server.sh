@@ -238,7 +238,7 @@ if [ ! -d ngeo_browse_server_instance ] ; then
     sed -e "s,http_service_url=http://localhost:8000/ows,http_service_url=$NGEOB_URL$APACHE_NGEO_BROWSE_ALIAS/ows," -i ngeo_browse_server_instance/conf/eoxserver.conf
     MAPCACHE_DIR_ESCAPED=`echo $MAPCACHE_DIR | sed -e 's/\//\\\&/g'`
     sed -e "s/^tileset_root=$/tileset_root=$MAPCACHE_DIR_ESCAPED\//" -i ngeo_browse_server_instance/conf/ngeo.conf
-    sed -e "s/^config_file=$/config_file=$MAPCACHE_DIR_ESCAPED\/seed_$MAPCACHE_CONF/" -i ngeo_browse_server_instance/conf/ngeo.conf
+    sed -e "s/^config_file=$/config_file=$MAPCACHE_DIR_ESCAPED\/$MAPCACHE_CONF/" -i ngeo_browse_server_instance/conf/ngeo.conf
     sed -e "s/^storage_dir=data\/storage$/storage_dir=$NGEOB_INSTALL_DIR_ESCAPED\/store/" -i ngeo_browse_server_instance/conf/ngeo.conf
     
     if ! "$TESTING" ; then
@@ -275,7 +275,7 @@ if [ ! -d "$MAPCACHE_DIR" ] ; then
     mkdir -p "$MAPCACHE_DIR"
     cd "$MAPCACHE_DIR"
 
-    # Configure read-only MapCache
+    # Configure MapCache
     cat << EOF > "$MAPCACHE_DIR/$MAPCACHE_CONF"
 <?xml version="1.0" encoding="UTF-8"?>
 <mapcache>
@@ -295,36 +295,7 @@ if [ ! -d "$MAPCACHE_DIR" ] ; then
     <service type="wms" enabled="true">
         <full_wms>assemble</full_wms>
         <resample_mode>bilinear</resample_mode>
-        <format>JPEG</format>
-        <maxsize>4096</maxsize>
-    </service>
-    <service type="wmts" enabled="true"/>
-
-    <errors>empty_img</errors>
-    <lock_dir>/tmp</lock_dir>
-</mapcache>
-EOF
-    # Configure second MapCache instance for seeding
-    cat << EOF > "$MAPCACHE_DIR/seed_$MAPCACHE_CONF"
-<?xml version="1.0" encoding="UTF-8"?>
-<mapcache>
-    <default_format>mixed</default_format>
-    <format name="mypng" type ="PNG">
-        <compression>fast</compression>
-    </format>
-    <format name="myjpeg" type ="JPEG">
-        <quality>85</quality>
-        <photometric>ycbcr</photometric>
-    </format>
-    <format name="mixed" type="MIXED">
-        <transparent>mypng</transparent>
-        <opaque>myjpeg</opaque>
-    </format>
-
-    <service type="wms" enabled="true">
-        <full_wms>assemble</full_wms>
-        <resample_mode>bilinear</resample_mode>
-        <format>JPEG</format>
+        <format>mixed</format>
         <maxsize>4096</maxsize>
     </service>
     <service type="wmts" enabled="true"/>
