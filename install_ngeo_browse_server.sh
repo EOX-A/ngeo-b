@@ -237,6 +237,7 @@ if [ ! -d ngeo_browse_server_instance ] ; then
     # Configure instance
     sed -e "s,http_service_url=http://localhost:8000/ows,http_service_url=$NGEOB_URL$APACHE_NGEO_BROWSE_ALIAS/ows," -i ngeo_browse_server_instance/conf/eoxserver.conf
     MAPCACHE_DIR_ESCAPED=`echo $MAPCACHE_DIR | sed -e 's/\//\\\&/g'`
+    sed -e "s/^tileset_root=$/tileset_root=$MAPCACHE_DIR_ESCAPED\//" -i ngeo_browse_server_instance/conf/ngeo.conf
     sed -e "s/^config_file=$/config_file=$MAPCACHE_DIR_ESCAPED\/seed_$MAPCACHE_CONF/" -i ngeo_browse_server_instance/conf/ngeo.conf
     sed -e "s/^storage_dir=data\/storage$/storage_dir=$NGEOB_INSTALL_DIR_ESCAPED\/store/" -i ngeo_browse_server_instance/conf/ngeo.conf
     
