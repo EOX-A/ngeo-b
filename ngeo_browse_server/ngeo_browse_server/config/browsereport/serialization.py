@@ -84,7 +84,7 @@ def _serialize_footprint_browse(browse):
     return georef_elem
 
 def _serialize_regular_grid_browse(browse):
-    georef_elem = Element(browse, ns_rep("regularGrid"))
+    georef_elem = Element(ns_rep("regularGrid"))
     SubElement(georef_elem, ns_rep("colNodeNumber")).text = str(browse.col_node_number)
     SubElement(georef_elem, ns_rep("rowNodeNumber")).text = str(browse.row_node_number)
     SubElement(georef_elem, ns_rep("colStep")).text = str(browse.col_step)

@@ -184,9 +184,6 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                     browse_report_model, browses_qs
                 )
                 
-                print len(browse_report), len(browses_qs
-                                              )
-                
                 # iterate over all browses in the query
                 for browse, browse_model in izip(browse_report, browses_qs):
                     coverage_wrapper = System.getRegistry().getFromFactory(
@@ -208,18 +205,8 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                     browse_file_path = data_package.getGDALDatasetIdentifier()
                     with open(browse_file_path) as f:
                         p.add_browse(f, data_filename)
-                        # TODO: metadata
-                        
-                        #p.add_browse_metadata(md_filename, 
-                        #                      browse_model.coverage_id, 
-                        #                      coverage_wrapper.getBeginTime(),
-                        #                      coverage_wrapper.getEndTime(),
-                        #                      coverage_wrapper.getFootprint())
-                        
                         wkb = coverage_wrapper.getFootprint().wkb
                         p.add_footprint(footprint_filename, wkb)
-                        
-                        
                     
                     if export_cache:
                         # get "dim" parameter

@@ -98,8 +98,7 @@ class FootprintBrowse(Browse):
         self._node_number = node_number
         self._col_row_list = col_row_list
         self._coord_list = coord_list
-
-
+    
     node_number = property(lambda self: self._node_number)
     col_row_list = property(lambda self: self._col_row_list)
     coord_list = property(lambda self: self._coord_list)
@@ -120,9 +119,7 @@ class RegularGridBrowse(Browse):
     
     def __init__(self, col_node_number, row_node_number, col_step, row_step, 
                  coord_lists, *args, **kwargs):
-        
         super(RegularGridBrowse, self).__init__(*args, **kwargs)
-        
         self._col_node_number = col_node_number
         self._row_node_number = row_node_number
         self._col_step = col_step
@@ -143,11 +140,12 @@ class RegularGridBrowse(Browse):
             "col_node_number": self._col_node_number,
             "row_node_number": self._row_node_number,
             "col_step": self._col_step,
-            "row_step": self._row_step
+            "row_step": self._row_step,
+            "coord_lists": self._coord_lists
         })
         return kwargs
 
-    
+
 class VerticalCurtainBrowse(Browse):
     geo_type = property(lambda self: "verticalCurtainBrowse")
 
@@ -183,12 +181,13 @@ def browse_from_model(browse_model):
     except models.FootprintBrowse.DoesNotExist: pass
     try:
         return RegularGridBrowse(
-            browse_model.footprintbrowse.col_node_number,
-            browse_model.footprintbrowse.row_node_number, 
-            browse_model.footprintbrowse.col_step,
-            browse_model.footprintbrowse.row_step,
+            browse_model.regulargridbrowse.col_node_number,
+            browse_model.regulargridbrowse.row_node_number, 
+            browse_model.regulargridbrowse.col_step,
+            browse_model.regulargridbrowse.row_step,
             [coord_list.coord_list
-             for coord_list in browse_model.footprintbrowse.coord_lists.all()]
+             for coord_list in browse_model.regulargridbrowse.coord_lists.all()],
+            **kwargs
         )
     except models.RegularGridBrowse.DoesNotExist: pass
     try: 
