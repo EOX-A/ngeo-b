@@ -172,7 +172,7 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
             print(render_to_string("control/ingest_response.xml",
                                    {"results": results}))
         
-        self.print_msg("%d browses have been successfully ingested. %d "
-                        "replaced, %d inserted."
+        self.print_msg("%d browses have been handled whereof %d have been "
+                        "successfully replaced and %d successfully inserted."
                         % (results.to_be_replaced, results.actually_replaced,
                             results.actually_inserted))
