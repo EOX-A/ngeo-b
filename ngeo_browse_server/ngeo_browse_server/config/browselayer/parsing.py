@@ -55,12 +55,12 @@ def parse_browse_layers(browse_layers_elem):
         rgb_bands_elem = browse_layer_elem.find(ns_cfg("rgbBands"))
         if rgb_bands_elem is not None:
             r, g, b = map(int, rgb_bands_elem.text.split(","))
-            opt["r"] = r; opt["g"] = g; opt["b"] = b
+            opt["r_band"] = r; opt["g_band"] = g; opt["b_band"] = b
         
         radiometric_interval_elem = browse_layer_elem.find(ns_cfg("radiometricInterval"))
         if radiometric_interval_elem is not None:
-            opt["min"] = int(radiometric_interval_elem.find(ns_cfg("min")).text)
-            opt["max"] = int(radiometric_interval_elem.find(ns_cfg("max")).text)
+            opt["radiometric_interval_min"] = int(radiometric_interval_elem.find(ns_cfg("min")).text)
+            opt["radiometric_interval_max"] = int(radiometric_interval_elem.find(ns_cfg("max")).text)
         
         browse_layers.append(BrowseLayer(
             browse_layer_elem.get("browseLayerId"),
