@@ -42,14 +42,19 @@ from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
 logger = logging.getLogger(__name__)
 
 def get_existing_browse(browse, browse_layer_id):
-    """ Check that either the browse with the same Start/End time is registered 
+    """ Get existing browse either via browse identifier if present or via 
+        Start/End time.
     in the same browse layer. """
     
     try:
         if browse.browse_identifier:
-            return models.Browse.objects.get(
-                browse_identifier__value=browse.browse_identifier
-            )
+            try:
+                return models.Browse.objects.get(
+                    browse_identifier__value=browse.browse_identifier,
+                    browse_layer__id=browse_layer_id
+                )
+            except models.Browse.DoesNotExist:
+                pass
         return models.Browse.objects.get(
             start_time=browse.start_time,
             end_time=browse.end_time,
@@ -167,8 +172,9 @@ def create_browse(parsed_browse, browse_report, browse_layer, coverage_id, crs,
 
 
 def remove_browse(browse_model, browse_layer_model, coverage_id, config=None):
-    """ Delete all models, files and caches associated with browse model.
-    Returns the extent of the replaced image.
+    """ Delete all models and caches associated with browse model. Image itself 
+    is not deleted.
+    Returns the extent and filename of the replaced image.
     """
     
     # get previous extent to "un-seed" MapCache in that area
@@ -188,7 +194,6 @@ def remove_browse(browse_model, browse_layer_model, coverage_id, config=None):
     )
     rect_mgr.delete(obj_id=browse_model.coverage_id)
     browse_model.delete()
-    
     
     # unseed here
     try:
@@ -217,10 +222,8 @@ def remove_browse(browse_model, browse_layer_model, coverage_id, config=None):
     return replaced_extent, replaced_filename
 
 
-
 def _model_from_parsed(parsed_browse, browse_report, browse_layer, 
                        coverage_id, model_cls):
     model = model_cls(browse_report=browse_report, browse_layer=browse_layer, 
                       coverage_id=coverage_id, **parsed_browse.get_kwargs())
     return model
-

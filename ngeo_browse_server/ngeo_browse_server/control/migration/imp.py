@@ -46,16 +46,17 @@ from ngeo_browse_server.control.queries import (
 from ngeo_browse_server.control.ingest.config import get_optimized_path
 from ngeo_browse_server.control.ingest.filetransaction import FileTransaction
 from ngeo_browse_server.control.ingest.result import (
-    IngestBrowseResult, IngestBrowseReplaceResult
-, IngestBrowseReportResult, IngestBrowseFailureResult)
-from ngeo_browse_server.mapcache.config import get_mapcache_seed_config,\
-    get_tileset_path
+    IngestBrowseResult, IngestBrowseReplaceResult, IngestBrowseReportResult,
+    IngestBrowseFailureResult
+)
+from ngeo_browse_server.mapcache.config import (
+    get_mapcache_seed_config, get_tileset_path
+)
 from ngeo_browse_server.mapcache.tasks import seed_mapcache
 from eoxserver.core.util.timetools import isotime
 from ngeo_browse_server.mapcache.tileset import URN_TO_GRID
 from ngeo_browse_server.mapcache import tileset
 import traceback
-
 
 
 logger = logging.getLogger(__name__)
@@ -69,8 +70,6 @@ def import_package(package_path, check_integrity, ignore_cache, config):
     with package.read(package_path) as p:
         browse_layer = parse_browse_layers(etree.parse(p.get_browse_layer()))[0]
         
-        # TODO: get browse layer from database and compare values
-        
         try:
             browse_layer_model = BrowseLayer.objects.get(
                 browse_type=browse_layer.browse_type
@@ -79,18 +78,33 @@ def import_package(package_path, check_integrity, ignore_cache, config):
             raise ImportException("The browse layer specified in the package "
                                   "does not exist on this server.")
         
+        # check compliance of configuration of browse layers
+        check_parameters = [
+            "id",
+            "browse_type",
+            "grid",
+            "r_band",
+            "g_band",
+            "b_band",
+            "radiometric_interval_min",
+            "radiometric_interval_max",
+        ]
+        for check_parameter in check_parameters:
+            if getattr(browse_layer, check_parameter) != getattr(browse_layer_model, check_parameter):
+                raise ImportException("The '%s' configuration of the browse "
+                                      "layer specified in the package does not "
+                                      "match the one of the browse layer on "
+                                      "this server. %s %s" % (check_parameter, getattr(browse_layer, check_parameter), getattr(browse_layer_model, check_parameter)))
+        
         crs = None
         if browse_layer.grid == "urn:ogc:def:wkss:OGC:1.0:GoogleMapsCompatible":
             crs = "EPSG:3857"
         elif browse_layer.grid == "urn:ogc:def:wkss:OGC:1.0:GoogleCRS84Quad":
             crs = "EPSG:4326"
         
-        # TODO: compare browse_layer and browse_layer_model 
-        
         if check_integrity:
-            
+            logger.info("check_integrity not implemented.") # TODO Implement
             return
-        
         
         import_cache_levels = []
         seed_cache_levels = []
@@ -119,7 +133,7 @@ def import_package(package_path, check_integrity, ignore_cache, config):
         for browse_report_file in p.get_browse_reports():
             import_browse_report(p, browse_report_file, browse_layer_model, crs,
                                  seed_cache_levels, import_cache_levels, config)
-            
+
 
 def import_browse_report(p, browse_report_file, browse_layer_model, crs,
                          seed_cache_levels, import_cache_levels, config):
@@ -195,73 +209,60 @@ def import_browse_report(p, browse_report_file, browse_layer_model, crs,
                           **get_mapcache_seed_config(config))
         
             logger.info("Successfully finished seeding.")
-            
-            
-        
-            
+
 
 def import_browse(p, browse, browse_report_model, browse_layer_model, crs, config):
     filename = browse.file_name
     coverage_id = splitext(filename)[0]
-    md_filename = coverage_id + ".xml"
     footprint_filename = coverage_id + ".wkb"
-    print filename
     
     logger.info("Importing browse with data file '%s' and metadata file '%s'." 
-                % (filename, md_filename))
+                % (filename, footprint_filename))
+    replaced = False
+    replaced_filename = None
     
     existing_browse_model = get_existing_browse(browse, browse_layer_model.id)
     if existing_browse_model:
+        # check that browse identifiers are equal if present
         try:
             identifier = existing_browse_model.browse_identifier
         except BrowseIdentifier.DoesNotExist:
             identifier = None
-        
         if (identifier and browse.browse_identifier
-            and  identifier.value != browse.identifier):
+            and  identifier.value != browse.browse_identifier):
             raise ImportException("Existing browse does not have the same "
-                                  "browse ID as the ingested.") 
+                                  "browse ID as the one to import.")
         
-        replaced_time_interval = (existing_browse_model.start_time,
-                                  existing_browse_model.end_time)
+        logger.info("Existing browse found, replacing it.")
         
-        # TODO: implement
         replaced_extent, replaced_filename = remove_browse(
             existing_browse_model, browse_layer_model, coverage_id, config
         )
         replaced = True
-        logger.info("Existing browse found, replacing it.")
-            
+    
     else:
         # A browse with that identifier does not exist, so just create a new one
         logger.info("Creating new browse.")
-        replaced_filename = None
-        replaced = False
-    
     
     output_filename = get_optimized_path(filename)
-    output_dir = dirname(output_filename)
-    print output_filename, output_dir
     
     if (exists(output_filename) and 
         ((replaced_filename and
           not samefile(output_filename, replaced_filename))
          or not replaced_filename)):
-        #raise ImportException("")
-        pass
+        raise ImportException("Output file '%s' already exists and is not to "
+                              "be replaced." % output_filename)
     
-    with FileTransaction(output_filename):
-        try: makedirs(dirname(output_filename))
-        except OSError: pass
+    with FileTransaction(output_filename, replaced_filename):
+        if not exists(dirname(output_filename)):
+            makedirs(dirname(output_filename))
         
         p.extract_browse_file(filename, output_filename)
         
         # TODO: find out num bands and footprint
-        
         ds = gdal.Open(output_filename)
         num_bands = ds.RasterCount
         
-        #_, _, _, footprint = p.get_browse_metadata(md_filename)
         footprint = p.get_footprint(footprint_filename)
         
         extent, time_interval = create_browse(
@@ -269,16 +270,13 @@ def import_browse(p, browse, browse_report_model, browse_layer_model, crs, confi
             coverage_id, crs, replaced, footprint, num_bands, 
             output_filename, config=config
         )
-        
-        
+    
     if not replaced:
         return IngestBrowseResult(browse.browse_identifier, extent,
                                   time_interval)
-    
     else:
+        replaced_time_interval = (existing_browse_model.start_time,
+                                  existing_browse_model.end_time)
         return IngestBrowseReplaceResult(browse.browse_identifier, 
                                          extent, time_interval, replaced_extent, 
                                          replaced_time_interval)
-
-    
-    # TODO: ingest browse report

@@ -339,8 +339,8 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
             ((replaced_filename and
               not samefile(output_filename, replaced_filename))
              or not replaced_filename)):
-            raise IngestionException("Output file '%s' already exists."
-                                     % output_filename)
+            raise IngestionException("Output file '%s' already exists and is "
+                                     "not to be replaced." % output_filename)
         
         # wrap all file operations with IngestionTransaction
         with FileTransaction(output_filename, replaced_filename):
