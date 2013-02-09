@@ -42,6 +42,8 @@
 #
 ################################################################################
 
+sudo service httpd stop
+
 # Reset DB with PostgreSQL:
 dropdb ngeo
 rm -f /var/ngeob_data/mapcache.sqlite
@@ -82,4 +84,4 @@ sudo cp /var/ngeob/autotest/data/feed_test_data/*.png /var/ngeob_data/storage/
 sudo cp /var/ngeob/autotest/data/aiv_test_data/*.jpg /var/ngeob_data/storage/
 sudo cp /var/ngeob/autotest/data/performance_test_data/*.jpg /var/ngeob_data/storage/
 
-sudo service httpd restart
+sudo service httpd start
