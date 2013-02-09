@@ -1019,7 +1019,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
             <bsi:status>failure</bsi:status>
             <bsi:error>
                 <bsi:exceptionCode>IngestionException</bsi:exceptionCode>
-                <bsi:exceptionMessage>Output file &#39;%s/TEST_OPTICAL/ATS_TOA_1P_20100722_101606_proc.tif&#39; already exists.</bsi:exceptionMessage>
+                <bsi:exceptionMessage>Output file &#39;%s/TEST_OPTICAL/ATS_TOA_1P_20100722_101606_proc.tif&#39; already exists and is not to be replaced.</bsi:exceptionMessage>
             </bsi:error>
         </bsi:briefRecord>
     </bsi:ingestionResult>
@@ -1392,7 +1392,7 @@ class IngestFromCommand(IngestTestCaseMixIn, CliMixIn, TestCase):
 # Delete test cases
 #===============================================================================
 
-class DeleteFromCommand(DeleteTestCaseMixIn, CliMixIn, TestCase):
+class DeleteFromCommand(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
     kwargs = {
         "layer" : "TEST_SAR"
     }
@@ -1404,6 +1404,8 @@ class DeleteFromCommand(DeleteTestCaseMixIn, CliMixIn, TestCase):
     expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100719_101023_proc.tif',
                               'TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif',
                               'TEST_SAR/ASA_WS__0P_20100725_102231_proc.tif']
+    expected_inserted_into_series = "TEST_SAR"
+    expected_tiles = {}
 
 class DeleteFromCommandStart(DeleteTestCaseMixIn, CliMixIn, TestCase):
     kwargs = {
@@ -1430,7 +1432,7 @@ class DeleteFromCommandEnd(DeleteTestCaseMixIn, CliMixIn, TestCase):
     expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100719_101023_proc.tif',
                               'TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
 
-class DeleteFromCommandStartEnd(DeleteTestCaseMixIn, CliMixIn, TestCase):
+class DeleteFromCommandStartEnd(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
     kwargs = {
         "layer" : "TEST_SAR",
         "start": "2010-07-22T10:15Z",
@@ -1442,6 +1444,8 @@ class DeleteFromCommandStartEnd(DeleteTestCaseMixIn, CliMixIn, TestCase):
     
     expected_remaining_browses = 2
     expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
+    expected_inserted_into_series = "TEST_SAR"
+    expected_tiles = {0: 4, 1: 16, 2: 64, 3: 256, 4: 256, 5: 256, 6: 256, 7: 256, 8: 640}
 
 
 #===============================================================================
@@ -1508,13 +1512,24 @@ class ExportGroupStartEnd(ExportTestCaseMixIn, CliMixIn, TestCase):
     
     expected_exported_browses = ("b_id_7",)
 
+class ExportRegularGrid(ExportTestCaseMixIn, CliMixIn, TestCase):
+    storage_dir = "data/test_data"
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
+                        join(settings.PROJECT_DIR, "data/test_data/ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775.xml"),]
+    
+    kwargs = {
+        "browse-type" : "ASA_WSM"
+    }
+    
+    expected_exported_browses = ("ASAR",)
+
 
 #===============================================================================
 # Import test cases
 #===============================================================================
 
 class ImportIgnoreCache(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
-    args = ("autotest/data/export/export.tar.gz", "--ignore-cache")
+    args = (join(settings.PROJECT_DIR, "data/export/export_SAR.tar.gz"), "--ignore-cache")
     
     expected_ingested_browse_ids = ("b_id_1",)
     expected_inserted_into_series = "TEST_SAR"
@@ -1522,9 +1537,39 @@ class ImportIgnoreCache(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveSe
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 256}
 
 class ImportWithCache(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
-    args = ("autotest/data/export/export.tar.gz",)
+    args = (join(settings.PROJECT_DIR, "data/export/export_SAR.tar.gz"),)
     
     expected_ingested_browse_ids = ("b_id_1",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ("b_id_1_proc.tif",)
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 256}
+
+class ImportReplaceIgnoreCache(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
+                        join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"),]
+    
+    args = (join(settings.PROJECT_DIR, "data/export/export_SAR.tar.gz"), "--ignore-cache")
+    
+    expected_ingested_browse_ids = ("b_id_1",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ("b_id_1_proc.tif",)
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 256}
+
+class ImportReplaceWithCache(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
+                        join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"),]
+    
+    args = (join(settings.PROJECT_DIR, "data/export/export_SAR.tar.gz"),)
+    
+    expected_ingested_browse_ids = ("b_id_1",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ("b_id_1_proc.tif",)
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 256}
+
+class ImportRegularGrid(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
+    args = (join(settings.PROJECT_DIR, "data/export/export_ASA_WSM.tar.gz"),)
+    
+    expected_ingested_browse_ids = ("ASAR",)
+    expected_inserted_into_series = "TEST_ASA_WSM"
+    expected_optimized_files = ("ASAR_proc.tif",)
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 256}
