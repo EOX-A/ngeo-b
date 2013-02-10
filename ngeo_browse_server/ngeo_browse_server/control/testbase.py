@@ -508,11 +508,35 @@ class IngestTestCaseMixIn(BaseInsertTestCaseMixIn):
     
 
 class ImportTestCaseMixIn(BaseInsertTestCaseMixIn):
-    """ Mixin for import tests.
+    """ Test case mixin for import tests.
     """
     
     command = "ngeo_import"
+
+
+class ImportReplaceTestCaseMixin(ImportTestCaseMixIn):
+    """ Test case mixin for import replacement tests. """
     
+    expected_deleted_optimized_files = None
+    
+    expected_num_replaced = 1
+    
+    def test_model_counts(self):
+        """ Check that no orphaned data entries are left in the database. """
+        
+        for model, value in self.model_counts.items():
+            self.assertEqual(value[0], value[1],
+                             "Model '%s' count mismatch." % model)
+    
+    def test_delete_previous_file(self):
+        """ Check that the previous raster file is deleted. """
+        
+        if self.expected_deleted_optimized_files is None:
+            self.skipTest("No expected optimized files to delete given.")
+            
+        for filename in self.expected_deleted_optimized_files:
+            self.assertFalse(exists(join(self.temp_optimized_files_dir, filename)))
+
 
 class DeleteTestCaseMixIn(BaseTestCaseMixIn):
     """ Mixin for ngEO delete test cases. Checks whether or not the browses are
@@ -535,8 +559,8 @@ class DeleteTestCaseMixIn(BaseTestCaseMixIn):
         for model, value in self.model_counts.items():
             self.assertEqual(value[1], self.expected_remaining_browses,
                              "Model '%s' count is not expected value." % model)
-     
-    
+
+
 class SeedTestCaseMixIn(BaseTestCaseMixIn):
     """ Mixin for ngEO seed test cases. Checks whether or not the browses with
     the specified IDs have been correctly seeded in MapCache.  

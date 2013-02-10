@@ -38,7 +38,7 @@ from ngeo_browse_server.control.testbase import (
     OverviewMixIn, CompressionMixIn, BandCountMixIn, HasColorTableMixIn, 
     ExtentMixIn, SizeMixIn, ProjectionMixIn, StatisticsMixIn, WMSRasterMixIn,
     IngestFailureTestCaseMixIn, DeleteTestCaseMixIn, ExportTestCaseMixIn,
-    ImportTestCaseMixIn
+    ImportTestCaseMixIn, ImportReplaceTestCaseMixin
 )
 from ngeo_browse_server.control.ingest.config import (
     INGEST_SECTION
@@ -1544,7 +1544,7 @@ class ImportWithCache(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServ
     expected_optimized_files = ("b_id_1_proc.tif",)
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 256}
 
-class ImportReplaceIgnoreCache(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
+class ImportReplaceIgnoreCache(ImportReplaceTestCaseMixin, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
     args_before_test = ["manage.py", "ngeo_ingest_browse_report",
                         join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"),]
     
@@ -1552,10 +1552,12 @@ class ImportReplaceIgnoreCache(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn,
     
     expected_ingested_browse_ids = ("b_id_1",)
     expected_inserted_into_series = "TEST_SAR"
+    expected_deleted_optimized_files = ("ASA_IM__0P_20100722_213840.tif",)
+    expected_num_replaced = 1
     expected_optimized_files = ("b_id_1_proc.tif",)
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 256}
 
-class ImportReplaceWithCache(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
+class ImportReplaceWithCache(ImportReplaceTestCaseMixin, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
     args_before_test = ["manage.py", "ngeo_ingest_browse_report",
                         join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"),]
     
@@ -1563,6 +1565,8 @@ class ImportReplaceWithCache(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, L
     
     expected_ingested_browse_ids = ("b_id_1",)
     expected_inserted_into_series = "TEST_SAR"
+    expected_deleted_optimized_files = ("ASA_IM__0P_20100722_213840.tif",)
+    expected_num_replaced = 1
     expected_optimized_files = ("b_id_1_proc.tif",)
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 256}
 
@@ -1572,4 +1576,4 @@ class ImportRegularGrid(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveSe
     expected_ingested_browse_ids = ("ASAR",)
     expected_inserted_into_series = "TEST_ASA_WSM"
     expected_optimized_files = ("ASAR_proc.tif",)
-    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 256}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 64, 6: 128, 7: 256, 8: 384}
