@@ -244,7 +244,7 @@ def import_browse(p, browse, browse_report_model, browse_layer_model, crs, confi
         # A browse with that identifier does not exist, so just create a new one
         logger.info("Creating new browse.")
     
-    output_filename = get_optimized_path(filename)
+    output_filename = get_optimized_path(filename, browse_layer_model.id, config=config)
     
     if (exists(output_filename) and 
         ((replaced_filename and
