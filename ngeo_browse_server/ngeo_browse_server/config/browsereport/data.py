@@ -140,8 +140,7 @@ class RegularGridBrowse(Browse):
             "col_node_number": self._col_node_number,
             "row_node_number": self._row_node_number,
             "col_step": self._col_step,
-            "row_step": self._row_step,
-            "coord_lists": self._coord_lists
+            "row_step": self._row_step
         })
         return kwargs
 
