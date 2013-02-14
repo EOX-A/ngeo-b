@@ -28,7 +28,7 @@
 #-------------------------------------------------------------------------------
 
 import sys
-from os import remove, makedirs
+from os import remove, makedirs, rmdir
 from os.path import exists, dirname, join, isdir, samefile
 import shutil
 from numpy import arange
@@ -245,6 +245,11 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
         
         except Exception, e:
             logger.warn("Could not write result browse report as the file '%s'.")
+    else:
+        try:
+            rmdir(success_dir)
+        except Exception, e:
+            logger.warn("Could not remove the unused dir '%s'." % success_dir)
             
     
     if len(failed):
@@ -261,6 +266,12 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
         
         except Exception, e:
             logger.warn("Could not write result browse report as the file '%s'.")
+    else:
+        try:
+            rmdir(failure_dir)
+        except Exception, e:
+            logger.warn("Could not remove the unused dir '%s'." % failure_dir)
+
 
     return report_result
     
