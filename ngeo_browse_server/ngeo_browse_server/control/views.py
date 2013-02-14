@@ -32,6 +32,8 @@ import traceback
 from lxml import etree
 
 from django.shortcuts import render_to_response
+from osgeo import gdalnumeric   # This prevents issues in parallel setups. Do 
+                                # not remove this line.
 
 from ngeo_browse_server.control.ingest import ingest_browse_report
 from ngeo_browse_server.config.browsereport.parsing import parse_browse_report
