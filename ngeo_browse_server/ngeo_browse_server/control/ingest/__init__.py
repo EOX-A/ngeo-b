@@ -35,6 +35,7 @@ from numpy import arange
 import logging
 import traceback
 from datetime import datetime
+import string
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -154,16 +155,14 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
     succeded = []
     failed = []
     
-    success_dir = join(get_success_dir(config), "%s_%s_%s_%s" % (
+    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
+    browse_dirname = _valid_path("%s_%s_%s_%s" % (
         browse_type, browse_report.responsible_org_name,
         browse_report.date_time.strftime("%Y%m%d%H%M%S%f"),
-        datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
+        timestamp
     ))
-    failure_dir = join(get_failure_dir(config), "%s_%s_%s_%s" % (
-        browse_type, browse_report.responsible_org_name,
-        browse_report.date_time.strftime("%Y%m%d%H%M%S%f"),
-        datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
-    ))
+    success_dir = join(get_success_dir(config), browse_dirname)
+    failure_dir = join(get_failure_dir(config), browse_dirname)
     
     if exists(success_dir): 
         logger.warn("Success directory '%s' already exists.")
@@ -339,8 +338,8 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
     
     # get the input and output filenames
     input_filename = get_storage_path(parsed_browse.file_name, config=config)
-    output_filename = get_optimized_path(parsed_browse.file_name, 
-                                         browse_layer.id, config=config)
+    output_filename = _valid_path(get_optimized_path(parsed_browse.file_name, 
+                                         browse_layer.id, config=config))
     output_filename = preprocessor.generate_filename(output_filename)
     
     try:
@@ -537,11 +536,11 @@ def _save_result_browse_report(browse_report, path):
     
     if isdir(path):
         # generate a filename
-        path = join(path, "%s_%s_%s_%s.xml" % (
+        path = join(path, _valid_path("%s_%s_%s_%s.xml" % (
             browse_report.browse_type, browse_report.responsible_org_name,
             browse_report.date_time.strftime("%Y%m%d%H%M%S%f"),
             datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
-        ))
+        )))
     
     if exists(path):
         logger.warn("Could not write result browse report as the file '%s' "
@@ -552,3 +551,9 @@ def _save_result_browse_report(browse_report, path):
     
     with open(path, "w+") as f:
         serialize_browse_report(browse_report, f)
+
+
+FILENAME_CHARS = "/_-." + string.ascii_letters + string.digits
+def _valid_path(filename):
+    return ''.join(c for c in filename if c in FILENAME_CHARS)
+    
