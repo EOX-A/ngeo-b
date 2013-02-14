@@ -40,21 +40,36 @@ python manage.py runserver 0.0.0.0:8000
 
 
 ########################################################################
+# Build preparations                                                   #
+########################################################################
+
+# Generate new and clean CentOS host
+ssh root@...
+yum clean all
+yum update
+yum install svn git gdal-devel rpm-build gcc python-devel
+adduser eox
+passwd eox # nu4Oht0m
+su - eox
+svn checkout https://eoxserver.org/svn/trunk eoxserver_trunk
+git clone https://github.com/EOX-A/mapcache.git
+
+########################################################################
 # How to build ngEO Browse Server                                      #
 ########################################################################
 
 cd git/deliverables/developments/ngeo_browse_server/
 git pull
 git archive --format=tar --prefix=ngeob-0.1dev/ master | gzip > ngeob-0.1dev.tar.gz
-scp ngeob-0.1dev.tar.gz eox@ngeo:.
+scp ngeob-0.1dev.tar.gz eox@5.9.173.45:.
 rm ngeob-0.1dev.tar.gz
-ssh eox@ngeo.eox.at
-cd build/
-tar xzf ../ngeob-0.1dev.tar.gz
-rm ../ngeob-0.1dev.tar.gz
+ssh eox@5.9.173.45
+tar xzf ngeob-0.1dev.tar.gz
+rm ngeob-0.1dev.tar.gz
 cd ngeob-0.1dev/
 python setup.py bdist_rpm --requires "EOxServer mapcache httpd" --release <NO>
-# scp packages
+tar czf ../ngeob-0.1dev.tar.gz dist/ngEO_Browse_Server-0.1dev*rpm
+# scp ../ngeob-0.1dev.tar.gz -> packages
 cd ..
 rm -r ngeob-0.1dev/
 
@@ -62,21 +77,19 @@ rm -r ngeob-0.1dev/
 # How to build EOxServer                                               #
 ########################################################################
 
-# Generate new and clean CentOS host
-ssh root@...
-yum install svn gdal-devel rpm-build gcc python-devel
-adduser eox
-su - eox
-svn checkout https://eoxserver.org/svn/trunk
-cd trunk
+ssh eox@5.9.173.45
+cd eoxserver_trunk
+svn up
 python setup.py bdist_rpm --requires "Django14 >= 1.4.2 gdal-python mapserver-python libxml2-python python-lxml" --release <NO>
+tar czf ../EOxServer-0.3dev.tar.gz dist/EOxServer-0.3dev*rpm
+# scp ../EOxServer-0.3dev.tar.gz -> packages.eox.at
 
 ########################################################################
 # How to build MapCache                                                #
 ########################################################################
 
-ssh eox@ngeo.eox.at
-cd build/mapcache/
+ssh eox@5.9.173.45
+cd mapcache_ngeo/
 git pull
 # Merge branches timedimension and ro-tileset in ngeo
 git archive --format=tar --prefix=mapcache-1.1dev/ ngeo | gzip > ../../rpmbuild/SOURCES/mapcache-1.1dev.tar.gz
