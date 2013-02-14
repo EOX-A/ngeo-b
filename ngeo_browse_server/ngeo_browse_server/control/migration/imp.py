@@ -66,7 +66,7 @@ class ImportException(NGEOException):
     pass
 
 
-def import_package(package_path, check_integrity, ignore_cache, config):
+def import_package(package_path, ignore_cache, config):
     with package.read(package_path) as p:
         browse_layer = parse_browse_layers(etree.parse(p.get_browse_layer()))[0]
         
@@ -101,10 +101,6 @@ def import_package(package_path, check_integrity, ignore_cache, config):
             crs = "EPSG:3857"
         elif browse_layer.grid == "urn:ogc:def:wkss:OGC:1.0:GoogleCRS84Quad":
             crs = "EPSG:4326"
-        
-        if check_integrity:
-            logger.info("check_integrity not implemented.") # TODO Implement
-            return
         
         import_cache_levels = []
         seed_cache_levels = []

@@ -46,20 +46,15 @@ logger = logging.getLogger(__name__)
 class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
     
     option_list = BaseCommand.option_list + (
-        make_option('--check-integrity', action="store_true",
-            dest='check_integrity', default=False,
-            help=("Only the integrity of the package and the compliance to this "
-                  "server will be tested. No actual data is imported.")
-        ),
         make_option('--ignore-cache', action="store_true",
             dest='ignore_cache', default=False,
             help=("If this option is set, the tile cache of the package will "
                   "be ignored and the tiles will be re-seeded after each "
                   "browse was imported.")
-        )
+        ),
     )
     
-    args = ("[--check-integrity] [--ignore-cache] <package-path> ...")
+    args = ("[--ignore-cache] <package-path> ...")
     help = ("Imports the browse reports and browses from the given package(s). "
             "If cached tiles are present in the package aswell, those are "
             "inserted into the according tileset, but optionally the cache is "
@@ -77,11 +72,9 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         if not len(package_paths):
             raise CommandError("No packages given.")
         
-        check_integrity = kwargs["check_integrity"]
         ignore_cache = kwargs["ignore_cache"]
         
         config = get_ngeo_config()
         
         for package_path in package_paths:
-            result = import_package(package_path, check_integrity,
-                                    ignore_cache, config)
+            result = import_package(package_path, ignore_cache, config)
