@@ -133,13 +133,16 @@ def parse_browse_csv(input_filename):
 
             footprint = pairwise(map(lambda c: float(c), line[16].split(" ")))
             
-            result.append((datetime.strptime(line[6], dt_frmt), # start
-                           datetime.strptime(line[7], dt_frmt), # stop
-                           footprint,                           # footprint
-                           line[18],                            # url
-                           "_"+basename(urlparse(line[18]).path),    # filename
-                           line[14]								#pass direction 
-                          ))
+            if line[18] is not None and line[18] != "":
+                result.append((datetime.strptime(line[6], dt_frmt), # start
+                               datetime.strptime(line[7], dt_frmt), # stop
+                               footprint,                           # footprint
+                               line[18],                            # url
+                               "_"+basename(urlparse(line[18]).path),    # filename
+                               line[14]								#pass direction 
+                              ))
+            else:
+                print "Not added because of an empty URL."
     return result
 
 
