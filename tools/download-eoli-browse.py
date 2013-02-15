@@ -38,6 +38,7 @@ from itertools import izip
 import threading
 import Queue
 import numpy
+import math
 
 from lxml import etree
 from osgeo import gdal
@@ -86,12 +87,15 @@ def main(args):
     if browse_report is not None:
         report_datas = [(start, stop, footprint, join(output_dir, filename), pass_dir)
                        for start, stop, footprint, _, filename, pass_dir in datasets]
+        num_datas = len(report_datas)
         if browses_per_report <= 0:
             browses_per_report = len(report_datas)
         report_datas = chunks(report_datas, browses_per_report)
+        num_reports = int(math.ceil(float(num_datas)/browses_per_report))
+        order = int(math.ceil(math.log10(num_reports)))
         for i, report_data in enumerate(report_datas, start=1):
             filename, ext = splitext(browse_report)
-            filename = filename + "_" + str(i) + ext
+            filename = filename + "_" + str(i).ljust(order, "0") + ext
             write_browse_report(filename, report_data, args.browse_type,
                                 args.pretty_print)
 
@@ -134,12 +138,12 @@ def parse_browse_csv(input_filename):
             footprint = pairwise(map(lambda c: float(c), line[16].split(" ")))
             
             if line[18] is not None and line[18] != "":
-                result.append((datetime.strptime(line[6], dt_frmt), # start
-                               datetime.strptime(line[7], dt_frmt), # stop
-                               footprint,                           # footprint
-                               line[18],                            # url
-                               "_"+basename(urlparse(line[18]).path),    # filename
-                               line[14]								#pass direction 
+                result.append((datetime.strptime(line[6], dt_frmt),     # start
+                               datetime.strptime(line[7], dt_frmt),     # stop
+                               footprint,                               # footprint
+                               line[18],                                # url
+                               "_" + basename(urlparse(line[18]).path), # filename
+                               line[14]                                 #pass direction 
                               ))
             else:
                 print "Not added because of an empty URL."
@@ -235,21 +239,46 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print):
 
         assert(len(right) == len(left))
 
+        
         if pass_dir == "A":
             pixel_coords = [sizex, sizey]
-            for y in numpy.linspace(sizey, 0, len(left)):
-                pixel_coords.extend((0, y))
-				
-            for y in numpy.linspace(0, sizey, len(right)):
-                pixel_coords.extend((sizex, y))
+
+            ll_start = left[0]
+            ll_end = left[-1]
+
+            for point in left:
+                pixel_coords.extend(
+                    calc_pixel_coords(ll_start, ll_end, point, (0, 0), (0, sizey))
+                )
+            
+            ll_start = right[0]
+            ll_end = right[-1]
+
+            for point in right:
+                pixel_coords.extend(
+                    calc_pixel_coords(ll_start, ll_end, point, (sizex, sizex), (0, sizey))
+                )
+            
 
         elif pass_dir == "D":
             pixel_coords = [0, 0]
-            for y in numpy.linspace(0, sizey, len(right)):
-                pixel_coords.extend((sizex, y))
 
-            for y in numpy.linspace(sizey, 0, len(left)):
-                pixel_coords.extend((0, y))
+            ll_start = right[0]
+            ll_end = right[-1]
+
+            
+            for point in right:
+                pixel_coords.extend(
+                    calc_pixel_coords(ll_start, ll_end, point, (sizex, sizex), (sizey, 0))
+                )
+
+            ll_start = left[0]
+            ll_end = left[-1]
+
+            for point in left:
+                pixel_coords.extend(
+                    calc_pixel_coords(ll_start, ll_end, point, (0, 0), (sizey, 0))
+                )
         
         ll_coords = [coord for pair in right for coord in pair] + \
                     [coord for pair in left for coord in pair]
@@ -280,6 +309,24 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print):
 
     with open(browse_filename, "wb") as f:
         f.write(etree.tostring(root, pretty_print=pretty_print))
+
+
+def calc_pixel_coords(ll_start, ll_end, ll_point, x_range, y_range, swap_axes=True):
+    xidx = 1 if swap_axes else 0
+    yidx = 0 if swap_axes else 1
+    
+    minx = min(ll_start[xidx], ll_end[xidx])
+    miny = min(ll_start[yidx], ll_end[yidx])
+    maxx = max(ll_start[xidx], ll_end[xidx])
+    maxy = max(ll_start[yidx], ll_end[yidx])
+    
+    lerp_x = (ll_point[xidx] - minx) / (maxx - minx)
+    lerp_y = (ll_point[yidx] - miny) / (maxy - miny)
+    
+    return (
+        x_range[0] + (x_range[1] - x_range[0]) * lerp_x,
+        y_range[0] + (y_range[1] - y_range[0]) * lerp_y
+    )
 
 
 if __name__ == "__main__":
