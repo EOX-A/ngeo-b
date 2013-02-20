@@ -59,6 +59,8 @@ def main(args):
                         action="store_true", default=False)
     parser.add_argument("--browses-per-report", dest="browses_per_report",
                         type=int, default=0)
+    parser.add_argument("--rel-path", dest="rel_path",
+                        action="store_true", default=False)
     parser.add_argument("input_filename", metavar="infile", nargs=1)
     parser.add_argument("output_directory", metavar="outdir", nargs=1)
 
@@ -95,9 +97,9 @@ def main(args):
         order = int(math.ceil(math.log10(num_reports)))
         for i, report_data in enumerate(report_datas, start=1):
             filename, ext = splitext(browse_report)
-            filename = filename + "_" + str(i).ljust(order, "0") + ext
+            filename = filename + "_" + str(i).rjust(order, "0") + ext
             write_browse_report(filename, report_data, args.browse_type,
-                                args.pretty_print)
+                                args.pretty_print, args.rel_path)
 
 
 def error(message, exit=True):
@@ -146,7 +148,7 @@ def parse_browse_csv(input_filename):
                                line[14]                                 #pass direction 
                               ))
             else:
-                print "Not added because of an empty URL."
+                print "Browse image with result ID '%s' not added because of an empty URL." % line[0]
     return result
 
 
@@ -198,7 +200,8 @@ class DownloadThread(threading.Thread):
 
 
 
-def write_browse_report(browse_filename, datasets, browse_type, pretty_print):
+def write_browse_report(browse_filename, datasets, browse_type, pretty_print, 
+                        rel_path):
     """"""
     ext_to_image_type = {
         ".jpg": "Jpeg",
@@ -229,6 +232,7 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print):
             ds = None
         except RuntimeError:
             # skip files which cannot be opened
+            print "Browse image '%s' not added in browse report '%s' because of a RuntimeError." % (filename, browse_filename)
             continue
 
         # calculate the pixel values to the according latlon coordinates
@@ -289,7 +293,11 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print):
         pixel_coords = map(str, map(int, pixel_coords))
         ll_coords = map(str, ll_coords)
         
-        filename = relpath(filename, dirname(browse_filename))
+        if rel_path:
+            filename = relpath(filename, dirname(browse_filename))
+        else:
+            filename = basename(filename)
+        
         base, ext = splitext(filename)
         base = basename(base)
         
@@ -320,8 +328,14 @@ def calc_pixel_coords(ll_start, ll_end, ll_point, x_range, y_range, swap_axes=Tr
     maxx = max(ll_start[xidx], ll_end[xidx])
     maxy = max(ll_start[yidx], ll_end[yidx])
     
-    lerp_x = (ll_point[xidx] - minx) / (maxx - minx)
-    lerp_y = (ll_point[yidx] - miny) / (maxy - miny)
+    if (maxx == minx):
+        lerp_x = 0
+    else:
+        lerp_x = (ll_point[xidx] - minx) / (maxx - minx)
+    if (maxy == miny):
+        lerp_y = 0
+    else:
+        lerp_y = (ll_point[yidx] - miny) / (maxy - miny)
     
     return (
         x_range[0] + (x_range[1] - x_range[0]) * lerp_x,
