@@ -82,6 +82,5 @@ sudo cp /var/ngeob/autotest/data/reference_test_data/*.jpg /var/ngeob_data/stora
 sudo cp /var/ngeob/autotest/data/test_data/*.tif /var/ngeob_data/storage/
 sudo cp /var/ngeob/autotest/data/feed_test_data/*.png /var/ngeob_data/storage/
 sudo cp /var/ngeob/autotest/data/aiv_test_data/*.jpg /var/ngeob_data/storage/
-sudo cp /var/ngeob/autotest/data/performance_test_data/*.jpg /var/ngeob_data/storage/
 
 sudo service httpd start

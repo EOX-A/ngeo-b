@@ -1,3 +1,4 @@
+#!/usr/bin/python
 #-------------------------------------------------------------------------------
 #
 # Project: ngEO Browse Server <http://ngeo.eox.at>
@@ -48,21 +49,53 @@ gdal.UseExceptions()
 
 def main(args):
     parser = argparse.ArgumentParser(add_help=True, fromfile_prefix_chars='@',
-                                     argument_default=argparse.SUPPRESS)
+                                     argument_default=argparse.SUPPRESS,
+                                     description="Script to download browse \
+                                                  images and optionally \
+                                                  generate ngEO Browse Reports \
+                                                  for search results from \
+                                                  EOLI-SA.")
 
-    parser.add_argument("--browse-report", dest="browse_report", default=None)
-    parser.add_argument("--num-concurrent", dest="num_concurrent", default=4)
+    parser.add_argument("--num-concurrent", dest="num_concurrent", default=4,
+                        help="Number of simultaneous downloads. Default is 4.")
     parser.add_argument("--skip-existing", dest="skip_existing",
-                        action="store_true", default=False)
-    parser.add_argument("--browse-type", dest="browse_type", default=None)
+                        action="store_true", default=False, 
+                        help="Triggers if already existing browse images shall \
+                              be skipped or downloaded again (default).")
+    parser.add_argument("--browse-report", dest="browse_report", default=None,
+                        help="(Base)name of the Browse Report file(s) to be \
+                              generated for the downloaded browse images (see \
+                              also --browses-per-report). Triggers if Browse \
+                              Report(s) shall be generated or not (default).")
+    parser.add_argument("--browse-type", dest="browse_type", default=None,
+                        help="The Browse Type in the generated Browse Reports \
+                              is set to the given value.")
     parser.add_argument("--pretty-print", dest="pretty_print",
-                        action="store_true", default=False)
+                        action="store_true", default=False,
+                        help="Use to pretty print the content of generated \
+                              Browse Reports or in one line (default).")
     parser.add_argument("--browses-per-report", dest="browses_per_report",
-                        type=int, default=0)
+                        type=int, default=0,
+                        help="Number of maximum browse images listed in one \
+                              Browse Report. The basename (given with \
+                              --browse-report) is appended with an underscore \
+                              and a running number left filled with zeros to \
+                              the overall number of browse reports e.g. _01, \
+                              _02, ..., _042 or _001, ..., _123. Default is to \
+                              store all browses in one Browse Report.")
     parser.add_argument("--rel-path", dest="rel_path",
-                        action="store_true", default=False)
-    parser.add_argument("input_filename", metavar="infile", nargs=1)
-    parser.add_argument("output_directory", metavar="outdir", nargs=1)
+                        action="store_true", default=False,
+                        help="Triggers if the browse image filenames given in \
+                              the generated Browse Reports shall be relative \
+                              to the location of the Browse Report or just the \
+                              filename itself (default).")
+    parser.add_argument("input_filename", metavar="infile", nargs=1, 
+                         help="Name of the file to be processed holding the \
+                               CSV formatted search result as saved by \
+                               EOLI-SA.")
+    parser.add_argument("output_directory", metavar="outdir", nargs=1,
+                         help="Name of directory where the browse images shall \
+                               be downloaded to.")
 
     args = parser.parse_args(args)
     
