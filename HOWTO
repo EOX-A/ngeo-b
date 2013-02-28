@@ -123,3 +123,17 @@ mv RPMS/x86_64/ .
 tar czf t x86_64/ SRPMS/
 rm -r x86_64/ SRPMS/
 # Install at packages@yum.packages.eox.at
+
+
+
+########################################################################
+# How to clean an ngEO Browse Server instance                          #
+########################################################################
+
+# Delete DB
+sudo su postgres -
+dropdb ngeo_browse_server_db
+exit
+
+sudo rm -r /var/www/cache/
+sudo rm -r /var/www/ngeo/ngeo_browse_server_instance/
