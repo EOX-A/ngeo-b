@@ -95,7 +95,7 @@ def _serialize_regular_grid_browse(browse):
 
 
 def _serialize_model_in_geotiff_browse(browse):
-    georef_elem = Element(ns_rep("rectifiedBrowse"))
+    georef_elem = Element(ns_rep("modelInGeotiff"))
     georef_elem.text = "true"
     return georef_elem
 
