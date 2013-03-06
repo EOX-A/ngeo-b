@@ -40,7 +40,7 @@ INGEST_SECTION = "control.ingest"
 
 
 
-def get_storage_path(file_name, storage_dir=None, config=None):
+def get_storage_path(file_name=None, storage_dir=None, config=None):
     """ Returns an absolute path to a filename within the intermediary storage
     directory for uploaded but unprocessed files. 
     """
@@ -49,6 +49,9 @@ def get_storage_path(file_name, storage_dir=None, config=None):
     
     if not storage_dir:
         storage_dir = config.get(INGEST_SECTION, "storage_dir")
+        
+    if not file_name:
+        return get_project_relative_path(storage_dir)
     
     return get_project_relative_path(join(storage_dir, file_name))
 

@@ -29,7 +29,9 @@
 
 import sys
 from os import remove, makedirs, rmdir
-from os.path import exists, dirname, join, isdir, samefile
+from os.path import (
+    exists, dirname, join, isdir, samefile, commonprefix, abspath
+)
 import shutil
 from numpy import arange
 import logging
@@ -337,9 +339,18 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
     except: pass
     
     # get the input and output filenames
-    input_filename = get_storage_path(parsed_browse.file_name, config=config)
+    storage_path = get_storage_path()
+    input_filename = abspath(get_storage_path(parsed_browse.file_name, config=config))
+    
+    # check that the input filename is valid -> somewhere under the storage dir 
+    if commonprefix((input_filename, storage_path)) != storage_path:
+        raise IngestionException("Input path '%s' points to an invalid "
+                                 "location." % parsed_browse.file_name)
+    
+    
     output_filename = _valid_path(get_optimized_path(parsed_browse.file_name, 
-                                         browse_layer.id, config=config))
+                                                     browse_layer.id,
+                                                     config=config))
     output_filename = preprocessor.generate_filename(output_filename)
     
     try:

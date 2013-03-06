@@ -1093,6 +1093,104 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 """
 
 
+
+class IngestFailureWrongRelativeFilename(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TransactionTestCase):
+    expected_failed_browse_ids = ("identifier",)
+    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
+    
+    request = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
+    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
+    <rep:browseType>OPTICAL</rep:browseType>
+    <rep:browse>
+        <rep:browseIdentifier>identifier</rep:browseIdentifier>
+        <rep:fileName>../input_filename.jpg</rep:fileName>
+        <rep:imageType>Jpeg</rep:imageType>
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:footprint nodeNumber="5">
+            <rep:colRowList>0 0 128 0 128 129 0 129 0 0</rep:colRowList>
+            <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
+        </rep:footprint>
+        <rep:startTime>2010-07-22T10:16:06Z</rep:startTime>
+        <rep:endTime>2010-07-22T10:17:22Z</rep:endTime>
+    </rep:browse>
+</rep:browseReport>
+"""
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>partial</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>0</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>identifier</bsi:identifier>
+            <bsi:status>failure</bsi:status>
+            <bsi:error>
+                <bsi:exceptionCode>IngestionException</bsi:exceptionCode>
+                <bsi:exceptionMessage>Input path &#39;../input_filename.jpg&#39; points to an invalid location.</bsi:exceptionMessage>
+            </bsi:error>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+class IngestFailureWrongAbsoluteFilename(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TransactionTestCase):
+    expected_failed_browse_ids = ("identifier",)
+    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
+    
+    request = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
+    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
+    <rep:browseType>OPTICAL</rep:browseType>
+    <rep:browse>
+        <rep:browseIdentifier>identifier</rep:browseIdentifier>
+        <rep:fileName>/etc/absolute_filename.jpg</rep:fileName>
+        <rep:imageType>Jpeg</rep:imageType>
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:footprint nodeNumber="5">
+            <rep:colRowList>0 0 128 0 128 129 0 129 0 0</rep:colRowList>
+            <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
+        </rep:footprint>
+        <rep:startTime>2010-07-22T10:16:06Z</rep:startTime>
+        <rep:endTime>2010-07-22T10:17:22Z</rep:endTime>
+    </rep:browse>
+</rep:browseReport>
+"""
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>partial</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>0</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>identifier</bsi:identifier>
+            <bsi:status>failure</bsi:status>
+            <bsi:error>
+                <bsi:exceptionCode>IngestionException</bsi:exceptionCode>
+                <bsi:exceptionMessage>Input path &#39;/etc/absolute_filename.jpg&#39; points to an invalid location.</bsi:exceptionMessage>
+            </bsi:error>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+
+"""
+
 #===============================================================================
 # Raster test cases
 #===============================================================================
