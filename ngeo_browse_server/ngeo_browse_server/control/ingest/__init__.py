@@ -30,7 +30,7 @@
 import sys
 from os import remove, makedirs, rmdir
 from os.path import (
-    exists, dirname, join, isdir, samefile, commonprefix, abspath
+    exists, dirname, join, isdir, samefile, commonprefix, abspath, relpath
 )
 import shutil
 from numpy import arange
@@ -408,7 +408,11 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         # move the file to failure folder
         try:
             if not leave_original:
-                shutil.move(input_filename, failure_dir)
+                storage_dir = get_storage_path()
+                relative = relpath(input_filename, storage_dir)
+                dst_dirname = join(failure_dir, dirname(relative))
+                safe_makedirs(dst_dirname)
+                shutil.move(input_filename, dst_dirname)
         except Exception, e:
             logger.warn("Could not move '%s' to configured "
                         "`failure_dir` '%s'. Error was: '%s'."
@@ -428,7 +432,11 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                 remove(input_filename)
             else:
                 try:
-                    shutil.move(input_filename, success_dir)
+                    storage_dir = get_storage_path()
+                    relative = relpath(input_filename, storage_dir)
+                    dst_dirname = join(success_dir, dirname(relative))
+                    safe_makedirs(dst_dirname)
+                    shutil.move(input_filename, dst_dirname)
                 except Exception, e:
                     logger.warn("Could not move '%s' to configured "
                                 "`success_dir` '%s'. Error was: '%s'."
