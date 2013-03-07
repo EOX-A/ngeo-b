@@ -649,6 +649,54 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 </bsi:ingestBrowseResponse>
 """
 
+class IngestModelInGeotiffBrowseCompicatedFootprint(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    """See issue #59"""
+    storage_dir = "data/test_data"
+    
+    expected_ingested_browse_ids = ("DWH_MG2_SIRI_ADD_010a_40",)
+    expected_ingested_coverage_ids = ("DWH_MG2_SIRI_ADD_010a_40",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['218658_3358114_browse.jpg_r_proc.tif']
+    expected_deleted_files = ['218658_3358114_browse.jpg_r.tif']
+
+    request = """\
+<?xml version="1.0" encoding="utf-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" version="1.1">
+  <rep:responsibleOrgName>RapidEye</rep:responsibleOrgName>
+  <rep:dateTime>2012-09-18T15:30:44+00:00</rep:dateTime>
+  <rep:browseType>SAR</rep:browseType>
+  <rep:browse>
+    <rep:browseIdentifier>DWH_MG2_SIRI_ADD_010a_40</rep:browseIdentifier>
+    <rep:fileName>218658_3358114_browse.jpg_r.tif</rep:fileName>
+    <rep:imageType>TIFF</rep:imageType>
+    <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier>
+    <rep:modelInGeotiff>true</rep:modelInGeotiff>
+    <rep:startTime>2012-08-19T11:00:27+00:00</rep:startTime>
+    <rep:endTime>2012-08-19T11:00:32+00:00</rep:endTime>
+  </rep:browse>
+</rep:browseReport>
+"""
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>DWH_MG2_SIRI_ADD_010a_40</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+
 #===============================================================================
 # Ingest a browse report with multiple browses inside
 #===============================================================================
