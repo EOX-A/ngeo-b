@@ -505,7 +505,7 @@ class IngestTestCaseMixIn(BaseInsertTestCaseMixIn):
         # directory
         files = self.get_file_list(self.temp_success_dir)
         self.assertEqual(len(browse_ids) + browse_report_file_mod + self.before_test_files, len(files))
-    
+
 
 class ImportTestCaseMixIn(BaseInsertTestCaseMixIn):
     """ Test case mixin for import tests.
@@ -817,7 +817,9 @@ class IngestFailureTestCaseMixIn(BaseTestCaseMixIn):
     
     
     def test_expected_failed(self):
-        """ Check that the failed ingestion is declared in the result and the files are moved to the failure directory. """
+        """ Check that the failed ingestion is declared in the result and the 
+        files are moved to the failure directory.
+        """
         
         if not self.expect_exception:
             result = IngestResult(self.get_response())

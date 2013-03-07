@@ -479,7 +479,7 @@ class SeedFootprintBrowse6(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
 
 
 #===============================================================================
-# Arbitrary ingests
+# Arbitrary ingests and corner cases
 #===============================================================================
 
 class IngestBrowseNoID(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
@@ -549,6 +549,105 @@ class SeedBrowseSpecialID(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 64, 6: 64, 7: 128, 8: 256}
+
+
+class IngestBrowseFilenameStartsWithNumber(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    storage_dir = "data/test_data"
+    
+    expected_ingested_browse_ids = ("identifier",)
+    expected_ingested_coverage_ids = ("identifier",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['20120101T091526510-20120101T091714560_D_T-XI0B_proc.tif']
+    expected_deleted_files = ['20120101T091526510-20120101T091714560_D_T-XI0B.jpg']
+    
+    request = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" version="1.1">
+  <rep:responsibleOrgName>EOX</rep:responsibleOrgName>
+  <rep:dateTime>2013-01-29T16:41:12.630821</rep:dateTime>
+  <rep:browseType>SAR</rep:browseType>
+  <rep:browse>
+    <rep:browseIdentifier>identifier</rep:browseIdentifier>
+    <rep:fileName>20120101T091526510-20120101T091714560_D_T-XI0B.jpg</rep:fileName>
+    <rep:imageType>Jpeg</rep:imageType>
+    <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier>
+    <rep:footprint nodeNumber="7">
+      <rep:colRowList>0 0 100 0 100 472 100 944 0 944 0 472 0 0</rep:colRowList>
+      <rep:coordList>50.44 14.38 50.33 15.41 47.07 14.56 43.95 13.79 44.07 12.87 47.18 13.59 50.44 14.38</rep:coordList>
+    </rep:footprint>
+    <rep:startTime>2012-01-01T09:15:26.510000</rep:startTime>
+    <rep:endTime>2012-01-01T09:17:14.560000</rep:endTime>
+  </rep:browse>
+</rep:browseReport>
+"""
+    
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>identifier</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+class IngestBrowseSubfolderFilename(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    storage_dir = "data/test_data"
+    
+    expected_ingested_browse_ids = ("identifier",)
+    expected_ingested_coverage_ids = ("identifier",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['browse_proc.tif']
+    expected_deleted_files = ['subfolder/browse.jpg']
+
+    request = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" version="1.1">
+  <rep:responsibleOrgName>EOX</rep:responsibleOrgName>
+  <rep:dateTime>2013-01-29T16:41:12.630821</rep:dateTime>
+  <rep:browseType>SAR</rep:browseType>
+  <rep:browse>
+    <rep:browseIdentifier>identifier</rep:browseIdentifier>
+    <rep:fileName>subfolder/browse.jpg</rep:fileName>
+    <rep:imageType>Jpeg</rep:imageType>
+    <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier>
+    <rep:footprint nodeNumber="7">
+      <rep:colRowList>0 0 100 0 100 472 100 944 0 944 0 472 0 0</rep:colRowList>
+      <rep:coordList>50.44 14.38 50.33 15.41 47.07 14.56 43.95 13.79 44.07 12.87 47.18 13.59 50.44 14.38</rep:coordList>
+    </rep:footprint>
+    <rep:startTime>2012-01-01T09:15:26.510000</rep:startTime>
+    <rep:endTime>2012-01-01T09:17:14.560000</rep:endTime>
+  </rep:browse>
+</rep:browseReport>
+"""
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>identifier</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
 
 #===============================================================================
 # Ingest a browse report with multiple browses inside
