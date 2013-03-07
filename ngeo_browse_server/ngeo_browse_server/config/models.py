@@ -49,6 +49,10 @@ NameValidator = RegexValidator(
     re.compile(r'^[a-zA-z_:][a-zA-Z0-9.\-_:]*$'),
     message="This field must contain a valid Name i.e. beginning with a letter, an underscore, or a colon, and continuing with letters, digits, hyphens, underscores, colons, or full stops."
 )
+FileNameValidator = RegexValidator(
+    re.compile('^[a-zA-z0-9-_:/.]+$'),
+    message=""
+)
 
 
 class BrowseLayer(models.Model):
@@ -147,7 +151,7 @@ class Browse(models.Model):
     coverage_id = models.CharField("Coverage ID", max_length=256, primary_key=True, validators=[NCNameValidator])
     browse_report = models.ForeignKey(BrowseReport, related_name="browses", verbose_name="Browse Report")
     browse_layer = models.ForeignKey(BrowseLayer, related_name="browses", verbose_name="Browse Layer")
-    file_name = models.CharField(max_length=1024, validators=[NameValidator])
+    file_name = models.CharField(max_length=1024, validators=[FileNameValidator])
     image_type = models.CharField(max_length=8, default="GeoTIFF", 
         choices = (
             ("Jpeg", "Jpeg"),
