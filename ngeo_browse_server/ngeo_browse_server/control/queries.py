@@ -43,8 +43,7 @@ logger = logging.getLogger(__name__)
 
 def get_existing_browse(browse, browse_layer_id):
     """ Get existing browse either via browse identifier if present or via 
-        Start/End time.
-    in the same browse layer. """
+        Start/End time in the same browse layer. """
     
     try:
         if browse.browse_identifier:
