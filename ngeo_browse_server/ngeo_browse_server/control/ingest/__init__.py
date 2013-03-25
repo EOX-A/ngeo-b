@@ -53,7 +53,7 @@ from eoxserver.resources.coverages.models import NCNameValidator
 from ngeo_browse_server.config import get_ngeo_config, safe_get
 from ngeo_browse_server.config import models
 from ngeo_browse_server.config.browsereport.parsing import (
-    parse_browse_report, parse_coord_list
+    parse_browse_report, parse_coord_list, pairwise_iterative
 )
 from ngeo_browse_server.config.browsereport import data
 from ngeo_browse_server.control.ingest.result import (
@@ -493,10 +493,16 @@ def _georef_from_parsed(parsed_browse):
     elif parsed_browse.geo_type == "footprintBrowse":
         # Generate GCPs from footprint coordinates
         pixels = parse_coord_list(parsed_browse.col_row_list)
-        coords = parse_coord_list(parsed_browse.coord_list, swap_axes)
-        assert(len(pixels) == len(coords))
+        coord_list = parse_coord_list(parsed_browse.coord_list, swap_axes)
+        
+        if _coord_list_crosses_dateline(coord_list, CRS_BOUNDS[srid]):
+            logger.info("Footprint crosses the dateline. Normalizing it.")
+            coord_list = _unwrap_coord_list(coord_list, CRS_BOUNDS[srid])
+        
+        assert(len(pixels) == len(coord_list))
         gcps = [(x, y, pixel, line) 
-                for (x, y), (pixel, line) in zip(coords, pixels)]
+                for (x, y), (pixel, line) in zip(coord_list, pixels)]
+        
         
         # check that the last point of the footprint is the first
         if not gcps[0] == gcps[-1]:
@@ -518,19 +524,37 @@ def _georef_from_parsed(parsed_browse):
             0.0, parsed_browse.col_node_number * parsed_browse.col_step,
             parsed_browse.col_step
         )
-        
-        # Python is cool!
         pixels = [(x, y) for x in range_x for y in range_y]
         
         # get the lat-lon coordinates as tuple-lists
-        coords = []
+        # TODO: normalize if dateline is crossed
+        
+        coord_lists = []
         for coord_list in parsed_browse.coord_lists:
-            coords.extend(parse_coord_list(coord_list, swap_axes))
+            coord_list = parse_coord_list(coord_list, swap_axes)
+            
+            # TODO: iterate over every coord pair. if a dateline cross occurred
+            # move all the negative values to the positive space
+            if _coord_list_crosses_dateline(coord_list, CRS_BOUNDS[srid]):
+                logger.info("Regular grid crosses the dateline. Normalizing it.")
+                coord_list = _unwrap_coord_list(coord_list, CRS_BOUNDS[srid])
+            
+            coord_lists.append(coord_list)
+        
+        coords = []
+        for coord_list in coord_lists:
+            coords.extend(coord_list)
         
         # check validity of regularGrid
-        if ((len(parsed_browse.coord_lists) != parsed_browse.row_node_number) or 
-           (len(coords)/len(parsed_browse.coord_lists) != parsed_browse.col_node_number)):
-            raise IngestionException("Invalid regularGrid.")
+        if len(parsed_browse.coord_lists) != parsed_browse.row_node_number:
+            raise IngestionException("Invalid regularGrid: number of coordinate "
+                                     "lists is not equal to the given row node "
+                                     "number.")
+        
+        elif len(coords) / len(parsed_browse.coord_lists != parsed_browse.col_node_number):
+            raise IngestionException("Invalid regularGrid: number of coordinates "
+                                     "does not fit given columns number.") 
+            
         
         gcps = [(x, y, pixel, line) 
                 for (x, y), (pixel, line) in zip(coords, pixels)]
@@ -540,7 +564,8 @@ def _georef_from_parsed(parsed_browse):
         return None
     
     else:
-        raise NotImplementedError
+        raise NotImplementedError("Invalid geo-reference type '%s'."
+                                  % parsed_browse.geo_type)
 
 
 def _generate_coverage_id(parsed_browse, browse_layer):
@@ -575,4 +600,34 @@ def _save_result_browse_report(browse_report, path):
 FILENAME_CHARS = "/_-." + string.ascii_letters + string.digits
 def _valid_path(filename):
     return ''.join(c for c in filename if c in FILENAME_CHARS)
+
+
+# Maximum bounds for both supported CRSs
+CRS_BOUNDS = {
+    3857: (-20037508.3428, -20037508.3428, 20037508.3428, 20037508.3428),
+    4326: (-180, -90, 180, 90)
+}
+
+
+def _coord_list_crosses_dateline(coord_list, bounds):
+    """ Helper function to check whether or not a coord list crosses the 
+    dateline.
+    """
+    
+    half = float(bounds[2])
+    for (x1, _), (x2, _) in pairwise_iterative(coord_list):
+        if abs(x1 - x2) > half:
+            return True
+        
+    return False
+
+
+def _unwrap_coord_list(coord_list, bounds):
+    """ 'Unwraps' a coordinate list that crosses the dateline. """
+
+    full = float(abs(bounds[0]) + abs(bounds[2]))
+    # TODO: improve this. Might be wrong for really "long" coordinate lists that
+    # start/stop in the normalized negative
+    return map(lambda c: (c[0] + full if c[0] < 0 else c[0], c[1]), 
+               coord_list)
     

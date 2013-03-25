@@ -159,5 +159,9 @@ def get_optimization_config(config=None):
             values["bandmode"] = RGBA
     except: pass
     
+    try:
+        values["simplification_tolerance"] = config.getfloat(INGEST_SECTION, "simplification_tolerance")
+    except: pass
+    
     return values
 
