@@ -43,16 +43,7 @@ python manage.py runserver 0.0.0.0:8000
 # Build preparations                                                   #
 ########################################################################
 
-# Generate new and clean CentOS host
-ssh root@...
-yum clean all
-yum update
-yum install svn git gdal-devel rpm-build gcc python-devel
-adduser eox
-passwd eox # nu4Oht0m
-su - eox
-svn checkout https://eoxserver.org/svn/trunk eoxserver_trunk
-git clone https://github.com/EOX-A/mapcache.git
+# Prepare vagrant environment as described at: https://gitlab.eox.at/vagrant/builder_rpm/tree/master
 
 ########################################################################
 # How to build ngEO Browse Server                                      #
@@ -61,13 +52,13 @@ git clone https://github.com/EOX-A/mapcache.git
 cd git/deliverables/developments/ngeo_browse_server/
 git pull
 git archive --format=tar --prefix=ngeob-0.1dev/ master | gzip > ngeob-0.1dev.tar.gz
-scp ngeob-0.1dev.tar.gz eox@5.9.173.45:.
-rm ngeob-0.1dev.tar.gz
-ssh eox@5.9.173.45
+mv ngeob-0.1dev.tar.gz ....
+cd ....
+vagrant ssh
 tar xzf ngeob-0.1dev.tar.gz
 rm ngeob-0.1dev.tar.gz
 cd ngeob-0.1dev/
-python setup.py bdist_rpm --requires "EOxServer mapcache httpd" --release <NO>
+python setup.py bdist_rpm --release <NO>
 tar czf ../ngeob-0.1dev.tar.gz dist/ngEO_Browse_Server-0.1dev*rpm
 # scp ../ngeob-0.1dev.tar.gz -> packages
 cd ..
@@ -77,10 +68,10 @@ rm -r ngeob-0.1dev/
 # How to build EOxServer                                               #
 ########################################################################
 
-ssh eox@5.9.173.45
-cd eoxserver_trunk
-svn up
-python setup.py bdist_rpm --requires "Django14 >= 1.4.2 gdal-python mapserver-python libxml2-python python-lxml" --release <NO>
+svn export ....
+cd ....
+vagrant ssh
+python setup.py bdist_rpm --release <NO>
 tar czf ../EOxServer-0.3dev.tar.gz dist/EOxServer-0.3dev*rpm
 # scp ../EOxServer-0.3dev.tar.gz -> packages.eox.at
 
@@ -88,6 +79,7 @@ tar czf ../EOxServer-0.3dev.tar.gz dist/EOxServer-0.3dev*rpm
 # How to build MapCache                                                #
 ########################################################################
 
+# TODO: update to vagrant
 ssh eox@5.9.173.45
 cd mapcache_ngeo/
 git pull
@@ -108,6 +100,7 @@ rm -r x86_64/ SRPMS/
 # How to build MapServer                                               #
 ########################################################################
 
+# TODO: update to vagrant
 ssh eox@ngeo.eox.at
 cd build/mapserver/
 git pull

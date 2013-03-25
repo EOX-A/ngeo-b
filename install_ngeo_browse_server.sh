@@ -108,7 +108,7 @@ fi
 
 # Install needed yum repositories
 # EOX
-rpm -Uvh http://yum.packages.eox.at/el/eox-release-6-1.noarch.rpm
+rpm -Uvh http://yum.packages.eox.at/el/eox-release-6-2.noarch.rpm
 if "$TESTING" ; then
     sed -e 's/^enabled=0/enabled=1/' -i /etc/yum.repos.d/eox-testing.repo
 fi

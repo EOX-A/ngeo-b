@@ -81,14 +81,14 @@ class SeedModelInGeotiffBrowse(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase)
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.xml"
     
     expected_inserted_into_series = "TEST_MER_FRS"
-    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 128, 6: 256, 7: 576, 8: 1024}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 128, 6: 256}
 
 
 class IngestModelInGeotiffBrowseGoogleMercator(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     storage_dir = "data/test_data"
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_GOOGLE_MERCATOR.xml"
     
-    expected_ingested_browse_ids = ("MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced",)
+    expected_ingested_browse_ids = ("MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_MERCATOR",)
     expected_inserted_into_series = "TEST_GOOGLE_MERCATOR"
     expected_optimized_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_proc.tif']
     expected_deleted_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.tif']
@@ -105,7 +105,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
     </bsi:ingestionSummary>
     <bsi:ingestionResult>
         <bsi:briefRecord>
-            <bsi:identifier>MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced</bsi:identifier>
+            <bsi:identifier>MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_MERCATOR</bsi:identifier>
             <bsi:status>success</bsi:status>
         </bsi:briefRecord>
     </bsi:ingestionResult>
@@ -117,7 +117,7 @@ class SeedModelInGeotiffBrowseGoogleMercator(SeedTestCaseMixIn, HttpMixIn, LiveS
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_GOOGLE_MERCATOR.xml"
     
     expected_inserted_into_series = "TEST_GOOGLE_MERCATOR"
-    expected_tiles = {0: 1, 1: 4, 2: 16, 3: 64, 4: 64, 5: 64, 6: 128, 7: 256, 8: 384}
+    expected_tiles = {0: 1, 1: 4, 2: 16, 3: 64, 4: 64, 5: 64, 6: 128}
 
 
 #===============================================================================
@@ -157,7 +157,7 @@ class SeedRectifiedBrowse(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_nogeo.xml"
     
     expected_inserted_into_series = "TEST_MER_FRS"
-    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 128, 6: 256, 7: 576, 8: 1024}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 128, 6: 256}
 
 
 #===============================================================================
@@ -197,7 +197,7 @@ class SeedRegularGridBrowse(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "test_data/ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775.xml"
     
     expected_inserted_into_series = "TEST_ASA_WSM"
-    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 64, 6: 128, 7: 256, 8: 384}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64}
 
 class IngestRegularGridBrowse2(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     storage_dir = "data/feed_test_data"
@@ -232,7 +232,7 @@ class SeedRegularGridBrowse2(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "feed_test_data/BrowseReport.xml"
     
     expected_inserted_into_series = "TEST_SAR"
-    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 64, 6: 64, 7: 64, 8: 128}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64}
 
 
 #===============================================================================
@@ -270,7 +270,7 @@ class SeedFootprintBrowse(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     
     expected_inserted_into_series = "TEST_SAR"
-    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 256}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
 
 class IngestFootprintBrowse2(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100731_103315.xml"
@@ -303,7 +303,7 @@ class SeedFootprintBrowse2(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100731_103315.xml"
     
     expected_inserted_into_series = "TEST_SAR"
-    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 128}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
 
 class IngestFootprintBrowse3(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100813_102453.xml"
@@ -336,7 +336,7 @@ class SeedFootprintBrowse3(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100813_102453.xml"
     
     expected_inserted_into_series = "TEST_SAR"
-    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 256}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
 
 class IngestFootprintBrowse7(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     storage_dir = "data/aiv_test_data"
@@ -371,7 +371,7 @@ class SeedFootprintBrowse7(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "aiv_test_data/BrowseReport.xml"
     
     expected_inserted_into_series = "TEST_SAR"
-    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 64, 6: 64, 7: 64, 8: 64}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64}
 
 
 #===============================================================================
@@ -409,7 +409,7 @@ class SeedFootprintBrowse4(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100719_105257.xml"
     
     expected_inserted_into_series = "TEST_OPTICAL"
-    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 384}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
 
 class IngestFootprintBrowse5(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100719_213253.xml"
@@ -442,7 +442,7 @@ class SeedFootprintBrowse5(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100719_213253.xml"
     
     expected_inserted_into_series = "TEST_OPTICAL"
-    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 384}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
 
 class IngestFootprintBrowse6(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606.xml"
@@ -475,7 +475,7 @@ class SeedFootprintBrowse6(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606.xml"
     
     expected_inserted_into_series = "TEST_OPTICAL"
-    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 64, 6: 64, 7: 128, 8: 256}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64}
 
 
 #===============================================================================
@@ -514,7 +514,7 @@ class SeedBrowseNoID(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606_noid.xml"
     
     expected_inserted_into_series = "TEST_OPTICAL"
-    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 64, 6: 64, 7: 128, 8: 256}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64}
 
 class IngestBrowseSpecialID(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606_specialid.xml"
@@ -548,7 +548,7 @@ class SeedBrowseSpecialID(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606_specialid.xml"
     
     expected_inserted_into_series = "TEST_OPTICAL"
-    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 64, 6: 64, 7: 128, 8: 256}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64}
 
 
 class IngestBrowseFilenameStartsWithNumber(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
@@ -649,6 +649,53 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 </bsi:ingestBrowseResponse>
 """
 
+class IngestModelInGeotiffBrowseCompicatedFootprint(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    """See issue #59"""
+    storage_dir = "data/test_data"
+    
+    expected_ingested_browse_ids = ("DWH_MG2_SIRI_ADD_010a_40",)
+    expected_ingested_coverage_ids = ("DWH_MG2_SIRI_ADD_010a_40",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['218658_3358114_browse.jpg_r_proc.tif']
+    expected_deleted_files = ['218658_3358114_browse.jpg_r.tif']
+
+    request = """\
+<?xml version="1.0" encoding="utf-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" version="1.1">
+  <rep:responsibleOrgName>RapidEye</rep:responsibleOrgName>
+  <rep:dateTime>2012-09-18T15:30:44+00:00</rep:dateTime>
+  <rep:browseType>SAR</rep:browseType>
+  <rep:browse>
+    <rep:browseIdentifier>DWH_MG2_SIRI_ADD_010a_40</rep:browseIdentifier>
+    <rep:fileName>218658_3358114_browse.jpg_r.tif</rep:fileName>
+    <rep:imageType>TIFF</rep:imageType>
+    <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier>
+    <rep:modelInGeotiff>true</rep:modelInGeotiff>
+    <rep:startTime>2012-08-19T11:00:27+00:00</rep:startTime>
+    <rep:endTime>2012-08-19T11:00:32+00:00</rep:endTime>
+  </rep:browse>
+</rep:browseReport>
+"""
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>DWH_MG2_SIRI_ADD_010a_40</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
 class IngestBrowseCrossesDateline(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "test_data/BrowseReport_crosses_dateline.xml"
     storage_dir = "data/test_data"
@@ -677,6 +724,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
     </bsi:ingestionResult>
 </bsi:ingestBrowseResponse>
 """
+
 
 #===============================================================================
 # Ingest a browse report with multiple browses inside
@@ -725,7 +773,7 @@ class SeedFootprintBrowseGroup(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase)
     request_file = "reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"
     
     expected_inserted_into_series = "TEST_SAR"
-    expected_tiles = {0: 6, 1: 24, 2: 96, 3: 384, 4: 384, 5: 384, 6: 384, 7: 384, 8: 896}
+    expected_tiles = {0: 6, 1: 24, 2: 96, 3: 384, 4: 384}
 
 #===============================================================================
 # Ingest a browse report which includes a replacement of a previous browse
@@ -811,7 +859,7 @@ class SeedFootprintBrowseGroupPartial(SeedTestCaseMixIn, HttpMixIn, LiveServerTe
     request_file = "reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group_partial.xml"
     
     expected_inserted_into_series = "TEST_SAR"
-    expected_tiles = {0: 4, 1: 16, 2: 64, 3: 256, 4: 256, 5: 256, 6: 256, 7: 256, 8: 640}
+    expected_tiles = {0: 4, 1: 16, 2: 64, 3: 256, 4: 256}
 
 
 #===============================================================================
@@ -989,9 +1037,8 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
             <bsi:identifier>FAILURE</bsi:identifier>
             <bsi:status>failure</bsi:status>
             <bsi:error>
-                <bsi:exceptionCode>RuntimeError</bsi:exceptionCode>
-                <bsi:exceptionMessage>EPSG PCS/GCS code 999999 not found in EPSG support files.  Is this a valid
-EPSG coordinate system?</bsi:exceptionMessage>
+                <bsi:exceptionCode>IngestionException</bsi:exceptionCode>
+                <bsi:exceptionMessage>Given referenceSystemIdentifier &#39;EPSG:999999&#39; not valid.</bsi:exceptionMessage>
             </bsi:error>
         </bsi:briefRecord>
     </bsi:ingestionResult>
@@ -1316,7 +1363,6 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
         </bsi:briefRecord>
     </bsi:ingestionResult>
 </bsi:ingestBrowseResponse>
-
 """
 
 #===============================================================================
@@ -1483,7 +1529,7 @@ class IngestRasterStatisticsMultipleBands(BaseTestCaseMixIn, HttpMixIn, Statisti
         {'max': 255.0, 'checksum': 30191, 'mean': 15.659451199310894, 'stddev': 22.103667727281124, 'min': 0.0},
         {'max': 255.0, 'checksum': 35428, 'mean': 13.540062615955472, 'stddev': 21.258531872828733, 'min': 0.0},
         {'max': 255.0, 'checksum': 16276, 'mean': 13.158705771269547, 'stddev': 21.48301977479764, 'min': 0.0},
-        {'max': 255.0, 'checksum': 22831, 'mean': 165.51471806254969, 'stddev': 121.70099100099743, 'min': 0.0} 
+        {'max': 255.0, 'checksum': 21890, 'mean': 165.43129224092235, 'stddev': 121.72701864801316, 'min': 0.0} 
     ]
 
 
@@ -1497,7 +1543,7 @@ class IngestRasterStatisticsMultipleBandsNoDefinition(BaseTestCaseMixIn, HttpMix
         {'max': 255.0, 'checksum': 33522, 'mean': 17.049554399681952, 'stddev': 22.625493105759691, 'min': 0.0},
         {'max': 255.0, 'checksum': 30191, 'mean': 15.659451199310894, 'stddev': 22.103667727281124, 'min': 0.0},
         {'max': 255.0, 'checksum': 6918, 'mean': 14.176099092234296, 'stddev': 21.602771443516307, 'min': 0.0},
-        {'max': 255.0, 'checksum': 22822, 'mean': 165.51471806254969, 'stddev': 121.70099100099743, 'min': 0.0} 
+        {'max': 255.0, 'checksum': 21881, 'mean': 165.43129224092235, 'stddev': 121.72701864801316, 'min': 0.0} 
     ]
     
 
@@ -1524,9 +1570,9 @@ class IngestModelInGeoTiffWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixI
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.xml"
     
     expected_statistics = [
-        {'max': 255.0, 'checksum': 9204, 'mean': 40.346400000000003, 'stddev': 41.657126725687647, 'min': 0.0},
-        {'max': 255.0, 'checksum': 8685, 'mean': 39.574100000000001, 'stddev': 40.424179759025414, 'min': 0.0},
-        {'max': 255.0, 'checksum': 10797, 'mean': 41.883000000000003, 'stddev': 38.541726881394403, 'min': 0.0}
+        {'max': 255.0, 'checksum': 10122, 'mean': 40.781700000000001, 'stddev': 41.566650636177073, 'min': 0.0},
+        {'max': 255.0, 'checksum': 9601, 'mean': 40.005099999999999, 'stddev': 40.335374970241695, 'min': 0.0},
+        {'max': 255.0, 'checksum': 11984, 'mean': 42.242100000000001, 'stddev': 38.408164335073344, 'min': 0.0}
     ]
 
 
@@ -1549,9 +1595,9 @@ class IngestRectifiedWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_nogeo.xml"
     
     expected_statistics = [
-        {'max': 255.0, 'checksum': 9204, 'mean': 40.346400000000003, 'stddev': 41.657126725687647, 'min': 0.0},
-        {'max': 255.0, 'checksum': 8685, 'mean': 39.574100000000001, 'stddev': 40.424179759025414, 'min': 0.0},
-        {'max': 255.0, 'checksum': 10797, 'mean': 41.883000000000003, 'stddev': 38.541726881394403, 'min': 0.0}
+        {'max': 255.0, 'checksum': 10122, 'mean': 40.781700000000001, 'stddev': 41.566650636177073, 'min': 0.0},
+        {'max': 255.0, 'checksum': 9601, 'mean': 40.005099999999999, 'stddev': 40.335374970241695, 'min': 0.0},
+        {'max': 255.0, 'checksum': 11984, 'mean': 42.242100000000001, 'stddev': 38.408164335073344, 'min': 0.0}
     ]
 
 
@@ -1599,51 +1645,6 @@ class IngestRegularGridWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, 
     expected_statistics = [
         {'max': 251.0, 'checksum': 11342, 'mean': 29.2577, 'stddev': 33.854823743596718, 'min': 0.0}
     ] * 3
-
-
-class IngestFootprintCrossesDatelineRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
-    """ Test the region until the dateline border. """
-    storage_dir = "data/test_data"
-    request_file = "test_data/BrowseReport_crosses_dateline.xml"
-    
-    save_to_file = "results/wms/IngestFootprintCrossesDatelineRaster.png"
-    
-    wms_request = ("/ows?service=WMS&request=GetMap&version=1.3.0&"
-                   "layers=%(layers)s&crs=EPSG:4326&bbox=%(bbox)s&"
-                   "width=%(width)d&height=%(height)d&format=image/png" % {
-                       "layers": "TEST_SAR",
-                       "bbox": ",".join(map(str, (77, 170, 83, 190))),
-                       "width": 100,
-                       "height": 100,
-                    }
-                   )
-    
-    expected_statistics = [
-        {'checksum': 22934, 'max': 250.0, 'mean': 148.99510000000001, 'min': 0.0, 'stddev': 116.90873567013715},
-        {'checksum': 17599, 'max': 249.0, 'mean': 147.95439999999999, 'min': 0.0, 'stddev': 116.12004013364789},
-        {'checksum': 1606, 'max': 242.0, 'mean': 140.77260000000001, 'min': 0.0, 'stddev': 110.5817764789479}
-    ]
-    
-class IngestFootprintCrossesDatelineRasterSecond(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
-    """ Test the region that overlaps the dateline boundary """
-    
-    storage_dir = "data/test_data"
-    request_file = "test_data/BrowseReport_crosses_dateline.xml"
-    
-    save_to_file = "results/wms/IngestFootprintCrossesDatelineRasterSecond.png"
-    
-    wms_request = ("/ows?service=WMS&request=GetMap&version=1.3.0&"
-                   "layers=%(layers)s&crs=EPSG:4326&bbox=%(bbox)s&"
-                   "width=%(width)d&height=%(height)d&format=image/png" % {
-                       "layers": "TEST_SAR",
-                       "bbox": ",".join(map(str, (77, -190, 83, -170))),
-                       "width": 100,
-                       "height": 100,
-                    }
-                   )
-    
-    # TODO: this does not yet work. Replace this to something useful once the test finishes
-    expected_statistics = [1,2,3]
 
 
 #===============================================================================
@@ -1716,7 +1717,7 @@ class DeleteFromCommandStartEnd(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn
     expected_remaining_browses = 2
     expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
     expected_inserted_into_series = "TEST_SAR"
-    expected_tiles = {0: 4, 1: 16, 2: 64, 3: 256, 4: 256, 5: 256, 6: 256, 7: 256, 8: 640}
+    expected_tiles = {0: 4, 1: 16, 2: 64, 3: 256, 4: 256}
 
 
 #===============================================================================
@@ -1745,9 +1746,9 @@ class ExportGroupFullCache(ExportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, Liv
         return ("--output", self.temp_export_file, "--export-cache")
     
     expected_inserted_into_series = "TEST_SAR"
-    expected_tiles = {0: 6, 1: 24, 2: 96, 3: 384, 4: 384, 5: 384, 6: 384, 7: 384, 8: 896}
+    expected_tiles = {0: 6, 1: 24, 2: 96, 3: 384, 4: 384}
     expected_exported_browses = ("b_id_6", "b_id_7", "b_id_8")
-    expected_cache_tiles = 2942
+    expected_cache_tiles = 894
 
 class ExportGroupStart(ExportTestCaseMixIn, CliMixIn, TestCase):
     args_before_test = ["manage.py", "ngeo_ingest_browse_report",
@@ -1805,7 +1806,7 @@ class ImportIgnoreCache(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveSe
     expected_ingested_browse_ids = ("b_id_1",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ("b_id_1_proc.tif",)
-    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 256}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
 
 class ImportWithCache(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
     args = (join(settings.PROJECT_DIR, "data/export/export_SAR.tar.gz"),)
@@ -1813,7 +1814,7 @@ class ImportWithCache(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServ
     expected_ingested_browse_ids = ("b_id_1",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ("b_id_1_proc.tif",)
-    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 256}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
 
 class ImportReplaceIgnoreCache(ImportReplaceTestCaseMixin, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
     args_before_test = ["manage.py", "ngeo_ingest_browse_report",
@@ -1826,7 +1827,7 @@ class ImportReplaceIgnoreCache(ImportReplaceTestCaseMixin, CliMixIn, SeedTestCas
     expected_deleted_optimized_files = ("ASA_IM__0P_20100722_213840.tif",)
     expected_num_replaced = 1
     expected_optimized_files = ("b_id_1_proc.tif",)
-    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 256}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
 
 class ImportReplaceWithCache(ImportReplaceTestCaseMixin, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
     args_before_test = ["manage.py", "ngeo_ingest_browse_report",
@@ -1839,7 +1840,7 @@ class ImportReplaceWithCache(ImportReplaceTestCaseMixin, CliMixIn, SeedTestCaseM
     expected_deleted_optimized_files = ("ASA_IM__0P_20100722_213840.tif",)
     expected_num_replaced = 1
     expected_optimized_files = ("b_id_1_proc.tif",)
-    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128, 5: 128, 6: 128, 7: 128, 8: 256}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
 
 class ImportRegularGrid(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
     args = (join(settings.PROJECT_DIR, "data/export/export_ASA_WSM.tar.gz"),)
@@ -1847,4 +1848,4 @@ class ImportRegularGrid(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveSe
     expected_ingested_browse_ids = ("ASAR",)
     expected_inserted_into_series = "TEST_ASA_WSM"
     expected_optimized_files = ("ASAR_proc.tif",)
-    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 64, 6: 128, 7: 256, 8: 384}
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64}
