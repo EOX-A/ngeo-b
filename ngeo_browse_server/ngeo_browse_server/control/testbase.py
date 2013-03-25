@@ -654,6 +654,8 @@ class RasterMixIn(object):
     """ Test case mix-in to test the optimized (GDAL-)raster files. """
     raster_file = None
     
+    save_to_file = None
+    
     def open_raster(self, dirname=None, raster_file=None):
         """ Convenience function to open a GDAL dataset. """
         
@@ -661,6 +663,11 @@ class RasterMixIn(object):
         raster_file = raster_file or self.raster_file
         
         filename = join(dirname, raster_file)
+        
+        if self.save_to_file:
+            save_filename = join(settings.PROJECT_DIR, self.save_to_file)
+            safe_makedirs(dirname(save_filename))
+            shutil.copy(filename, save_filename)
         
         try:
             return gdal.Open(filename)
@@ -679,10 +686,11 @@ class WMSRasterMixIn(RasterMixIn):
         # dispatch wms request
         response = self.client.get(self.wms_request)
         
-        # enable to manually inspect wms response
-        #tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-        #tmp.write(response.content)
-        #tmp.close()
+        if self.save_to_file:
+            save_filename = join(settings.PROJECT_DIR, self.save_to_file)
+            safe_makedirs(dirname(save_filename))
+            with open(save_filename, "w+") as f:
+                f.write(response.content)
         
         if response.status_code != 200:
             self.fail("WMS received response with status '%d'"

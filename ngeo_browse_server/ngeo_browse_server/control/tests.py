@@ -649,6 +649,35 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 </bsi:ingestBrowseResponse>
 """
 
+class IngestBrowseCrossesDateline(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    request_file = "test_data/BrowseReport_crosses_dateline.xml"
+    storage_dir = "data/test_data"
+    
+    expected_ingested_browse_ids = ("",)
+    expected_ingested_coverage_ids = ("_20120101T022322540-20120101T030036350_D_T-AA0B",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['_20120101T022322540-20120101T030036350_D_T-AA0B_proc.tif']
+    expected_deleted_files = ['_20120101T022322540-20120101T030036350_D_T-AA0B.jpg']
+    
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>_20120101T022322540-20120101T030036350_D_T-AA0B</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
 #===============================================================================
 # Ingest a browse report with multiple browses inside
 #===============================================================================
@@ -1570,6 +1599,51 @@ class IngestRegularGridWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, 
     expected_statistics = [
         {'max': 251.0, 'checksum': 11342, 'mean': 29.2577, 'stddev': 33.854823743596718, 'min': 0.0}
     ] * 3
+
+
+class IngestFootprintCrossesDatelineRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
+    """ Test the region until the dateline border. """
+    storage_dir = "data/test_data"
+    request_file = "test_data/BrowseReport_crosses_dateline.xml"
+    
+    save_to_file = "results/wms/IngestFootprintCrossesDatelineRaster.png"
+    
+    wms_request = ("/ows?service=WMS&request=GetMap&version=1.3.0&"
+                   "layers=%(layers)s&crs=EPSG:4326&bbox=%(bbox)s&"
+                   "width=%(width)d&height=%(height)d&format=image/png" % {
+                       "layers": "TEST_SAR",
+                       "bbox": ",".join(map(str, (77, 170, 83, 190))),
+                       "width": 100,
+                       "height": 100,
+                    }
+                   )
+    
+    expected_statistics = [
+        {'checksum': 22934, 'max': 250.0, 'mean': 148.99510000000001, 'min': 0.0, 'stddev': 116.90873567013715},
+        {'checksum': 17599, 'max': 249.0, 'mean': 147.95439999999999, 'min': 0.0, 'stddev': 116.12004013364789},
+        {'checksum': 1606, 'max': 242.0, 'mean': 140.77260000000001, 'min': 0.0, 'stddev': 110.5817764789479}
+    ]
+    
+class IngestFootprintCrossesDatelineRasterSecond(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
+    """ Test the region that overlaps the dateline boundary """
+    
+    storage_dir = "data/test_data"
+    request_file = "test_data/BrowseReport_crosses_dateline.xml"
+    
+    save_to_file = "results/wms/IngestFootprintCrossesDatelineRasterSecond.png"
+    
+    wms_request = ("/ows?service=WMS&request=GetMap&version=1.3.0&"
+                   "layers=%(layers)s&crs=EPSG:4326&bbox=%(bbox)s&"
+                   "width=%(width)d&height=%(height)d&format=image/png" % {
+                       "layers": "TEST_SAR",
+                       "bbox": ",".join(map(str, (77, -190, 83, -170))),
+                       "width": 100,
+                       "height": 100,
+                    }
+                   )
+    
+    # TODO: this does not yet work. Replace this to something useful once the test finishes
+    expected_statistics = [1,2,3]
 
 
 #===============================================================================
