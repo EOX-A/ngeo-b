@@ -700,7 +700,7 @@ class IngestBrowseCrossesDateline(IngestTestCaseMixIn, HttpTestCaseMixin, TestCa
     request_file = "test_data/BrowseReport_crosses_dateline.xml"
     storage_dir = "data/test_data"
     
-    expected_ingested_browse_ids = ("",)
+    expected_ingested_browse_ids = ("_20120101T022322540-20120101T030036350_D_T-AA0B",)
     expected_ingested_coverage_ids = ("_20120101T022322540-20120101T030036350_D_T-AA0B",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['_20120101T022322540-20120101T030036350_D_T-AA0B_proc.tif']
