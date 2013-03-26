@@ -551,7 +551,7 @@ def _georef_from_parsed(parsed_browse):
                                      "lists is not equal to the given row node "
                                      "number.")
         
-        elif len(coords) / len(parsed_browse.coord_lists != parsed_browse.col_node_number):
+        elif len(coords) / len(parsed_browse.coord_lists) != parsed_browse.col_node_number:
             raise IngestionException("Invalid regularGrid: number of coordinates "
                                      "does not fit given columns number.") 
             
