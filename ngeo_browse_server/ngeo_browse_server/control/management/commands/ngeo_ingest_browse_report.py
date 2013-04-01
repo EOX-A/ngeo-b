@@ -60,8 +60,8 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
             help=("If this option is set, the original browse files will be "
                   "deleted and only the optimized browse files will be kept.")
         ),
-        make_option('--leave-original', action="store_true",
-            dest='leave_original', default=False,
+        make_option('--leave-original', action="store_const",
+            dest='leave_original', default="false", const="true",
             help=("For debugging purposes only. If this option is set, the "
                   "original raster files are not moved from the storage "
                   "directory after a successful/failed ingest.")
