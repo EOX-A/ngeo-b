@@ -65,9 +65,9 @@ sudo chmod a+w /var/ngeob_data/mapcache.sqlite
 #python manage.py loaddata --database=mapcache ngeo_mapcache.json
 
 # Reset ngEO Browse Server
-sudo rm -rf /var/ngeob_data/optimized/TEST_*
-sudo rm -rf /var/ngeob_data/success/*
-sudo rm -rf /var/ngeob_data/failure/*
+sudo rm -rf /var/ngeob_data/optimized/ /var/ngeob_data/success/ /var/ngeob_data/failure/ /var/ngeob_data/storage/
+sudo mkdir /var/ngeob_data/optimized/ /var/ngeob_data/success/ /var/ngeob_data/failure/ /var/ngeob_data/storage/
+sudo chown apache:apache /var/ngeob_data/optimized/ /var/ngeob_data/success/ /var/ngeob_data/failure/ /var/ngeob_data/storage/
 rm -f /var/ngeob/autotest/logs/eoxserver.log /var/ngeob/autotest/logs/ngeo.log
 touch /var/ngeob/autotest/logs/eoxserver.log /var/ngeob/autotest/logs/ngeo.log
 chmod go+w /var/ngeob/autotest/logs/eoxserver.log /var/ngeob/autotest/logs/ngeo.log
@@ -80,6 +80,7 @@ chmod go+w /var/www/cache/TEST_SAR.sqlite /var/www/cache/TEST_OPTICAL.sqlite /va
 # Upload test data
 sudo cp /var/ngeob/autotest/data/reference_test_data/*.jpg /var/ngeob_data/storage/
 sudo cp /var/ngeob/autotest/data/test_data/*.tif /var/ngeob_data/storage/
+sudo cp /var/ngeob/autotest/data/test_data/*.jpg /var/ngeob_data/storage/
 sudo cp /var/ngeob/autotest/data/feed_test_data/*.png /var/ngeob_data/storage/
 sudo cp /var/ngeob/autotest/data/aiv_test_data/*.jpg /var/ngeob_data/storage/
 
