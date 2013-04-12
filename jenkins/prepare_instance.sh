@@ -1,7 +1,7 @@
 #!/bin/sh -xe
 
 # Create the virtual environment if it does not exist
-cd "$WORKSPACE/deviverables/developments/ngeo_browse_server"
+cd "$WORKSPACE/deliverables/developments/ngeo_browse_server"
 if [ -d ".venv" ]; then
     echo "**> virtualenv exists!"
 else

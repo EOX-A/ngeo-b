@@ -1,7 +1,7 @@
 #!/bin/sh -xe
 
 # activate the virtual environment
-cd "$WORKSPACE/deviverables/developments/ngeo_browse_server"
+cd "$WORKSPACE/deliverables/developments/ngeo_browse_server"
 source .venv/bin/activate
 
 cd autotest
