@@ -81,9 +81,9 @@ sed -e 's/#logging_level=/logging_level=INFO/' -i ngeo_browse_server_instance/co
 sed -e 's/DEBUG = True/DEBUG = False/' -i ngeo_browse_server_instance/settings.py
 
 # Drop the DB if it already exists and recreate it
-if [ `psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname=$DB_NAME"` == 1 ] ; then
+if [ `psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'"` ] ; then
     echo "Dropping ngEO Browse Server database."
-    dropdb -O $DB_USER $DB_NAME
+    dropdb $DB_NAME
 fi
 createdb -O $DB_USER -T template_postgis $DB_NAME
 
@@ -102,3 +102,7 @@ python -c "import os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ngeo_brow
 python manage.py collectstatic --noinput
 
 cd ..
+
+# Copy autotest data
+echo "**> copy autotest data..."
+cp -r $NGEOB_INSTALL_DIR/../autotest/data/ $NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/
