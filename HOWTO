@@ -25,11 +25,20 @@ vagrant ssh
 # Install:
 cd /var/eoxserver/
 sudo python setup.py develop
+
 cd /var/mapcache
-sudo yum install httpd-devel pixman-devel sqlite-devel libpng-devel libjpeg-devel libcurl-devel 
-./configure
+sudo yum install httpd-devel pixman-devel sqlite-devel libpng-devel libjpeg-devel libcurl-devel cmake geos-devel fcgi-devel
+mkdir build
+cd build
+cmake ..
+# fix dependency problems
 make
 sudo make install
+vi /etc/ld.so.conf.d/mapcache.conf
+# Add:
+#/usr/local/lib
+sudo ldconfig
+
 cd /var/ngeob/
 sudo python setup.py develop
 
@@ -68,7 +77,7 @@ rm -r ngeob-0.1dev/
 # How to build EOxServer                                               #
 ########################################################################
 
-svn export ....
+svn export .... # https://eoxserver.org/svn/branches/0.3 or https://eoxserver.org/svn/tags/release-0.3beta2
 cd ....
 vagrant ssh
 python setup.py bdist_rpm --release <NO>
@@ -79,13 +88,12 @@ tar czf ../EOxServer-0.3dev.tar.gz dist/EOxServer-0.3dev*rpm
 # How to build MapCache                                                #
 ########################################################################
 
-# TODO: update to vagrant
-ssh eox@5.9.173.45
-cd mapcache_ngeo/
+cd mapcache_git
 git pull
-# Merge branches timedimension and ro-tileset in ngeo
-git archive --format=tar --prefix=mapcache-1.1dev/ ngeo | gzip > ../../rpmbuild/SOURCES/mapcache-1.1dev.tar.gz
-cd ../../rpmbuild/SPECS/
+git archive --format=tar --prefix=mapcache-1.1dev/ master | gzip > ..../mapcache-1.1dev.tar.gz
+cd  ....
+vagrant ssh
+cd rpmbuild/SPECS/
 vi mapcache.spec
 # Adjust Release
 rpmbuild -ba mapcache.spec
