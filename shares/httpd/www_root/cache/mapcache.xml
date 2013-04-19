@@ -2,18 +2,22 @@
 <mapcache>
     <cache name="TEST_SAR" type="sqlite3">
         <dbfile>/var/www/cache/TEST_SAR.sqlite</dbfile>
+        <detect_blank>true</detect_blank>
     </cache>
 
     <cache name="TEST_OPTICAL" type="sqlite3">
         <dbfile>/var/www/cache/TEST_OPTICAL.sqlite</dbfile>
+        <detect_blank>true</detect_blank>
     </cache>
 
     <cache name="TEST_ASA_WSM" type="sqlite3">
         <dbfile>/var/www/cache/TEST_ASA_WSM.sqlite</dbfile>
+        <detect_blank>true</detect_blank>
     </cache>
 
     <cache name="TEST_MER_FRS" type="sqlite3">
         <dbfile>/var/www/cache/TEST_MER_FRS.sqlite</dbfile>
+        <detect_blank>true</detect_blank>
     </cache>
 
     <source name="TEST_SAR" type="wms">
@@ -67,7 +71,7 @@
     <tileset name="TEST_SAR">
         <source>TEST_SAR</source>
         <cache>TEST_SAR</cache>
-        <grid>WGS84</grid>
+        <grid max-cached-zoom="4" out-of-zoom-strategy="reassemble">WGS84</grid>
         <format>mixed</format>
         <metatile>8 8</metatile>
         <expires>3600</expires>
@@ -81,7 +85,7 @@
     <tileset name="TEST_OPTICAL">
         <source>TEST_OPTICAL</source>
         <cache>TEST_OPTICAL</cache>
-        <grid>WGS84</grid>
+        <grid max-cached-zoom="4" out-of-zoom-strategy="reassemble">WGS84</grid>
         <format>mixed</format>
         <metatile>8 8</metatile>
         <expires>3600</expires>
@@ -95,7 +99,7 @@
     <tileset name="TEST_ASA_WSM">
         <source>TEST_ASA_WSM</source>
         <cache>TEST_ASA_WSM</cache>
-        <grid>WGS84</grid>
+        <grid max-cached-zoom="4" out-of-zoom-strategy="reassemble">WGS84</grid>
         <format>mixed</format>
         <metatile>8 8</metatile>
         <expires>3600</expires>
@@ -109,7 +113,7 @@
     <tileset name="TEST_MER_FRS">
         <source>TEST_MER_FRS</source>
         <cache>TEST_MER_FRS</cache>
-        <grid>WGS84</grid>
+        <grid max-cached-zoom="6" out-of-zoom-strategy="reassemble">WGS84</grid>
         <format>mixed</format>
         <metatile>8 8</metatile>
         <expires>3600</expires>
@@ -144,4 +148,294 @@
 
     <errors>empty_img</errors>
     <lock_dir>/tmp</lock_dir>
+
+    <cache name="TEST_MER_FRS_FULL" type="sqlite3">
+        <dbfile>/var/www/cache/TEST_MER_FRS_FULL.sqlite</dbfile>
+        <detect_blank>true</detect_blank>
+    </cache>
+    <source name="TEST_MER_FRS_FULL" type="wms">
+        <getmap>
+            <params>
+                <LAYERS>TEST_MER_FRS_FULL</LAYERS>
+                <TRANSPARENT>true</TRANSPARENT>
+            </params>
+        </getmap>
+        <http>
+            <url>http://localhost/browse/ows?</url>
+        </http>
+    </source>
+    <tileset name="TEST_MER_FRS_FULL">
+        <source>TEST_MER_FRS_FULL</source>
+        <cache>TEST_MER_FRS_FULL</cache>
+        <grid max-cached-zoom="6" out-of-zoom-strategy="reassemble">WGS84</grid>
+        <format>mixed</format>
+        <metatile>8 8</metatile>
+        <expires>3600</expires>
+        <read-only>true</read-only>
+        <timedimension type="sqlite" default="2010">
+            <dbfile>/var/ngeob_data/mapcache.sqlite</dbfile>
+            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&gt;=datetime(:start_timestamp,'unixepoch') and end_time&lt;=datetime(:end_timestamp,'unixepoch') order by end_time</query>
+        </timedimension>
+    </tileset>
+
+    <cache name="TEST_MER_FRS_FULL_NO_BANDS" type="sqlite3">
+        <dbfile>/var/www/cache/TEST_MER_FRS_FULL_NO_BANDS.sqlite</dbfile>
+        <detect_blank>true</detect_blank>
+    </cache>
+    <source name="TEST_MER_FRS_FULL_NO_BANDS" type="wms">
+        <getmap>
+            <params>
+                <LAYERS>TEST_MER_FRS_FULL_NO_BANDS</LAYERS>
+                <TRANSPARENT>true</TRANSPARENT>
+            </params>
+        </getmap>
+        <http>
+            <url>http://localhost/browse/ows?</url>
+        </http>
+    </source>
+    <tileset name="TEST_MER_FRS_FULL_NO_BANDS">
+        <source>TEST_MER_FRS_FULL_NO_BANDS</source>
+        <cache>TEST_MER_FRS_FULL_NO_BANDS</cache>
+        <grid max-cached-zoom="6" out-of-zoom-strategy="reassemble">WGS84</grid>
+        <format>mixed</format>
+        <metatile>8 8</metatile>
+        <expires>3600</expires>
+        <read-only>true</read-only>
+        <timedimension type="sqlite" default="2010">
+            <dbfile>/var/ngeob_data/mapcache.sqlite</dbfile>
+            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&gt;=datetime(:start_timestamp,'unixepoch') and end_time&lt;=datetime(:end_timestamp,'unixepoch') order by end_time</query>
+        </timedimension>
+    </tileset>
+
+    <cache name="TEST_GOOGLE_MERCATOR" type="sqlite3">
+        <dbfile>/var/www/cache/TEST_GOOGLE_MERCATOR.sqlite</dbfile>
+        <detect_blank>true</detect_blank>
+    </cache>
+    <source name="TEST_GOOGLE_MERCATOR" type="wms">
+        <getmap>
+            <params>
+                <LAYERS>TEST_GOOGLE_MERCATOR</LAYERS>
+                <TRANSPARENT>true</TRANSPARENT>
+            </params>
+        </getmap>
+        <http>
+            <url>http://localhost/browse/ows?</url>
+        </http>
+    </source>
+    <tileset name="TEST_GOOGLE_MERCATOR">
+        <source>TEST_GOOGLE_MERCATOR</source>
+        <cache>TEST_GOOGLE_MERCATOR</cache>
+        <grid max-cached-zoom="6" out-of-zoom-strategy="reassemble">WGS84</grid>
+        <format>mixed</format>
+        <metatile>8 8</metatile>
+        <expires>3600</expires>
+        <read-only>true</read-only>
+        <timedimension type="sqlite" default="2010">
+            <dbfile>/var/ngeob_data/mapcache.sqlite</dbfile>
+            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&gt;=datetime(:start_timestamp,'unixepoch') and end_time&lt;=datetime(:end_timestamp,'unixepoch') order by end_time</query>
+        </timedimension>
+    </tileset>
+
+    <cache name="AATRS" type="sqlite3">
+        <dbfile>/var/www/cache/AATRS.sqlite</dbfile>
+        <detect_blank>true</detect_blank>
+    </cache>
+    <source name="AATRS" type="wms">
+        <getmap>
+            <params>
+                <LAYERS>AATRS</LAYERS>
+                <TRANSPARENT>true</TRANSPARENT>
+            </params>
+        </getmap>
+        <http>
+            <url>http://localhost/browse/ows?</url>
+        </http>
+    </source>
+    <tileset name="AATRS">
+        <source>AATRS</source>
+        <cache>AATRS</cache>
+        <grid max-cached-zoom="4" out-of-zoom-strategy="reassemble">WGS84</grid>
+        <format>mixed</format>
+        <metatile>8 8</metatile>
+        <expires>3600</expires>
+        <read-only>true</read-only>
+        <timedimension type="sqlite" default="2010">
+            <dbfile>/var/ngeob_data/mapcache.sqlite</dbfile>
+            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&gt;=datetime(:start_timestamp,'unixepoch') and end_time&lt;=datetime(:end_timestamp,'unixepoch') order by end_time</query>
+        </timedimension>
+    </tileset>
+
+    <cache name="ASAR_WS" type="sqlite3">
+        <dbfile>/var/www/cache/ASAR_WS.sqlite</dbfile>
+        <detect_blank>true</detect_blank>
+    </cache>
+    <source name="ASAR_WS" type="wms">
+        <getmap>
+            <params>
+                <LAYERS>ASAR_WS</LAYERS>
+                <TRANSPARENT>true</TRANSPARENT>
+            </params>
+        </getmap>
+        <http>
+            <url>http://localhost/browse/ows?</url>
+        </http>
+    </source>
+    <tileset name="ASAR_WS">
+        <source>ASAR_WS</source>
+        <cache>ASAR_WS</cache>
+        <grid max-cached-zoom="5" out-of-zoom-strategy="reassemble">WGS84</grid>
+        <format>mixed</format>
+        <metatile>8 8</metatile>
+        <expires>3600</expires>
+        <read-only>true</read-only>
+        <timedimension type="sqlite" default="2010">
+            <dbfile>/var/ngeob_data/mapcache.sqlite</dbfile>
+            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&gt;=datetime(:start_timestamp,'unixepoch') and end_time&lt;=datetime(:end_timestamp,'unixepoch') order by end_time</query>
+        </timedimension>
+    </tileset>
+
+    <cache name="ASAR_APC" type="sqlite3">
+        <dbfile>/var/www/cache/ASAR_APC.sqlite</dbfile>
+        <detect_blank>true</detect_blank>
+    </cache>
+    <source name="ASAR_APC" type="wms">
+        <getmap>
+            <params>
+                <LAYERS>ASAR_APC</LAYERS>
+                <TRANSPARENT>true</TRANSPARENT>
+            </params>
+        </getmap>
+        <http>
+            <url>http://localhost/browse/ows?</url>
+        </http>
+    </source>
+    <tileset name="ASAR_APC">
+        <source>ASAR_APC</source>
+        <cache>ASAR_APC</cache>
+        <grid max-cached-zoom="5" out-of-zoom-strategy="reassemble">WGS84</grid>
+        <format>mixed</format>
+        <metatile>8 8</metatile>
+        <expires>3600</expires>
+        <read-only>true</read-only>
+        <timedimension type="sqlite" default="2010">
+            <dbfile>/var/ngeob_data/mapcache.sqlite</dbfile>
+            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&gt;=datetime(:start_timestamp,'unixepoch') and end_time&lt;=datetime(:end_timestamp,'unixepoch') order by end_time</query>
+        </timedimension>
+    </tileset>
+
+    <cache name="ASAR_IM" type="sqlite3">
+        <dbfile>/var/www/cache/ASAR_IM.sqlite</dbfile>
+        <detect_blank>true</detect_blank>
+    </cache>
+    <source name="ASAR_IM" type="wms">
+        <getmap>
+            <params>
+                <LAYERS>ASAR_IM</LAYERS>
+                <TRANSPARENT>true</TRANSPARENT>
+            </params>
+        </getmap>
+        <http>
+            <url>http://localhost/browse/ows?</url>
+        </http>
+    </source>
+    <tileset name="ASAR_IM">
+        <source>ASAR_IM</source>
+        <cache>ASAR_IM</cache>
+        <grid max-cached-zoom="6" out-of-zoom-strategy="reassemble">WGS84</grid>
+        <format>mixed</format>
+        <metatile>8 8</metatile>
+        <expires>3600</expires>
+        <read-only>true</read-only>
+        <timedimension type="sqlite" default="2010">
+            <dbfile>/var/ngeob_data/mapcache.sqlite</dbfile>
+            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&gt;=datetime(:start_timestamp,'unixepoch') and end_time&lt;=datetime(:end_timestamp,'unixepoch') order by end_time</query>
+        </timedimension>
+    </tileset>
+
+    <cache name="ASAR_GM" type="sqlite3">
+        <dbfile>/var/www/cache/ASAR_GM.sqlite</dbfile>
+        <detect_blank>true</detect_blank>
+    </cache>
+    <source name="ASAR_GM" type="wms">
+        <getmap>
+            <params>
+                <LAYERS>ASAR_GM</LAYERS>
+                <TRANSPARENT>true</TRANSPARENT>
+            </params>
+        </getmap>
+        <http>
+            <url>http://localhost/browse/ows?</url>
+        </http>
+    </source>
+    <tileset name="ASAR_GM">
+        <source>ASAR_GM</source>
+        <cache>ASAR_GM</cache>
+        <grid max-cached-zoom="5" out-of-zoom-strategy="reassemble">WGS84</grid>
+        <format>mixed</format>
+        <metatile>8 8</metatile>
+        <expires>3600</expires>
+        <read-only>true</read-only>
+        <timedimension type="sqlite" default="2010">
+            <dbfile>/var/ngeob_data/mapcache.sqlite</dbfile>
+            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&gt;=datetime(:start_timestamp,'unixepoch') and end_time&lt;=datetime(:end_timestamp,'unixepoch') order by end_time</query>
+        </timedimension>
+    </tileset>
+
+    <cache name="MERIS_RR" type="sqlite3">
+        <dbfile>/var/www/cache/MERIS_RR.sqlite</dbfile>
+        <detect_blank>true</detect_blank>
+    </cache>
+    <source name="MERIS_RR" type="wms">
+        <getmap>
+            <params>
+                <LAYERS>MERIS_RR</LAYERS>
+                <TRANSPARENT>true</TRANSPARENT>
+            </params>
+        </getmap>
+        <http>
+            <url>http://localhost/browse/ows?</url>
+        </http>
+    </source>
+    <tileset name="MERIS_RR">
+        <source>MERIS_RR</source>
+        <cache>MERIS_RR</cache>
+        <grid max-cached-zoom="3" out-of-zoom-strategy="reassemble">WGS84</grid>
+        <format>mixed</format>
+        <metatile>8 8</metatile>
+        <expires>3600</expires>
+        <read-only>true</read-only>
+        <timedimension type="sqlite" default="2010">
+            <dbfile>/var/ngeob_data/mapcache.sqlite</dbfile>
+            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&gt;=datetime(:start_timestamp,'unixepoch') and end_time&lt;=datetime(:end_timestamp,'unixepoch') order by end_time</query>
+        </timedimension>
+    </tileset>
+
+    <cache name="MERIS_FR" type="sqlite3">
+        <dbfile>/var/www/cache/MERIS_FR.sqlite</dbfile>
+        <detect_blank>true</detect_blank>
+    </cache>
+    <source name="MERIS_FR" type="wms">
+        <getmap>
+            <params>
+                <LAYERS>MERIS_FR</LAYERS>
+                <TRANSPARENT>true</TRANSPARENT>
+            </params>
+        </getmap>
+        <http>
+            <url>http://localhost/browse/ows?</url>
+        </http>
+    </source>
+    <tileset name="MERIS_FR">
+        <source>MERIS_FR</source>
+        <cache>MERIS_FR</cache>
+        <grid max-cached-zoom="4" out-of-zoom-strategy="reassemble">WGS84</grid>
+        <format>mixed</format>
+        <metatile>8 8</metatile>
+        <expires>3600</expires>
+        <read-only>true</read-only>
+        <timedimension type="sqlite" default="2010">
+            <dbfile>/var/ngeob_data/mapcache.sqlite</dbfile>
+            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&gt;=datetime(:start_timestamp,'unixepoch') and end_time&lt;=datetime(:end_timestamp,'unixepoch') order by end_time</query>
+        </timedimension>
+    </tileset>
 </mapcache>
