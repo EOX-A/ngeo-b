@@ -29,11 +29,9 @@
 
 import re
 
-VERSION = (0, 1, None, 'dev', 0)
-#VERSION = (0, 1, None, 'alpha', 1)
-#VERSION = (0, 1, None, 'beta', 1)
-#VERSION = (0, 1, None, 'rc', 1)
-#VERSION = (0, 1, 0, 'final', 0)
+VERSION = (1, 0, None, 'beta', 1)
+#VERSION = (1, 0, None, 'rc', 1)
+#VERSION = (1, 0, 0, 'final', 0)
 
 def get_version():
     version = '%s.%s' % (VERSION[0], VERSION[1])
