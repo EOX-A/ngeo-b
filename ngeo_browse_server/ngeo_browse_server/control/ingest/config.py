@@ -160,7 +160,7 @@ def get_optimization_config(config=None):
     except: pass
     
     try:
-        values["simplification_tolerance"] = config.getfloat(INGEST_SECTION, "simplification_tolerance")
+        values["simplification_factor"] = config.getfloat(INGEST_SECTION, "simplification_factor")
     except: pass
     
     return values
