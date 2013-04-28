@@ -60,18 +60,35 @@ python manage.py runserver 0.0.0.0:8000
 
 cd git/deliverables/developments/ngeo_browse_server/
 git pull
-git archive --format=tar --prefix=ngeob-0.1dev/ master | gzip > ngeob-0.1dev.tar.gz
-mv ngeob-0.1dev.tar.gz ....
+
+vi ngeo_browse_server/__init__.py
+# Adjust version
+vi setup.py
+# Adjust Development Status
+git ci setup.py ngeo_browse_server/__init__.py -m "Adjusting version."
+# Info:
+#Development Status :: 1 - Planning
+#Development Status :: 2 - Pre-Alpha
+#Development Status :: 3 - Alpha
+#Development Status :: 4 - Beta
+#Development Status :: 5 - Production/Stable
+#Development Status :: 6 - Mature
+#Development Status :: 7 - Inactive
+
+git tag -a release-1.0rc1
+git archive --format=tar --prefix=ngeob-1.0rc1/ release-1.0rc1 | gzip > ngeob-1.0rc1.tar.gz
+mv ngeob-1.0rc1.tar.gz ....
 cd ....
 vagrant ssh
-tar xzf ngeob-0.1dev.tar.gz
-rm ngeob-0.1dev.tar.gz
-cd ngeob-0.1dev/
+tar xzf ngeob-1.0rc1.tar.gz
+rm ngeob-1.0rc1.tar.gz
+cd ngeob-1.0rc1/
 python setup.py bdist_rpm --release <NO>
-tar czf ../ngeob-0.1dev.tar.gz dist/ngEO_Browse_Server-0.1dev*rpm
-# scp ../ngeob-0.1dev.tar.gz -> packages
-cd ..
-rm -r ngeob-0.1dev/
+cd dist
+tar czf ../../ngeob-1.0rc1.tar.gz ngEO_Browse_Server-1.0rc1*rpm
+# scp ../../ngeob-1.0rc1.tar.gz -> packages
+cd ../..
+rm -r ngeob-1.0rc1/
 
 ########################################################################
 # How to build EOxServer                                               #
@@ -108,14 +125,14 @@ rm -r x86_64/ SRPMS/
 # How to build MapServer                                               #
 ########################################################################
 
-# TODO: update to vagrant
-ssh eox@ngeo.eox.at
-cd build/mapserver/
+cd mapserver_git
 git pull
 vi mapserver.h
 # Adjust MS_VERSION: #define MS_VERSION "6.3dev"
-git archive --format=tar --prefix=mapserver-6.3dev/ master | gzip > ../../rpmbuild/SOURCES/mapserver-6.3dev.tar.gz
-cd ../../rpmbuild/SPECS/
+git archive --format=tar --prefix=mapserver-6.3dev/ master | gzip > mapserver-6.3dev.tar.gz
+cd ....
+vagrant ssh
+cd rpmbuild/SPECS/
 vi mapserver.spec
 # Adjust Release
 rpmbuild -ba mapserver.spec
