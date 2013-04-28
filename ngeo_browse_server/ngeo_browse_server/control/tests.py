@@ -1529,7 +1529,7 @@ class IngestRasterStatisticsMultipleBands(BaseTestCaseMixIn, HttpMixIn, Statisti
         {'max': 255.0, 'checksum': 30191, 'mean': 15.659451199310894, 'stddev': 22.103667727281124, 'min': 0.0},
         {'max': 255.0, 'checksum': 35428, 'mean': 13.540062615955472, 'stddev': 21.258531872828733, 'min': 0.0},
         {'max': 255.0, 'checksum': 16276, 'mean': 13.158705771269547, 'stddev': 21.48301977479764, 'min': 0.0},
-        {'max': 255.0, 'checksum': 21890, 'mean': 165.43129224092235, 'stddev': 121.72701864801316, 'min': 0.0} 
+        {'max': 255.0, 'checksum': 20036, 'mean': 165.27394480519482, 'stddev': 121.7759380742111, 'min': 0.0} 
     ]
 
 
@@ -1543,7 +1543,7 @@ class IngestRasterStatisticsMultipleBandsNoDefinition(BaseTestCaseMixIn, HttpMix
         {'max': 255.0, 'checksum': 33522, 'mean': 17.049554399681952, 'stddev': 22.625493105759691, 'min': 0.0},
         {'max': 255.0, 'checksum': 30191, 'mean': 15.659451199310894, 'stddev': 22.103667727281124, 'min': 0.0},
         {'max': 255.0, 'checksum': 6918, 'mean': 14.176099092234296, 'stddev': 21.602771443516307, 'min': 0.0},
-        {'max': 255.0, 'checksum': 21881, 'mean': 165.43129224092235, 'stddev': 121.72701864801316, 'min': 0.0} 
+        {'max': 255.0, 'checksum': 20027, 'mean': 165.27394480519482, 'stddev': 121.7759380742111, 'min': 0.0} 
     ]
     
 
@@ -1569,10 +1569,12 @@ class IngestModelInGeoTiffWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixI
     storage_dir = "data/test_data"
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.xml"
     
+    save_to_file = "results/wms/IngestModelInGeoTiffWMSRaster.png"
+    
     expected_statistics = [
-        {'max': 255.0, 'checksum': 10122, 'mean': 40.781700000000001, 'stddev': 41.566650636177073, 'min': 0.0},
-        {'max': 255.0, 'checksum': 9601, 'mean': 40.005099999999999, 'stddev': 40.335374970241695, 'min': 0.0},
-        {'max': 255.0, 'checksum': 11984, 'mean': 42.242100000000001, 'stddev': 38.408164335073344, 'min': 0.0}
+        {'max': 255.0, 'checksum': 10021, 'mean': 40.744900000000001, 'stddev': 41.571134504485194, 'min': 0.0},
+        {'max': 255.0, 'checksum': 9487, 'mean': 39.966999999999999, 'stddev': 40.339262648194257, 'min': 0.0},
+        {'max': 255.0, 'checksum': 11914, 'mean': 42.195999999999998, 'stddev': 38.414057114551177, 'min': 0.0}
     ]
 
 
@@ -1594,10 +1596,12 @@ class IngestRectifiedWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
     storage_dir = "data/test_data/"
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_nogeo.xml"
     
+    save_to_file = "results/wms/IngestRectifiedWMSRaster.png"
+    
     expected_statistics = [
-        {'max': 255.0, 'checksum': 10122, 'mean': 40.781700000000001, 'stddev': 41.566650636177073, 'min': 0.0},
-        {'max': 255.0, 'checksum': 9601, 'mean': 40.005099999999999, 'stddev': 40.335374970241695, 'min': 0.0},
-        {'max': 255.0, 'checksum': 11984, 'mean': 42.242100000000001, 'stddev': 38.408164335073344, 'min': 0.0}
+        {'max': 255.0, 'checksum': 10021, 'mean': 40.744900000000001, 'stddev': 41.571134504485194, 'min': 0.0},
+        {'max': 255.0, 'checksum': 9487, 'mean': 39.966999999999999, 'stddev': 40.339262648194257, 'min': 0.0},
+        {'max': 255.0, 'checksum': 11914, 'mean': 42.195999999999998, 'stddev': 38.414057114551177, 'min': 0.0}
     ]
 
 
@@ -1618,6 +1622,8 @@ class IngestFootprintWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
     
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     
+    save_to_file = "results/wms/IngestFootprintWMSRaster.png"
+    
     expected_statistics = [{
         "min": 0.0,
         "max": 255.0,
@@ -1630,6 +1636,8 @@ class IngestFootprintWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
 class IngestRegularGridWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
     storage_dir = "data/test_data"
     request_file = "test_data/ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775.xml"
+    
+    save_to_file = "results/wms/IngestRegularGridWMSRaster.png"
 
     wms_request = ("/ows?service=WMS&request=GetMap&version=1.3.0&"
                    "layers=%(layers)s&crs=EPSG:4326&bbox=%(bbox)s&"
