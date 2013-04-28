@@ -29,8 +29,7 @@
 
 import re
 
-VERSION = (1, 0, None, 'beta', 1)
-#VERSION = (1, 0, None, 'rc', 1)
+VERSION = (1, 0, None, 'rc', 1)
 #VERSION = (1, 0, 0, 'final', 0)
 
 def get_version():
