@@ -34,6 +34,9 @@
 #
 # Use with caution as passwords are sent on the command line and thus can be 
 # seen by other users.
+#
+# References are given to the steps defined in the Installation, Operation, 
+# and Maintenance Manual (IOM)[ngEO-BROW-IOM] section 4.3.
 
 # Running:
 # =======
@@ -43,7 +46,8 @@
 # Adjust the variables to your liking.                                         #
 ################################################################################
 
-# Enable/disable testing repositories (false..disable; true..enable)
+# Enable/disable testing repositories, debug logging, etc. 
+# (false..disable; true..enable)
 TESTING=true
 
 # ngEO Browse Server
@@ -84,7 +88,8 @@ echo "==============================================================="
 echo "install_ngeo_browse_server.sh"
 echo "==============================================================="
 
-echo "Started ngEO Browse Server installation"
+echo "Starting ngEO Browse Server installation"
+echo "Assuming successful execution of installation steps 10, 20, and 30"
 
 # Check architecture
 if [ "`uname -m`" != "x86_64" ] ; then
@@ -99,19 +104,89 @@ if [ ! -x "`which sed`" ] ; then
 fi
 
 
+#-----------------
+# OS installation
+#-----------------
+
+echo "Performing installation step 40"
 # Disable SELinux
 setenforce 0
 if ! grep -Fxq "^SELINUX=enforcing$" /etc/selinux/config ; then
     sed -e 's/^SELINUX=enforcing$/SELINUX=disabled/' -i /etc/selinux/config
 fi
 
+echo "Performing installation step 50"
+# Install packages
+yum install -y python-lxml mod_wsgi httpd postgresql-server python-psycopg2 pytz
+if [ $? -ne 0 ] ; then
+    echo "ERROR: Package installation failed! Aborting."
+    exit 1
+fi
+
+echo "Performing installation step 60"
+# Permanently start PostgreSQL
+chkconfig postgresql on
+# Init PostgreSQL
+if [ ! -f "/var/lib/pgsql/data/PG_VERSION" ] ; then
+    service postgresql initdb
+fi
+# Allow DB_USER to access DB_NAME and test_DB_NAME with password
+if ! grep -Fxq "local   $DB_NAME $DB_USER               md5" /var/lib/pgsql/data/pg_hba.conf ; then
+    sed -e "s/^# \"local\" is for Unix domain socket connections only$/&\nlocal   $DB_NAME $DB_USER               md5\nlocal   test_$DB_NAME $DB_USER          md5/" \
+        -i /var/lib/pgsql/data/pg_hba.conf
+fi
+# Reload PostgreSQL
+service postgresql force-reload
+
+echo "Performing installation step 70"
+# Permanently start Apache
+chkconfig httpd on
+# Reload Apache
+service httpd graceful
+
+
+#-----------------------
+# OSS/COTS installation
+#-----------------------
+
+echo "Assuming successful execution of installation step 80"
 
 # Install needed yum repositories
+echo "Performing installation step 90"
+# EPEL
+rpm -Uvh http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+echo "Performing installation step 100"
+# ELGIS
+rpm -Uvh http://elgis.argeo.org/repos/6/elgis-release-6-6_0.noarch.rpm
+
+echo "Performing installation step 110"
+# Apply available upgrades
+yum update -y
+
+echo "Performing installation step 120"
+# Install packages
+yum install -y gdal gdal-python postgis Django14
+if [ $? -ne 0 ] ; then
+    echo "ERROR: Package installation failed! Aborting."
+    exit 1
+fi
+
+
+#------------------------
+# Component installation
+#------------------------
+
+echo "Assuming successful execution of installation step 130"
+
+# Install needed yum repositories
+echo "Performing installation step 140"
 # EOX
 rpm -Uvh http://yum.packages.eox.at/el/eox-release-6-2.noarch.rpm
 if "$TESTING" ; then
     sed -e 's/^enabled=0/enabled=1/' -i /etc/yum.repos.d/eox-testing.repo
 fi
+
+echo "Performing installation step 150"
 # Set includepkgs in EOX Stable
 if ! grep -Fxq "includepkgs=EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python" /etc/yum.repos.d/eox.repo ; then
     sed -e 's/^\[eox\]$/&\nincludepkgs=EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python/' -i /etc/yum.repos.d/eox.repo
@@ -126,52 +201,24 @@ fi
 if ! grep -Fxq "includepkgs=ngEO_Browse_Server" /etc/yum.repos.d/eox-testing.repo ; then
     sed -e 's/^\[eox-testing-noarch\]$/&\nincludepkgs=ngEO_Browse_Server/' -i /etc/yum.repos.d/eox-testing.repo
 fi
+
+echo "Performing installation step 160"
 # Set exclude in CentOS-Base
 if ! grep -Fxq "exclude=libxml2 libxml2-python" /etc/yum.repos.d/CentOS-Base.repo ; then
     sed -e 's/^\[base\]$/&\nexclude=libxml2 libxml2-python/' -i /etc/yum.repos.d/CentOS-Base.repo
     sed -e 's/^\[updates\]$/&\nexclude=libxml2 libxml2-python/' -i /etc/yum.repos.d/CentOS-Base.repo
 fi
-# EPEL
-rpm -Uvh http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
-# ELGIS
-rpm -Uvh http://elgis.argeo.org/repos/6/elgis-release-6-6_0.noarch.rpm
 
-# Apply available upgrades
-yum update -y
-
+echo "Performing installation step 170"
 # Install packages
-yum install -y gdal gdal-python mapserver mapserver-python postgis \
-    postgresql-server python-psycopg2 Django14 httpd mod_wsgi libxml2 \
-    libxml2-python python-lxml pytz mapcache \
-    EOxServer ngEO_Browse_Server
-
+yum install -y libxml2 libxml2-python mapserver mapserver-python mapcache \
+               ngEO_Browse_Server EOxServer
 if [ $? -ne 0 ] ; then
     echo "ERROR: Package installation failed! Aborting."
     exit 1
 fi
 
-
-# Permanently start Apache
-chkconfig httpd on
-
-# Permanently start PostgreSQL
-chkconfig postgresql on
-
-
-# Init PostgreSQL
-if [ ! -f "/var/lib/pgsql/data/PG_VERSION" ] ; then
-    service postgresql initdb
-fi
-
-# Allow DB_USER to access DB_NAME and test_DB_NAME with password
-if ! grep -Fxq "local   $DB_NAME $DB_USER               md5" /var/lib/pgsql/data/pg_hba.conf ; then
-    sed -e "s/^# \"local\" is for Unix domain socket connections only$/&\nlocal   $DB_NAME $DB_USER               md5\nlocal   test_$DB_NAME $DB_USER          md5/" \
-		-i /var/lib/pgsql/data/pg_hba.conf
-fi
-
-# Reload PostgreSQL
-service postgresql force-reload
-
+echo "Performing installation step 180"
 # Configure PostgreSQL/PostGIS database
 
 ## Write database configuration script
@@ -211,7 +258,7 @@ else
     echo "Script to configure DB not found."
 fi
 
-
+echo "Performing installation step 190"
 # ngEO Browse Server
 [ -d "$NGEOB_INSTALL_DIR" ] || mkdir -p "$NGEOB_INSTALL_DIR"
 cd "$NGEOB_INSTALL_DIR"
@@ -221,8 +268,9 @@ if [ ! -d ngeo_browse_server_instance ] ; then
     echo "Creating and configuring ngEO Browse Server instance."
 
     django-admin startproject --extension=conf --template=`python -c "import ngeo_browse_server, os; from os.path import dirname, abspath, join; print(join(dirname(abspath(ngeo_browse_server.__file__)), 'project_template'))"` ngeo_browse_server_instance
-    cd ngeo_browse_server_instance
     
+    echo "Performing installation step 200"
+    cd ngeo_browse_server_instance
     # Configure DBs
     NGEOB_INSTALL_DIR_ESCAPED=`echo $NGEOB_INSTALL_DIR | sed -e 's/\//\\\&/g'`
     sed -e "s/'ENGINE': 'django.contrib.gis.db.backends.spatialite',                  # Use 'spatialite' or change to 'postgis'./'ENGINE': 'django.contrib.gis.db.backends.postgis',/" -i ngeo_browse_server_instance/settings.py
@@ -267,7 +315,7 @@ if [ ! -d ngeo_browse_server_instance ] ; then
     cd ..
 fi
 
-
+echo "Performing installation step 210"
 # MapCache
 if [ ! -d "$MAPCACHE_DIR" ] ; then
     echo "Configuring MapCache."
@@ -311,7 +359,10 @@ EOF
     cd -
 fi
 
+echo "Performing installation step 220"
+#TBD for V2
 
+echo "Performing installation step 230"
 # Configure WebDAV
 if [ ! -d "$NGEOB_INSTALL_DIR/dav" ] ; then
     echo "Configuring WebDAV."
@@ -326,11 +377,11 @@ if [ ! -d "$NGEOB_INSTALL_DIR/store" ] ; then
     chown -R apache:apache "$NGEOB_INSTALL_DIR/store"
 fi
 
+echo "Performing installation step 240"
 # Enable MapCache module in Apache
 if ! grep -Fxq "LoadModule mapcache_module modules/mod_mapcache.so" /etc/httpd/conf/httpd.conf ; then
     sed -e 's/^LoadModule version_module modules\/mod_version.so$/&\nLoadModule mapcache_module modules\/mod_mapcache.so/' -i /etc/httpd/conf/httpd.conf
 fi
-
 
 # Add Apache configuration
 if [ ! -f "$APACHE_CONF" ] ; then
@@ -403,6 +454,7 @@ if [ ! -f "$APACHE_CONF" ] ; then
 EOF
 fi
 
+echo "Performing installation step 250"
 # Reload Apache
 service httpd graceful
 
