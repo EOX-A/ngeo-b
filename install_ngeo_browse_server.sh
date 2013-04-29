@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -e
 #-------------------------------------------------------------------------------
 #
 # Project: ngEO Browse Server <http://ngeo.eox.at>
@@ -110,18 +110,16 @@ fi
 
 echo "Performing installation step 40"
 # Disable SELinux
-setenforce 0
-if ! grep -Fxq "^SELINUX=enforcing$" /etc/selinux/config ; then
-    sed -e 's/^SELINUX=enforcing$/SELINUX=disabled/' -i /etc/selinux/config
+if ! [ `getenforce` == "Disabled" ] ; then
+    setenforce 0
+fi
+if ! grep -Fxq "SELINUX=disabled" /etc/selinux/config ; then
+    sed -e 's/^SELINUX=.*$/SELINUX=disabled/' -i /etc/selinux/config
 fi
 
 echo "Performing installation step 50"
 # Install packages
 yum install -y python-lxml mod_wsgi httpd postgresql-server python-psycopg2 pytz
-if [ $? -ne 0 ] ; then
-    echo "ERROR: Package installation failed! Aborting."
-    exit 1
-fi
 
 echo "Performing installation step 60"
 # Permanently start PostgreSQL
@@ -154,10 +152,10 @@ echo "Assuming successful execution of installation step 80"
 # Install needed yum repositories
 echo "Performing installation step 90"
 # EPEL
-rpm -Uvh http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+rpm -Uvh --replacepkgs http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
 echo "Performing installation step 100"
 # ELGIS
-rpm -Uvh http://elgis.argeo.org/repos/6/elgis-release-6-6_0.noarch.rpm
+rpm -Uvh --replacepkgs http://elgis.argeo.org/repos/6/elgis-release-6-6_0.noarch.rpm
 
 echo "Performing installation step 110"
 # Apply available upgrades
@@ -166,10 +164,6 @@ yum update -y
 echo "Performing installation step 120"
 # Install packages
 yum install -y gdal gdal-python postgis Django14
-if [ $? -ne 0 ] ; then
-    echo "ERROR: Package installation failed! Aborting."
-    exit 1
-fi
 
 
 #------------------------
@@ -181,7 +175,7 @@ echo "Assuming successful execution of installation step 130"
 # Install needed yum repositories
 echo "Performing installation step 140"
 # EOX
-rpm -Uvh http://yum.packages.eox.at/el/eox-release-6-2.noarch.rpm
+rpm -Uvh --replacepkgs http://yum.packages.eox.at/el/eox-release-6-2.noarch.rpm
 if "$TESTING" ; then
     sed -e 's/^enabled=0/enabled=1/' -i /etc/yum.repos.d/eox-testing.repo
 fi
@@ -213,10 +207,6 @@ echo "Performing installation step 170"
 # Install packages
 yum install -y libxml2 libxml2-python mapserver mapserver-python mapcache \
                ngEO_Browse_Server EOxServer
-if [ $? -ne 0 ] ; then
-    echo "ERROR: Package installation failed! Aborting."
-    exit 1
-fi
 
 echo "Performing installation step 180"
 # Configure PostgreSQL/PostGIS database
@@ -224,7 +214,7 @@ echo "Performing installation step 180"
 ## Write database configuration script
 TMPFILE=`mktemp`
 cat << EOF > "$TMPFILE"
-#!/bin/sh
+#!/bin/sh -e
 # cd to a "safe" location
 cd /tmp
 if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='template_postgis'")" != 1 ] ; then
@@ -313,6 +303,8 @@ if [ ! -d ngeo_browse_server_instance ] ; then
     chown -R apache:apache .
 
     cd ..
+else
+    echo "Skipped installation steps 190 and 200"
 fi
 
 echo "Performing installation step 210"
@@ -357,10 +349,13 @@ EOF
     chown -R apache:apache .
 
     cd -
+else
+    echo "Skipped installation step 210"
 fi
 
 echo "Performing installation step 220"
 #TBD for V2
+echo "Skipped installation step 220"
 
 echo "Performing installation step 230"
 # Configure WebDAV
@@ -371,21 +366,23 @@ if [ ! -d "$NGEOB_INSTALL_DIR/dav" ] ; then
     sed -e "s/^\(.*\)  -$/test:ngEO Browse Server:\1/" -i $NGEOB_INSTALL_DIR/dav/DavUsers
     chown -R apache:apache "$NGEOB_INSTALL_DIR/dav"
     chmod 0640 "$NGEOB_INSTALL_DIR/dav/DavUsers"
-fi
-if [ ! -d "$NGEOB_INSTALL_DIR/store" ] ; then
-    mkdir -p "$NGEOB_INSTALL_DIR/store"
-    chown -R apache:apache "$NGEOB_INSTALL_DIR/store"
+    if [ ! -d "$NGEOB_INSTALL_DIR/store" ] ; then
+        mkdir -p "$NGEOB_INSTALL_DIR/store"
+        chown -R apache:apache "$NGEOB_INSTALL_DIR/store"
+    fi
+else
+    echo "Skipped installation step 230"
 fi
 
 echo "Performing installation step 240"
-# Enable MapCache module in Apache
-if ! grep -Fxq "LoadModule mapcache_module modules/mod_mapcache.so" /etc/httpd/conf/httpd.conf ; then
-    sed -e 's/^LoadModule version_module modules\/mod_version.so$/&\nLoadModule mapcache_module modules\/mod_mapcache.so/' -i /etc/httpd/conf/httpd.conf
-fi
-
 # Add Apache configuration
 if [ ! -f "$APACHE_CONF" ] ; then
     echo "Configuring Apache."
+
+    # Enable MapCache module
+    if ! grep -Fxq "LoadModule mapcache_module modules/mod_mapcache.so" /etc/httpd/conf/httpd.conf ; then
+        sed -e 's/^LoadModule version_module modules\/mod_version.so$/&\nLoadModule mapcache_module modules\/mod_mapcache.so/' -i /etc/httpd/conf/httpd.conf
+    fi
 
     # Configure WSGI module
     if ! grep -Fxq "WSGISocketPrefix run/wsgi" /etc/httpd/conf.d/wsgi.conf ; then
@@ -452,6 +449,8 @@ if [ ! -f "$APACHE_CONF" ] ; then
     </Directory>
 </VirtualHost>
 EOF
+else
+    echo "Skipped installation step 240"
 fi
 
 echo "Performing installation step 250"
