@@ -1487,6 +1487,8 @@ class IngestRasterStatistics(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, Test
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "ASA_IM__0P_20100722_213840_proc.tif"))
     
+    save_to_file = "results/raster/IngestRasterStatistics.tif"
+    
     expected_statistics = [{
         "min": 0.0,
         "max": 255.0,

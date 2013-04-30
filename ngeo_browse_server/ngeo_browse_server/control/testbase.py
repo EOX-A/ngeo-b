@@ -656,13 +656,13 @@ class RasterMixIn(object):
     
     save_to_file = None
     
-    def open_raster(self, dirname=None, raster_file=None):
+    def open_raster(self, dir_name=None, raster_file=None):
         """ Convenience function to open a GDAL dataset. """
         
-        dirname = dirname or self.temp_optimized_files_dir
+        dir_name = dir_name or self.temp_optimized_files_dir
         raster_file = raster_file or self.raster_file
         
-        filename = join(dirname, raster_file)
+        filename = join(dir_name, raster_file)
         
         if self.save_to_file:
             save_filename = join(settings.PROJECT_DIR, self.save_to_file)
