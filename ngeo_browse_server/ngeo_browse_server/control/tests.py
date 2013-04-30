@@ -56,6 +56,7 @@ class IngestModelInGeotiffBrowse(IngestTestCaseMixIn, HttpTestCaseMixin, TestCas
     expected_inserted_into_series = "TEST_MER_FRS"
     expected_optimized_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_proc.tif']
     expected_deleted_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.tif']
+    save_optimized_files = True
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -132,6 +133,7 @@ class IngestRectifiedBrowse(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     expected_inserted_into_series = "TEST_MER_FRS"
     expected_optimized_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_nogeo_proc.tif']
     expected_deleted_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_nogeo.tif']
+    save_optimized_files = True
     
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -172,6 +174,7 @@ class IngestRegularGridBrowse(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     expected_inserted_into_series = "TEST_ASA_WSM"
     expected_optimized_files = ['ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775_proc.tif']
     expected_deleted_files = ['ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775.tif']
+    save_optimized_files = True
 
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -246,7 +249,8 @@ class IngestFootprintBrowse(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['ASA_IM__0P_20100722_213840_proc.tif']
     expected_deleted_files = ['ASA_IM__0P_20100722_213840.jpg']
-    
+    save_optimized_files = True
+
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"

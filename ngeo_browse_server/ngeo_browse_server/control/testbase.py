@@ -395,7 +395,8 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
     expected_ingested_coverage_ids = None # Defaults to expected_ingested_browse_ids
     expected_inserted_into_series = None
     expected_optimized_files = ()
-    expected_tiles = None     # dict. key: zoom level, value: count 
+    expected_tiles = None     # dict. key: zoom level, value: count
+    save_optimized_files = False
     
     def test_expected_inserted_browses(self):
         """ Check that the expected browses are inserted. """
@@ -458,9 +459,17 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
         
         # check that all optimized files are beeing created
         files = self.get_file_list(self.temp_optimized_files_dir)
+        
+        if self.save_optimized_files:
+            save_dir = join(settings.PROJECT_DIR, "results/ingest")
+            safe_makedirs(dirname(save_dir))
+            for path, _, filenames in walk(self.temp_optimized_files_dir):
+                for file_to_save in filenames:
+                    shutil.copy(join(path, file_to_save), save_dir) 
+        
         self.assertItemsEqual(self.expected_optimized_files, files)
-
-
+    
+    
     def test_model_counts(self):
         """ Check that the models have been created correctly. """
         
