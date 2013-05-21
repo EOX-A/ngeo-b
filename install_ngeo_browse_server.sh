@@ -391,7 +391,7 @@ if [ ! -f "$APACHE_CONF" ] ; then
     if ! grep -Fxq "MaxKeepAliveRequests 0" /etc/httpd/conf/httpd.conf ; then
         sed -e 's/^MaxKeepAliveRequests .*$/MaxKeepAliveRequests 0/' -i /etc/httpd/conf/httpd.conf
     fi
-    if ! grep -Fxq "KeepAliveTimeout 15" /etc/httpd/conf/httpd.conf ; then
+    if ! grep -Fxq "KeepAliveTimeout 5" /etc/httpd/conf/httpd.conf ; then
         sed -e 's/^KeepAliveTimeout .*$/KeepAliveTimeout 5/' -i /etc/httpd/conf/httpd.conf
     fi
 
