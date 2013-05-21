@@ -384,6 +384,30 @@ if [ ! -f "$APACHE_CONF" ] ; then
         sed -e 's/^LoadModule version_module modules\/mod_version.so$/&\nLoadModule mapcache_module modules\/mod_mapcache.so/' -i /etc/httpd/conf/httpd.conf
     fi
 
+    # Enable & configure Keepalive
+    if ! grep -Fxq "KeepAlive On" /etc/httpd/conf/httpd.conf ; then
+        sed -e 's/^KeepAlive .*$/KeepAlive On/' -i /etc/httpd/conf/httpd.conf
+    fi
+    if ! grep -Fxq "MaxKeepAliveRequests 0" /etc/httpd/conf/httpd.conf ; then
+        sed -e 's/^MaxKeepAliveRequests .*$/MaxKeepAliveRequests 0/' -i /etc/httpd/conf/httpd.conf
+    fi
+    if ! grep -Fxq "KeepAliveTimeout 5" /etc/httpd/conf/httpd.conf ; then
+        sed -e 's/^KeepAliveTimeout .*$/KeepAliveTimeout 5/' -i /etc/httpd/conf/httpd.conf
+    fi
+
+    echo "More performance tuning of apache is needed. Specifically the settings of the prefork module!"
+    echo "A sample configuration could look like the following."
+    cat << EOF
+<IfModule prefork.c>
+StartServers      64
+MinSpareServers   32
+MaxSpareServers   32
+ServerLimit      380
+MaxClients       380
+MaxRequestsPerChild  0
+</IfModule>
+EOF
+
     # Configure WSGI module
     if ! grep -Fxq "WSGISocketPrefix run/wsgi" /etc/httpd/conf.d/wsgi.conf ; then
         echo "WSGISocketPrefix run/wsgi" >> /etc/httpd/conf.d/wsgi.conf
