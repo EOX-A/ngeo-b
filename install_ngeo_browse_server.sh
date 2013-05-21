@@ -386,13 +386,13 @@ if [ ! -f "$APACHE_CONF" ] ; then
 
     # Enable & configure Keepalive
     if ! grep -Fxq "KeepAlive On" /etc/httpd/conf/httpd.conf ; then
-        sed -e 's/^#KeepAlive On$/KeepAlive On/' -i /etc/httpd/conf/httpd.conf
+        sed -e 's/^KeepAlive .*$/KeepAlive On/' -i /etc/httpd/conf/httpd.conf
     fi
     if ! grep -Fxq "MaxKeepAliveRequests 0" /etc/httpd/conf/httpd.conf ; then
-        sed -e 's/^#MaxKeepAliveRequests .*$/MaxKeepAliveRequests 0/' -i /etc/httpd/conf/httpd.conf
+        sed -e 's/^MaxKeepAliveRequests .*$/MaxKeepAliveRequests 0/' -i /etc/httpd/conf/httpd.conf
     fi
     if ! grep -Fxq "KeepAliveTimeout 15" /etc/httpd/conf/httpd.conf ; then
-        sed -e 's/^#KeepAliveTimeout .*$/KeepAliveTimeout 15/' -i /etc/httpd/conf/httpd.conf
+        sed -e 's/^KeepAliveTimeout .*$/KeepAliveTimeout 5/' -i /etc/httpd/conf/httpd.conf
     fi
 
     echo "More performance tuning of apache is needed. Specifically the settings of the prefork module!"
