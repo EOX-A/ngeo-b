@@ -1467,10 +1467,10 @@ class IngestRasterExtent(BaseTestCaseMixIn, HttpMixIn, ExtentMixIn, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "ASA_IM__0P_20100722_213840_proc.tif"))
     
-    expected_extent = (-2.7625000000000002, 
-                       49.461072913649971, 
-                       -0.001983356685690385, 
-                       53.079999999999998)
+    expected_extent = (-2.7900000000000005, 
+                       49.46107291365005, 
+                       -0.029483356685753748, 
+                       53.079999999999991)
 
 
 class IngestRasterSize(BaseTestCaseMixIn, HttpMixIn, SizeMixIn, TestCase):
@@ -1496,27 +1496,27 @@ class IngestRasterStatistics(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, Test
     expected_statistics = [{
         "min": 0.0,
         "max": 255.0,
-        "mean": 63.925277695030758,
-        "stddev": 75.959146309249874,
-        "checksum": 61578
+        "mean": 64.244023630714196,
+        "stddev": 76.138905033891447,
+        "checksum": 13096
     }, {
         "min": 0.0,
         "max": 255.0,
-        "mean": 63.925277695030758,
-        "stddev": 75.959146309249874,
-        "checksum": 61578
+        "mean": 64.244023630714196,
+        "stddev": 76.138905033891447,
+        "checksum": 13096
     }, {
         "min": 0.0,
         "max": 255.0,
-        "mean": 63.925277695030758,
-        "stddev": 75.959146309249874,
-        "checksum": 61578
+        "mean": 64.244023630714196,
+        "stddev": 76.138905033891447,
+        "checksum": 13096
     }, {
         "min": 0.0,
         "max": 255.0,
-        "mean": 138.47156093432616,
-        "stddev": 127.02706345761268,
-        "checksum": 44546
+        "mean": 138.47198216408577,
+        "stddev": 127.02702707452059,
+        "checksum": 44673
     }]
 
 
@@ -1633,9 +1633,9 @@ class IngestFootprintWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
     expected_statistics = [{
         "min": 0.0,
         "max": 255.0,
-        "mean": 63.942,
-        "stddev": 76.043258978031716,
-        "checksum": 56631
+        "mean": 64.370999999999995,
+        "stddev": 76.192750042244839,
+        "checksum": 57389
     }] * 3
 
 

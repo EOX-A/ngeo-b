@@ -131,7 +131,7 @@ class BaseTestCaseMixIn(object):
         (INGEST_SECTION, "overview_minsize"): "256",
         (INGEST_SECTION, "color_index"): "false",
         (INGEST_SECTION, "footprint_alpha"): "true",
-        (INGEST_SECTION, "delete_on_success"): "false",
+        (INGEST_SECTION, "delete_on_success"): "true",
         (INGEST_SECTION, "leave_original"): "false",
         # storage_dir, success_dir, failure_dir, optimized_files_dir, and 
         # seed_command are set automatically in setUp_files.
@@ -248,7 +248,8 @@ class BaseTestCaseMixIn(object):
         # execute request or command
         if self.request_before_test is not None:
             self.execute(self.request_before_test)
-            self.before_test_files = 2 # one browse plus browse report
+            self.before_test_files = 1
+            # one browse report (no browse because "delete_on_success" is true)
         elif self.args_before_test:
             self.execute(self.args_before_test)
     
@@ -512,8 +513,10 @@ class IngestTestCaseMixIn(BaseInsertTestCaseMixIn):
         
         # test that the correct number of files was moved/created in the success
         # directory
+        # note that successfully ingested browse images are not moved but 
+        # deleted (configuration "delete_on_success")
         files = self.get_file_list(self.temp_success_dir)
-        self.assertEqual(len(browse_ids) + browse_report_file_mod + self.before_test_files, len(files))
+        self.assertEqual(browse_report_file_mod + self.before_test_files, len(files))
 
 
 class ImportTestCaseMixIn(BaseInsertTestCaseMixIn):

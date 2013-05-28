@@ -56,7 +56,7 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                   "'continue' and 'stop'. Default is 'stop'.")
         ),
         make_option('--delete-on-success', action="store_true",
-            dest='delete_on_success', default=False,
+            dest='delete_on_success', default=True,
             help=("If this option is set, the original browse files will be "
                   "deleted and only the optimized browse files will be kept.")
         ),
