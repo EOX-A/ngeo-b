@@ -36,7 +36,7 @@ from ngeo_browse_server.config.browselayer.data import BrowseLayer
 logger = logging.getLogger(__name__)
 
 
-def parse_browse_layers(browse_layers_elem):
+def decode_browse_layers(browse_layers_elem):
     logger.info("Start parsing browse layer.")
     
     #TODO: browse_layers_elem.tag == ns_cfg("browseLayers")

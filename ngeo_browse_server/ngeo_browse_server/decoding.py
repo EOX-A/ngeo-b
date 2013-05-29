@@ -30,23 +30,23 @@
 from lxml import etree 
 
 
-class XMLParseError(Exception):
+class XMLDecodeError(Exception):
     pass
 
 
-class XMLParser(object):
+class XMLDecoder(object):
     """ Multi-purpose XML parser. Applies a given schema to an XML tree node. 
     """
     
     def __init__(self, schema, namespaces=None):
         """\
-        Initializes the XMLParser.
+        Initializes the XMLDecoder.
         
         :param schema: is a dict in the form 'key': (selector, [type[, 
         multiplicity]]). *key* is the parameter name to be set on the result 
         dictionary. *selector* is either an xpath string or a callable that 
         accepts an :class:`etree.Element` and returns a list of objects 
-        (Elements/strings etc). *type* is a callable that converts the parsed 
+        (Elements/strings etc). *type* is a callable that converts the decoded 
         strings/Elements to their intended type. *multiplicity* is either a 
         positive integer or one of '*', '+' or '?', defining how many items are
         expected. If *multiplicity* is 1 or '?' the resulting value is scalar, 
@@ -75,7 +75,7 @@ class XMLParser(object):
         return (selector,) + args
         
     
-    def parse(self, element, kwargs=None):
+    def decode(self, element, kwargs=None):
         """ Applies the schema to the element and parses all parameters.
         """
         
@@ -83,15 +83,15 @@ class XMLParser(object):
             kwargs = {}
         
         for key, args in self._schema.items():
-            self.parse_arg(element, kwargs, key, *args)
+            self.decode_arg(element, kwargs, key, *args)
         
         return kwargs
     
-    __call__ = parse
+    __call__ = decode
     
     
-    def parse_arg(self, element, kwargs, key, selector, typ=str, multiplicity=1):
-        """ Parses a single argument and adds it to the result dict. Also checks
+    def decode_arg(self, element, kwargs, key, selector, typ=str, multiplicity=1):
+        """ Decodes a single argument and adds it to the result dict. Also checks
         for the correct multiplicity of the element and applies the given type.
         """
         
@@ -106,17 +106,17 @@ class XMLParser(object):
         
         if isinstance(multiplicity, int) and num_results != multiplicity:
             if not num_results:
-                raise XMLParseError("Could not find required element%s %s." % 
-                                    ("s" if multiple else "",  selector))
-            raise XMLParseError("Found unexpected number (%d) of elements %s. "
-                                "Expected %s." %
-                                (num_results, selector, multiplicity))
+                raise XMLDecodeError("Could not find required element%s %s." % 
+                                     ("s" if multiple else "",  selector))
+            raise XMLDecodeError("Found unexpected number (%d) of elements %s. "
+                                 "Expected %s." %
+                                 (num_results, selector, multiplicity))
         
         if multiplicity == "+" and not num_results:
-            raise XMLParseError("Could not find required element %s." % selector)
+            raise XMLDecodeError("Could not find required element %s." % selector)
         
         if multiplicity == "?" and num_results > 1:
-            raise XMLParseError("Expected at most one element of %s." % selector)
+            raise XMLDecodeError("Expected at most one element of %s." % selector)
         
         if multiple:
             kwargs[key] = map(typ, results)
@@ -129,15 +129,15 @@ class XMLParser(object):
 
 
 class typelist(object):
-    """ Helper for XMLParser schemas that expect a string that represents a list
-    of a type seperated by some seperator.
+    """ Helper for XMLDecoder schemas that expect a string that represents a list
+    of a type separated by some separator.
     """
     
-    def __init__(self, typ, seperator=" "):
+    def __init__(self, typ, separator=" "):
         self.typ = typ
-        self.seperator = seperator
+        self.separator = separator
         
     
     def __call__(self, value):
-        return map(self.typ, value.split(self.seperator))
+        return map(self.typ, value.split(self.separator))
 
