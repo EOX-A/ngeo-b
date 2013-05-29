@@ -34,9 +34,12 @@ from lxml import etree
 from django.shortcuts import render_to_response
 from osgeo import gdalnumeric   # This prevents issues in parallel setups. Do 
                                 # not remove this line.
+from eoxserver.processing.preprocessing.exceptions import PreprocessingException
 
+from ngeo_browse_server.parsing import XMLParseError
 from ngeo_browse_server.control.ingest import ingest_browse_report
 from ngeo_browse_server.config.browsereport.parsing import parse_browse_report
+from ngeo_browse_server.config.browsereport.exceptions import ParsingException
 from ngeo_browse_server.control.ingest.exceptions import IngestionException
 
 
@@ -59,13 +62,21 @@ def ingest(request):
             raise IngestionException("Could not parse request XML. Error was: "
                                      "'%s'." % str(e),
                                      "InvalidRequest")
-        
-        parsed_browse_report = parse_browse_report(document.getroot())
-        results = ingest_browse_report(parsed_browse_report)
+        try:
+            parsed_browse_report = parse_browse_report(document.getroot())
+            results = ingest_browse_report(parsed_browse_report)
+
+        # unify exception code for some exception types
+        except (XMLParseError, ParsingException), e:
+            raise IngestionException(str(e), "InvalidRequest")
+
+        except PreprocessingException, e:
+            raise IngestionException(str(e))            
+
         
         return render_to_response("control/ingest_response.xml", 
-                              {"results": results}, 
-                              mimetype="text/xml")
+                                  {"results": results}, 
+                                  mimetype="text/xml")
     except Exception, e:
         logger.debug(traceback.format_exc())
         return render_to_response("control/ingest_exception.xml",
