@@ -27,8 +27,6 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
-from ngeo_browse_server.config import models
-
 
 """\ 
 This module contains intermediary (runtime) data for ingestion or the like.
@@ -154,6 +152,9 @@ class ModelInGeotiffBrowse(Browse):
 
 
 def browse_from_model(browse_model):
+    # import here, so that the module can be used without an instance
+    from ngeo_browse_server.config import models
+    
     kwargs = {
         "file_name": browse_model.file_name,
         "image_type": browse_model.image_type,
