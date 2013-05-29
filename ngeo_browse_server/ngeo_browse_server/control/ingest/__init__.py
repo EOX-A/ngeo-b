@@ -52,8 +52,8 @@ from eoxserver.resources.coverages.models import NCNameValidator
 
 from ngeo_browse_server.config import get_ngeo_config, safe_get
 from ngeo_browse_server.config import models
-from ngeo_browse_server.config.browsereport.parsing import (
-    parse_browse_report, parse_coord_list, pairwise_iterative
+from ngeo_browse_server.config.browsereport.decoding import (
+    decode_browse_report, decode_coord_list, pairwise_iterative
 )
 from ngeo_browse_server.config.browsereport import data
 from ngeo_browse_server.control.ingest.result import (
@@ -313,7 +313,11 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
     # check if a browse already exists and delete it in order to replace it
     existing_browse_model = get_existing_browse(parsed_browse, browse_layer.id)
     if existing_browse_model:
-        identifier = existing_browse_model.browse_identifier
+        identifier = None
+        try:
+            identifier = existing_browse_model.browse_identifier
+        except: # TODO catch correct exception
+            pass
         if (identifier and parsed_browse.browse_identifier
             and  identifier.value != parsed_browse.browse_identifier):
             raise IngestionException("Existing browse does not have the "
@@ -485,15 +489,15 @@ def _georef_from_parsed(parsed_browse):
     swap_axes = hasSwappedAxes(srid)
     
     if parsed_browse.geo_type == "rectifiedBrowse":
-        coords = parse_coord_list(parsed_browse.coord_list, swap_axes)
+        coords = decode_coord_list(parsed_browse.coord_list, swap_axes)
         coords = [coord for pair in coords for coord in pair]
         assert(len(coords) == 4)
         return Extent(*coords, srid=srid)
         
     elif parsed_browse.geo_type == "footprintBrowse":
         # Generate GCPs from footprint coordinates
-        pixels = parse_coord_list(parsed_browse.col_row_list)
-        coord_list = parse_coord_list(parsed_browse.coord_list, swap_axes)
+        pixels = decode_coord_list(parsed_browse.col_row_list)
+        coord_list = decode_coord_list(parsed_browse.coord_list, swap_axes)
         
         if _coord_list_crosses_dateline(coord_list, CRS_BOUNDS[srid]):
             logger.info("Footprint crosses the dateline. Normalizing it.")
@@ -510,7 +514,7 @@ def _georef_from_parsed(parsed_browse):
                                      "equal to the first.")
         gcps.pop()
         
-        return GCPList(gcps, srid)
+        return GCPList(gcps, srid, order=1)
         
         
     elif parsed_browse.geo_type == "regularGridBrowse":
@@ -531,7 +535,7 @@ def _georef_from_parsed(parsed_browse):
         
         coord_lists = []
         for coord_list in parsed_browse.coord_lists:
-            coord_list = parse_coord_list(coord_list, swap_axes)
+            coord_list = decode_coord_list(coord_list, swap_axes)
             
             # TODO: iterate over every coord pair. if a dateline cross occurred
             # move all the negative values to the positive space

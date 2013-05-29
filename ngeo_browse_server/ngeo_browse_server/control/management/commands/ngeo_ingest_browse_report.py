@@ -37,7 +37,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.template.loader import render_to_string
 from eoxserver.resources.coverages.management.commands import CommandOutputMixIn
 
-from ngeo_browse_server.config.browsereport.parsing import parse_browse_report
+from ngeo_browse_server.config.browsereport.decoding import decode_browse_report
 from ngeo_browse_server.config import get_ngeo_config
 from ngeo_browse_server.control.ingest import ingest_browse_report
 from ngeo_browse_server.control.management.commands import LogToConsoleMixIn
@@ -158,7 +158,7 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         # parsed browse report.
         self.print_msg("Parsing XML file '%s'." % filename, 1)
         document = etree.parse(filename)
-        parsed_browse_report = parse_browse_report(document.getroot())
+        parsed_browse_report = decode_browse_report(document.getroot())
         
         # ingest the parsed browse report
         self.print_msg("Ingesting browse report with %d browse%s."
