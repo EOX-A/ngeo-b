@@ -320,8 +320,9 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
             pass
         if (identifier and parsed_browse.browse_identifier
             and  identifier.value != parsed_browse.browse_identifier):
-            raise IngestionException("Existing browse does not have the "
-                                     "same browse ID as the ingested.") 
+            raise IngestionException("Existing browse with same start and end "
+                                     "time does not have the same browse ID "
+                                     "as the one to ingest.") 
         
         replaced_time_interval = (existing_browse_model.start_time,
                                   existing_browse_model.end_time)
@@ -427,7 +428,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
     
     else:
         # move the file to success folder, or delete it right away
-        delete_on_success = False
+        delete_on_success = True
         try: delete_on_success = config.getboolean("control.ingest", "delete_on_success")
         except: pass
         
