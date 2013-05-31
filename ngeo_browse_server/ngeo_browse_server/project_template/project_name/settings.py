@@ -207,14 +207,14 @@ LOGGING = {
     'handlers': {
         'eoxserver_file': {
             'level': 'DEBUG',
-            'class': 'logging.WatchedFileHandler',
+            'class': 'logging.handlers.WatchedFileHandler',
             'filename': join(PROJECT_DIR, 'logs', 'eoxserver.log'),
             'formatter': 'verbose' if DEBUG else 'simple',
             'filters': [],
         },
         'ngeo_file': {
             'level': 'DEBUG',
-            'class': 'logging.WatchedFileHandler',
+            'class': 'logging.handlers.WatchedFileHandler',
             'filename': join(PROJECT_DIR, 'logs', 'ngeo.log'),
             'formatter': 'verbose' if DEBUG else 'simple',
             'filters': [],
