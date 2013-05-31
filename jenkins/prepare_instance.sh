@@ -1,7 +1,7 @@
 #!/bin/sh -xe
 
 # ngEO Browse Server
-NGEOB_INSTALL_DIR="$WORKSPACE/deliverables/developments/ngeo_browse_server/"
+NGEOB_INSTALL_DIR="$WORKSPACE/deliverables/developments/ngeo_browse_server"
 NGEOB_URL="http://ngeo.eox.at"
 
 # PostgreSQL/PostGIS database
