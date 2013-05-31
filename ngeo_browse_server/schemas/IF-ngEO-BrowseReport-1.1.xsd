@@ -90,7 +90,7 @@ Cannot be used if referenceSystemIdentifier=RAW</xs:documentation>
                             <xs:sequence>
                                 <xs:element name="coordList">
                                     <xs:annotation>
-                                        <xs:documentation>list of 4 double values, separated by space, forming 2 pairs providing the x/y or lat/lon coordinates for first pair  and last pixel of the browse</xs:documentation>
+                                        <xs:documentation>list of 4 double values, separated by space, forming 2 pairs providing the x/y or lat/lon coordinates for first (0/0 or top/left) and last pixel (bottom/right) of the browse</xs:documentation>
                                     </xs:annotation>
                                     <xs:simpleType>
                                         <xs:annotation>
@@ -111,7 +111,7 @@ Last node must have the same coordinates than the first one (i.e. closing the po
                             <xs:sequence>
                                 <xs:element name="colRowList">
                                     <xs:annotation>
-                                        <xs:documentation>list of integer values, separated by space, forming pairs corresponding, for every footprint node, to the col/row position in the image</xs:documentation>
+                                        <xs:documentation>list of integer values, separated by space, forming pairs corresponding, for every footprint node, to the col/row position in the image where 0 0 is the top left pixel</xs:documentation>
                                     </xs:annotation>
                                     <xs:simpleType>
                                         <xs:annotation>

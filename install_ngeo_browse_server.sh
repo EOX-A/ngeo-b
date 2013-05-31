@@ -29,17 +29,17 @@
 #-------------------------------------------------------------------------------
 
 # About:
-# =====
+# ======
 # This script installs the ngEO Browse Server.
 #
 # Use with caution as passwords are sent on the command line and thus can be 
 # seen by other users.
 #
 # References are given to the steps defined in the Installation, Operation, 
-# and Maintenance Manual (IOM)[ngEO-BROW-IOM] section 4.3.
+# and Maintenance Manual (IOM) [ngEO-BROW-IOM] section 4.3.
 
 # Running:
-# =======
+# ========
 # sudo ./install_ngeo_browse_server.sh
 
 ################################################################################
@@ -48,7 +48,7 @@
 
 # Enable/disable testing repositories, debug logging, etc. 
 # (false..disable; true..enable)
-TESTING=true
+TESTING=false
 
 # ngEO Browse Server
 NGEOB_INSTALL_DIR="/var/www/ngeo"
@@ -176,9 +176,10 @@ echo "Assuming successful execution of installation step 130"
 echo "Performing installation step 140"
 # EOX
 rpm -Uvh --replacepkgs http://yum.packages.eox.at/el/eox-release-6-2.noarch.rpm
-if "$TESTING" ; then
+#TODO: Enable only in testing mode once stable enough.
+#if "$TESTING" ; then
     sed -e 's/^enabled=0/enabled=1/' -i /etc/yum.repos.d/eox-testing.repo
-fi
+#fi
 
 echo "Performing installation step 150"
 # Set includepkgs in EOX Stable
@@ -279,10 +280,11 @@ if [ ! -d ngeo_browse_server_instance ] ; then
     sed -e "s/^config_file=$/config_file=$MAPCACHE_DIR_ESCAPED\/$MAPCACHE_CONF/" -i ngeo_browse_server_instance/conf/ngeo.conf
     sed -e "s/^storage_dir=data\/storage$/storage_dir=$NGEOB_INSTALL_DIR_ESCAPED\/store/" -i ngeo_browse_server_instance/conf/ngeo.conf
     
-    if ! "$TESTING" ; then
-        # Configure logging
+    # Configure logging
+    if "$TESTING" ; then
+        sed -e 's/DEBUG = False/DEBUG = True/' -i ngeo_browse_server_instance/settings.py
+    else
         sed -e 's/#logging_level=/logging_level=INFO/' -i ngeo_browse_server_instance/conf/eoxserver.conf
-        sed -e 's/DEBUG = True/DEBUG = False/' -i ngeo_browse_server_instance/settings.py
     fi
 
     # Prepare DBs

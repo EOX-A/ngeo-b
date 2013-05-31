@@ -34,106 +34,13 @@ from lxml import etree
 from eoxserver.core.util.timetools import getDateTime
 
 from ngeo_browse_server.namespace import ns_rep, ns_bsi
+from ngeo_browse_server.parsing import XMLParser
 from ngeo_browse_server.config.browsereport import data
 from ngeo_browse_server.config.browsereport.exceptions import ParsingException
 
 
 logger = logging.getLogger(__name__)
 
-class XMLParseError(Exception):
-    pass
-
-class XMLParser(object):
-    """ 
-    """
-    
-    def __init__(self, schema, namespaces=None):
-        """ Schema is a dict in the form 'key': (selector, [type[, multiplicity]]).
-        'key' is the parameter name to be set on the result dictionary. Selector
-        is either an xpath string or a callable that accepts an etree.Element
-        and returns a list of objects (Elements/strings etc). 'Type' is a 
-        callable that converts the parsed strings/Elements to their intended 
-        type. Multiplicity is either a positive integer or one of '*', '+' or 
-        '?', defining how many items are expected. If multiplicity is 1 or '?'
-        the resulting value is scalar, otherwise a list.
-        """
-        
-        self._schema = schema
-        self.namespaces = namespaces
-        
-        for key, value in schema.items():
-            if isinstance(value, basestring):
-                schema[key] = self._init_param(value)
-            else:
-                schema[key] = self._init_param(*value)
-    
-    
-    def _init_param(self, selector, *args):
-        """ Initialize a single parameter. If the f"""
-        if isinstance(selector, basestring):
-            selector = etree.XPath(selector, namespaces=self.namespaces)
-            
-        return (selector,) + args
-        
-    
-    def parse(self, element, kwargs=None):
-        """ Applies the schema to the element and parses all parameters.
-        """
-        
-        if kwargs is None:
-            kwargs = {}
-        
-        for key, args in self._schema.items():
-            self.parse_arg(element, kwargs, key, *args)
-        
-        return kwargs
-    
-    __call__ = parse
-    
-    def parse_arg(self, element, kwargs, key, selector, typ=str, multiplicity=1):
-        """ Parses a single argument and adds it to the result dict. Also checks
-        for the correct multiplicity of the element and applies the given type.
-        """
-        
-        results = selector(element)
-        num_results = len(results)
-        
-        multiple = multiplicity not in (1, "?")
-        
-        if isinstance(multiplicity, int) and num_results != multiplicity:
-            if not num_results:
-                raise "Could not find required element %s." % selector
-            raise "Found unexpected number (%d) of elements %s. Expected %d." %()
-        
-        if multiplicity == "+" and not num_results:
-            raise "Could not find required element %s." % selector
-        
-        if multiplicity == "?" and num_results > 1:
-            raise "Expected at "
-        
-        if multiple:
-            kwargs[key] = map(typ, results)
-        
-        elif multiplicity == 1:
-            kwargs[key] = typ(results[0])
-        
-        elif multiplicity == "?" and num_results:
-            kwargs[key] = typ(results[0])
-
-
-class typelist(object):
-    """ Helper for XMLParser schemas that expect a string that represents a list
-    of a type seperated by some seperator.
-    """
-    
-    def __init__(self, typ, seperator=" "):
-        self.typ = typ
-        self.seperator = seperator
-        
-    
-    def __call__(self, value):
-        return map(self.typ, value.split(self.seperator))
-        
 
 def pairwise(iterable):
     "s -> (s0,s1), (s2,s3), (s4, s5), ..."
@@ -163,8 +70,7 @@ def parse_browse_report(browse_report_elem):
     expected_tags = ns_bsi("ingestBrowse"), ns_rep("browseReport")
     if browse_report_elem.tag not in expected_tags:
         raise ParsingException("Invalid root tag '%s'. Expected one of '%s'."
-                               % (browse_report_elem.tag, expected_tags),
-                               code="parsing")
+                               % (browse_report_elem.tag, expected_tags))
     
     browse_report = data.BrowseReport(
         **browse_report_parser.parse(browse_report_elem)
