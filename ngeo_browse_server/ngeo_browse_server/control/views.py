@@ -49,9 +49,9 @@ def ingest(request):
     
     try:
         if request.method != "POST":
-            e = IngestionException("Method '%s' is not allowed, use 'POST' "
-                                   "only." % request.method.upper(),
-                                   "MethodNotAllowed")
+            raise IngestionException("Method '%s' is not allowed, use 'POST' "
+                                     "only." % request.method.upper(),
+                                     "MethodNotAllowed")
         
         try:
             document = etree.parse(request)
