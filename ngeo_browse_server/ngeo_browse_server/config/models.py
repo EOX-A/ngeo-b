@@ -46,12 +46,12 @@ ReferenceSystemIdentifierValidator = RegexValidator(
     message="Reference system identifier must be 'RAW' or follow the pattern 'EPSG:<code>."
 )
 NameValidator = RegexValidator(
-    re.compile(r'^[a-zA-z_:][a-zA-Z0-9.\-_:]*$'),
+    re.compile(r'^[a-zA-Z_:][a-zA-Z0-9.\-_:]*$'),
     message="This field must contain a valid Name i.e. beginning with a letter, an underscore, or a colon, and continuing with letters, digits, hyphens, underscores, colons, or full stops."
 )
 FileNameValidator = RegexValidator(
-    re.compile('^[a-zA-z0-9-_:/.]+$'),
-    message=""
+    re.compile('^[a-zA-Z0-9-_:/.]+$'),
+    message="Filenames must only contain letters, digits, hyphens, underscores, colons, slashes, or full stops."
 )
 
 

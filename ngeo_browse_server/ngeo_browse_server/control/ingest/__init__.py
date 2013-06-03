@@ -348,9 +348,8 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         raise IngestionException("Input path '%s' points to an invalid "
                                  "location." % parsed_browse.file_name)
     
-    
     output_filename = _valid_path(get_optimized_path(parsed_browse.file_name, 
-                                                     browse_layer.id,
+                                                     browse_layer.id+"/"+str(parsed_browse.start_time.year),
                                                      config=config))
     output_filename = preprocessor.generate_filename(output_filename)
     
