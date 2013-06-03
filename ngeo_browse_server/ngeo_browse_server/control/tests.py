@@ -902,6 +902,147 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 """ % self.temp_storage_dir
 
 
+#===============================================================================
+# Invalid Requests
+#===============================================================================
+
+
+class IngestFailureInvalidXML(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    expect_exception = True
+    
+    request = ""
+
+    expected_response = """\
+<bsi:ingestException xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:exceptionCode>InvalidRequest</bsi:exceptionCode>
+    <bsi:exceptionMessage>Could not parse request XML. Error was: &#39;Start tag expected, &#39;&lt;&#39; not found, line 1, column 1&#39;.</bsi:exceptionMessage>
+</bsi:ingestException>
+"""
+
+class IngestFailureInvalidRootTag(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    expect_exception = True
+    
+    request = "<someRoot></someRoot>"
+
+    expected_response = """\
+<bsi:ingestException xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:exceptionCode>InvalidRequest</bsi:exceptionCode>
+    <bsi:exceptionMessage>Invalid root tag &#39;someRoot&#39;. Expected one of &#39;(&#39;{http://ngeo.eo.esa.int/schema/browse/ingestion}ingestBrowse&#39;, &#39;{http://ngeo.eo.esa.int/schema/browseReport}browseReport&#39;)&#39;.</bsi:exceptionMessage>
+</bsi:ingestException>
+"""
+
+
+class IngestFailureMissingElement(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    expect_exception = True
+    
+    request = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
+    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
+</rep:browseReport>
+"""
+
+    expected_response = """\
+<bsi:ingestException xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:exceptionCode>InvalidRequest</bsi:exceptionCode>
+    <bsi:exceptionMessage>Could not find required element rep:browseType/text().</bsi:exceptionMessage>
+</bsi:ingestException>
+"""
+
+
+class IngestFailureUnexpectedNumber(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    expect_exception = True
+    
+    request = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
+    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
+    <rep:browseType>XXX</rep:browseType>
+    <rep:browseType>YYY</rep:browseType>
+</rep:browseReport>
+"""
+
+    expected_response = """\
+<bsi:ingestException xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:exceptionCode>InvalidRequest</bsi:exceptionCode>
+    <bsi:exceptionMessage>Found unexpected number (2) of elements rep:browseType/text(). Expected 1.</bsi:exceptionMessage>
+</bsi:ingestException>
+"""
+
+
+class IngestFailureExpectedAtMost(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    expect_exception = True
+    
+    request = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+    <rep:responsibleOrgName>EOX</rep:responsibleOrgName>
+    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
+    <rep:browseType>MER_FRS</rep:browseType>
+    <rep:browse>
+        <rep:browseIdentifier>XXX</rep:browseIdentifier>
+        <rep:browseIdentifier>YYY</rep:browseIdentifier>
+        <rep:fileName>MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_nogeo.tif</rep:fileName>
+        <rep:imageType>TIFF</rep:imageType>
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:rectifiedBrowse>
+            <rep:coordList>32.1902500 8.4784500 46.2686450 25.4101500</rep:coordList>
+        </rep:rectifiedBrowse>
+        <rep:startTime>2012-10-02T09:20:00Z</rep:startTime>
+        <rep:endTime>2012-10-02T09:20:00Z</rep:endTime>
+    </rep:browse>
+</rep:browseReport>
+"""
+
+    expected_response = """\
+<bsi:ingestException xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:exceptionCode>InvalidRequest</bsi:exceptionCode>
+    <bsi:exceptionMessage>Expected at most one element of rep:browseIdentifier/text().</bsi:exceptionMessage>
+</bsi:ingestException>
+"""
+
+
+class IngestFailureMissingGeospatialReference(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    expect_exception = True
+    
+    request = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+    <rep:responsibleOrgName>EOX</rep:responsibleOrgName>
+    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
+    <rep:browseType>MER_FRS</rep:browseType>
+    <rep:browse>
+        <rep:browseIdentifier>XXX</rep:browseIdentifier>
+        <rep:fileName>MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_nogeo.tif</rep:fileName>
+        <rep:imageType>TIFF</rep:imageType>
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier>
+        <rep:startTime>2012-10-02T09:20:00Z</rep:startTime>
+        <rep:endTime>2012-10-02T09:20:00Z</rep:endTime>
+    </rep:browse>
+</rep:browseReport>
+"""
+
+    expected_response = """\
+<bsi:ingestException xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:exceptionCode>InvalidRequest</bsi:exceptionCode>
+    <bsi:exceptionMessage>Missing geo-spatial reference type.</bsi:exceptionMessage>
+</bsi:ingestException>
+"""
+
+
+#===============================================================================
+# Validation Errors
+#===============================================================================
+
+
 class IngestFailureIDStartsWithNumber(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TransactionTestCase):
     expected_failed_browse_ids = ("11_id_starts_with_number",)
     expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
@@ -945,6 +1086,292 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
             <bsi:error>
                 <bsi:exceptionCode>ValidationError</bsi:exceptionCode>
                 <bsi:exceptionMessage>{&#39;value&#39;: [u&#39;This field must contain a valid Name i.e. beginning with a letter, an underscore, or a colon, and continuing with letters, digits, hyphens, underscores, colons, or full stops.&#39;]}</bsi:exceptionMessage>
+            </bsi:error>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+""" # TODO: better error message
+
+
+class IngestFailureEndBeforeStart(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    expected_failed_browse_ids = ("FAILURE",)
+    expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
+    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
+    
+    request = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
+    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
+    <rep:browseType>OPTICAL</rep:browseType>
+    <rep:browse>
+        <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
+        <rep:fileName>ATS_TOA_1P_20100722_101606.jpg</rep:fileName>
+        <rep:imageType>Jpeg</rep:imageType>
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:footprint nodeNumber="5">
+            <rep:colRowList>0 0 128 0 128 129 0 129 0 0 </rep:colRowList>
+            <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
+        </rep:footprint>
+        <rep:startTime>2010-07-22T10:16:06Z</rep:startTime>
+        <rep:endTime>2009-07-22T10:17:22Z</rep:endTime>
+    </rep:browse>
+</rep:browseReport>"""
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>partial</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>0</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>FAILURE</bsi:identifier>
+            <bsi:status>failure</bsi:status>
+            <bsi:error>
+                <bsi:exceptionCode>ValidationError</bsi:exceptionCode>
+                <bsi:exceptionMessage>{&#39;__all__&#39;: [u&#39;Start time may not be more recent than end time.&#39;]}</bsi:exceptionMessage>
+            </bsi:error>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+
+class IngestFailureInvalidFilename(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TransactionTestCase):
+    expected_failed_browse_ids = ("FAILURE",)
+    expected_failed_files = []
+    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
+
+    request = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
+    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
+    <rep:browseType>OPTICAL</rep:browseType>
+    <rep:browse>
+        <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
+        <rep:fileName>#?.jpg</rep:fileName>
+        <rep:imageType>Jpeg</rep:imageType>
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:footprint nodeNumber="5">
+            <rep:colRowList>0 0 128 0 128 129 0 129 0 0</rep:colRowList>
+            <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
+        </rep:footprint>
+        <rep:startTime>2010-07-22T10:16:06Z</rep:startTime>
+        <rep:endTime>2010-07-22T10:17:22Z</rep:endTime>
+    </rep:browse>
+</rep:browseReport>
+"""
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>partial</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>0</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>FAILURE</bsi:identifier>
+            <bsi:status>failure</bsi:status>
+            <bsi:error>
+                <bsi:exceptionCode>ValidationError</bsi:exceptionCode>
+                <bsi:exceptionMessage>[u&#39;Filenames must only contain letters, digits, hyphens, underscores, colons, slashes, or full stops.&#39;]</bsi:exceptionMessage>
+            </bsi:error>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+
+class IngestFailureInvalidReferenceSystem(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TransactionTestCase):
+    expected_failed_browse_ids = ("FAILURE",)
+    expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
+    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
+
+    request = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
+    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
+    <rep:browseType>OPTICAL</rep:browseType>
+    <rep:browse>
+        <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
+        <rep:fileName>ATS_TOA_1P_20100722_101606.jpg</rep:fileName>
+        <rep:imageType>Jpeg</rep:imageType>
+        <rep:referenceSystemIdentifier>INVALID</rep:referenceSystemIdentifier> 
+        <rep:footprint nodeNumber="5">
+            <rep:colRowList>0 0 128 0 128 129 0 129 0 0</rep:colRowList>
+            <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
+        </rep:footprint>
+        <rep:startTime>2010-07-22T10:16:06Z</rep:startTime>
+        <rep:endTime>2010-07-22T10:17:22Z</rep:endTime>
+    </rep:browse>
+</rep:browseReport>
+"""
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>partial</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>0</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>FAILURE</bsi:identifier>
+            <bsi:status>failure</bsi:status>
+            <bsi:error>
+                <bsi:exceptionCode>ValidationError</bsi:exceptionCode>
+                <bsi:exceptionMessage>Given referenceSystemIdentifier &#39;EPSG:INVALID&#39; not valid.</bsi:exceptionMessage>
+            </bsi:error>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+
+#===============================================================================
+# Ingestion Exceptions
+#===============================================================================
+
+class IngestFailureBrowseTypeDoesNotExist(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    expect_exception = True
+    
+    request = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.1">
+    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
+    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
+    <rep:browseType>DOESNOTEXIST</rep:browseType>
+    <rep:browse>
+        <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
+        <rep:fileName>NGEO-FEED-VTC-0040.jpg</rep:fileName>
+        <rep:imageType>PNG</rep:imageType>
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:footprint nodeNumber="7">
+            <rep:colRowList>0 0 7 0 0 0</rep:colRowList>
+            <rep:coordList>48.46 16.1001 48.48 16.1 48.46 16.1001</rep:coordList>
+        </rep:footprint>
+        <rep:startTime>2012-10-02T09:20:00Z</rep:startTime>
+        <rep:endTime>2012-10-02T09:20:00Z</rep:endTime>
+    </rep:browse>
+</rep:browseReport>
+"""
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestException xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:exceptionCode>IngestionException</bsi:exceptionCode>
+    <bsi:exceptionMessage>Browse layer with browse type &#39;DOESNOTEXIST&#39; does not exist.</bsi:exceptionMessage>
+</bsi:ingestException>
+"""
+
+
+
+class IngestFailureWrongRelativeFilename(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TransactionTestCase):
+    expected_failed_browse_ids = ("identifier",)
+    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
+    
+    request = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
+    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
+    <rep:browseType>OPTICAL</rep:browseType>
+    <rep:browse>
+        <rep:browseIdentifier>identifier</rep:browseIdentifier>
+        <rep:fileName>../input_filename.jpg</rep:fileName>
+        <rep:imageType>Jpeg</rep:imageType>
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:footprint nodeNumber="5">
+            <rep:colRowList>0 0 128 0 128 129 0 129 0 0</rep:colRowList>
+            <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
+        </rep:footprint>
+        <rep:startTime>2010-07-22T10:16:06Z</rep:startTime>
+        <rep:endTime>2010-07-22T10:17:22Z</rep:endTime>
+    </rep:browse>
+</rep:browseReport>
+"""
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>partial</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>0</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>identifier</bsi:identifier>
+            <bsi:status>failure</bsi:status>
+            <bsi:error>
+                <bsi:exceptionCode>IngestionException</bsi:exceptionCode>
+                <bsi:exceptionMessage>Input path &#39;../input_filename.jpg&#39; points to an invalid location.</bsi:exceptionMessage>
+            </bsi:error>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+
+class IngestFailureWrongAbsoluteFilename(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TransactionTestCase):
+    expected_failed_browse_ids = ("identifier",)
+    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
+    
+    request = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
+    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
+    <rep:browseType>OPTICAL</rep:browseType>
+    <rep:browse>
+        <rep:browseIdentifier>identifier</rep:browseIdentifier>
+        <rep:fileName>/etc/absolute_filename.jpg</rep:fileName>
+        <rep:imageType>Jpeg</rep:imageType>
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:footprint nodeNumber="5">
+            <rep:colRowList>0 0 128 0 128 129 0 129 0 0</rep:colRowList>
+            <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
+        </rep:footprint>
+        <rep:startTime>2010-07-22T10:16:06Z</rep:startTime>
+        <rep:endTime>2010-07-22T10:17:22Z</rep:endTime>
+    </rep:browse>
+</rep:browseReport>
+"""
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>partial</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>0</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>identifier</bsi:identifier>
+            <bsi:status>failure</bsi:status>
+            <bsi:error>
+                <bsi:exceptionCode>IngestionException</bsi:exceptionCode>
+                <bsi:exceptionMessage>Input path &#39;/etc/absolute_filename.jpg&#39; points to an invalid location.</bsi:exceptionMessage>
             </bsi:error>
         </bsi:briefRecord>
     </bsi:ingestionResult>
@@ -1099,55 +1526,6 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 """
 
 
-class IngestFailureEndBeforeStart(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
-    expected_failed_browse_ids = ("FAILURE",)
-    expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
-    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
-    
-    request = """\
-<?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
-    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
-    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
-    <rep:browseType>OPTICAL</rep:browseType>
-    <rep:browse>
-        <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
-        <rep:fileName>ATS_TOA_1P_20100722_101606.jpg</rep:fileName>
-        <rep:imageType>Jpeg</rep:imageType>
-        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
-        <rep:footprint nodeNumber="5">
-            <rep:colRowList>0 0 128 0 128 129 0 129 0 0 </rep:colRowList>
-            <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
-        </rep:footprint>
-        <rep:startTime>2010-07-22T10:16:06Z</rep:startTime>
-        <rep:endTime>2009-07-22T10:17:22Z</rep:endTime>
-    </rep:browse>
-</rep:browseReport>"""
-
-    expected_response = """\
-<?xml version="1.0" encoding="UTF-8"?>
-<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
-xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-    <bsi:status>partial</bsi:status>
-    <bsi:ingestionSummary>
-        <bsi:toBeReplaced>1</bsi:toBeReplaced>
-        <bsi:actuallyInserted>0</bsi:actuallyInserted>
-        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
-    </bsi:ingestionSummary>
-    <bsi:ingestionResult>
-        <bsi:briefRecord>
-            <bsi:identifier>FAILURE</bsi:identifier>
-            <bsi:status>failure</bsi:status>
-            <bsi:error>
-                <bsi:exceptionCode>ValidationError</bsi:exceptionCode>
-                <bsi:exceptionMessage>{&#39;__all__&#39;: [u&#39;Start time may not be more recent than end time.&#39;]}</bsi:exceptionMessage>
-            </bsi:error>
-        </bsi:briefRecord>
-    </bsi:ingestionResult>
-</bsi:ingestBrowseResponse>
-"""
-
-
 class IngestFailureFileOverwrite(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     """ Test to check that the program fails when a file in the optimized files
         dir would be overwritten.
@@ -1206,18 +1584,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 """ % self.temp_optimized_files_dir
 
 
-class IngestFailureInvalidXML(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
-    expect_exception = True
-    
-    request = ""
-
-    expected_response = """\
-<bsi:ingestException xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
-xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-    <bsi:exceptionCode>InvalidRequest</bsi:exceptionCode>
-    <bsi:exceptionMessage>Could not parse request XML. Error was: &#39;Start tag expected, &#39;&lt;&#39; not found, line 1, column 1&#39;.</bsi:exceptionMessage>
-</bsi:ingestException>
-"""
+# TODO: "Existing browse with same start and end time does not have the same browse ID as the one to ingest.": An existing browse with the same timestamps but different ID was found.
 
 
 class IngestFailureGCPTransformException(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
@@ -1263,7 +1630,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
             <bsi:identifier>FAILURE</bsi:identifier>
             <bsi:status>failure</bsi:status>
             <bsi:error>
-                <bsi:exceptionCode>GCPTransformException</bsi:exceptionCode>
+                <bsi:exceptionCode>IngestionException</bsi:exceptionCode>
                 <bsi:exceptionMessage>Could not find a valid transform method.</bsi:exceptionMessage>
             </bsi:error>
         </bsi:briefRecord>
@@ -1272,102 +1639,10 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 """
 
 
+# TODO: "Processed browse image has <NUMBER> bands.": Wrong number of bands in processed browse image was found.
+# TODO: "Invalid regularGrid: number of coordinate lists is not equal to the given row node number.": Invalid regularGrid browse was found.
+# TODO: "Invalid regularGrid: number of coordinates does not fit given columns number.": Invalid regularGrid browse was found.
 
-class IngestFailureWrongRelativeFilename(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TransactionTestCase):
-    expected_failed_browse_ids = ("identifier",)
-    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
-    
-    request = """\
-<?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
-    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
-    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
-    <rep:browseType>OPTICAL</rep:browseType>
-    <rep:browse>
-        <rep:browseIdentifier>identifier</rep:browseIdentifier>
-        <rep:fileName>../input_filename.jpg</rep:fileName>
-        <rep:imageType>Jpeg</rep:imageType>
-        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
-        <rep:footprint nodeNumber="5">
-            <rep:colRowList>0 0 128 0 128 129 0 129 0 0</rep:colRowList>
-            <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
-        </rep:footprint>
-        <rep:startTime>2010-07-22T10:16:06Z</rep:startTime>
-        <rep:endTime>2010-07-22T10:17:22Z</rep:endTime>
-    </rep:browse>
-</rep:browseReport>
-"""
-
-    expected_response = """\
-<?xml version="1.0" encoding="UTF-8"?>
-<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
-xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-    <bsi:status>partial</bsi:status>
-    <bsi:ingestionSummary>
-        <bsi:toBeReplaced>1</bsi:toBeReplaced>
-        <bsi:actuallyInserted>0</bsi:actuallyInserted>
-        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
-    </bsi:ingestionSummary>
-    <bsi:ingestionResult>
-        <bsi:briefRecord>
-            <bsi:identifier>identifier</bsi:identifier>
-            <bsi:status>failure</bsi:status>
-            <bsi:error>
-                <bsi:exceptionCode>IngestionException</bsi:exceptionCode>
-                <bsi:exceptionMessage>Input path &#39;../input_filename.jpg&#39; points to an invalid location.</bsi:exceptionMessage>
-            </bsi:error>
-        </bsi:briefRecord>
-    </bsi:ingestionResult>
-</bsi:ingestBrowseResponse>
-"""
-
-class IngestFailureWrongAbsoluteFilename(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TransactionTestCase):
-    expected_failed_browse_ids = ("identifier",)
-    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
-    
-    request = """\
-<?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
-    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
-    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
-    <rep:browseType>OPTICAL</rep:browseType>
-    <rep:browse>
-        <rep:browseIdentifier>identifier</rep:browseIdentifier>
-        <rep:fileName>/etc/absolute_filename.jpg</rep:fileName>
-        <rep:imageType>Jpeg</rep:imageType>
-        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
-        <rep:footprint nodeNumber="5">
-            <rep:colRowList>0 0 128 0 128 129 0 129 0 0</rep:colRowList>
-            <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
-        </rep:footprint>
-        <rep:startTime>2010-07-22T10:16:06Z</rep:startTime>
-        <rep:endTime>2010-07-22T10:17:22Z</rep:endTime>
-    </rep:browse>
-</rep:browseReport>
-"""
-
-    expected_response = """\
-<?xml version="1.0" encoding="UTF-8"?>
-<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
-xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-    <bsi:status>partial</bsi:status>
-    <bsi:ingestionSummary>
-        <bsi:toBeReplaced>1</bsi:toBeReplaced>
-        <bsi:actuallyInserted>0</bsi:actuallyInserted>
-        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
-    </bsi:ingestionSummary>
-    <bsi:ingestionResult>
-        <bsi:briefRecord>
-            <bsi:identifier>identifier</bsi:identifier>
-            <bsi:status>failure</bsi:status>
-            <bsi:error>
-                <bsi:exceptionCode>IngestionException</bsi:exceptionCode>
-                <bsi:exceptionMessage>Input path &#39;/etc/absolute_filename.jpg&#39; points to an invalid location.</bsi:exceptionMessage>
-            </bsi:error>
-        </bsi:briefRecord>
-    </bsi:ingestionResult>
-</bsi:ingestBrowseResponse>
-"""
 
 #===============================================================================
 # Raster test cases
