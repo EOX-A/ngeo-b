@@ -913,6 +913,7 @@ class IngestFailureInvalidXML(IngestFailureTestCaseMixIn, HttpTestCaseMixin, Tes
     request = ""
 
     expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestException xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
 xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <bsi:exceptionCode>InvalidRequest</bsi:exceptionCode>
@@ -926,6 +927,7 @@ class IngestFailureInvalidRootTag(IngestFailureTestCaseMixIn, HttpTestCaseMixin,
     request = "<someRoot></someRoot>"
 
     expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestException xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
 xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <bsi:exceptionCode>InvalidRequest</bsi:exceptionCode>
@@ -946,6 +948,7 @@ class IngestFailureMissingElement(IngestFailureTestCaseMixIn, HttpTestCaseMixin,
 """
 
     expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestException xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
 xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <bsi:exceptionCode>InvalidRequest</bsi:exceptionCode>
@@ -968,6 +971,7 @@ class IngestFailureUnexpectedNumber(IngestFailureTestCaseMixIn, HttpTestCaseMixi
 """
 
     expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestException xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
 xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <bsi:exceptionCode>InvalidRequest</bsi:exceptionCode>
@@ -1001,6 +1005,7 @@ class IngestFailureExpectedAtMost(IngestFailureTestCaseMixIn, HttpTestCaseMixin,
 """
 
     expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestException xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
 xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <bsi:exceptionCode>InvalidRequest</bsi:exceptionCode>
@@ -1030,6 +1035,7 @@ class IngestFailureMissingGeospatialReference(IngestFailureTestCaseMixIn, HttpTe
 """
 
     expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestException xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
 xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <bsi:exceptionCode>InvalidRequest</bsi:exceptionCode>
@@ -1587,7 +1593,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 # TODO: "Existing browse with same start and end time does not have the same browse ID as the one to ingest.": An existing browse with the same timestamps but different ID was found.
 
 
-class IngestFailureGCPTransformException(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
+class IngestFailureNoValidTransformException(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     storage_dir = "data/aiv_test_data"
     
     expected_failed_browse_ids = ("FAILURE",)
