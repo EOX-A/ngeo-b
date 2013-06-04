@@ -49,6 +49,7 @@ from eoxserver.processing.preprocessing.format import get_format_selection
 from eoxserver.processing.preprocessing.georeference import Extent, GCPList
 from eoxserver.resources.coverages.crss import fromShortCode, hasSwappedAxes
 from eoxserver.resources.coverages.models import NCNameValidator
+from eoxserver.processing.preprocessing.exceptions import GCPTransformException
 
 from ngeo_browse_server.config import get_ngeo_config, safe_get
 from ngeo_browse_server.config import models
@@ -381,9 +382,12 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
             # start the preprocessor
             logger.info("Starting preprocessing on file '%s' to create '%s'."
                         % (input_filename, output_filename))
-                 
-            result = preprocessor.process(input_filename, output_filename,
-                                          geo_reference, generate_metadata=True)
+            
+            try:
+                result = preprocessor.process(input_filename, output_filename,
+                                              geo_reference, generate_metadata=True)
+            except GCPTransformException, e:
+                raise IngestionException(str(e))
             
             # validate preprocess result
             if result.num_bands not in (1, 3, 4): # color index, RGB, RGBA
