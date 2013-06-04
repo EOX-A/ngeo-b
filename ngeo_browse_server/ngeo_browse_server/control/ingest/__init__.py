@@ -311,29 +311,6 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
             logger.info("Browse ID '%s' is not a valid coverage ID. Using "
                         "generated ID '%s'." % (old_id, coverage_id))
     
-    # check if a browse already exists and delete it in order to replace it
-    existing_browse_model = get_existing_browse(parsed_browse, browse_layer.id)
-    if existing_browse_model:
-        identifier = existing_browse_model.browse_identifier
-        if (identifier and parsed_browse.browse_identifier
-            and  identifier.value != parsed_browse.browse_identifier):
-            raise IngestionException("Existing browse with same start and end "
-                                     "time does not have the same browse ID "
-                                     "as the one to ingest.") 
-        
-        replaced_time_interval = (existing_browse_model.start_time,
-                                  existing_browse_model.end_time)
-        
-        replaced_extent, replaced_filename = remove_browse(
-            existing_browse_model, browse_layer, coverage_id, config
-        )
-        replaced = True
-        logger.info("Existing browse found, replacing it.")
-            
-    else:
-        # A browse with that identifier does not exist, so just create a new one
-        logger.info("Creating new browse.")
-    
     # get the `leave_original` setting
     leave_original = False
     try:
@@ -356,6 +333,29 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
     output_filename = preprocessor.generate_filename(output_filename)
     
     try:
+        # check if a browse already exists and delete it in order to replace it
+        existing_browse_model = get_existing_browse(parsed_browse, browse_layer.id)
+        if existing_browse_model:
+            identifier = existing_browse_model.browse_identifier
+            if (identifier and parsed_browse.browse_identifier
+                and  identifier.value != parsed_browse.browse_identifier):
+                raise IngestionException("Existing browse with same start and end "
+                                         "time does not have the same browse ID "
+                                         "as the one to ingest.") 
+            
+            replaced_time_interval = (existing_browse_model.start_time,
+                                      existing_browse_model.end_time)
+            
+            replaced_extent, replaced_filename = remove_browse(
+                existing_browse_model, browse_layer, coverage_id, config
+            )
+            replaced = True
+            logger.info("Existing browse found, replacing it.")
+                
+        else:
+            # A browse with that identifier does not exist, so just create a new one
+            logger.info("Creating new browse.")
+        
         # assert that the output file does not exist (unless it is a to-be 
         # replaced file).
         if (exists(output_filename) and 
@@ -386,7 +386,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
             try:
                 result = preprocessor.process(input_filename, output_filename,
                                               geo_reference, generate_metadata=True)
-            except GCPTransformException, e:
+            except (RuntimeError, GCPTransformException), e:
                 raise IngestionException(str(e))
             
             # validate preprocess result
