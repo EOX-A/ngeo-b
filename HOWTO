@@ -66,6 +66,7 @@ vi ngeo_browse_server/__init__.py
 vi setup.py
 # Adjust Development Status
 git ci setup.py ngeo_browse_server/__init__.py -m "Adjusting version."
+git push
 # Info:
 #Development Status :: 1 - Planning
 #Development Status :: 2 - Pre-Alpha
@@ -76,6 +77,7 @@ git ci setup.py ngeo_browse_server/__init__.py -m "Adjusting version."
 #Development Status :: 7 - Inactive
 
 git tag -a release-1.0.0 -m "Tagging 1.0.0 release."
+git push --tags
 git archive --format=tar --prefix=ngeob-1.0.0/ release-1.0.0 | gzip > ngeob-1.0.0.tar.gz
 mv ngeob-1.0.0.tar.gz ....
 cd ....
