@@ -38,7 +38,7 @@ PROJECT_URL_PREFIX = ''
 
 #TEST_RUNNER = 'eoxserver.testing.core.EOxServerTestRunner'
 
-DEBUG = True
+DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
@@ -207,16 +207,16 @@ LOGGING = {
     'handlers': {
         'eoxserver_file': {
             'level': 'DEBUG',
-            'class': 'logging.FileHandler',
+            'class': 'logging.handlers.WatchedFileHandler',
             'filename': join(PROJECT_DIR, 'logs', 'eoxserver.log'),
-            'formatter': 'verbose',
+            'formatter': 'verbose' if DEBUG else 'simple',
             'filters': [],
         },
         'ngeo_file': {
             'level': 'DEBUG',
-            'class': 'logging.FileHandler',
+            'class': 'logging.handlers.WatchedFileHandler',
             'filename': join(PROJECT_DIR, 'logs', 'ngeo.log'),
-            'formatter': 'verbose',
+            'formatter': 'verbose' if DEBUG else 'simple',
             'filters': [],
         }
     },

@@ -44,7 +44,7 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
     try:
         grid = URN_TO_GRID[grid]
     except KeyError:
-        raise Exception("Invalid grid '%s'." % grid)
+        raise SeedException("Invalid grid '%s'." % grid)
     
     if minzoom is None: minzoom = 0
     if maxzoom is None: maxzoom = 10

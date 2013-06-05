@@ -69,8 +69,7 @@ def decode_browse_report(browse_report_elem):
     expected_tags = ns_bsi("ingestBrowse"), ns_rep("browseReport")
     if browse_report_elem.tag not in expected_tags:
         raise ParsingException("Invalid root tag '%s'. Expected one of '%s'."
-                               % (browse_report_elem.tag, expected_tags),
-                               code="parsing")
+                               % (browse_report_elem.tag, expected_tags))
     
     browse_report = data.BrowseReport(
         **browse_report_decoder.parse(browse_report_elem)
