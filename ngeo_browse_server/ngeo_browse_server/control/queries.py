@@ -29,6 +29,8 @@
 
 import logging
 
+from django.core.exceptions import ValidationError
+
 from eoxserver.core.system import System
 from eoxserver.resources.coverages.crss import fromShortCode
 from eoxserver.resources.coverages.metadata import EOMetadata
@@ -37,6 +39,7 @@ from ngeo_browse_server.config import models
 from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.mapcache.tasks import seed_mapcache
 from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
+from ngeo_browse_server.control.ingest.exceptions import IngestionException
 
 
 logger = logging.getLogger(__name__)
@@ -120,6 +123,12 @@ def create_browse(parsed_browse, browse_report, browse_layer, coverage_id, crs,
     
     # if the browse contains an identifier, create the according model
     if parsed_browse.browse_identifier is not None:
+        try:
+            models.NameValidator(parsed_browse.browse_identifier)
+        except ValidationError, e:
+            raise IngestionException("Browse Identifier '%s' not valid: '%s'." % 
+                                     (parsed_browse.browse_identifier, str(e.messages[0])),
+                                     "ValidationError")
         browse_identifier = models.BrowseIdentifier(
             value=parsed_browse.browse_identifier, browse=browse, 
             browse_layer=browse_layer

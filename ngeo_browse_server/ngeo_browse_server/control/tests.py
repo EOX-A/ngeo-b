@@ -848,7 +848,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
             <bsi:status>failure</bsi:status>
             <bsi:error>
                 <bsi:exceptionCode>ValidationError</bsi:exceptionCode>
-                <bsi:exceptionMessage>{&#39;value&#39;: [u&#39;This field must contain a valid Name i.e. beginning with a letter, an underscore, or a colon, and continuing with letters, digits, hyphens, underscores, colons, or full stops.&#39;]}</bsi:exceptionMessage>
+                <bsi:exceptionMessage>Browse Identifier &#39;7_FAILURE&#39; not valid: &#39;This field must contain a valid Name i.e. beginning with a letter, an underscore, or a colon, and continuing with letters, digits, hyphens, underscores, colons, or full stops.&#39;.</bsi:exceptionMessage>
             </bsi:error>
         </bsi:briefRecord>
         <bsi:briefRecord>
@@ -1091,12 +1091,12 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
             <bsi:status>failure</bsi:status>
             <bsi:error>
                 <bsi:exceptionCode>ValidationError</bsi:exceptionCode>
-                <bsi:exceptionMessage>{&#39;value&#39;: [u&#39;This field must contain a valid Name i.e. beginning with a letter, an underscore, or a colon, and continuing with letters, digits, hyphens, underscores, colons, or full stops.&#39;]}</bsi:exceptionMessage>
+                <bsi:exceptionMessage>Browse Identifier &#39;11_id_starts_with_number&#39; not valid: &#39;This field must contain a valid Name i.e. beginning with a letter, an underscore, or a colon, and continuing with letters, digits, hyphens, underscores, colons, or full stops.&#39;.</bsi:exceptionMessage>
             </bsi:error>
         </bsi:briefRecord>
     </bsi:ingestionResult>
 </bsi:ingestBrowseResponse>
-""" # TODO: better error message
+"""
 
 
 class IngestFailureEndBeforeStart(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
@@ -2214,7 +2214,6 @@ class IngestFootprintCrossesDatelineRasterSecond(BaseTestCaseMixIn, HttpMixIn, S
                     }
                    )
     
-    # TODO: this does not yet work. Replace this to something useful once the test finishes
     expected_statistics = [{'checksum': 22934, 'max': 250.0, 'mean': 148.99510000000001, 'min': 0.0, 'stddev': 116.90873567013715},
                            {'checksum': 17599, 'max': 249.0, 'mean': 147.95439999999999, 'min': 0.0, 'stddev': 116.12004013364789},
                            {'checksum': 1606, 'max': 242.0, 'mean': 140.77260000000001, 'min': 0.0, 'stddev': 110.5817764789479}]
@@ -2237,7 +2236,6 @@ class IngestFootprintCrossesDatelineRasterThird(BaseTestCaseMixIn, HttpMixIn, St
                     }
                    )
     
-    # TODO: this does not yet work. Replace this to something useful once the test finishes
     expected_statistics = [{'checksum': 19103, 'max': 255.0, 'mean': 2.3617534999999998, 'min': 0.0, 'stddev': 22.610579181109841},
                            {'checksum': 46676, 'max': 255.0, 'mean': 2.4700384999999998, 'min': 0.0, 'stddev': 22.499895873281673},
                            {'checksum': 34584, 'max': 255.0, 'mean': 2.527612, 'min': 0.0, 'stddev': 22.227140899752627}]

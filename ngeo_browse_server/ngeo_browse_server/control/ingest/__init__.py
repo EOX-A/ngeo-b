@@ -224,7 +224,7 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
                     # undo latest changes, append the failure and continue
                     report_result.add(IngestBrowseFailureResult(
                         parsed_browse.browse_identifier, 
-                        type(e).__name__, str(e))
+                        getattr(e, "code", type(e).__name__), str(e))
                     )
                     failed.append(parsed_browse)
                     
