@@ -49,6 +49,7 @@ from eoxserver.processing.preprocessing.format import get_format_selection
 from eoxserver.processing.preprocessing.georeference import Extent, GCPList
 from eoxserver.resources.coverages.crss import fromShortCode, hasSwappedAxes
 from eoxserver.resources.coverages.models import NCNameValidator
+from eoxserver.processing.preprocessing.exceptions import GCPTransformException
 
 from ngeo_browse_server.config import get_ngeo_config, safe_get
 from ngeo_browse_server.config import models
@@ -310,33 +311,6 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
             logger.info("Browse ID '%s' is not a valid coverage ID. Using "
                         "generated ID '%s'." % (old_id, coverage_id))
     
-    # check if a browse already exists and delete it in order to replace it
-    existing_browse_model = get_existing_browse(parsed_browse, browse_layer.id)
-    if existing_browse_model:
-        identifier = None
-        try:
-            identifier = existing_browse_model.browse_identifier
-        except: # TODO catch correct exception
-            pass
-        if (identifier and parsed_browse.browse_identifier
-            and  identifier.value != parsed_browse.browse_identifier):
-            raise IngestionException("Existing browse with same start and end "
-                                     "time does not have the same browse ID "
-                                     "as the one to ingest.") 
-        
-        replaced_time_interval = (existing_browse_model.start_time,
-                                  existing_browse_model.end_time)
-        
-        replaced_extent, replaced_filename = remove_browse(
-            existing_browse_model, browse_layer, coverage_id, config
-        )
-        replaced = True
-        logger.info("Existing browse found, replacing it.")
-            
-    else:
-        # A browse with that identifier does not exist, so just create a new one
-        logger.info("Creating new browse.")
-    
     # get the `leave_original` setting
     leave_original = False
     try:
@@ -351,14 +325,37 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
     if commonprefix((input_filename, storage_path)) != storage_path:
         raise IngestionException("Input path '%s' points to an invalid "
                                  "location." % parsed_browse.file_name)
-    
+    models.FileNameValidator(input_filename)
     
     output_filename = _valid_path(get_optimized_path(parsed_browse.file_name, 
-                                                     browse_layer.id,
+                                                     browse_layer.id + "/" + str(parsed_browse.start_time.year),
                                                      config=config))
     output_filename = preprocessor.generate_filename(output_filename)
     
     try:
+        # check if a browse already exists and delete it in order to replace it
+        existing_browse_model = get_existing_browse(parsed_browse, browse_layer.id)
+        if existing_browse_model:
+            identifier = existing_browse_model.browse_identifier
+            if (identifier and parsed_browse.browse_identifier
+                and  identifier.value != parsed_browse.browse_identifier):
+                raise IngestionException("Existing browse with same start and end "
+                                         "time does not have the same browse ID "
+                                         "as the one to ingest.") 
+            
+            replaced_time_interval = (existing_browse_model.start_time,
+                                      existing_browse_model.end_time)
+            
+            replaced_extent, replaced_filename = remove_browse(
+                existing_browse_model, browse_layer, coverage_id, config
+            )
+            replaced = True
+            logger.info("Existing browse found, replacing it.")
+                
+        else:
+            # A browse with that identifier does not exist, so just create a new one
+            logger.info("Creating new browse.")
+        
         # assert that the output file does not exist (unless it is a to-be 
         # replaced file).
         if (exists(output_filename) and 
@@ -385,9 +382,12 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
             # start the preprocessor
             logger.info("Starting preprocessing on file '%s' to create '%s'."
                         % (input_filename, output_filename))
-                 
-            result = preprocessor.process(input_filename, output_filename,
-                                          geo_reference, generate_metadata=True)
+            
+            try:
+                result = preprocessor.process(input_filename, output_filename,
+                                              geo_reference, generate_metadata=True)
+            except (RuntimeError, GCPTransformException), e:
+                raise IngestionException(str(e))
             
             # validate preprocess result
             if result.num_bands not in (1, 3, 4): # color index, RGB, RGBA
@@ -515,7 +515,7 @@ def _georef_from_parsed(parsed_browse):
                                      "equal to the first.")
         gcps.pop()
         
-        return GCPList(gcps, srid, order=1)
+        return GCPList(gcps, srid)
         
         
     elif parsed_browse.geo_type == "regularGridBrowse":

@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestException xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
 xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <bsi:exceptionCode>{{ code }}</bsi:exceptionCode>
