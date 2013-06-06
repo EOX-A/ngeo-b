@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 
 def decode_browse_layers(browse_layers_elem):
-    logger.info("Start parsing browse layer.")
+    logger.info("Start decoding browse layer.")
     
     #TODO: browse_layers_elem.tag == ns_cfg("browseLayers")
     

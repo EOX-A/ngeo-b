@@ -35,7 +35,7 @@ from eoxserver.core.util.timetools import getDateTime
 from ngeo_browse_server.namespace import ns_rep, ns_bsi
 from ngeo_browse_server.decoding import XMLDecoder
 from ngeo_browse_server.config.browsereport import data
-from ngeo_browse_server.config.browsereport.exceptions import ParsingException
+from ngeo_browse_server.config.browsereport.exceptions import DecodingException
 
 
 logger = logging.getLogger(__name__)
@@ -59,7 +59,7 @@ def decode_browse_report(browse_report_elem):
         ElementTree.Element node.
     """
     
-    logger.info("Start parsing browse report.")
+    logger.info("Start decoding browse report.")
     
     try:
         browse_report_elem = browse_report_elem.getroot()
@@ -68,14 +68,14 @@ def decode_browse_report(browse_report_elem):
     
     expected_tags = ns_bsi("ingestBrowse"), ns_rep("browseReport")
     if browse_report_elem.tag not in expected_tags:
-        raise ParsingException("Invalid root tag '%s'. Expected one of '%s'."
+        raise DecodingException("Invalid root tag '%s'. Expected one of '%s'."
                                % (browse_report_elem.tag, expected_tags))
     
     browse_report = data.BrowseReport(
-        **browse_report_decoder.parse(browse_report_elem)
+        **browse_report_decoder.decode(browse_report_elem)
     )
     
-    logger.info("Finished parsing browse report.")
+    logger.info("Finished decoding browse report.")
 
     return browse_report
 
@@ -86,7 +86,7 @@ def decode_browse(browse_elem):
     """
     
     # general args
-    kwargs = browse_decoder.parse(browse_elem)
+    kwargs = browse_decoder.decode(browse_elem)
     
     browse_identifier = browse_elem.find(ns_rep("browseIdentifier"))
     if browse_identifier is not None:
@@ -101,17 +101,17 @@ def decode_browse(browse_elem):
    
     if rectified_browse is not None:
         logger.info("Parsing Rectified Browse.")
-        kwargs.update(rectified_decoder.parse(rectified_browse))
+        kwargs.update(rectified_decoder.decode(rectified_browse))
         return data.RectifiedBrowse(**kwargs)
     
     elif footprint is not None:
         logger.info("Parsing Footprint Browse.")
-        kwargs.update(footprint_decoder.parse(footprint))
+        kwargs.update(footprint_decoder.decode(footprint))
         return data.FootprintBrowse(**kwargs)
     
     elif regular_grid is not None:
         logger.info("Parsing Regular Grid Browse.")
-        kwargs.update(regular_grid_decoder.parse(regular_grid))
+        kwargs.update(regular_grid_decoder.decode(regular_grid))
         return data.RegularGridBrowse(**kwargs)
         
     elif model_in_geotiff is not None:
@@ -123,7 +123,7 @@ def decode_browse(browse_elem):
         return data.VerticalCurtainBrowse(**kwargs)
     
     else:
-        raise ParsingException("Missing geo-spatial reference type.")
+        raise DecodingException("Missing geo-spatial reference type.")
 
 
 def decode_coord_list(coord_list, swap_axes=False):

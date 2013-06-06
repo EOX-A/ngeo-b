@@ -35,7 +35,7 @@ class XMLDecodeError(Exception):
 
 
 class XMLDecoder(object):
-    """ Multi-purpose XML parser. Applies a given schema to an XML tree node. 
+    """ Multi-purpose XML decoder. Applies a given schema to an XML tree node. 
     """
     
     def __init__(self, schema, namespaces=None):
@@ -76,7 +76,7 @@ class XMLDecoder(object):
         
     
     def decode(self, element, kwargs=None):
-        """ Applies the schema to the element and parses all parameters.
+        """ Applies the schema to the element and decoders all parameters.
         """
         
         if kwargs is None:

@@ -34,12 +34,14 @@ from lxml import etree
 from django.shortcuts import render_to_response
 from osgeo import gdalnumeric   # This prevents issues in parallel setups. Do 
                                 # not remove this line.
-from eoxserver.processing.preprocessing.exceptions import PreprocessingException
 
-from ngeo_browse_server.parsing import XMLParseError
+from eoxserver.processing.preprocessing.exceptions import PreprocessingException 
+
+from ngeo_browse_server.decoding import XMLDecodeError
 from ngeo_browse_server.control.ingest import ingest_browse_report
-from ngeo_browse_server.config.browsereport.parsing import parse_browse_report
-from ngeo_browse_server.config.browsereport.exceptions import ParsingException
+from ngeo_browse_server.config.browsereport.decoding import (
+    decode_browse_report, DecodingException
+)
 from ngeo_browse_server.control.ingest.exceptions import IngestionException
 
 
@@ -63,11 +65,11 @@ def ingest(request):
                                      "'%s'." % str(e),
                                      "InvalidRequest")
         try:
-            parsed_browse_report = parse_browse_report(document.getroot())
+            parsed_browse_report = decode_browse_report(document.getroot())
             results = ingest_browse_report(parsed_browse_report)
 
         # unify exception code for some exception types
-        except (XMLParseError, ParsingException), e:
+        except (XMLDecodeError, DecodingException), e:
             raise IngestionException(str(e), "InvalidRequest")
 
         except PreprocessingException, e:
@@ -75,8 +77,8 @@ def ingest(request):
 
         
         return render_to_response("control/ingest_response.xml", 
-                                  {"results": results}, 
-                                  mimetype="text/xml")
+                              {"results": results}, 
+                              mimetype="text/xml")
     except Exception, e:
         logger.debug(traceback.format_exc())
         return render_to_response("control/ingest_exception.xml",
