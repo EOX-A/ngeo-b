@@ -37,6 +37,7 @@ from ngeo_browse_server.config import models
 from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.mapcache.tasks import seed_mapcache
 from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
+from eoxserver.core.util.timetools import isotime
 
 
 logger = logging.getLogger(__name__)
@@ -76,56 +77,60 @@ def create_browse_report(browse_report, browse_layer_model):
     return browse_report_model
 
 
-def create_browse(parsed_browse, browse_report, browse_layer, coverage_id, crs,
-                  replaced, footprint, num_bands, filename, config=None):
+def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
+                  crs, replaced, footprint, num_bands, filename, config=None):
     """ Creates all required database models for the browse and returns the
         calculated extent of the registered coverage.
     """
     
-    srid = fromShortCode(parsed_browse.reference_system_identifier)
+    srid = fromShortCode(browse.reference_system_identifier)
     
     # create the correct model from the pared browse
-    if parsed_browse.geo_type == "rectifiedBrowse":
-        browse = _model_from_parsed(parsed_browse, browse_report, browse_layer,
-                                    coverage_id, models.RectifiedBrowse)
-        browse.full_clean()
-        browse.save()
+    if browse.geo_type == "rectifiedBrowse":
+        browse_model = _create_model(browse, browse_report_model, 
+                                     browse_layer_model, coverage_id,
+                                     models.RectifiedBrowse)
+        browse_model.full_clean()
+        browse_model.save()
         
-    elif parsed_browse.geo_type == "footprintBrowse":
-        browse = _model_from_parsed(parsed_browse, browse_report, browse_layer,
-                                    coverage_id, models.FootprintBrowse)
-        browse.full_clean()
-        browse.save()
+    elif browse.geo_type == "footprintBrowse":
+        browse_model = _create_model(browse, browse_report_model, 
+                                    browse_layer_model, coverage_id,
+                                    models.FootprintBrowse)
+        browse_model.full_clean()
+        browse_model.save()
         
-    elif parsed_browse.geo_type == "regularGridBrowse":
-        browse = _model_from_parsed(parsed_browse, browse_report, browse_layer,
-                                    coverage_id, models.RegularGridBrowse)
-        browse.full_clean()
-        browse.save()
+    elif browse.geo_type == "regularGridBrowse":
+        browse_model = _create_model(browse, browse_report_model, 
+                                     browse_layer_model, coverage_id,
+                                     models.RegularGridBrowse)
+        browse_model.full_clean()
+        browse_model.save()
         
-        for coord_list in parsed_browse.coord_lists:
+        for coord_list in browse.coord_lists:
             coord_list = models.RegularGridCoordList(regular_grid_browse=browse,
                                                      coord_list=coord_list)
             coord_list.full_clean()
             coord_list.save()
     
-    elif parsed_browse.geo_type == "modelInGeotiffBrowse":
-        browse = _model_from_parsed(parsed_browse, browse_report, browse_layer,
-                                    coverage_id, models.ModelInGeotiffBrowse)
-        browse.full_clean()
-        browse.save()
+    elif browse.geo_type == "modelInGeotiffBrowse":
+        browse_model = _create_model(browse, browse_report_model, 
+                                     browse_layer_model, coverage_id,
+                                     models.ModelInGeotiffBrowse)
+        browse_model.full_clean()
+        browse_model.save()
     
     else:
         raise NotImplementedError
     
     # if the browse contains an identifier, create the according model
-    if parsed_browse.browse_identifier is not None:
-        browse_identifier = models.BrowseIdentifier(
-            value=parsed_browse.browse_identifier, browse=browse, 
-            browse_layer=browse_layer
+    if browse.browse_identifier is not None:
+        browse_identifier_model = models.BrowseIdentifier(
+            value=browse.browse_identifier, browse=browse_model, 
+            browse_layer=browse_layer_model
         )
-        browse_identifier.full_clean()
-        browse_identifier.save()
+        browse_identifier_model.full_clean()
+        browse_identifier_model.save()
     
     # initialize the Coverage Manager for Rectified Datasets to register the
     # datasets in the database
@@ -138,13 +143,13 @@ def create_browse(parsed_browse, browse_report, browse_layer, coverage_id, crs,
     
     # create EO metadata necessary for registration
     eo_metadata = EOMetadata(
-        coverage_id, parsed_browse.start_time, parsed_browse.end_time, footprint
+        coverage_id, browse.start_time, browse.end_time, footprint
     )
     
     # get dataset series ID from browse layer, if available
     container_ids = []
-    if browse_layer:
-        container_ids.append(browse_layer.id)
+    if browse_layer_model:
+        container_ids.append(browse_layer_model.id)
     
     range_type_name = "RGB" if num_bands == 3 else "RGBA"
     
@@ -158,14 +163,51 @@ def create_browse(parsed_browse, browse_report, browse_layer, coverage_id, crs,
                                container_ids=container_ids)
     
     extent = coverage.getExtent()
+    minx, miny, maxx, maxy = extent
+    start_time, end_time = browse.start_time, browse.end_time
     
     # create mapcache models
-    source, _ = mapcache_models.Source.objects.get_or_create(name=browse_layer.id)
-    time = mapcache_models.Time(start_time=browse.start_time,
-                                end_time=browse.end_time,
-                                source=source)
-    time.full_clean()
-    time.save()
+    source, _ = mapcache_models.Source.objects.get_or_create(name=browse_layer_model.id)
+    
+    # search for time entries with the same time span
+    times_qs = mapcache_models.Time.objects.filter(
+        start_time__lte=browse.end_time, end_time__gte=browse.start_time
+    )
+    
+    if len(times_qs) > 0:
+        # If there are , merge them to one
+        logger.info("Merging %d Time entries." % (len(times_qs) + 1))
+        for time_model in times_qs:
+            minx = min(minx, time_model.minx)
+            miny = min(miny, time_model.miny)
+            maxx = max(maxx, time_model.maxx)
+            maxy = max(maxy, time_model.maxy)
+            start_time = min(start_time, time_model.start_time)
+            end_time = max(end_time, time_model.end_time)
+            
+            seed_mapcache(tileset=browse_layer_model.id, 
+                          grid=browse_layer_model.grid, 
+                          minx=time_model.minx, miny=time_model.miny,
+                          maxx=time_model.maxx, maxy=time_model.maxy, 
+                          minzoom=browse_layer_model.lowest_map_level, 
+                          maxzoom=browse_layer_model.highest_map_level,
+                          start_time=time_model.start_time,
+                          end_time=time_model.end_time,
+                          delete=True,
+                          **get_mapcache_seed_config(config))
+    
+        logger.info("Result time span is %s/%s." % (isotime(start_time),
+                                                    isotime(end_time)))
+        times_qs.delete()
+    
+    time_model = mapcache_models.Time(start_time=browse.start_time,
+                                      end_time=browse.end_time,
+                                      minx=minx, miny=miny, 
+                                      maxx=maxx, maxy=maxy,
+                                      source=source)
+    
+    time_model.full_clean()
+    time_model.save()
     
     return extent, (browse.start_time, browse.end_time)
 
@@ -206,12 +248,18 @@ def remove_browse(browse_model, browse_layer_model, coverage_id, config=None):
                       delete=True,
                       **get_mapcache_seed_config(config))
     
-    
     except Exception, e:
         logger.warn("Un-seeding failed: %s" % str(e))
     
     
     # delete *one* of the fitting Time objects
+    
+    
+    # TODO: 
+    #  - get time entry for given browse
+    #  - get all browses for given time entry
+    #  - "unmerge" time objects if necessary
+    
     mapcache_models.Time.objects.filter(
         start_time=browse_model.start_time,
         end_time=browse_model.end_time,
@@ -221,8 +269,7 @@ def remove_browse(browse_model, browse_layer_model, coverage_id, config=None):
     return replaced_extent, replaced_filename
 
 
-def _model_from_parsed(parsed_browse, browse_report, browse_layer, 
-                       coverage_id, model_cls):
-    model = model_cls(browse_report=browse_report, browse_layer=browse_layer, 
-                      coverage_id=coverage_id, **parsed_browse.get_kwargs())
+def _create_model(browse, browse_report_model, browse_layer_model, coverage_id, model_cls):
+    model = model_cls(browse_report=browse_report_model, browse_layer=browse_layer_model, 
+                      coverage_id=coverage_id, **browse.get_kwargs())
     return model

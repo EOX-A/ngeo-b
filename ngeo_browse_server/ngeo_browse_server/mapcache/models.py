@@ -67,6 +67,11 @@ class Time(models.Model):
     end_time = models.DateTimeField(blank=True)
     source = models.ForeignKey(Source)
     
+    minx = models.FloatField()
+    miny = models.FloatField()
+    maxx = models.FloatField()
+    maxy = models.FloatField()
+    
     def __unicode__(self):
         return ("Start time: %s" % self.start_time)
     

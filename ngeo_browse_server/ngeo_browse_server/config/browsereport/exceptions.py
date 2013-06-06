@@ -30,5 +30,5 @@
 from ngeo_browse_server.exceptions import NGEOException
 
 
-class ParsingException(NGEOException):
+class DecodingException(NGEOException):
     pass
