@@ -108,8 +108,9 @@ def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
         browse_model.save()
         
         for coord_list in browse.coord_lists:
-            coord_list = models.RegularGridCoordList(regular_grid_browse=browse,
-                                                     coord_list=coord_list)
+            coord_list = models.RegularGridCoordList(
+                regular_grid_browse=browse_model, coord_list=coord_list
+            )
             coord_list.full_clean()
             coord_list.save()
     
@@ -200,8 +201,7 @@ def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
                                                     isotime(end_time)))
         times_qs.delete()
     
-    time_model = mapcache_models.Time(start_time=browse.start_time,
-                                      end_time=browse.end_time,
+    time_model = mapcache_models.Time(start_time=start_time, end_time=end_time,
                                       minx=minx, miny=miny, 
                                       maxx=maxx, maxy=maxy,
                                       source=source)

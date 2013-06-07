@@ -36,9 +36,9 @@ from osgeo import gdal
 from django.db import transaction
 
 from ngeo_browse_server.exceptions import NGEOException
-from ngeo_browse_server.config.browselayer.parsing import parse_browse_layers
+from ngeo_browse_server.config.browselayer.decoding import decode_browse_layers
 from ngeo_browse_server.config.models import BrowseLayer, BrowseIdentifier
-from ngeo_browse_server.config.browsereport.parsing import parse_browse_report
+from ngeo_browse_server.config.browsereport.decoding import decode_browse_report
 from ngeo_browse_server.control.migration import package
 from ngeo_browse_server.control.queries import (
     get_existing_browse, create_browse_report, create_browse, remove_browse
@@ -68,7 +68,7 @@ class ImportException(NGEOException):
 
 def import_package(package_path, ignore_cache, config):
     with package.read(package_path) as p:
-        browse_layer = parse_browse_layers(etree.parse(p.get_browse_layer()))[0]
+        browse_layer = decode_browse_layers(etree.parse(p.get_browse_layer()))[0]
         
         try:
             browse_layer_model = BrowseLayer.objects.get(
@@ -138,7 +138,7 @@ def import_browse_report(p, browse_report_file, browse_layer_model, crs,
     
     report_result = IngestBrowseReportResult()
     
-    browse_report = parse_browse_report(etree.parse(browse_report_file))
+    browse_report = decode_browse_report(etree.parse(browse_report_file))
     browse_report_model = create_browse_report(browse_report,
                                                browse_layer_model)
     for browse in browse_report:
