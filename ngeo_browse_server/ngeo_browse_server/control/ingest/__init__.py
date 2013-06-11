@@ -182,11 +182,12 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
         with transaction.commit_manually():
             with transaction.commit_manually(using="mapcache"):
                 try:
+                    seed_areas = []
                     # try ingest a single browse and log success
                     result = ingest_browse(parsed_browse, browse_report,
                                            browse_layer, preprocessor, crs,
                                            success_dir, failure_dir,
-                                           config=config)
+                                           seed_areas, config=config)
                     
                     report_result.add(result)
                     succeded.append(parsed_browse)
@@ -197,23 +198,25 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
                     
                     logger.info("Commited changes to database.")
                     
-                    try:
-                        
-                        # seed MapCache synchronously
-                        # TODO: maybe replace this with an async solution
-                        seed_mapcache(tileset=browse_layer.id, grid=browse_layer.grid, 
-                                      minx=result.extent[0], miny=result.extent[1],
-                                      maxx=result.extent[2], maxy=result.extent[3], 
-                                      minzoom=browse_layer.lowest_map_level, 
-                                      maxzoom=browse_layer.highest_map_level,
-                                      start_time=result.time_interval[0],
-                                      end_time=result.time_interval[1],
-                                      delete=False,
-                                      **get_mapcache_seed_config(config))
-                        logger.info("Successfully finished seeding.")
-                        
-                    except Exception, e:
-                        logger.warn("Seeding failed: %s" % str(e))
+                    for minx, miny, maxx, maxy, start_time, end_time in seed_areas:
+                        try:
+                            
+                            # seed MapCache synchronously
+                            # TODO: maybe replace this with an async solution
+                            seed_mapcache(tileset=browse_layer.id, 
+                                          grid=browse_layer.grid, 
+                                          minx=minx, miny=miny, 
+                                          maxx=maxx, maxy=maxy, 
+                                          minzoom=browse_layer.lowest_map_level, 
+                                          maxzoom=browse_layer.highest_map_level,
+                                          start_time=start_time,
+                                          end_time=end_time,
+                                          delete=False,
+                                          **get_mapcache_seed_config(config))
+                            logger.info("Successfully finished seeding.")
+                            
+                        except Exception, e:
+                            logger.warn("Seeding failed: %s" % str(e))
                     
                 except Exception, e:
                     # report error
@@ -279,7 +282,7 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
     
 
 def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
-                  success_dir, failure_dir, config=None):
+                  success_dir, failure_dir, seed_areas, config=None):
     """ Ingests a single browse report, performs the preprocessing of the data
     file and adds the generated browse model to the browse report model. Returns
     a boolean value, indicating whether or not the browse has been inserted or
@@ -347,7 +350,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                                       existing_browse_model.end_time)
             
             replaced_extent, replaced_filename = remove_browse(
-                existing_browse_model, browse_layer, coverage_id, config
+                existing_browse_model, browse_layer, coverage_id, seed_areas, config
             )
             replaced = True
             logger.info("Existing browse found, replacing it.")
@@ -398,7 +401,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
             extent, time_interval = create_browse(
                 parsed_browse, browse_report, browse_layer, coverage_id, 
                 crs, replaced, result.footprint_geom, result.num_bands, 
-                output_filename, config=config
+                output_filename, seed_areas, config=config
             )
             
         

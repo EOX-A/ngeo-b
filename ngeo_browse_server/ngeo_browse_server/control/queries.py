@@ -78,7 +78,8 @@ def create_browse_report(browse_report, browse_layer_model):
 
 
 def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
-                  crs, replaced, footprint, num_bands, filename, config=None):
+                  crs, replaced, footprint, num_bands, filename, 
+                  seed_areas, config=None):
     """ Creates all required database models for the browse and returns the
         calculated extent of the registered coverage.
     """
@@ -209,10 +210,13 @@ def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
     time_model.full_clean()
     time_model.save()
     
+    seed_areas.append((minx, miny, maxx, maxy, start_time, end_time))
+    
     return extent, (browse.start_time, browse.end_time)
 
 
-def remove_browse(browse_model, browse_layer_model, coverage_id, config=None):
+def remove_browse(browse_model, browse_layer_model, coverage_id, 
+                  seed_areas, config=None):
     """ Delete all models and caches associated with browse model. Image itself 
     is not deleted.
     Returns the extent and filename of the replaced image.
@@ -252,19 +256,115 @@ def remove_browse(browse_model, browse_layer_model, coverage_id, config=None):
         logger.warn("Un-seeding failed: %s" % str(e))
     
     
-    # delete *one* of the fitting Time objects
+    # TODO:
+    #    - select the time model to which the browse refers
+    #    - check if there are other browses within this time window
+    #    - if yes:
+    #        - split/shorten
+    #        - for each new time:
+    #            - save slot for seeding afterwards
     
-    
-    # TODO: 
-    #  - get time entry for given browse
-    #  - get all browses for given time entry
-    #  - "unmerge" time objects if necessary
-    
-    mapcache_models.Time.objects.filter(
-        start_time=browse_model.start_time,
-        end_time=browse_model.end_time,
+    time_model = mapcache_models.Time.objects.get(
+        start_time__lte=browse_model.start_time,
+        end_time__gte=browse_model.end_time,
         source__name=browse_layer_model.id
-    )[0].delete()
+    )
+    
+    intersecting_browses_qs = models.Browse.objects.filter(
+        start_time__lte = time_model.end_time,
+        end_time__gte = time_model.start_time 
+    )
+    
+    time_model.delete()
+    
+    if len(intersecting_browses_qs):
+        
+        class Area(object):
+            def __init__(self, minx, miny, maxx, maxy, start_time, end_time):
+                self.minx = minx
+                self.miny = miny
+                self.maxx = maxx
+                self.maxy = maxy
+                self.start_time = start_time
+                self.end_time = end_time
+            
+            def time_intersects(self, other):
+                return (self.end_time >= other.start_time and
+                        self.start_time <= other.end_time)
+        
+        # get "areas" with extent and time slice
+        areas = []
+        for browse in intersecting_browses_qs:
+            coverage = System.getRegistry().getFromFactory(
+                "resources.coverages.wrappers.EOCoverageFactory",
+                {"obj_id": browse.coverage_id}
+            )
+            minx, miny, maxx, maxy = coverage.getExtent()
+            areas.append(Area(
+                minx, miny, maxx, maxy, browse.start_time, browse.end_time
+            ))
+
+        # some helpers
+        def intersects_with_group(area, group):
+            for item in group:
+                if area.time_intersects(item):
+                    return True
+            return False
+        
+        def merge_groups(first, *others):
+            for other in others:
+                for browse in other:
+                    if browse not in first:
+                        first.append(browse)
+        
+        groups = []
+        
+        # iterate over all browses that were associated with the deleted time
+        for area in areas:
+            to_be_merged = []
+            
+            if len(groups) == 0:
+                groups.append([area])
+                continue
+            
+            # check for intersections with other groups
+            for group in groups:
+                if intersects_with_group(area, group):
+                    group.append(area)
+                    to_be_merged.append(group)
+            
+            # actually perform the merge of the groups
+            merge_groups(*to_be_merged)
+            for group in to_be_merged[1:]:
+                groups.remove(group)
+        
+        # each group needs to have its own Time model
+        for group in groups:
+            minx = group[0].minx
+            miny = group[0].miny
+            maxx = group[0].maxx
+            maxy = group[0].maxy 
+            start_time = group[0].start_time
+            end_time = group[0].end_time
+            
+            for browse in group[1:]:
+                minx = min(minx, browse.minx)
+                miny = min(minx, browse.miny)
+                maxx = max(minx, browse.maxx)
+                maxy = max(minx, browse.maxy)
+                start_time = min(minx, browse.start_time)
+                end_time = max(minx, browse.end_time)
+            
+            # create time model
+            time = mapcache_models.Time(
+                minx=minx, miny=miny, maxx=maxx, maxy=maxy,
+                start_time=start_time, end_time=end_time
+            )
+            time.full_clean()
+            time.save()
+            
+            # add it to the regions that need to be seeded
+            seed_areas.append((minx, miny, maxx, maxy, start_time, end_time))
     
     return replaced_extent, replaced_filename
 
