@@ -31,6 +31,7 @@ import logging
 
 from ngeo_browse_server.namespace import ns_cfg
 from ngeo_browse_server.config.browselayer.data import BrowseLayer
+from ngeo_browse_server.decoding import XMLDecoder
 
 
 logger = logging.getLogger(__name__)
@@ -77,3 +78,22 @@ def decode_browse_layers(browse_layers_elem):
         ))
     
     return browse_layers
+
+
+browse_layer_decoder = XMLDecoder({
+    "browse_layer_identifier": "@browseLayerId",
+    "browse_type": "cfg:browseType/text()",
+    "title": "cfg:title/text()",
+    "description": ("cfg:title/text()", str, "?"),
+    "browse_access_policy": "cfg:browseAccessPolicy/text()",
+    "related_dataset_ids": ("cfg:relatedDatasetIds/cfg:datasetId/text()", str, "*"),
+    "contains_vertical_curtains": ("cfg:containsVerticalCurtains", lambda v: v == "true"),
+    "r_band": ("cfg:rgbBands/text()", lambda v: int(v.split(",")[0])),
+    "g_band": ("cfg:rgbBands/text()", lambda v: int(v.split(",")[1])),
+    "b_band": ("cfg:rgbBands/text()", lambda v: int(v.split(",")[2])),
+    "radiometric_interval_min": ("cfg:radiometricInterval/cfg:min/text()", int),
+    "radiometric_interval_max": ("cfg:radiometricInterval/cfg:max/text()", int),
+    "highest_map_level": ("cfg:highestMapLevel/text()", int),
+    "lowest_map_level": ("cfg:lowestMapLevel/text()", int),
+    "lowest_map_level": "cfg:grid/text()"
+}, {"cfg": ns_cfg.uri})

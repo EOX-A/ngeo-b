@@ -136,6 +136,8 @@ def import_browse_report(p, browse_report_file, browse_layer_model, crs,
     """ 
     """
     
+    seed_areas = []
+    
     report_result = IngestBrowseReportResult()
     
     browse_report = decode_browse_report(etree.parse(browse_report_file))
@@ -147,7 +149,8 @@ def import_browse_report(p, browse_report_file, browse_layer_model, crs,
                 try:
                     
                     result = import_browse(p, browse, browse_report_model,
-                                           browse_layer_model, crs, config)
+                                           browse_layer_model, crs, seed_areas,
+                                           config)
                     report_result.add(result)
                     
                     transaction.commit() 
@@ -207,7 +210,8 @@ def import_browse_report(p, browse_report_file, browse_layer_model, crs,
             logger.info("Successfully finished seeding.")
 
 
-def import_browse(p, browse, browse_report_model, browse_layer_model, crs, config):
+def import_browse(p, browse, browse_report_model, browse_layer_model, crs, 
+                  seed_areas, config):
     filename = browse.file_name
     coverage_id = splitext(filename)[0]
     footprint_filename = coverage_id + ".wkb"
@@ -232,7 +236,8 @@ def import_browse(p, browse, browse_report_model, browse_layer_model, crs, confi
         logger.info("Existing browse found, replacing it.")
         
         replaced_extent, replaced_filename = remove_browse(
-            existing_browse_model, browse_layer_model, coverage_id, config
+            existing_browse_model, browse_layer_model, coverage_id, seed_areas,
+            config
         )
         replaced = True
     
@@ -264,7 +269,7 @@ def import_browse(p, browse, browse_report_model, browse_layer_model, crs, confi
         extent, time_interval = create_browse(
             browse, browse_report_model, browse_layer_model,
             coverage_id, crs, replaced, footprint, num_bands, 
-            output_filename, config=config
+            output_filename, seed_areas, config=config
         )
     
     if not replaced:
