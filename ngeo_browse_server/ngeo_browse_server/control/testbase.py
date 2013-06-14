@@ -62,6 +62,7 @@ from ngeo_browse_server.mapcache.config import SEED_SECTION
 from ngeo_browse_server.control.migration.package import (
     SEC_CACHE, BROWSE_LAYER_NAME, SEC_OPTIMIZED
 )
+from eoxserver.core.util.timetools import isotime
 
 
 logger = logging.getLogger(__name__)
@@ -324,6 +325,40 @@ class HttpTestCaseMixin(HttpMixIn):
             self.skipTest("No expected response given.")
         
         self.assertEqual(self.expected_response, self.response.content)
+
+
+class HttpMultipleMixIn(object):
+    """ Base class for testing the HTTP interface. """
+    requests = ()
+    request_files = ()
+    url = "/ingest/"
+    
+    expected_status = 200
+    expected_response = None
+    
+    def get_requests(self):
+        for request in self.requests:
+            yield request
+        
+        for request_file in self.request_files:
+            filename = join(settings.PROJECT_DIR, "data", request_file)
+            with open(filename) as f:
+                yield str(f.read())
+    
+    
+    def execute(self, requests=None, url=None):
+        if not url:
+            url = self.url
+        
+        if not requests:
+            requests = self.get_requests()
+        
+        client = Client()        
+        
+        responses = []
+        for request in requests:
+            responses.append(client.post(url, request, "text/xml"))
+        return responses
 
 
 class CliMixIn(object):
@@ -630,6 +665,35 @@ class SeedTestCaseMixIn(BaseTestCaseMixIn):
                 if not any_filled:
                     self.fail("All tiles are empty.")
 
+
+class SeedMergeTestCaseMixIn(SeedTestCaseMixIn):
+    expected_seeded_areas = () # iterable of 6-tuples: minx, miny, maxx, maxy, start_time, end_time
+    
+    def test_seed_merge(self):
+        """ Checks the `Time` models. Checks that the tilesets only contain 
+        tiles that are in the correct time span.
+        """
+        
+        from ngeo_browse_server.mapcache.models import Time
+        
+        times = [(#t.minx, t.miny, t.maxx, t.maxy, 
+                  t.start_time, t.end_time) 
+                 for t in Time.objects.all()]
+        
+        self.assertItemsEqual(self.expected_seeded_areas, times)
+    
+        db_filename = join(self.temp_mapcache_dir, 
+                       self.expected_inserted_into_series + ".sqlite")
+        
+        expected_timespans = ["%s/%s" % (isotime(area[-2]), isotime(area[-1]))
+                              for area in self.expected_seeded_areas]
+        
+        with sqlite3.connect(db_filename) as connection:
+            cur = connection.cursor()
+            cur.execute("SELECT DISTINCT dim FROM tiles;")
+            timespans = [row[0] for row in cur.fetchall()]
+            self.assertItemsEqual(expected_timespans, timespans)
+            
 
 class IngestReplaceTestCaseMixIn(IngestTestCaseMixIn):
     """ Test case mixin for testing replacement tests. """
