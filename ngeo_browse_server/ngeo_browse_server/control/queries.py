@@ -240,15 +240,21 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
     rect_mgr.delete(obj_id=browse_model.coverage_id)
     browse_model.delete()
     
+    time_model = mapcache_models.Time.objects.get(
+        start_time__lte=browse_model.start_time,
+        end_time__gte=browse_model.end_time,
+        source__name=browse_layer_model.id
+    )
+    
     # unseed here
     try:
         seed_mapcache(tileset=browse_layer_model.id, grid=browse_layer_model.grid, 
-                      minx=replaced_extent[0], miny=replaced_extent[1],
-                      maxx=replaced_extent[2], maxy=replaced_extent[3], 
+                      minx=time_model.minx, miny=time_model.miny,
+                      maxx=time_model.maxx, maxy=time_model.maxy, 
                       minzoom=browse_layer_model.lowest_map_level, 
                       maxzoom=browse_layer_model.highest_map_level,
-                      start_time=browse_model.start_time,
-                      end_time=browse_model.end_time,
+                      start_time=time_model.start_time,
+                      end_time=time_model.end_time,
                       delete=True,
                       **get_mapcache_seed_config(config))
     
@@ -264,17 +270,12 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
     #        - for each new time:
     #            - save slot for seeding afterwards
     
-    time_model = mapcache_models.Time.objects.get(
-        start_time__lte=browse_model.start_time,
-        end_time__gte=browse_model.end_time,
-        source__name=browse_layer_model.id
-    )
-    
     intersecting_browses_qs = models.Browse.objects.filter(
         start_time__lte = time_model.end_time,
         end_time__gte = time_model.start_time 
     )
     
+    source_model = time_model.source
     time_model.delete()
     
     if len(intersecting_browses_qs):
@@ -352,13 +353,14 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
                 miny = min(minx, browse.miny)
                 maxx = max(minx, browse.maxx)
                 maxy = max(minx, browse.maxy)
-                start_time = min(minx, browse.start_time)
-                end_time = max(minx, browse.end_time)
+                start_time = min(start_time, browse.start_time)
+                end_time = max(end_time, browse.end_time)
             
             # create time model
             time = mapcache_models.Time(
                 minx=minx, miny=miny, maxx=maxx, maxy=maxy,
-                start_time=start_time, end_time=end_time
+                start_time=start_time, end_time=end_time,
+                source=source_model
             )
             time.full_clean()
             time.save()
