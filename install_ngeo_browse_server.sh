@@ -430,7 +430,7 @@ EOF
     <Directory "$NGEOB_INSTALL_DIR">
             Options Indexes FollowSymLinks
             AllowOverride None
-            Order deny,allow
+            Order Deny,Allow
             Deny from all
     </Directory>
 
@@ -443,8 +443,8 @@ EOF
         Options +ExecCGI -MultiViews +SymLinksIfOwnerMatch
         AddHandler wsgi-script .py
         WSGIProcessGroup ngeob
-        Order allow,deny
-        allow from all
+        Order Allow,Deny
+        Allow from all
     </Directory>
 
     MapCacheAlias $APACHE_NGEO_CACHE_ALIAS "$MAPCACHE_DIR/mapcache.xml"
