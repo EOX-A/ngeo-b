@@ -59,7 +59,7 @@ def decode_browse_report(browse_report_elem):
         ElementTree.Element node.
     """
     
-    logger.info("Start decoding browse report.")
+    logger.info("Start parsing browse report.")
     
     try:
         browse_report_elem = browse_report_elem.getroot()
@@ -123,7 +123,7 @@ def decode_browse(browse_elem):
         return data.VerticalCurtainBrowse(**kwargs)
     
     else:
-        raise DecodingException("Missing geo-spatial reference type.")
+        raise ParsingException("Missing geo-spatial reference type.")
 
 
 def decode_coord_list(coord_list, swap_axes=False):
