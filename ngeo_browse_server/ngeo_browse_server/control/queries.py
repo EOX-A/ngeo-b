@@ -262,7 +262,7 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
         logger.warn("Un-seeding failed: %s" % str(e))
     
     
-    # TODO:
+    # approach
     #    - select the time model to which the browse refers
     #    - check if there are other browses within this time window
     #    - if yes:
@@ -334,10 +334,11 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
                     group.append(area)
                     to_be_merged.append(group)
             
-            # actually perform the merge of the groups
-            merge_groups(*to_be_merged)
-            for group in to_be_merged[1:]:
-                groups.remove(group)
+            if len(to_be_merged):
+                # actually perform the merge of the groups
+                merge_groups(*to_be_merged)
+                for group in to_be_merged[1:]:
+                    groups.remove(group)
         
         # each group needs to have its own Time model
         for group in groups:
