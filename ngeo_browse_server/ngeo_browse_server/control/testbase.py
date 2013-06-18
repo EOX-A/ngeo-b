@@ -667,7 +667,7 @@ class SeedTestCaseMixIn(BaseTestCaseMixIn):
 
 
 class SeedMergeTestCaseMixIn(SeedTestCaseMixIn):
-    expected_seeded_areas = () # iterable of 6-tuples: minx, miny, maxx, maxy, start_time, end_time
+    expected_seeded_areas = () # iterable of 2-tuples: start_time, end_time
     
     def test_seed_merge(self):
         """ Checks the `Time` models. Checks that the tilesets only contain 
@@ -676,9 +676,7 @@ class SeedMergeTestCaseMixIn(SeedTestCaseMixIn):
         
         from ngeo_browse_server.mapcache.models import Time
         
-        times = [(#t.minx, t.miny, t.maxx, t.maxy, 
-                  t.start_time, t.end_time) 
-                 for t in Time.objects.all()]
+        times = [(t.start_time, t.end_time) for t in Time.objects.all()]
         
         self.assertItemsEqual(self.expected_seeded_areas, times)
     

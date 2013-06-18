@@ -31,8 +31,7 @@ from os.path import join
 
 from django.conf import settings
 from django.test import TestCase, TransactionTestCase, LiveServerTestCase
-from django.utils.timezone import utc
-from eoxserver.core.util.timetools import getDateTime
+from django.utils.dateparse import parse_datetime
 
 from ngeo_browse_server.control.testbase import (
     BaseTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, CliMixIn, 
@@ -887,8 +886,8 @@ class SeedMerge1(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
     expected_inserted_into_series = "TEST_SAR"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
     expected_seeded_areas = [
-        (getDateTime("2010-07-22T21:38:40Z").replace(tzinfo=utc),
-         getDateTime("2010-07-22T21:40:38Z").replace(tzinfo=utc))
+        (parse_datetime("2010-07-22T21:38:40Z"),
+         parse_datetime("2010-07-22T21:40:38Z"))
     ]
     
     
@@ -905,8 +904,8 @@ class SeedMerge2(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
     expected_inserted_into_series = "TEST_SAR"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
     expected_seeded_areas = [
-        (getDateTime("2010-07-22T21:38:40Z").replace(tzinfo=utc),
-         getDateTime("2010-07-22T21:42:38Z").replace(tzinfo=utc))
+        (parse_datetime("2010-07-22T21:38:40Z"),
+         parse_datetime("2010-07-22T21:42:38Z"))
     ]
     
 
@@ -924,13 +923,51 @@ class SeedMerge3(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
     expected_inserted_into_series = "TEST_SAR"
     expected_tiles = {0: 4, 1: 16, 2: 64, 3: 192, 4: 320}
     expected_seeded_areas = [
-        (getDateTime("2010-07-22T21:38:40Z").replace(tzinfo=utc),
-         getDateTime("2010-07-22T21:40:38Z").replace(tzinfo=utc)),
-        (getDateTime("2010-07-22T21:45:38Z").replace(tzinfo=utc),
-         getDateTime("2010-07-22T21:48:38Z").replace(tzinfo=utc)),
+        (parse_datetime("2010-07-22T21:38:40Z"),
+         parse_datetime("2010-07-22T21:40:38Z")),
+        (parse_datetime("2010-07-22T21:46:38Z"),
+         parse_datetime("2010-07-22T21:48:38Z"))
     ]
 
 
+class SeedMerge4(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
+    """ Splitting consquent time window in two seperate but with slight overlap.
+    """
+    
+    request_files = ("merge_test_data/br_merge_2.xml",
+                     "merge_test_data/br_merge_3.xml",
+                     "merge_test_data/br_merge_3_replace_2.xml",
+                     )
+    
+    storage_dir = "data/merge_test_data"
+    
+    expected_inserted_into_series = "TEST_SAR"
+    expected_tiles = {0: 4, 1: 16, 2: 64, 3: 192, 4: 192}
+    expected_seeded_areas = [
+        (parse_datetime("2010-07-22T21:39:00Z"),
+         parse_datetime("2010-07-22T21:40:38Z")),
+        (parse_datetime("2010-07-22T21:42:38Z"),
+         parse_datetime("2010-07-22T21:44:38Z")),
+    ]
+
+
+class SeedMerge5(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
+    """ Merging two time windows with a replacement.
+    """
+    
+    request_files = ("merge_test_data/br_merge_1.xml",
+                     "merge_test_data/br_merge_3.xml",
+                     "merge_test_data/br_merge_3_replace_3.xml",
+                     )
+    
+    storage_dir = "data/merge_test_data"
+    
+    expected_inserted_into_series = "TEST_SAR"
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
+    expected_seeded_areas = [
+        (parse_datetime("2010-07-22T21:36:40Z"),
+         parse_datetime("2010-07-22T21:39:38Z"))
+    ]
 
 #===============================================================================
 # Ingest Failure tests
@@ -2380,6 +2417,34 @@ class DeleteFromCommandStartEnd(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn
     expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
     expected_inserted_into_series = "TEST_SAR"
     expected_tiles = {0: 4, 1: 16, 2: 64, 3: 256, 4: 256}
+
+
+class DeleteFromCommandStartEndMerge1(DeleteTestCaseMixIn, CliMixIn, SeedMergeTestCaseMixIn, LiveServerTestCase):
+    kwargs = {
+        "layer" : "TEST_SAR",
+        "start": "2010-07-22T21:39:00Z",
+        "end": "2010-07-22T21:40:38Z"
+    }
+    
+    storage_dir = "data/merge_test_data"
+    
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report", 
+                        join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_1.xml"),
+                        join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_2.xml"),
+                        join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_3.xml")]
+    
+    expected_remaining_browses = 2
+    #expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
+    expected_inserted_into_series = "TEST_SAR"
+    expected_tiles = {0: 4, 1: 16, 2: 64, 3: 256, 4: 256}
+    
+    expected_seeded_areas = [
+        (parse_datetime("2010-07-22T21:38:40Z"),
+         parse_datetime("2010-07-22T21:39:38Z")),
+        (parse_datetime("2010-07-22T21:40:38Z"),
+         parse_datetime("2010-07-22T21:42:38Z"))
+    ]
+    
 
 
 #===============================================================================
