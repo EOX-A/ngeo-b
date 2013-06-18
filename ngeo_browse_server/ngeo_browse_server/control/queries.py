@@ -37,7 +37,6 @@ from ngeo_browse_server.config import models
 from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.mapcache.tasks import seed_mapcache
 from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
-from eoxserver.core.util.timetools import isotime
 
 
 logger = logging.getLogger(__name__)
