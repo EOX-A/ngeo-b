@@ -46,6 +46,7 @@ from ngeo_browse_server.config.models import (BrowseLayer, Browse)
 from ngeo_browse_server.mapcache.tasks import seed_mapcache
 from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
 from ngeo_browse_server.mapcache import models as mapcache_models
+from ngeo_browse_server.control.queries import remove_browse
 
 
 
@@ -136,63 +137,15 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
             browses_qs = browses_qs.filter(start_time__gte=start, end_time__lte=end)
             
         paths_to_delete = []
+        seed_areas = []
         
         # go through all browses to be deleted
         for browse_model in browses_qs:
             
-            coverage_wrapper = System.getRegistry().getFromFactory(
-                "resources.coverages.wrappers.EOCoverageFactory",
-                {"obj_id": browse_model.coverage_id}
-            )
+            _, filename = remove_browse(browse_model, browse_layer_model, 
+                                        browse_model.coverage_id, seed_areas)
             
-            # save paths to optimized browse image
-            data_package = coverage_wrapper.getData()
-            data_package.prepareAccess()
-            browse_file_path = data_package.getGDALDatasetIdentifier()
-            paths_to_delete.append(browse_file_path)
-            
-            mgr = System.getRegistry().findAndBind(
-                intf_id="resources.coverages.interfaces.Manager",
-                params={
-                    "resources.coverages.interfaces.res_type": "eo.rect_stitched_mosaic"
-                }
-            )
-            
-            
-            replaced_extent = coverage_wrapper.getExtent()
-                
-            id_to_delete = browse_model.coverage_id
-            
-            # delete coverage      
-            mgr.delete(browse_model.coverage_id)
-            
-            # delete browse          
-            browse_model.delete()
-            
-            
-            # unseed
-            try:
-                seed_mapcache(tileset=browse_layer_model.id, grid=browse_layer_model.grid, 
-                    minx=replaced_extent[0], miny=replaced_extent[1],
-                    maxx=replaced_extent[2], maxy=replaced_extent[3], 
-                    minzoom=browse_layer_model.lowest_map_level, 
-                    maxzoom=browse_layer_model.highest_map_level,
-                    start_time=browse_model.start_time,
-                    end_time=browse_model.end_time,
-                    delete=True,
-                    **get_mapcache_seed_config(None))
-            except Exception, e:
-                logger.warn("Un-seeding failed: %s" % str(e))
-                
-            # delete *one* of the fitting Time objects
-            mapcache_models.Time.objects.filter(
-                start_time=browse_model.start_time,
-                end_time=browse_model.end_time,
-                source__name=browse_layer_model.id
-            )[0].delete()
-                
-            logger.info("Coverage, browse and seed for id %s deleted."%id_to_delete) 
-            
+            paths_to_delete.append(filename)
         
         # loop through optimized browse images and delete them
         # This is done at this point to make sure a rollback is possible
@@ -200,9 +153,31 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         for file_path in paths_to_delete:
             if exists(file_path):
                 remove(file_path)
-                logger.info("Optimized browse image deleted: %s"%file_path) 
+                logger.info("Optimized browse image deleted: %s" % file_path) 
             else:
-                logger.warning("Optimized browse image to be deleted not found in path: %s"%file_path)
+                logger.warning("Optimized browse image to be deleted not found "
+                               "in path: %s" % file_path)
+        
+        
+        for minx, miny, maxx, maxy, start_time, end_time in seed_areas:
+            try:
+                
+                # seed MapCache synchronously
+                # TODO: maybe replace this with an async solution
+                seed_mapcache(tileset=browse_layer_model.id, 
+                              grid=browse_layer_model.grid, 
+                              minx=minx, miny=miny, 
+                              maxx=maxx, maxy=maxy, 
+                              minzoom=browse_layer_model.lowest_map_level, 
+                              maxzoom=browse_layer_model.highest_map_level,
+                              start_time=start_time,
+                              end_time=end_time,
+                              delete=False,
+                              **get_mapcache_seed_config())
+                logger.info("Successfully finished seeding.")
+                
+            except Exception, e:
+                logger.warn("Seeding failed: %s" % str(e))
         
         # TODO: 
         #   - think about what to do with brows report
