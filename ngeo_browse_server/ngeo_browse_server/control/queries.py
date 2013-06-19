@@ -32,6 +32,7 @@ import logging
 from eoxserver.core.system import System
 from eoxserver.resources.coverages.crss import fromShortCode
 from eoxserver.resources.coverages.metadata import EOMetadata
+from eoxserver.core.util.timetools import isotime
 
 from ngeo_browse_server.config import models
 from ngeo_browse_server.mapcache import models as mapcache_models
