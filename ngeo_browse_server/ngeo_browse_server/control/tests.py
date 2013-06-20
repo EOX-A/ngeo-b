@@ -2436,7 +2436,7 @@ class DeleteFromCommandStartEndMerge1(DeleteTestCaseMixIn, CliMixIn, SeedMergeTe
     expected_remaining_browses = 2
     #expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
     expected_inserted_into_series = "TEST_SAR"
-    expected_tiles = {0: 4, 1: 16, 2: 64, 3: 256, 4: 256}
+    expected_tiles = {0: 4, 1: 16, 2: 64, 3: 192, 4: 192}
     
     expected_seeded_areas = [
         (parse_datetime("2010-07-22T21:38:40Z"),
