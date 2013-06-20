@@ -104,13 +104,13 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         if end:
             end = getDateTime(end)
         
-        with transaction.commit_on_success():
-            self._handle(start, end, browse_layer_id, browse_type)
+        
+        self._handle(start, end, browse_layer_id, browse_type)
             
     
     
     def _handle(self, start, end, browse_layer_id, browse_type):
-            
+        
         # query the browse layer
         if browse_layer_id:
             try:
@@ -139,13 +139,16 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         paths_to_delete = []
         seed_areas = []
         
-        # go through all browses to be deleted
-        for browse_model in browses_qs:
-            
-            _, filename = remove_browse(browse_model, browse_layer_model, 
-                                        browse_model.coverage_id, seed_areas)
-            
-            paths_to_delete.append(filename)
+        
+        with transaction.commit_on_success():
+            with transaction.commit_on_success(using="mapcache"):
+                # go through all browses to be deleted
+                for browse_model in browses_qs:
+                    
+                    _, filename = remove_browse(browse_model, browse_layer_model, 
+                                                browse_model.coverage_id, seed_areas)
+                    
+                    paths_to_delete.append(filename)
         
         # loop through optimized browse images and delete them
         # This is done at this point to make sure a rollback is possible

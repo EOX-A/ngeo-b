@@ -339,6 +339,9 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
                 merge_groups(*to_be_merged)
                 for group in to_be_merged[1:]:
                     groups.remove(group)
+            
+            else:
+                groups.append([area])
         
         # each group needs to have its own Time model
         for group in groups:
