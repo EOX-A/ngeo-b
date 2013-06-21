@@ -28,8 +28,6 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
-
-
 from os.path import exists
 from os import remove
 import logging
@@ -45,9 +43,7 @@ from ngeo_browse_server.control.management.commands import LogToConsoleMixIn
 from ngeo_browse_server.config.models import (BrowseLayer, Browse)
 from ngeo_browse_server.mapcache.tasks import seed_mapcache
 from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
-from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.control.queries import remove_browse
-
 
 
 logger = logging.getLogger(__name__)
