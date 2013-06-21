@@ -123,7 +123,7 @@ def decode_browse(browse_elem):
         return data.VerticalCurtainBrowse(**kwargs)
     
     else:
-        raise ParsingException("Missing geo-spatial reference type.")
+        raise DecodingException("Missing geo-spatial reference type.")
 
 
 def decode_coord_list(coord_list, swap_axes=False):
