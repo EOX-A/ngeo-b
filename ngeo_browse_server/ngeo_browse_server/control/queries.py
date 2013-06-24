@@ -131,10 +131,10 @@ def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
     # if the browse contains an identifier, create the according model
     if browse.browse_identifier is not None:
         try:
-            models.NameValidator(parsed_browse.browse_identifier)
+            models.NameValidator(browse.browse_identifier)
         except ValidationError, e:
             raise IngestionException("Browse Identifier '%s' not valid: '%s'." % 
-                                     (parsed_browse.browse_identifier, str(e.messages[0])),
+                                     (browse.browse_identifier, str(e.messages[0])),
                                      "ValidationError")
 
         browse_identifier_model = models.BrowseIdentifier(
