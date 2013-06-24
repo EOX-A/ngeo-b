@@ -227,7 +227,7 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
                     # undo latest changes, append the failure and continue
                     report_result.add(IngestBrowseFailureResult(
                         parsed_browse.browse_identifier, 
-                        type(e).__name__, str(e))
+                        getattr(e, "code", None) or type(e).__name__, str(e))
                     )
                     failed.append(parsed_browse)
                     
@@ -328,7 +328,10 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
     if commonprefix((input_filename, storage_path)) != storage_path:
         raise IngestionException("Input path '%s' points to an invalid "
                                  "location." % parsed_browse.file_name)
-    models.FileNameValidator(input_filename)
+    try:
+        models.FileNameValidator(input_filename)
+    except ValidationError, e:
+        raise IngestionException("%s" % str(e), "ValidationError")
     
     output_filename = _valid_path(get_optimized_path(parsed_browse.file_name, 
                                                      browse_layer.id + "/" + str(parsed_browse.start_time.year),
