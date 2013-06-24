@@ -81,7 +81,7 @@ DJANGO_MAIL="ngeo@eox.at"
 DJANGO_PASSWORD="Aa2phu0s"
 
 # Shibboleth
-USE_SHIBBOLETH=true
+USE_SHIBBOLETH=false
 
 IDP_HOST="earthserver.eox.at"
 IDP_PORT="443"
@@ -235,7 +235,154 @@ echo "Performing installation step 170"
 yum install -y libxml2 libxml2-python mapserver mapserver-python mapcache \
                ngEO_Browse_Server EOxServer
 
-# Shibboleth Installation
+echo "Performing installation step 180"
+# Configure PostgreSQL/PostGIS database
+
+## Write database configuration script
+TMPFILE=`mktemp`
+cat << EOF > "$TMPFILE"
+#!/bin/sh -e
+# cd to a "safe" location
+cd /tmp
+if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='template_postgis'")" != 1 ] ; then
+    echo "Creating template database."
+    createdb -E UTF8 template_postgis
+    createlang plpgsql -d template_postgis
+    psql postgres -c "UPDATE pg_database SET datistemplate='true' WHERE datname='template_postgis';"
+    psql -d template_postgis -f /usr/share/pgsql/contrib/postgis.sql
+    psql -d template_postgis -f /usr/share/pgsql/contrib/spatial_ref_sys.sql
+    psql -d template_postgis -c "GRANT ALL ON geometry_columns TO PUBLIC;"
+    psql -d template_postgis -c "GRANT ALL ON geography_columns TO PUBLIC;"
+    psql -d template_postgis -c "GRANT ALL ON spatial_ref_sys TO PUBLIC;"
+fi
+if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'")" != 1 ] ; then
+    echo "Creating ngEO database user."
+    psql postgres -tAc "CREATE USER $DB_USER NOSUPERUSER CREATEDB NOCREATEROLE ENCRYPTED PASSWORD '$DB_PASSWORD'"
+fi
+if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'")" != 1 ] ; then
+    echo "Creating ngEO Browse Server database."
+    createdb -O $DB_USER -T template_postgis $DB_NAME
+fi
+EOF
+## End of database configuration script
+
+if [ -f $TMPFILE ] ; then
+    chgrp postgres $TMPFILE
+    chmod g+rx $TMPFILE
+    su postgres -c "$TMPFILE"
+    rm "$TMPFILE"
+else
+    echo "Script to configure DB not found."
+fi
+
+echo "Performing installation step 190"
+# ngEO Browse Server
+[ -d "$NGEOB_INSTALL_DIR" ] || mkdir -p "$NGEOB_INSTALL_DIR"
+cd "$NGEOB_INSTALL_DIR"
+
+# Configure ngeo_browse_server_instance
+if [ ! -d ngeo_browse_server_instance ] ; then
+    echo "Creating and configuring ngEO Browse Server instance."
+
+    django-admin startproject --extension=conf --template=`python -c "import ngeo_browse_server, os; from os.path import dirname, abspath, join; print(join(dirname(abspath(ngeo_browse_server.__file__)), 'project_template'))"` ngeo_browse_server_instance
+    
+    echo "Performing installation step 200"
+    cd ngeo_browse_server_instance
+    # Configure DBs
+    NGEOB_INSTALL_DIR_ESCAPED=`echo $NGEOB_INSTALL_DIR | sed -e 's/\//\\\&/g'`
+    sed -e "s/'ENGINE': 'django.contrib.gis.db.backends.spatialite',                  # Use 'spatialite' or change to 'postgis'./'ENGINE': 'django.contrib.gis.db.backends.postgis',/" -i ngeo_browse_server_instance/settings.py
+    sed -e "s/'NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/data.sqlite',  # Or path to database file if using spatialite./'NAME': '$DB_NAME',/" -i ngeo_browse_server_instance/settings.py
+    sed -e "s/'USER': '',                                                             # Not used with spatialite./'USER': '$DB_USER',/" -i ngeo_browse_server_instance/settings.py
+    sed -e "s/'PASSWORD': '',                                                         # Not used with spatialite./'PASSWORD': '$DB_PASSWORD',/" -i ngeo_browse_server_instance/settings.py
+    sed -e "/#'TEST_NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/test-data.sqlite', # Required for certain test cases, but slower!/d" -i ngeo_browse_server_instance/settings.py
+    sed -e "/'HOST': '',                                                             # Set to empty string for localhost. Not used with spatialite./d" -i ngeo_browse_server_instance/settings.py
+    sed -e "/'PORT': '',                                                             # Set to empty string for default. Not used with spatialite./d" -i ngeo_browse_server_instance/settings.py
+    sed -e "s/#'TEST_NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/test-mapcache.sqlite',/'TEST_NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/test-mapcache.sqlite',/" -i ngeo_browse_server_instance/settings.py
+
+    # Configure instance
+    sed -e "s,http_service_url=http://localhost:8000/ows,http_service_url=$NGEOB_URL$APACHE_NGEO_BROWSE_ALIAS/ows," -i ngeo_browse_server_instance/conf/eoxserver.conf
+    MAPCACHE_DIR_ESCAPED=`echo $MAPCACHE_DIR | sed -e 's/\//\\\&/g'`
+    sed -e "s/^tileset_root=$/tileset_root=$MAPCACHE_DIR_ESCAPED\//" -i ngeo_browse_server_instance/conf/ngeo.conf
+    sed -e "s/^config_file=$/config_file=$MAPCACHE_DIR_ESCAPED\/$MAPCACHE_CONF/" -i ngeo_browse_server_instance/conf/ngeo.conf
+    sed -e "s/^storage_dir=data\/storage$/storage_dir=$NGEOB_INSTALL_DIR_ESCAPED\/store/" -i ngeo_browse_server_instance/conf/ngeo.conf
+    
+    # Configure logging
+    if "$TESTING" ; then
+        sed -e 's/DEBUG = False/DEBUG = True/' -i ngeo_browse_server_instance/settings.py
+    else
+        sed -e 's/#logging_level=/logging_level=INFO/' -i ngeo_browse_server_instance/conf/eoxserver.conf
+    fi
+
+    # Prepare DBs
+    python manage.py syncdb --noinput
+    python manage.py syncdb --database=mapcache --noinput
+    python manage.py loaddata initial_rangetypes.json
+
+    # Create admin user
+    python manage.py createsuperuser --username=$DJANGO_USER --email=$DJANGO_MAIL --noinput
+    python -c "import os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ngeo_browse_server_instance.settings'); \
+               from django.contrib.auth.models import User;  admin = User.objects.get(username='$DJANGO_USER'); \
+               admin.set_password('$DJANGO_PASSWORD'); admin.save();"
+
+    # Collect static files
+    python manage.py collectstatic --noinput
+
+    # Make the instance read- and editable by apache
+    chown -R apache:apache .
+
+    cd ..
+else
+    echo "Skipped installation steps 190 and 200"
+fi
+
+echo "Performing installation step 210"
+# MapCache
+if [ ! -d "$MAPCACHE_DIR" ] ; then
+    echo "Configuring MapCache."
+
+    mkdir -p "$MAPCACHE_DIR"
+    cd "$MAPCACHE_DIR"
+
+    # Configure MapCache
+    cat << EOF > "$MAPCACHE_DIR/$MAPCACHE_CONF"
+<?xml version="1.0" encoding="UTF-8"?>
+<mapcache>
+    <default_format>mixed</default_format>
+    <format name="mypng" type ="PNG">
+        <compression>fast</compression>
+    </format>
+    <format name="myjpeg" type ="JPEG">
+        <quality>85</quality>
+        <photometric>ycbcr</photometric>
+    </format>
+    <format name="mixed" type="MIXED">
+        <transparent>mypng</transparent>
+        <opaque>myjpeg</opaque>
+    </format>
+
+    <service type="wms" enabled="true">
+        <full_wms>assemble</full_wms>
+        <resample_mode>bilinear</resample_mode>
+        <format>mixed</format>
+        <maxsize>4096</maxsize>
+    </service>
+    <service type="wmts" enabled="true"/>
+
+    <errors>empty_img</errors>
+    <lock_dir>/tmp</lock_dir>
+</mapcache>
+EOF
+
+    # Make the cache read- and editable by apache
+    chown -R apache:apache .
+
+    cd -
+else
+    echo "Skipped installation step 210"
+fi
+
+echo "Performing installation step 220"
+# Shibboleth installation
 if "$USE_SHIBBOLETH" ; then
     echo "Installing Shibboleth"
 
@@ -555,161 +702,13 @@ LoadModule mod_shib /usr/lib64/shibboleth/mod_shib_22.so
     Alias /shibboleth-sp/main.css /usr/share/shibboleth/main.css
 </IfModule>
 EOF
-    
+
     echo "Done installing Shibboleth"
 
+else
+    echo "Skipped installation step 220"
 fi
 # END Shibboleth Installation
-
-echo "Performing installation step 180"
-# Configure PostgreSQL/PostGIS database
-
-## Write database configuration script
-TMPFILE=`mktemp`
-cat << EOF > "$TMPFILE"
-#!/bin/sh -e
-# cd to a "safe" location
-cd /tmp
-if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='template_postgis'")" != 1 ] ; then
-    echo "Creating template database."
-    createdb -E UTF8 template_postgis
-    createlang plpgsql -d template_postgis
-    psql postgres -c "UPDATE pg_database SET datistemplate='true' WHERE datname='template_postgis';"
-    psql -d template_postgis -f /usr/share/pgsql/contrib/postgis.sql
-    psql -d template_postgis -f /usr/share/pgsql/contrib/spatial_ref_sys.sql
-    psql -d template_postgis -c "GRANT ALL ON geometry_columns TO PUBLIC;"
-    psql -d template_postgis -c "GRANT ALL ON geography_columns TO PUBLIC;"
-    psql -d template_postgis -c "GRANT ALL ON spatial_ref_sys TO PUBLIC;"
-fi
-if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'")" != 1 ] ; then
-    echo "Creating ngEO database user."
-    psql postgres -tAc "CREATE USER $DB_USER NOSUPERUSER CREATEDB NOCREATEROLE ENCRYPTED PASSWORD '$DB_PASSWORD'"
-fi
-if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'")" != 1 ] ; then
-    echo "Creating ngEO Browse Server database."
-    createdb -O $DB_USER -T template_postgis $DB_NAME
-fi
-EOF
-## End of database configuration script
-
-if [ -f $TMPFILE ] ; then
-    chgrp postgres $TMPFILE
-    chmod g+rx $TMPFILE
-    su postgres -c "$TMPFILE"
-    rm "$TMPFILE"
-else
-    echo "Script to configure DB not found."
-fi
-
-echo "Performing installation step 190"
-# ngEO Browse Server
-[ -d "$NGEOB_INSTALL_DIR" ] || mkdir -p "$NGEOB_INSTALL_DIR"
-cd "$NGEOB_INSTALL_DIR"
-
-# Configure ngeo_browse_server_instance
-if [ ! -d ngeo_browse_server_instance ] ; then
-    echo "Creating and configuring ngEO Browse Server instance."
-
-    django-admin startproject --extension=conf --template=`python -c "import ngeo_browse_server, os; from os.path import dirname, abspath, join; print(join(dirname(abspath(ngeo_browse_server.__file__)), 'project_template'))"` ngeo_browse_server_instance
-    
-    echo "Performing installation step 200"
-    cd ngeo_browse_server_instance
-    # Configure DBs
-    NGEOB_INSTALL_DIR_ESCAPED=`echo $NGEOB_INSTALL_DIR | sed -e 's/\//\\\&/g'`
-    sed -e "s/'ENGINE': 'django.contrib.gis.db.backends.spatialite',                  # Use 'spatialite' or change to 'postgis'./'ENGINE': 'django.contrib.gis.db.backends.postgis',/" -i ngeo_browse_server_instance/settings.py
-    sed -e "s/'NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/data.sqlite',  # Or path to database file if using spatialite./'NAME': '$DB_NAME',/" -i ngeo_browse_server_instance/settings.py
-    sed -e "s/'USER': '',                                                             # Not used with spatialite./'USER': '$DB_USER',/" -i ngeo_browse_server_instance/settings.py
-    sed -e "s/'PASSWORD': '',                                                         # Not used with spatialite./'PASSWORD': '$DB_PASSWORD',/" -i ngeo_browse_server_instance/settings.py
-    sed -e "/#'TEST_NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/test-data.sqlite', # Required for certain test cases, but slower!/d" -i ngeo_browse_server_instance/settings.py
-    sed -e "/'HOST': '',                                                             # Set to empty string for localhost. Not used with spatialite./d" -i ngeo_browse_server_instance/settings.py
-    sed -e "/'PORT': '',                                                             # Set to empty string for default. Not used with spatialite./d" -i ngeo_browse_server_instance/settings.py
-    sed -e "s/#'TEST_NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/test-mapcache.sqlite',/'TEST_NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/test-mapcache.sqlite',/" -i ngeo_browse_server_instance/settings.py
-
-    # Configure instance
-    sed -e "s,http_service_url=http://localhost:8000/ows,http_service_url=$NGEOB_URL$APACHE_NGEO_BROWSE_ALIAS/ows," -i ngeo_browse_server_instance/conf/eoxserver.conf
-    MAPCACHE_DIR_ESCAPED=`echo $MAPCACHE_DIR | sed -e 's/\//\\\&/g'`
-    sed -e "s/^tileset_root=$/tileset_root=$MAPCACHE_DIR_ESCAPED\//" -i ngeo_browse_server_instance/conf/ngeo.conf
-    sed -e "s/^config_file=$/config_file=$MAPCACHE_DIR_ESCAPED\/$MAPCACHE_CONF/" -i ngeo_browse_server_instance/conf/ngeo.conf
-    sed -e "s/^storage_dir=data\/storage$/storage_dir=$NGEOB_INSTALL_DIR_ESCAPED\/store/" -i ngeo_browse_server_instance/conf/ngeo.conf
-    
-    # Configure logging
-    if "$TESTING" ; then
-        sed -e 's/DEBUG = False/DEBUG = True/' -i ngeo_browse_server_instance/settings.py
-    else
-        sed -e 's/#logging_level=/logging_level=INFO/' -i ngeo_browse_server_instance/conf/eoxserver.conf
-    fi
-
-    # Prepare DBs
-    python manage.py syncdb --noinput
-    python manage.py syncdb --database=mapcache --noinput
-    python manage.py loaddata initial_rangetypes.json
-
-    # Create admin user
-    python manage.py createsuperuser --username=$DJANGO_USER --email=$DJANGO_MAIL --noinput
-    python -c "import os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ngeo_browse_server_instance.settings'); \
-               from django.contrib.auth.models import User;  admin = User.objects.get(username='$DJANGO_USER'); \
-               admin.set_password('$DJANGO_PASSWORD'); admin.save();"
-
-    # Collect static files
-    python manage.py collectstatic --noinput
-
-    # Make the instance read- and editable by apache
-    chown -R apache:apache .
-
-    cd ..
-else
-    echo "Skipped installation steps 190 and 200"
-fi
-
-echo "Performing installation step 210"
-# MapCache
-if [ ! -d "$MAPCACHE_DIR" ] ; then
-    echo "Configuring MapCache."
-
-    mkdir -p "$MAPCACHE_DIR"
-    cd "$MAPCACHE_DIR"
-
-    # Configure MapCache
-    cat << EOF > "$MAPCACHE_DIR/$MAPCACHE_CONF"
-<?xml version="1.0" encoding="UTF-8"?>
-<mapcache>
-    <default_format>mixed</default_format>
-    <format name="mypng" type ="PNG">
-        <compression>fast</compression>
-    </format>
-    <format name="myjpeg" type ="JPEG">
-        <quality>85</quality>
-        <photometric>ycbcr</photometric>
-    </format>
-    <format name="mixed" type="MIXED">
-        <transparent>mypng</transparent>
-        <opaque>myjpeg</opaque>
-    </format>
-
-    <service type="wms" enabled="true">
-        <full_wms>assemble</full_wms>
-        <resample_mode>bilinear</resample_mode>
-        <format>mixed</format>
-        <maxsize>4096</maxsize>
-    </service>
-    <service type="wmts" enabled="true"/>
-
-    <errors>empty_img</errors>
-    <lock_dir>/tmp</lock_dir>
-</mapcache>
-EOF
-
-    # Make the cache read- and editable by apache
-    chown -R apache:apache .
-
-    cd -
-else
-    echo "Skipped installation step 210"
-fi
-
-echo "Performing installation step 220"
-#TBD for V2
-echo "Skipped installation step 220"
 
 echo "Performing installation step 230"
 # Configure WebDAV
@@ -773,6 +772,9 @@ EOF
         sed -e "s/^127\.0\.0\.1.*$/& $HOSTNAME/" -i /etc/hosts
     fi
 
+#TODO: Change depending on shibboleth installation i.e. if shibboleth is installed enable only httpd
+#if "$USE_SHIBBOLETH" ; then
+#else
     cat << EOF > "$APACHE_CONF"
 <VirtualHost *:80>
     ServerName $APACHE_ServerName
