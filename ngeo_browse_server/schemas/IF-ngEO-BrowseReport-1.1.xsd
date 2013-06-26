@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- edited with XMLSpy v2006 sp2 U (http://www.altova.com) by Magellium (MAGELLIUM) -->
-<xs:schema xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:gml="http://www.opengis.net/gml/3.2" xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="http://ngeo.eo.esa.int/schema/browseReport" elementFormDefault="qualified" attributeFormDefault="unqualified" version="1.1">
+<xs:schema xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:gml="http://www.opengis.net/gml/3.2" xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="http://ngeo.eo.esa.int/schema/browseReport" elementFormDefault="qualified" attributeFormDefault="unqualified" version="1.2">
     <xs:import namespace="http://www.opengis.net/gml/3.2" schemaLocation="http://schemas.opengis.net/gml/3.2.1/gml.xsd"/>
     <!--======================================-->
     <!--==== ngEO Root Elements ===============-->
@@ -240,37 +240,4 @@ To be used whenever the browse format is Geotiff, and whenever the geolocation p
             </xs:sequence>
         </xs:sequence>
     </xs:complexType>
-    <!--===========================================-->
-    <!--==== Simple Types Section   =====-->
-    <!--===========================================-->
-    <xs:simpleType name="reportEnumType">
-        <xs:annotation>
-            <xs:documentation>Type of Report</xs:documentation>
-        </xs:annotation>
-        <xs:restriction base="xs:string">
-            <xs:enumeration value="PLANNING"/>
-            <xs:enumeration value="ARCHIVING"/>
-        </xs:restriction>
-    </xs:simpleType>
-    <xs:simpleType name="nonNullStringType">
-        <xs:annotation>
-            <xs:documentation>This represents a non null string type.</xs:documentation>
-        </xs:annotation>
-        <xs:restriction base="xs:string">
-            <xs:minLength value="1"/>
-        </xs:restriction>
-    </xs:simpleType>
-    <xs:element name="originatorIdentifier" type="xs:string">
-        <xs:annotation>
-            <xs:documentation>Identifier for metadata item. urn:eop:GS:CollectionId:ProductId:Version</xs:documentation>
-        </xs:annotation>
-    </xs:element>
-    <xs:simpleType name="orgNameType">
-        <xs:annotation>
-            <xs:documentation>This represents the Organization Type based on a non null string</xs:documentation>
-        </xs:annotation>
-        <xs:restriction base="rep:nonNullStringType">
-            <xs:minLength value="1"/>
-        </xs:restriction>
-    </xs:simpleType>
 </xs:schema>

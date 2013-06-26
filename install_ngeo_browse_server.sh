@@ -80,6 +80,32 @@ DJANGO_USER="admin"
 DJANGO_MAIL="ngeo@eox.at"
 DJANGO_PASSWORD="Aa2phu0s"
 
+# Shibboleth
+USE_SHIBBOLETH=false
+
+IDP_HOST="earthserver.eox.at"
+IDP_PORT="443"
+IDP_SOAP="8110"
+IDP_ENTITYID="https://earthserver.eox.at/idp/shibboleth"
+IDP_CERT_FILE="/etc/httpd/shib/umsso.pem"
+
+SP_NAME="ngeob"
+SP_ENTITYID="https://ngeo.eox.at/shibboleth"
+SP_HOST="ngeo.eox.at"
+SP_PORT="443"
+SP_ORG_DISP_NAME="ngEO Browse Server"
+SP_CONTACT="webmaster@eox.at"
+SP_CERT_FILE="/etc/httpd/shib/spcert.pem"
+SP_KEY_FILE="/etc/httpd/shib/spkey.pem"
+
+# Don't know for sure, why we need those :(
+SP_PROTECTED_REL_PATH="protected"
+SP_PROTECTED_FULL_URL="https://ngeo.eox.at/protected/"
+SP_HOME_FULL_URL="https://ngeo.eox.at/"
+SP_HOME_REL_PATH="/"
+SP_HOME_BASE_URL="https://ngeo.eox.at/"
+SP_HOME_BASE_PATH="/"
+
 ################################################################################
 # Usually there should be no need to change anything below.                    #
 ################################################################################
@@ -183,8 +209,8 @@ rpm -Uvh --replacepkgs http://yum.packages.eox.at/el/eox-release-6-2.noarch.rpm
 
 echo "Performing installation step 150"
 # Set includepkgs in EOX Stable
-if ! grep -Fxq "includepkgs=EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python" /etc/yum.repos.d/eox.repo ; then
-    sed -e 's/^\[eox\]$/&\nincludepkgs=EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python/' -i /etc/yum.repos.d/eox.repo
+if ! grep -Fxq "includepkgs=EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python libxerces-c-3_1" /etc/yum.repos.d/eox.repo ; then
+    sed -e 's/^\[eox\]$/&\nincludepkgs=EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python libxerces-c-3_1/' -i /etc/yum.repos.d/eox.repo
 fi
 if ! grep -Fxq "includepkgs=ngEO_Browse_Server" /etc/yum.repos.d/eox.repo ; then
     sed -e 's/^\[eox-noarch\]$/&\nincludepkgs=ngEO_Browse_Server/' -i /etc/yum.repos.d/eox.repo
@@ -200,8 +226,8 @@ fi
 echo "Performing installation step 160"
 # Set exclude in CentOS-Base
 if ! grep -Fxq "exclude=libxml2 libxml2-python" /etc/yum.repos.d/CentOS-Base.repo ; then
-    sed -e 's/^\[base\]$/&\nexclude=libxml2 libxml2-python/' -i /etc/yum.repos.d/CentOS-Base.repo
-    sed -e 's/^\[updates\]$/&\nexclude=libxml2 libxml2-python/' -i /etc/yum.repos.d/CentOS-Base.repo
+    sed -e 's/^\[base\]$/&\nexclude=libxml2 libxml2-python libxerces-c-3_1/' -i /etc/yum.repos.d/CentOS-Base.repo
+    sed -e 's/^\[updates\]$/&\nexclude=libxml2 libxml2-python libxerces-c-3_1/' -i /etc/yum.repos.d/CentOS-Base.repo
 fi
 
 echo "Performing installation step 170"
@@ -356,8 +382,333 @@ else
 fi
 
 echo "Performing installation step 220"
-#TBD for V2
-echo "Skipped installation step 220"
+# Shibboleth installation
+if "$USE_SHIBBOLETH" ; then
+    echo "Installing Shibboleth"
+
+    # add the shibboleth rpm repository
+    cd /etc/yum.repos.d/
+    wget http://download.opensuse.org/repositories/security://shibboleth/CentOS_CentOS-6/security:shibboleth.repo
+
+    # Set exclude in security:shibboleth.repo
+    if ! grep -Fxq "exclude=libxerces-c-3_1" /etc/yum.repos.d/CentOS-Base.repo ; then
+        sed -e 's/^\[security_shibboleth\]$/&\nexclude=libxerces-c-3_1/' -i /etc/yum.repos.d/security:shibboleth.repo
+    fi
+
+    # TODO includepkg / excludepkg 
+    yum install -y libxerces-c-3_1 shibboleth mod_ssl
+
+    # create directory for shibboleth sp configuration
+    mkdir /etc/httpd/shib/
+
+    # sample keys & certs provided by sso_checkpoint.tgz
+    # TODO: test if files exist and DON'T overwrite them
+    echo "Adding certificates"
+    cat << EOF > /etc/httpd/shib/umsso.pem
+-----BEGIN CERTIFICATE-----
+MIIDpjCCAo4CBHRr6eswDQYJKoZIhvcNAQEFBQAwgZgxKjAoBgkqhkiG9w0BCQEW
+G2FkbWluQHVtLXNzby1pZHAuZW8uZXNhLmludDELMAkGA1UEBhMCSVQxDjAMBgNV
+BAgTBUl0YWx5MQ4wDAYDVQQHEwVFc3JpbjEMMAoGA1UEChMDRVNBMQ8wDQYDVQQL
+EwZFU0EgQ0ExHjAcBgNVBAMTFXVtLXNzby1pZHAuZW8uZXNhLmludDAeFw0xMDEy
+MTcxMzAxNDFaFw0yMTAxMTYyMzAwMDBaMIGVMQswCQYDVQQGEwJJVDEOMAwGA1UE
+CBMFSXRhbHkxDjAMBgNVBAcTBUVzcmluMQwwCgYDVQQKEwNFU0ExDDAKBgNVBAsT
+A0lEUDEeMBwGA1UEAxMVdW0tc3NvLWlkcC5lby5lc2EuaW50MSowKAYJKoZIhvcN
+AQkBFhthZG1pbkB1bS1zc28taWRwLmVvLmVzYS5pbnQwggEiMA0GCSqGSIb3DQEB
+AQUAA4IBDwAwggEKAoIBAQDTN/RJmf1/kXxzJPALfeT0ZI6L2roT6etqW02Jdc3F
+Ultc5LHK1qxUJ/caN8opLBapXsR0s9cjadOpuBkVA338eU9dbjxtJs/ZlixjveHr
+8QCuTLlfxlvK3Jwq6HojrC8VFN4XFylN91XiBmZrSFyjBp+rENlCnmOnrlhlcbSF
+tuIsHcY02Oa5L1aM/rikRlFRfBlBPRfjMdwOKh6y0oHSgCCO2USEaCTBgw2bArwV
+tAKMbr3e+pokE1Qdeg+RUu3PpQ2HOT9jt/FQodWrg7Wh/42s8+AwnrQvSs3A734w
+OILE9q4910jGni97v/t+fsm7E+Q7NLf1QejDudTCUAU3AgMBAAEwDQYJKoZIhvcN
+AQEFBQADggEBAEL//l5PAV/lkbp233r8Hin7L2rMvHvtB7XPgJ2UYZ+EQGl9cdS1
+OgmttXnMN/nr+cvYbAWcpLQqbOPyF2YPBPiElJFkeE1LvrYPm7zObxWJZbfG6wbY
+ptMx3cOCgmpvz81d27kiK4IPohzLwAFlmKLF6Jd03Vnx6GDFu7pflxZiXiF7sDos
+vQoK7djftzfqFEU31KBfXI+aotu7Jhz7vUkXTMLi7e6HGb8dB8VWUZIsa7lLhGoJ
+jey4oOXM8os3ZQ8zmUXPPQqSe6bLcHm2H3BGudvmK+6Y4IYy5lPnudtuTLM5PgDY
+97n+S/AP33J568/4KIW/3cZhd17ZzwmqpDM=
+-----END CERTIFICATE-----
+EOF
+
+    cat << EOF > /etc/httpd/shib/spcert.pem
+-----BEGIN CERTIFICATE-----
+MIIDWDCCAkCgAwIBAgIBATANBgkqhkiG9w0BAQUFADCBmDEqMCgGCSqGSIb3DQEJ
+ARYbYWRtaW5AdW0tc3NvLWlkcC5lby5lc2EuaW50MQswCQYDVQQGEwJJVDEOMAwG
+A1UECBMFSXRhbHkxDjAMBgNVBAcTBUVzcmluMQwwCgYDVQQKEwNFU0ExDzANBgNV
+BAsTBkVTQSBDQTEeMBwGA1UEAxMVdW0tc3NvLWlkcC5lby5lc2EuaW50MB4XDTEx
+MDIxMTA4MDE0OVoXDTIxMDIwODA4MDE0OVowRjELMAkGA1UEBhMCSVQxDDAKBgNV
+BAoTA0VTQTELMAkGA1UECxMCRU8xHDAaBgNVBAMTE3NhbXBsZXNwLmVvLmVzYS5p
+bnQwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDiJqTyFmin68+VPyfs
+hOtk5y/NA9cAtZM+bXbs8GogSlp7+LrOaVLJKG6bnOx+Q6rEiG7Z3eMykM9/zS1i
+GpF5DrCurlxmnvEDWBjp8qsjef5zPPI1kySqq6cgJiM0cBjD+Mc+V4P2GqD4ybNo
+G+wCgJ38USst//FkXDOc9og4YeXO7EpP/6cWNT5ijisjJ1vtZGaZlozMZ9sZGoUz
+bpGK/6cMhvpVzHYypAdfkCUWeoQ7FGBgUVl+wGUudD7IvJnNKtmNnPcqYCQWboT7
+/rjjJiUtp9rvUoODc7q8x1kG4QXLFL2XJZgshx1HHMOLD6uK3wnUSoeL1Py78LPw
+BjehAgMBAAEwDQYJKoZIhvcNAQEFBQADggEBAHu8uKozXETeL5Q5ECK783ZHFspT
+3idFCMDZytBw35xdMFSdVCeF5DhSoMYaFWSWh7W0ZT0FVfVqGkww6CUjvwluiW4u
+n43iZxgVYylpEgSHPEVFSK8uR3p1mfXX/jS7GMQWc9AwRnmf2neBXR9aSfq/eGgH
+ZkslweKAhv2Bkdb6KKoaoo2EIGGDkq/p/E9dtWv6L2FSVonYCEQnS6NqXD7FeZvU
+8AJVmt8DYGziNRLwqbJBgi5ARO+Aia/eGXrxypEDTs3JM7KYf+rwp2CSFnOBdLx4
+A0mjol7yJuZG2CE0JGaxe4mEGbvPsg6ZkND5xXtOIL5vzjsBTrdV8OgtYTw=
+-----END CERTIFICATE-----
+EOF
+
+    cat << EOF > /etc/httpd/shib/spkey.pem
+-----BEGIN RSA PRIVATE KEY-----
+MIIEpgIBAAKCAQEA4iak8hZop+vPlT8n7ITrZOcvzQPXALWTPm127PBqIEpae/i6
+zmlSyShum5zsfkOqxIhu2d3jMpDPf80tYhqReQ6wrq5cZp7xA1gY6fKrI3n+czzy
+NZMkqqunICYjNHAYw/jHPleD9hqg+MmzaBvsAoCd/FErLf/xZFwznPaIOGHlzuxK
+T/+nFjU+Yo4rIydb7WRmmZaMzGfbGRqFM26Riv+nDIb6Vcx2MqQHX5AlFnqEOxRg
+YFFZfsBlLnQ+yLyZzSrZjZz3KmAkFm6E+/644yYlLafa71KDg3O6vMdZBuEFyxS9
+lyWYLIcdRxzDiw+rit8J1EqHi9T8u/Cz8AY3oQIDAQABAoIBAQCHp8apsOd2Uu1i
+CVBZgCHzlPoHcJY3xrNcby03U79VP0SnuLvVtTgDkk1G6wqxcsWsvmpAJelzG4pc
+jyb6AhXhF/7DybODmzPXXbEUJIyj6znGxnhDys/j0LOfhUD444T3iPN7YeO2bKLC
+mbsUaCtaFOyvvcC5Bx41pVkQfpGXv4B+JS31yPovKBCW39eFPavB4C3ulXTXIlpC
+QVnriS0BbbeMOplK2i1yNJRJbQDsQNaWgjWpJ3BUxMGOHWYkCwFeu++MxEwlz8kD
+9Kwb8+XUc5eJaYtibEbHWiD/bepZGRLZFVUw15jIPUb1sDP/w1Ihm0P2FtFWhN3B
+n2IeczdBAoGBAP9QnlKm5cCul6BDgae63FYUHYpGR9dG4dPhj4nVVulLGUM+Z1Wg
+Qba3RnbIgjhVuoLpkrXQgECcJD/54e3/1kqB9MmyAjPd62xyiItqUPps0qbDoXPH
+bz2qeNSvprTibgVXQrftsLqVipWxDRCM1tIu9dhX3OYtFdpR6Yboy1ATAoGBAOLB
+/hPTQPjl4cLNxrcNt2BKWgiCzAelrAya3dbrq1iT6cUOSr4zYinICaXbtWX45eme
+cnqp4jolrTEQhyOpAmgHMPe7l67qVVz3/xWyZRxI8PRGYl+Td+UiOKFTkYWRhB2c
+tvGDPSoRX2nElqtIdp9laMrZFso7EpCAwrKDLxf7AoGBANIxyhabxv1KABT2XtD7
+Oxk2+Fb1o4GtnpA03FqKpEHvDP5aavKIvHE0FDQIwYSlt6a9q4Y6AMywf/uXuxSZ
+ExBGS4SeI8gVxROEe7vjrIVvgEHBP7O1FnU7Wr0nW2UCIbgN7iTE8EG8idrRZ8Mf
+YGCsPsR9GaT6q0oRM+RY1cG3AoGBAMesRTxV4LeLTcIJCztzw47xydgGvPza4OZ0
+lHXFLiugi9AupphXjM/3yq8XCePSSTnvgSUMZR4IwTocMLOxBmJuOqtar9WhmSt1
+YVRMs4Y1oJ+pPsSkiYXmHXHJsbGpEmo07k863mglxhvPtVD8TSBM3vsIMG5BmDZQ
+e6FPrO9zAoGBAMhLKsV0qMSyNqHZUvBdYHzHv3bahZiBN1St7xuV+v1UPpYwcgOZ
+Gk2/oKfsa5dhE/ULai0EkpIsixFVnAXU1k9ViurT+xH+EpDnJGOUWR0Xo1Obs7Gm
+03EHDSpy5xPpT2euP/qu7XijCvF6kUDnmMjb/vLWwprTgx8uxxZQcFYv
+-----END RSA PRIVATE KEY-----
+EOF
+
+    # Read certificates and keys into variables
+    IDP_CERT_CONTENT=`cat $IDP_CERT_FILE`
+    SP_CERT_CONTENT=`cat $SP_CERT_FILE`
+    SP_KEY_CONTENT=`cat $SP_KEY_FILE`
+
+    echo "Configuring Shibboleth"
+
+    # attribute-map.xml
+    cat << EOF > /etc/shibboleth/attribute-map.xml
+<Attributes xmlns="urn:mace:shibboleth:2.0:attribute-map" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Attribute name="urn:mace:dir:attribute-def:cn" id="Umsso-Person-commonName" />
+    <Attribute name="urn:mace:dir:attribute-def:spid$SP_NAME" id="SP-Person-Identifier" />
+    <Attribute name="urn:mace:dir:attribute-def:mail" id="Umsso-Person-Email" />
+</Attributes>
+EOF
+
+    # attribute-policy.xml
+    cat << EOF > /etc/shibboleth/attribute-policy.xml
+<afp:AttributeFilterPolicyGroup
+    xmlns="urn:mace:shibboleth:2.0:afp:mf:basic" xmlns:basic="urn:mace:shibboleth:2.0:afp:mf:basic" xmlns:afp="urn:mace:shibboleth:2.0:afp" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <afp:AttributeFilterPolicy>
+        <afp:PolicyRequirementRule xsi:type="ANY"/>
+        <afp:AttributeRule attributeID="*">
+            <afp:PermitValueRule xsi:type="ANY"/>
+        </afp:AttributeRule>
+    </afp:AttributeFilterPolicy>
+</afp:AttributeFilterPolicyGroup>
+EOF
+
+    # idp-metadata.xml
+    cat << EOF > /etc/shibboleth/idp-metadata.xml
+<EntityDescriptor entityID="$IDP_ENTITYID" validUntil="2030-01-01T00:00:00Z" xmlns="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:shibmd="urn:mace:shibboleth:metadata:1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <IDPSSODescriptor protocolSupportEnumeration="urn:mace:shibboleth:1.0 urn:oasis:names:tc:SAML:1.1:protocol urn:oasis:names:tc:SAML:2.0:protocol">
+
+        <Extensions>
+            <shibmd:Scope regexp="false">esa.int</shibmd:Scope>
+        </Extensions>
+
+        <KeyDescriptor>
+            <ds:KeyInfo>
+                <ds:X509Data>
+                    <ds:X509Certificate>
+$IDP_CERT_CONTENT
+                    </ds:X509Certificate>
+                </ds:X509Data>
+            </ds:KeyInfo>
+        </KeyDescriptor>
+
+        <ArtifactResolutionService Binding="urn:oasis:names:tc:SAML:1.0:bindings:SOAP-binding" Location="https://$IDP_HOST:$IDP_SOAP/idp/profile/SAML1/SOAP/ArtifactResolution" index="1"/>
+
+        <ArtifactResolutionService Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP" Location="https://$IDP_HOST:$IDP_SOAP/idp/profile/SAML2/SOAP/ArtifactResolution" index="2"/>
+
+        <NameIDFormat>urn:mace:shibboleth:1.0:nameIdentifier</NameIDFormat>
+        <NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</NameIDFormat>
+
+        <SingleSignOnService Binding="urn:mace:shibboleth:1.0:profiles:AuthnRequest" Location="https://$IDP_HOST:$IDP_PORT/idp/profile/Shibboleth/SSO" />
+
+        <SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://$IDP_HOST:$IDP_PORT/idp/profile/SAML2/Redirect/SSO" />
+
+        <SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://$IDP_HOST:$IDP_PORT/idp/profile/SAML2/Redirect/SLO" ResponseLocation="https://$IDP_HOST:$IDP_PORT/idp/profile/SAML2/Redirect/SLO"/>
+    </IDPSSODescriptor>
+
+    <AttributeAuthorityDescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:1.1:protocol urn:oasis:names:tc:SAML:2.0:protocol">
+
+        <Extensions>
+            <shibmd:Scope regexp="false">esa.int</shibmd:Scope>
+        </Extensions>
+
+        <KeyDescriptor>
+            <ds:KeyInfo>
+                <ds:X509Data>
+                    <ds:X509Certificate>
+$IDP_CERT_CONTENT
+                    </ds:X509Certificate>
+                </ds:X509Data>
+            </ds:KeyInfo>
+        </KeyDescriptor>
+
+        <AttributeService Binding="urn:oasis:names:tc:SAML:1.0:bindings:SOAP-binding" Location="https://$IDP_HOST:$IDP_SOAP/idp/profile/SAML1/SOAP/AttributeQuery" />
+
+        <AttributeService Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP" Location="https://$IDP_HOST:$IDP_SOAP/idp/profile/SAML2/SOAP/AttributeQuery" />        
+
+        <NameIDFormat>urn:mace:shibboleth:1.0:nameIdentifier</NameIDFormat>
+        <NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</NameIDFormat>
+    </AttributeAuthorityDescriptor>
+</EntityDescriptor>
+EOF
+
+    # shibboleth2.xml
+    cat << EOF > /etc/shibboleth/shibboleth2.xml
+<SPConfig xmlns="urn:mace:shibboleth:2.0:native:sp:config"xmlns:conf="urn:mace:shibboleth:2.0:native:sp:config"xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" logger="/etc/shibboleth/syslog.logger" clockSkew="7600">
+
+    <!-- The OutOfProcess section contains properties affecting the shibd daemon. -->
+    <OutOfProcess logger="/etc/shibboleth/shibd.logger"></OutOfProcess>
+
+    <!-- The InProcess section contains settings affecting web server modules/filters. -->
+    <InProcess logger="/etc/shibboleth/native.logger"></InProcess>
+
+    <!-- Only one listener can be defined, to connect in-process modules to shibd. -->
+    <UnixListener address="/var/run/shib-shar.sock"/>
+    <!--<TCPListener address="127.0.0.1" port="12345" acl="127.0.0.1"/> -->
+
+    <!-- This set of components stores sessions and other persistent data in daemon memory. -->
+    <StorageService type="Memory" id="mem" cleanupInterval="900"/>
+    <SessionCache type="StorageService" StorageService="mem" cacheTimeout="3600" inprocTimeout="900" cleanupInterval="900"/>
+    <ReplayCache StorageService="mem"/>
+    <ArtifactMap artifactTTL="180"/>
+
+    <!-- To customize behavior, map hostnames and path components to applicationId and other settings. -->
+    <RequestMapper type="Native">
+        <RequestMap applicationId="default">
+            <Host scheme="https" name="$SP_HOST" port="$SP_PORT">
+                <Path name="$SP_HOME_REL_PATH" requireSession="false" exportAssertion="false">
+                    <Path name="$SP_PROTECTED_REL_PATH" authType="shibboleth" requireSession="true" exportAssertion="true" />
+                </Path>
+            </Host>
+        </RequestMap>
+    </RequestMapper>
+
+
+    <ApplicationDefaults id="default" policyId="default" entityID="$SP_ENTITYID" homeURL="$SP_PROTECTED_FULL_URL" REMOTE_USER="eppn persistent-id targeted-id" signing="false" encryption="false" timeout="30" connectTimeout="15">
+
+        <Sessions exportLocation="/GetAssertion" lifetime="7200" timeout="3600" checkAddress="false" consistentAddress="true" handlerURL="$SP_HOME_BASE_PATH/Shibboleth.sso" handlerSSL="true" idpHistory="true" idpHistoryDays="7">
+            <SessionInitiator type="SAML2" entityID="$IDP_ENTITYID" forceAuthn="false" Location="/Login" template="/etc/shibboleth/bindingTemplate.html"/>
+            <md:AssertionConsumerService Location="/SAML2/Artifact" index="1" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact"/>
+            <md:SingleLogoutService Location="/SLO/Redirect" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" conf:template="/etc/shibboleth/bindingTemplate.html"/> 
+            <LogoutInitiator type="Local" Location="/Logout" template="/etc/shibboleth/bindingTemplate.html"/>
+            <LogoutInitiator type="SAML2" Location="/SLogout" template="/etc/shibboleth/bindingTemplate.html"/>
+        </Sessions>
+
+        <Errors session="/etc/shibboleth/sessionError.html" metadata="/etc/shibboleth/metadataError.html" access="/etc/shibboleth/accessError.html" ssl="/etc/shibboleth/sslError.html" supportContact="$SP_CONTACT" logoLocation="/shibboleth-sp/logo.jpg" styleSheet="/shibboleth-sp/main.css" globalLogout="/etc/shibboleth/globalLogout.html" localLogout="/etc/shibboleth/localLogout.html"></Errors>
+
+        <RelyingParty Name="$IDP_ENTITYID" keyName="defcreds"/>
+
+        <MetadataProvider type="Chaining">
+            <MetadataProvider type="XML" file="/etc/shibboleth/idp-metadata.xml"/>
+            <MetadataProvider type="XML" file="/etc/shibboleth/$SP_NAME-metadata.xml"/>
+        </MetadataProvider>
+
+        <!-- Chain the two built-in trust engines together. -->
+        <TrustEngine type="Chaining">
+            <TrustEngine type="ExplicitKey"/>
+            <TrustEngine type="PKIX"/>
+        </TrustEngine>
+
+        <!-- Map to extract attributes from SAML assertions. -->
+        <AttributeExtractor type="XML" path="/etc/shibboleth/attribute-map.xml"/>
+
+        <!-- Use a SAML query if no attributes are supplied during SSO. -->
+        <AttributeResolver type="Query"/>
+
+        <!-- Default filtering policy for recognized attributes, lets other data pass. -->
+        <AttributeFilter type="XML" path="/etc/shibboleth/attribute-policy.xml"/>
+
+        <CredentialResolver type="File" key="$SP_KEY_FILE" certificate="$SP_CERT_FILE" keyName="defcreds"/>
+    </ApplicationDefaults>
+
+    <!-- Each policy defines a set of rules to use to secure messages. -->
+    <SecurityPolicies>
+        <Policy id="default" validate="false">
+            <PolicyRule type="MessageFlow" checkReplay="true" expires="60"/>
+            <PolicyRule type="Conditions">
+                <PolicyRule type="Audience"/>
+            </PolicyRule>
+            <PolicyRule type="ClientCertAuth" errorFatal="true"/>
+            <PolicyRule type="XMLSigning" errorFatal="true"/>
+            <PolicyRule type="SimpleSigning" errorFatal="true"/>
+        </Policy>
+    </SecurityPolicies>
+
+</SPConfig>
+EOF
+
+    # SP_NAME-metadata.xml
+    cat << EOF > /etc/shibboleth/$SP_NAME-metadata.xml
+<EntityDescriptor entityID="$SP_ENTITYID" validUntil="2030-01-01T00:00:00Z"xmlns="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:shibmd="urn:mace:shibboleth:metadata:1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <SPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+        <KeyDescriptor>
+            <ds:KeyInfo>
+                <ds:X509Data>
+                    <ds:X509Certificate>
+$SP_CERT_CONTENT
+                    </ds:X509Certificate>
+                </ds:X509Data>
+            </ds:KeyInfo>
+        </KeyDescriptor>
+
+        <AssertionConsumerService Location="$SP_HOME_BASE_URL/Shibboleth.sso/SAML2/Artifact" index="1" isDefault="true" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact"/>
+
+        <SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="$SP_HOME_BASE_URL/Shibboleth.sso/SLO/Redirect"/>
+
+        <NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</NameIDFormat>
+    </SPSSODescriptor>
+
+    <Organization>
+        <OrganizationName xml:lang="en">$SP_NAME</OrganizationName>
+        <OrganizationDisplayName xml:lang="en">$SP_ORG_DISP_NAME</OrganizationDisplayName>
+        <OrganizationURL xml:lang="en">$SP_HOME_FULL_URL</OrganizationURL>
+    </Organization>
+</EntityDescriptor>
+EOF
+
+    # Setup Certificates
+
+    # Restart the shibboleth daemon
+    service shibd restart
+
+    # mod_shib configuration
+    cat << EOF > /etc/httpd/conf.d/shib.conf
+# Load the Shibboleth module.
+LoadModule mod_shib /usr/lib64/shibboleth/mod_shib_22.so
+
+# Used for example style sheet in error templates.
+<IfModule mod_alias.c>
+    <Location /shibboleth-sp>
+        Allow from all
+    </Location>
+    Alias /shibboleth-sp/main.css /usr/share/shibboleth/main.css
+</IfModule>
+EOF
+
+    echo "Done installing Shibboleth"
+
+else
+    echo "Skipped installation step 220"
+fi
+# END Shibboleth Installation
 
 echo "Performing installation step 230"
 # Configure WebDAV
@@ -421,6 +772,9 @@ EOF
         sed -e "s/^127\.0\.0\.1.*$/& $HOSTNAME/" -i /etc/hosts
     fi
 
+#TODO: Change depending on shibboleth installation i.e. if shibboleth is installed enable only httpd
+#if "$USE_SHIBBOLETH" ; then
+#else
     cat << EOF > "$APACHE_CONF"
 <VirtualHost *:80>
     ServerName $APACHE_ServerName
