@@ -364,9 +364,9 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
             
             for browse in group[1:]:
                 minx = min(minx, browse.minx)
-                miny = min(minx, browse.miny)
-                maxx = max(minx, browse.maxx)
-                maxy = max(minx, browse.maxy)
+                miny = min(miny, browse.miny)
+                maxx = max(maxx, browse.maxx)
+                maxy = max(maxy, browse.maxy)
                 start_time = min(start_time, browse.start_time)
                 end_time = max(end_time, browse.end_time)
             
