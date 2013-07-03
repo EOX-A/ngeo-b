@@ -35,12 +35,13 @@ import tempfile
 import shutil
 from cStringIO import StringIO
 from lxml import etree
+from django.utils import log
 import logging
 import numpy
 import re
 import tarfile
-
 import sqlite3
+
 from osgeo import gdal, osr
 from django.conf import settings
 from django.test.client import Client
@@ -989,3 +990,66 @@ class ExportTestCaseMixIn(BaseTestCaseMixIn):
                     cache_tiles += 1
             
             self.assertEqual(self.expected_cache_tiles, cache_tiles)
+            
+            
+
+class TestLogHandler(logging.Handler):
+    """
+    A handler class which sends log strings to a wx object
+    """
+    def __init__(self):
+        """
+        Initialize the handler
+        @param wxDest: the destination object to post the event to 
+        @type wxDest: wx.Window
+        """
+        logging.Handler.__init__(self)
+        self.level = logging.DEBUG
+        self.logs = {}
+
+    def flush(self):
+        "does nothing for this handler"
+
+
+    def emit(self, record):
+        """
+        Emit a record.
+
+        """
+        msg = self.format(record)
+        self.logs.setdefault(record.levelno, []).append(msg)
+        
+
+class LoggingTestCaseMixIn(object):
+    
+    expected_logs = {}
+    logging_config = {}
+    
+    def setUp(self):
+        super(LoggingTestCaseMixIn, self).setUp()
+        self.log_handler = TestLogHandler()
+        log.dictConfig(self.logging_config)
+        for comp in ("ngeo_browse_server", "eoxserver"):
+            logging.getLogger(comp).addHandler(self.log_handler)
+    
+    def tearDown(self):
+        super(LoggingTestCaseMixIn, self).tearDown()
+        log.dictConfig(settings.LOGGING)
+        for comp in ("ngeo_browse_server", "eoxserver"):
+            logging.getLogger(comp).removeHandler(self.log_handler)
+
+            
+    def test_expected_logs(self):
+        
+        logs = dict((level, len(entries)) 
+                    for level, entries in self.log_handler.logs.items())
+        
+        all_levels = (
+            logging.DEBUG, logging.INFO, logging.WARN, logging.ERROR, 
+            logging.CRITICAL
+        )
+        
+        for level in all_levels:
+            logs.setdefault(level, 0)
+        
+        self.assertEqual(self.expected_logs, logs)

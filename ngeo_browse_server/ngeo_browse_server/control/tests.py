@@ -28,6 +28,7 @@
 #-------------------------------------------------------------------------------
 
 from os.path import join
+import logging
 
 from django.conf import settings
 from django.test import TestCase, TransactionTestCase, LiveServerTestCase
@@ -40,7 +41,7 @@ from ngeo_browse_server.control.testbase import (
     ExtentMixIn, SizeMixIn, ProjectionMixIn, StatisticsMixIn, WMSRasterMixIn,
     IngestFailureTestCaseMixIn, DeleteTestCaseMixIn, ExportTestCaseMixIn,
     ImportTestCaseMixIn, ImportReplaceTestCaseMixin,
-    SeedMergeTestCaseMixIn, HttpMultipleMixIn
+    SeedMergeTestCaseMixIn, HttpMultipleMixIn, LoggingTestCaseMixIn
 )
 from ngeo_browse_server.control.ingest.config import (
     INGEST_SECTION
@@ -2574,3 +2575,147 @@ class ImportRegularGrid(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveSe
     expected_inserted_into_series = "TEST_ASA_WSM"
     expected_optimized_files = ("ASAR_proc.tif",)
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64}
+
+
+#===============================================================================
+# Logging test cases
+#===============================================================================
+
+class DebugLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCaseMixIn, TestCase):
+    storage_dir = "data/test_data"
+    request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.xml"
+    
+    # Turn off ingest tests
+    test_expected_response = None
+    test_expected_status = None
+    test_expected_inserted_browses = None
+    test_expected_inserted_into_series = None
+    test_expected_optimized_files = None
+    test_model_counts = None
+    test_deleted_storage_files = None
+    test_expected_inserted_browses = None
+    
+    expected_logs = {
+        logging.DEBUG: 21,
+        logging.INFO: 29,
+        logging.WARN: 0,
+        logging.ERROR: 0,
+        logging.CRITICAL: 0
+    }
+    
+    logging_config = {
+        'version': 1,
+        'disable_existing_loggers': True,
+        'filters': {
+            'require_debug_false': {
+                '()': 'django.utils.log.RequireDebugFalse'
+            }
+        },
+        'formatters': {
+            'simple': {
+                'format': '%(levelname)s: %(message)s'
+            },
+            'verbose': {
+                'format': '[%(asctime)s][%(module)s] %(levelname)s: %(message)s'
+            }
+        },
+        'handlers': {
+            'eoxserver_file': {
+                'level': 'DEBUG',
+                'class': 'logging.handlers.WatchedFileHandler',
+                'filename': join(settings.PROJECT_DIR, 'logs', 'eoxserver.log'),
+                'formatter': 'simple',
+                'filters': [],
+            },
+            'ngeo_file': {
+                'level': 'DEBUG',
+                'class': 'logging.handlers.WatchedFileHandler',
+                'filename': join(settings.PROJECT_DIR, 'logs', 'ngeo.log'),
+                'formatter': 'simple',
+                'filters': [],
+            }
+        },
+        'loggers': {
+            'eoxserver': {
+                'handlers': ['eoxserver_file'],
+                'level': 'DEBUG',
+                'propagate': False,
+            },
+            'ngeo_browse_server': {
+                'handlers': ['ngeo_file'],
+                'level': 'DEBUG',
+                'propagate': False,
+            },
+        }
+    }
+
+
+class InfoLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCaseMixIn, TestCase):
+    storage_dir = "data/test_data"
+    request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.xml"
+    
+    # Turn off ingest tests
+    test_expected_response = None
+    test_expected_status = None
+    test_expected_inserted_browses = None
+    test_expected_inserted_into_series = None
+    test_expected_optimized_files = None
+    test_model_counts = None
+    test_deleted_storage_files = None
+    test_expected_inserted_browses = None
+    
+    expected_logs = {
+        logging.DEBUG: 0,
+        logging.INFO: 29,
+        logging.WARN: 0,
+        logging.ERROR: 0,
+        logging.CRITICAL: 0
+    }
+    
+    logging_config = {
+        'version': 1,
+        'disable_existing_loggers': True,
+        'filters': {
+            'require_debug_false': {
+                '()': 'django.utils.log.RequireDebugFalse'
+            }
+        },
+        'formatters': {
+            'simple': {
+                'format': '%(levelname)s: %(message)s'
+            },
+            'verbose': {
+                'format': '[%(asctime)s][%(module)s] %(levelname)s: %(message)s'
+            }
+        },
+        'handlers': {
+            'eoxserver_file': {
+                'level': 'INFO',
+                'class': 'logging.handlers.WatchedFileHandler',
+                'filename': join(settings.PROJECT_DIR, 'logs', 'eoxserver.log'),
+                'formatter': 'simple',
+                'filters': [],
+            },
+            'ngeo_file': {
+                'level': 'INFO',
+                'class': 'logging.handlers.WatchedFileHandler',
+                'filename': join(settings.PROJECT_DIR, 'logs', 'ngeo.log'),
+                'formatter': 'simple',
+                'filters': [],
+            }
+        },
+        'loggers': {
+            'eoxserver': {
+                'handlers': ['eoxserver_file'],
+                'level': 'INFO',
+                'propagate': False,
+            },
+            'ngeo_browse_server': {
+                'handlers': ['ngeo_file'],
+                'level': 'INFO',
+                'propagate': False,
+            },
+        }
+    }
+
+
