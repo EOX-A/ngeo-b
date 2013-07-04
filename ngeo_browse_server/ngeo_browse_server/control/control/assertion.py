@@ -29,7 +29,7 @@ def assert_controller_id(cs_id, controller_config, config):
         raise RegistrationException(
             "This browse server instance is registered on the "
             "controller server with ID '%s'." % (actual_id),
-            reason="CONTROLLER_OTHER", instance_id=instance_id # TODO: check if this is different from `register`s ALREADY_OTHER
+            reason="ALREADY_OTHER", instance_id=instance_id
         )
 
 

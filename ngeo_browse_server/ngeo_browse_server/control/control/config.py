@@ -21,3 +21,24 @@ def get_controller_config_path(config=None):
     )
 
 
+# controller server config only
+
+
+def create_controller_config(controller_config_filename, cs_id, cs_ip):
+    parser = ConfigParser()    
+    parser.add_section(SEC_CONTROLLER)
+    parser.set(SEC_CONTROLLER, "identifier", cs_id)
+    parser.set(SEC_CONTROLLER, "address", cs_ip)
+    with open(controller_config_filename, "w") as f:
+        parser.write(f)
+
+
+def get_controller_config(controller_config_filename):
+    parser = ConfigParser() 
+    with open(controller_config_filename, "r") as f:
+        parser.read(f)
+    return parser
+
+
+
+
