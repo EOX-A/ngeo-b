@@ -309,8 +309,7 @@ if [ ! -d ngeo_browse_server_instance ] ; then
     # Configure logging
     if "$TESTING" ; then
         sed -e 's/DEBUG = False/DEBUG = True/' -i ngeo_browse_server_instance/settings.py
-    else
-        sed -e 's/#logging_level=/logging_level=INFO/' -i ngeo_browse_server_instance/conf/eoxserver.conf
+        sed -e 's/logging_level=INFO/#logging_level=INFO/' -i ngeo_browse_server_instance/conf/eoxserver.conf
     fi
 
     # Prepare DBs
