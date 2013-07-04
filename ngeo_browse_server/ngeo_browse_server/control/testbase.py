@@ -1031,14 +1031,12 @@ class LoggingTestCaseMixIn(object):
         super(LoggingTestCaseMixIn, self).setUp()
         self.log_handler = TestLogHandler()
         log.dictConfig(self.logging_config)
-        for comp in ("ngeo_browse_server", "eoxserver"):
-            logging.getLogger(comp).addHandler(self.log_handler)
+        logging.getLogger("ngeo_browse_server").addHandler(self.log_handler)
     
     def tearDown(self):
         super(LoggingTestCaseMixIn, self).tearDown()
         log.dictConfig(settings.LOGGING)
-        for comp in ("ngeo_browse_server", "eoxserver"):
-            logging.getLogger(comp).removeHandler(self.log_handler)
+        logging.getLogger("ngeo_browse_server").removeHandler(self.log_handler)
 
             
     def test_expected_logs(self):

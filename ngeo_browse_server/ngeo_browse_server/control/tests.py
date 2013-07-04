@@ -2596,8 +2596,8 @@ class DebugLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCase
     test_expected_inserted_browses = None
     
     expected_logs = {
-        logging.DEBUG: 21,
-        logging.INFO: 29,
+        logging.DEBUG: 3,
+        logging.INFO: 16,
         logging.WARN: 0,
         logging.ERROR: 0,
         logging.CRITICAL: 0
@@ -2620,13 +2620,6 @@ class DebugLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCase
             }
         },
         'handlers': {
-            'eoxserver_file': {
-                'level': 'DEBUG',
-                'class': 'logging.handlers.WatchedFileHandler',
-                'filename': join(settings.PROJECT_DIR, 'logs', 'eoxserver.log'),
-                'formatter': 'simple',
-                'filters': [],
-            },
             'ngeo_file': {
                 'level': 'DEBUG',
                 'class': 'logging.handlers.WatchedFileHandler',
@@ -2636,11 +2629,6 @@ class DebugLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCase
             }
         },
         'loggers': {
-            'eoxserver': {
-                'handlers': ['eoxserver_file'],
-                'level': 'DEBUG',
-                'propagate': False,
-            },
             'ngeo_browse_server': {
                 'handlers': ['ngeo_file'],
                 'level': 'DEBUG',
@@ -2666,7 +2654,7 @@ class InfoLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCaseM
     
     expected_logs = {
         logging.DEBUG: 0,
-        logging.INFO: 29,
+        logging.INFO: 16,
         logging.WARN: 0,
         logging.ERROR: 0,
         logging.CRITICAL: 0
@@ -2689,13 +2677,6 @@ class InfoLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCaseM
             }
         },
         'handlers': {
-            'eoxserver_file': {
-                'level': 'INFO',
-                'class': 'logging.handlers.WatchedFileHandler',
-                'filename': join(settings.PROJECT_DIR, 'logs', 'eoxserver.log'),
-                'formatter': 'simple',
-                'filters': [],
-            },
             'ngeo_file': {
                 'level': 'INFO',
                 'class': 'logging.handlers.WatchedFileHandler',
@@ -2705,11 +2686,6 @@ class InfoLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCaseM
             }
         },
         'loggers': {
-            'eoxserver': {
-                'handlers': ['eoxserver_file'],
-                'level': 'INFO',
-                'propagate': False,
-            },
             'ngeo_browse_server': {
                 'handlers': ['ngeo_file'],
                 'level': 'INFO',
