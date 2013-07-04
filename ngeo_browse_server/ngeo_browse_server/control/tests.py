@@ -922,7 +922,7 @@ class SeedMerge3(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
     storage_dir = "data/merge_test_data"
     
     expected_inserted_into_series = "TEST_SAR"
-    expected_tiles = {0: 4, 1: 16, 2: 64, 3: 192, 4: 320}
+    expected_tiles = {0: 4, 1: 16, 2: 64, 3: 192, 4: 192}
     expected_seeded_areas = [
         (parse_datetime("2010-07-22T21:38:40Z"),
          parse_datetime("2010-07-22T21:40:38Z")),
