@@ -151,6 +151,7 @@ class BaseTestCaseMixIn(object):
     args_before_test = ()
     
     def setUp(self):
+        logger.info("Starting Test Case: %s" % self.__class__.__name__)
         super(BaseTestCaseMixIn, self).setUp()
         self.setUp_files()
         self.setUp_config()
@@ -171,6 +172,7 @@ class BaseTestCaseMixIn(object):
         
         # reset the config settings
         reset_ngeo_config()
+        logger.info("Finished Test Case: %s" % self.__class__.__name__)
     
     def setUp_files(self):
         # create a temporary storage directory, copy the reference test data
