@@ -32,9 +32,9 @@ import traceback
 from lxml import etree
 
 from django.shortcuts import render_to_response
+from django.util import simplejson as json
 from osgeo import gdalnumeric   # This prevents issues in parallel setups. Do 
                                 # not remove this line.
-
 from eoxserver.processing.preprocessing.exceptions import PreprocessingException 
 
 from ngeo_browse_server.decoding import XMLDecodeError
@@ -43,6 +43,7 @@ from ngeo_browse_server.config.browsereport.decoding import (
     decode_browse_report, DecodingException
 )
 from ngeo_browse_server.control.ingest.exceptions import IngestionException
+from ngeo_browse_server.control.response import JsonResponse
 
 
 logger = logging.getLogger(__name__)
@@ -86,3 +87,42 @@ def ingest(request):
                                            or type(e).__name__,
                                    "message": str(e)},
                                   mimetype="text/xml")
+
+
+
+def controller_server(request):
+
+    try:
+        values = json.load(request)
+        if request.method == "POST":
+            register(
+                values["instanceId"], values["instanceType"],
+                values["controllerServerId"], get_client_ip(request)
+            )
+        elif request_method == "DELETE":
+            unregister()
+    except RegistrationException as e:
+        return JsonResponse({
+            "result": "FAILURE", # TODO: check for correct string, not yet specified by schema
+            # TODO:  remove these below? not included in schema?
+            "reason": e.reason, 
+            "instance_id": e.instance_id, 
+            "message": str(e)
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            "result": "FAILURE",
+            "message": str(e)
+        }, status=400)
+
+    return JsonResponse({"result": "SUCCESS"})
+
+
+
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        return x_forwarded_for.split(',')[-1].strip()
+    else:
+        return request.META.get('REMOTE_ADDR')
+
