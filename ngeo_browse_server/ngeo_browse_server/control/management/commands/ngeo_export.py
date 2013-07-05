@@ -47,6 +47,7 @@ from ngeo_browse_server.config.browselayer import data as browselayer_data
 from ngeo_browse_server.config.browselayer.serialization import serialize_browse_layers
 from ngeo_browse_server.control.migration import package
 from ngeo_browse_server.mapcache import tileset
+from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.mapcache.config import get_tileset_path
 from ngeo_browse_server.mapcache.tileset import URN_TO_GRID
 
@@ -209,9 +210,15 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                         p.add_footprint(footprint_filename, wkb)
                     
                     if export_cache:
+                        time_model = mapcache_models.Time.objects.get(
+                            start_time__lte=browse_model.start_time,
+                            end_time__gte=browse_model.end_time,
+                            source__name=browse_layer_model.id
+                        )
+
                         # get "dim" parameter
-                        dim = (isotime(browse_model.start_time) + "/" +
-                               isotime(browse_model.end_time))
+                        dim = (isotime(time_model.start_time) + "/" +
+                               isotime(time_model.end_time))
                         
                         # get path to sqlite tileset and open it
                         ts = tileset.open(
@@ -226,17 +233,7 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                         ):
                             p.add_cache_file(*tile_desc)
                             
-                        """ 
-                        tiles_qs = tileset.open_queryset(get_tileset_path(browse_layer.id))
-                        tiles_qs.filter(grid=URN_TO_GRID[browse_layer.grid], tileset=browse_layer.id,
-                                        dim=dim, z__lte=browse_layer.highest_map_level,
-                                        z__gte=browse_layer.lowest_map_level)
                         
-                        for tile_model in tiles_qs:
-                            p.add_cache_file(tile_model.tileset, tile_model.grid,
-                                             tile_model.x, tile_model.y, tile_model.z,
-                                             tile_model.dim, tile_model.data)
-                        """ 
                 
                 # save browse report xml and add it to the package
                 p.add_browse_report(

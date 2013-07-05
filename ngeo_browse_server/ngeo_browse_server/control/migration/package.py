@@ -113,6 +113,7 @@ class PackageWriter(object):
             path, "w:" + COMPRESSION_TO_SPECIFIER[compression]
         )
         self._dirs = set()
+        self._cache_files = set()
     
     
     def set_browse_layer(self, browse_layer_file):
@@ -162,6 +163,11 @@ class PackageWriter(object):
 
     def add_cache_file(self, tileset, grid, x, y, z, dim, tile_file):
         " Add a cache file to the archive. "
+
+        if (tileset, grid, x, y, z, dim) in self._cache_files:
+            return # already inserted
+
+        self._cache_files.add((tileset, grid, x, y, z, dim))
         
         # construct dir name
         d = join(SEC_CACHE, tileset, grid)
