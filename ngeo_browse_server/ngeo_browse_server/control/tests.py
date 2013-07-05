@@ -2443,7 +2443,31 @@ class DeleteFromCommandStartEndMerge1(DeleteTestCaseMixIn, CliMixIn, SeedMergeTe
         (parse_datetime("2010-07-22T21:40:38Z"),
          parse_datetime("2010-07-22T21:42:38Z"))
     ]
+
+
+class DeleteFromCommandStartEndMerge2(DeleteTestCaseMixIn, CliMixIn, SeedMergeTestCaseMixIn, LiveServerTestCase):
+    kwargs = {
+        "layer" : "TEST_SAR",
+        "start": "2010-07-22T21:37:00Z",
+        "end": "2010-07-22T21:40:00Z"
+    }
     
+    storage_dir = "data/merge_test_data"
+    
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report", 
+                        join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_1.xml"),
+                        join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_2.xml"),
+                        join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_3.xml")]
+    
+    expected_remaining_browses = 2
+    #expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
+    expected_inserted_into_series = "TEST_SAR"
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
+    
+    expected_seeded_areas = [
+        (parse_datetime("2010-07-22T21:39:00Z"),
+         parse_datetime("2010-07-22T21:42:38Z"))
+    ]
 
 
 #===============================================================================
@@ -2520,6 +2544,26 @@ class ExportRegularGrid(ExportTestCaseMixIn, CliMixIn, TestCase):
     }
     
     expected_exported_browses = ("ASAR",)
+
+
+class ExportMerged(ExportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
+    storage_dir = "data/merge_test_data"
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report", 
+                        join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_1.xml"),
+                        join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_2.xml"),
+                        join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_3.xml")]
+
+    kwargs = {
+        "layer" : "TEST_SAR"
+    }
+
+    test_seed = None # turn off unused test
+    
+    @property
+    def args(self):
+        return ("--output", self.temp_export_file, "--export-cache")
+    
+    expected_exported_browses = ("b_id_1", "b_id_2", "b_id_3")
 
 
 #===============================================================================

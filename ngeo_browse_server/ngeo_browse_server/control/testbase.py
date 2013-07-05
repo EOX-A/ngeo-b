@@ -597,6 +597,11 @@ class DeleteTestCaseMixIn(BaseTestCaseMixIn):
     
     expected_remaining_browses = None
     expected_deleted_files = []
+
+    surveilled_model_classes = (
+        models.Browse,
+        eoxs_models.RectifiedDatasetRecord,
+    )
    
     def test_deleted_optimized_files(self):
         """ Check that all optimized files have been deleted. """
