@@ -500,7 +500,7 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
         files = self.get_file_list(self.temp_optimized_files_dir)
         
         if self.save_optimized_files:
-            save_dir = join(settings.PROJECT_DIR, "results/ingest")
+            save_dir = join(settings.PROJECT_DIR, "results/ingest/")
             safe_makedirs(dirname(save_dir))
             for path, _, filenames in walk(self.temp_optimized_files_dir):
                 for file_to_save in filenames:
