@@ -72,9 +72,10 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
     
     args = ("--layer=<layer-id> | --browse-type=<browse-type> "
             "[--start=<start-date-time>] [--end=<end-date-time>] " )
-    help = ("Deletes the browses specified by either the layer ID "
-            ", its browse type and optionally start and or end time" )
-
+    help = ("Deletes the browses specified by either the layer ID, "
+            "its browse type and optionally start and or end time."
+            "Only browses that are completely contained in the time interval"
+            "are actually deleted.")
     def handle(self, *args, **kwargs):
         System.init()
         
