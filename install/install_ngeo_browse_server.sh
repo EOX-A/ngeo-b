@@ -7,7 +7,7 @@
 #          Stephan Meissl <stephan.meissl@eox.at>
 #
 #-------------------------------------------------------------------------------
-# Copyright (C) 2012 EOX IT Services GmbH
+# Copyright (C) 2012, 2013 EOX IT Services GmbH
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -28,23 +28,31 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
-# About:
-# ======
-# This script installs the ngEO Browse Server.
-#
-# Use with caution as passwords are sent on the command line and thus can be 
-# seen by other users.
-#
-# References are given to the steps defined in the Installation, Operation, 
-# and Maintenance Manual (IOM) [ngEO-BROW-IOM] section 4.3.
-
-# Running:
-# ========
-# sudo ./install_ngeo_browse_server.sh
-
 ################################################################################
-# Adjust the variables to your liking.                                         #
+# @maintained by: EOX IT Services GmbH
+# @project NGEO T4
+# @version 1.0
+# @date 2013-07-09
+# @purpose This script installs/uninstalls the ngEO Browse Server
+#
+#          Use with caution as passwords are sent on the command line and thus 
+#          can be seen by other users.
+#
+#          References are given to the steps defined in the Installation, 
+#          Operation, and Maintenance Manual (IOM) [ngEO-BROW-IOM] section 4.3.
+# 
+# Usage:
+# - Installation: sudo ./ngeo-install.sh install
+# - Uninstallation: sudo ./ngeo-install.sh uninstall
+# - Installation status: sudo ./ngeo-install.sh status
 ################################################################################
+
+# ------------------------------------------------------------------------------
+# Configuration section
+# ------------------------------------------------------------------------------
+
+# Subsystem name
+SUBSYSTEM="ngEO Browse Server"
 
 # Enable/disable testing repositories, debug logging, etc. 
 # (false..disable; true..enable)
@@ -106,141 +114,151 @@ SP_HOME_REL_PATH="/"
 SP_HOME_BASE_URL="https://ngeo.eox.at/"
 SP_HOME_BASE_PATH="/"
 
-################################################################################
-# Usually there should be no need to change anything below.                    #
-################################################################################
-
-echo "==============================================================="
-echo "install_ngeo_browse_server.sh"
-echo "==============================================================="
-
-echo "Starting ngEO Browse Server installation"
-echo "Assuming successful execution of installation steps 10, 20, and 30"
-
-# Check architecture
-if [ "`uname -m`" != "x86_64" ] ; then
-   echo "ERROR: Current system is not x86_64 but `uname -m`. Script was 
-         implemented for x86_64 only."
-   exit 1
-fi
-
-# Check required tools are installed
-if [ ! -x "`which sed`" ] ; then
-    yum install -y sed
-fi
+# ------------------------------------------------------------------------------
+# End of configuration section
+# ------------------------------------------------------------------------------
 
 
-#-----------------
-# OS installation
-#-----------------
+# ------------------------------------------------------------------------------
+# Install
+# ------------------------------------------------------------------------------
+ngeo_install() {
 
-echo "Performing installation step 40"
-# Disable SELinux
-if ! [ `getenforce` == "Disabled" ] ; then
-    setenforce 0
-fi
-if ! grep -Fxq "SELINUX=disabled" /etc/selinux/config ; then
-    sed -e 's/^SELINUX=.*$/SELINUX=disabled/' -i /etc/selinux/config
-fi
+    echo "------------------------------------------------------------------------------"
+    echo " $SUBSYSTEM Install"
+    echo "------------------------------------------------------------------------------"  
 
-echo "Performing installation step 50"
-# Install packages
-yum install -y python-lxml mod_wsgi httpd postgresql-server python-psycopg2 pytz
+    echo "Performing installation step 0"
+    echo "Uninstalling any previous version"
+    ngeo_uninstall
 
-echo "Performing installation step 60"
-# Permanently start PostgreSQL
-chkconfig postgresql on
-# Init PostgreSQL
-if [ ! -f "/var/lib/pgsql/data/PG_VERSION" ] ; then
-    service postgresql initdb
-fi
-# Allow DB_USER to access DB_NAME and test_DB_NAME with password
-if ! grep -Fxq "local   $DB_NAME $DB_USER               md5" /var/lib/pgsql/data/pg_hba.conf ; then
-    sed -e "s/^# \"local\" is for Unix domain socket connections only$/&\nlocal   $DB_NAME $DB_USER               md5\nlocal   test_$DB_NAME $DB_USER          md5/" \
-        -i /var/lib/pgsql/data/pg_hba.conf
-fi
-# Reload PostgreSQL
-service postgresql force-reload
+    echo "Starting ngEO Browse Server installation"
+    echo "Assuming successful execution of installation steps 10, 20, and 30"
 
-echo "Performing installation step 70"
-# Permanently start Apache
-chkconfig httpd on
-# Reload Apache
-service httpd graceful
+    # Check architecture
+    if [ "`uname -m`" != "x86_64" ] ; then
+       echo "ERROR: Current system is not x86_64 but `uname -m`. Script was 
+             implemented for x86_64 only."
+       exit 1
+    fi
+
+    # Check required tools are installed
+    if [ ! -x "`which sed`" ] ; then
+        yum install -y sed
+    fi
 
 
-#-----------------------
-# OSS/COTS installation
-#-----------------------
+    #-----------------
+    # OS installation
+    #-----------------
 
-echo "Assuming successful execution of installation step 80"
+    echo "Performing installation step 40"
+    # Disable SELinux
+    if ! [ `getenforce` == "Disabled" ] ; then
+        setenforce 0
+    fi
+    if ! grep -Fxq "SELINUX=disabled" /etc/selinux/config ; then
+        sed -e 's/^SELINUX=.*$/SELINUX=disabled/' -i /etc/selinux/config
+    fi
 
-# Install needed yum repositories
-echo "Performing installation step 90"
-# EPEL
-rpm -Uvh --replacepkgs http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
-echo "Performing installation step 100"
-# ELGIS
-rpm -Uvh --replacepkgs http://elgis.argeo.org/repos/6/elgis-release-6-6_0.noarch.rpm
+    echo "Performing installation step 50"
+    # Install packages
+    yum install -y python-lxml mod_wsgi httpd postgresql-server python-psycopg2 pytz
 
-echo "Performing installation step 110"
-# Apply available upgrades
-yum update -y
+    echo "Performing installation step 60"
+    # Permanently start PostgreSQL
+    chkconfig postgresql on
+    # Init PostgreSQL
+    if [ ! -f "/var/lib/pgsql/data/PG_VERSION" ] ; then
+        service postgresql initdb
+    fi
+    # Allow DB_USER to access DB_NAME and test_DB_NAME with password
+    if ! grep -Fxq "local   $DB_NAME $DB_USER               md5" /var/lib/pgsql/data/pg_hba.conf ; then
+        sed -e "s/^# \"local\" is for Unix domain socket connections only$/&\nlocal   $DB_NAME $DB_USER               md5\nlocal   test_$DB_NAME $DB_USER          md5/" \
+            -i /var/lib/pgsql/data/pg_hba.conf
+    fi
+    # Reload PostgreSQL
+    service postgresql force-reload
 
-echo "Performing installation step 120"
-# Install packages
-yum install -y gdal gdal-python postgis Django14
+    echo "Performing installation step 70"
+    # Permanently start Apache
+    chkconfig httpd on
+    # Reload Apache
+    service httpd graceful
 
 
-#------------------------
-# Component installation
-#------------------------
+    #-----------------------
+    # OSS/COTS installation
+    #-----------------------
 
-echo "Assuming successful execution of installation step 130"
+    echo "Assuming successful execution of installation step 80"
 
-# Install needed yum repositories
-echo "Performing installation step 140"
-# EOX
-rpm -Uvh --replacepkgs http://yum.packages.eox.at/el/eox-release-6-2.noarch.rpm
-#TODO: Enable only in testing mode once stable enough.
-#if "$TESTING" ; then
-    sed -e 's/^enabled=0/enabled=1/' -i /etc/yum.repos.d/eox-testing.repo
-#fi
+    # Install needed yum repositories
+    echo "Performing installation step 90"
+    # EPEL
+    rpm -Uvh --replacepkgs http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+    echo "Performing installation step 100"
+    # ELGIS
+    rpm -Uvh --replacepkgs http://elgis.argeo.org/repos/6/elgis-release-6-6_0.noarch.rpm
 
-echo "Performing installation step 150"
-# Set includepkgs in EOX Stable
-if ! grep -Fxq "includepkgs=EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python libxerces-c-3_1" /etc/yum.repos.d/eox.repo ; then
-    sed -e 's/^\[eox\]$/&\nincludepkgs=EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python libxerces-c-3_1/' -i /etc/yum.repos.d/eox.repo
-fi
-if ! grep -Fxq "includepkgs=ngEO_Browse_Server" /etc/yum.repos.d/eox.repo ; then
-    sed -e 's/^\[eox-noarch\]$/&\nincludepkgs=ngEO_Browse_Server/' -i /etc/yum.repos.d/eox.repo
-fi
-# Set includepkgs in EOX Testing
-if ! grep -Fxq "includepkgs=EOxServer mapcache" /etc/yum.repos.d/eox-testing.repo ; then
-    sed -e 's/^\[eox-testing\]$/&\nincludepkgs=EOxServer mapcache/' -i /etc/yum.repos.d/eox-testing.repo
-fi
-if ! grep -Fxq "includepkgs=ngEO_Browse_Server" /etc/yum.repos.d/eox-testing.repo ; then
-    sed -e 's/^\[eox-testing-noarch\]$/&\nincludepkgs=ngEO_Browse_Server/' -i /etc/yum.repos.d/eox-testing.repo
-fi
+    echo "Performing installation step 110"
+    # Apply available upgrades
+    yum update -y
 
-echo "Performing installation step 160"
-# Set exclude in CentOS-Base
-if ! grep -Fxq "exclude=libxml2 libxml2-python" /etc/yum.repos.d/CentOS-Base.repo ; then
-    sed -e 's/^\[base\]$/&\nexclude=libxml2 libxml2-python libxerces-c-3_1/' -i /etc/yum.repos.d/CentOS-Base.repo
-    sed -e 's/^\[updates\]$/&\nexclude=libxml2 libxml2-python libxerces-c-3_1/' -i /etc/yum.repos.d/CentOS-Base.repo
-fi
+    echo "Performing installation step 120"
+    # Install packages
+    yum install -y gdal gdal-python postgis Django14
 
-echo "Performing installation step 170"
-# Install packages
-yum install -y libxml2 libxml2-python mapserver mapserver-python mapcache \
-               ngEO_Browse_Server EOxServer
 
-echo "Performing installation step 180"
-# Configure PostgreSQL/PostGIS database
+    #------------------------
+    # Component installation
+    #------------------------
 
-## Write database configuration script
-TMPFILE=`mktemp`
-cat << EOF > "$TMPFILE"
+    echo "Assuming successful execution of installation step 130"
+
+    # Install needed yum repositories
+    echo "Performing installation step 140"
+    # EOX
+    rpm -Uvh --replacepkgs http://yum.packages.eox.at/el/eox-release-6-2.noarch.rpm
+    #TODO: Enable only in testing mode once stable enough.
+    #if "$TESTING" ; then
+        sed -e 's/^enabled=0/enabled=1/' -i /etc/yum.repos.d/eox-testing.repo
+    #fi
+
+    echo "Performing installation step 150"
+    # Set includepkgs in EOX Stable
+    if ! grep -Fxq "includepkgs=EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python libxerces-c-3_1" /etc/yum.repos.d/eox.repo ; then
+        sed -e 's/^\[eox\]$/&\nincludepkgs=EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python libxerces-c-3_1/' -i /etc/yum.repos.d/eox.repo
+    fi
+    if ! grep -Fxq "includepkgs=ngEO_Browse_Server" /etc/yum.repos.d/eox.repo ; then
+        sed -e 's/^\[eox-noarch\]$/&\nincludepkgs=ngEO_Browse_Server/' -i /etc/yum.repos.d/eox.repo
+    fi
+    # Set includepkgs in EOX Testing
+    if ! grep -Fxq "includepkgs=EOxServer mapcache" /etc/yum.repos.d/eox-testing.repo ; then
+        sed -e 's/^\[eox-testing\]$/&\nincludepkgs=EOxServer mapcache/' -i /etc/yum.repos.d/eox-testing.repo
+    fi
+    if ! grep -Fxq "includepkgs=ngEO_Browse_Server" /etc/yum.repos.d/eox-testing.repo ; then
+        sed -e 's/^\[eox-testing-noarch\]$/&\nincludepkgs=ngEO_Browse_Server/' -i /etc/yum.repos.d/eox-testing.repo
+    fi
+
+    echo "Performing installation step 160"
+    # Set exclude in CentOS-Base
+    if ! grep -Fxq "exclude=libxml2 libxml2-python" /etc/yum.repos.d/CentOS-Base.repo ; then
+        sed -e 's/^\[base\]$/&\nexclude=libxml2 libxml2-python libxerces-c-3_1/' -i /etc/yum.repos.d/CentOS-Base.repo
+        sed -e 's/^\[updates\]$/&\nexclude=libxml2 libxml2-python libxerces-c-3_1/' -i /etc/yum.repos.d/CentOS-Base.repo
+    fi
+
+    echo "Performing installation step 170"
+    # Install packages
+    yum install -y libxml2 libxml2-python mapserver mapserver-python mapcache \
+                   ngEO_Browse_Server EOxServer
+
+    echo "Performing installation step 180"
+    # Configure PostgreSQL/PostGIS database
+
+    ## Write database configuration script
+    TMPFILE=`mktemp`
+    cat << EOF > "$TMPFILE"
 #!/bin/sh -e
 # cd to a "safe" location
 cd /tmp
@@ -266,6 +284,7 @@ fi
 EOF
 ## End of database configuration script
 
+<<<<<<< Updated upstream:deliverables/developments/install_ngeo_browse_server.sh
 if [ -f $TMPFILE ] ; then
     chgrp postgres $TMPFILE
     chmod g+rx $TMPFILE
@@ -311,40 +330,87 @@ if [ ! -d ngeo_browse_server_instance ] ; then
         sed -e 's/DEBUG = False/DEBUG = True/' -i ngeo_browse_server_instance/settings.py
     else
         sed -e 's/#logging_level=/logging_level=INFO/' -i ngeo_browse_server_instance/conf/eoxserver.conf
+=======
+    if [ -f $TMPFILE ] ; then
+        chgrp postgres $TMPFILE
+        chmod g+rx $TMPFILE
+        su postgres -c "$TMPFILE"
+        rm "$TMPFILE"
+    else
+        echo "Script to configure DB not found."
+>>>>>>> Stashed changes:deliverables/developments/install/install_ngeo_browse_server.sh
     fi
 
-    # Prepare DBs
-    python manage.py syncdb --noinput
-    python manage.py syncdb --database=mapcache --noinput
-    python manage.py loaddata initial_rangetypes.json
+    echo "Performing installation step 190"
+    # ngEO Browse Server
+    [ -d "$NGEOB_INSTALL_DIR" ] || mkdir -p "$NGEOB_INSTALL_DIR"
+    cd "$NGEOB_INSTALL_DIR"
 
-    # Create admin user
-    python manage.py createsuperuser --username=$DJANGO_USER --email=$DJANGO_MAIL --noinput
-    python -c "import os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ngeo_browse_server_instance.settings'); \
-               from django.contrib.auth.models import User;  admin = User.objects.get(username='$DJANGO_USER'); \
-               admin.set_password('$DJANGO_PASSWORD'); admin.save();"
+    # Configure ngeo_browse_server_instance
+    if [ ! -d ngeo_browse_server_instance ] ; then
+        echo "Creating and configuring ngEO Browse Server instance."
 
-    # Collect static files
-    python manage.py collectstatic --noinput
+        django-admin startproject --extension=conf --template=`python -c "import ngeo_browse_server, os; from os.path import dirname, abspath, join; print(join(dirname(abspath(ngeo_browse_server.__file__)), 'project_template'))"` ngeo_browse_server_instance
+        
+        echo "Performing installation step 200"
+        cd -
+        cd "${NGEOB_INSTALL_DIR}/ngeo_browse_server_instance"
+        # Configure DBs
+        NGEOB_INSTALL_DIR_ESCAPED=`echo $NGEOB_INSTALL_DIR | sed -e 's/\//\\\&/g'`
+        sed -e "s/'ENGINE': 'django.contrib.gis.db.backends.spatialite',                  # Use 'spatialite' or change to 'postgis'./'ENGINE': 'django.contrib.gis.db.backends.postgis',/" -i ngeo_browse_server_instance/settings.py
+        sed -e "s/'NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/data.sqlite',  # Or path to database file if using spatialite./'NAME': '$DB_NAME',/" -i ngeo_browse_server_instance/settings.py
+        sed -e "s/'USER': '',                                                             # Not used with spatialite./'USER': '$DB_USER',/" -i ngeo_browse_server_instance/settings.py
+        sed -e "s/'PASSWORD': '',                                                         # Not used with spatialite./'PASSWORD': '$DB_PASSWORD',/" -i ngeo_browse_server_instance/settings.py
+        sed -e "/#'TEST_NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/test-data.sqlite', # Required for certain test cases, but slower!/d" -i ngeo_browse_server_instance/settings.py
+        sed -e "/'HOST': '',                                                             # Set to empty string for localhost. Not used with spatialite./d" -i ngeo_browse_server_instance/settings.py
+        sed -e "/'PORT': '',                                                             # Set to empty string for default. Not used with spatialite./d" -i ngeo_browse_server_instance/settings.py
+        sed -e "s/#'TEST_NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/test-mapcache.sqlite',/'TEST_NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/test-mapcache.sqlite',/" -i ngeo_browse_server_instance/settings.py
 
-    # Make the instance read- and editable by apache
-    chown -R apache:apache .
+        # Configure instance
+        sed -e "s,http_service_url=http://localhost:8000/ows,http_service_url=$NGEOB_URL$APACHE_NGEO_BROWSE_ALIAS/ows," -i ngeo_browse_server_instance/conf/eoxserver.conf
+        MAPCACHE_DIR_ESCAPED=`echo $MAPCACHE_DIR | sed -e 's/\//\\\&/g'`
+        sed -e "s/^tileset_root=$/tileset_root=$MAPCACHE_DIR_ESCAPED\//" -i ngeo_browse_server_instance/conf/ngeo.conf
+        sed -e "s/^config_file=$/config_file=$MAPCACHE_DIR_ESCAPED\/$MAPCACHE_CONF/" -i ngeo_browse_server_instance/conf/ngeo.conf
+        sed -e "s/^storage_dir=data\/storage$/storage_dir=$NGEOB_INSTALL_DIR_ESCAPED\/store/" -i ngeo_browse_server_instance/conf/ngeo.conf
+        
+        # Configure logging
+        if "$TESTING" ; then
+            sed -e 's/DEBUG = False/DEBUG = True/' -i ngeo_browse_server_instance/settings.py
+            sed -e 's/logging_level=INFO/#logging_level=INFO/' -i ngeo_browse_server_instance/conf/eoxserver.conf
+        fi
 
-    cd ..
-else
-    echo "Skipped installation steps 190 and 200"
-fi
+        # Prepare DBs
+        python manage.py syncdb --noinput
+        python manage.py syncdb --database=mapcache --noinput
+        python manage.py loaddata initial_rangetypes.json
 
-echo "Performing installation step 210"
-# MapCache
-if [ ! -d "$MAPCACHE_DIR" ] ; then
-    echo "Configuring MapCache."
+        # Create admin user
+        python manage.py createsuperuser --username=$DJANGO_USER --email=$DJANGO_MAIL --noinput
+        python -c "import os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ngeo_browse_server_instance.settings'); \
+                   from django.contrib.auth.models import User;  admin = User.objects.get(username='$DJANGO_USER'); \
+                   admin.set_password('$DJANGO_PASSWORD'); admin.save();"
 
-    mkdir -p "$MAPCACHE_DIR"
-    cd "$MAPCACHE_DIR"
+        # Collect static files
+        python manage.py collectstatic --noinput
 
-    # Configure MapCache
-    cat << EOF > "$MAPCACHE_DIR/$MAPCACHE_CONF"
+        # Make the instance read- and editable by apache
+        chown -R apache:apache .
+
+        cd -
+    else
+        echo "Skipped installation steps 190 and 200"
+    fi
+
+    echo "Performing installation step 210"
+    # MapCache
+    if [ ! -d "$MAPCACHE_DIR" ] ; then
+        echo "Configuring MapCache."
+
+        mkdir -p "$MAPCACHE_DIR"
+        cd "$MAPCACHE_DIR"
+
+        # Configure MapCache
+        cat << EOF > "$MAPCACHE_DIR/$MAPCACHE_CONF"
 <?xml version="1.0" encoding="UTF-8"?>
 <mapcache>
     <default_format>mixed</default_format>
@@ -373,38 +439,39 @@ if [ ! -d "$MAPCACHE_DIR" ] ; then
 </mapcache>
 EOF
 
-    # Make the cache read- and editable by apache
-    chown -R apache:apache .
+        # Make the cache read- and editable by apache
+        chown -R apache:apache .
 
-    cd -
-else
-    echo "Skipped installation step 210"
-fi
-
-echo "Performing installation step 220"
-# Shibboleth installation
-if "$USE_SHIBBOLETH" ; then
-    echo "Installing Shibboleth"
-
-    # add the shibboleth rpm repository
-    cd /etc/yum.repos.d/
-    wget http://download.opensuse.org/repositories/security://shibboleth/CentOS_CentOS-6/security:shibboleth.repo
-
-    # Set exclude in security:shibboleth.repo
-    if ! grep -Fxq "exclude=libxerces-c-3_1" /etc/yum.repos.d/CentOS-Base.repo ; then
-        sed -e 's/^\[security_shibboleth\]$/&\nexclude=libxerces-c-3_1/' -i /etc/yum.repos.d/security:shibboleth.repo
+        cd -
+    else
+        echo "Skipped installation step 210"
     fi
 
-    # TODO includepkg / excludepkg 
-    yum install -y libxerces-c-3_1 shibboleth mod_ssl
+    echo "Performing installation step 220"
+    # Shibboleth installation
+    if "$USE_SHIBBOLETH" ; then
+        echo "Installing Shibboleth"
 
-    # create directory for shibboleth sp configuration
-    mkdir /etc/httpd/shib/
+        # add the shibboleth rpm repository
+        cd /etc/yum.repos.d/
+        wget http://download.opensuse.org/repositories/security://shibboleth/CentOS_CentOS-6/security:shibboleth.repo
+        cd -
 
-    # sample keys & certs provided by sso_checkpoint.tgz
-    # TODO: test if files exist and DON'T overwrite them
-    echo "Adding certificates"
-    cat << EOF > /etc/httpd/shib/umsso.pem
+        # Set exclude in security:shibboleth.repo
+        if ! grep -Fxq "exclude=libxerces-c-3_1" /etc/yum.repos.d/CentOS-Base.repo ; then
+            sed -e 's/^\[security_shibboleth\]$/&\nexclude=libxerces-c-3_1/' -i /etc/yum.repos.d/security:shibboleth.repo
+        fi
+
+        # TODO includepkg / excludepkg 
+        yum install -y libxerces-c-3_1 shibboleth mod_ssl
+
+        # create directory for shibboleth sp configuration
+        mkdir /etc/httpd/shib/
+
+        # sample keys & certs provided by sso_checkpoint.tgz
+        # TODO: test if files exist and DON'T overwrite them
+        echo "Adding certificates"
+        cat << EOF > /etc/httpd/shib/umsso.pem
 -----BEGIN CERTIFICATE-----
 MIIDpjCCAo4CBHRr6eswDQYJKoZIhvcNAQEFBQAwgZgxKjAoBgkqhkiG9w0BCQEW
 G2FkbWluQHVtLXNzby1pZHAuZW8uZXNhLmludDELMAkGA1UEBhMCSVQxDjAMBgNV
@@ -429,7 +496,7 @@ jey4oOXM8os3ZQ8zmUXPPQqSe6bLcHm2H3BGudvmK+6Y4IYy5lPnudtuTLM5PgDY
 -----END CERTIFICATE-----
 EOF
 
-    cat << EOF > /etc/httpd/shib/spcert.pem
+        cat << EOF > /etc/httpd/shib/spcert.pem
 -----BEGIN CERTIFICATE-----
 MIIDWDCCAkCgAwIBAgIBATANBgkqhkiG9w0BAQUFADCBmDEqMCgGCSqGSIb3DQEJ
 ARYbYWRtaW5AdW0tc3NvLWlkcC5lby5lc2EuaW50MQswCQYDVQQGEwJJVDEOMAwG
@@ -452,7 +519,7 @@ A0mjol7yJuZG2CE0JGaxe4mEGbvPsg6ZkND5xXtOIL5vzjsBTrdV8OgtYTw=
 -----END CERTIFICATE-----
 EOF
 
-    cat << EOF > /etc/httpd/shib/spkey.pem
+        cat << EOF > /etc/httpd/shib/spkey.pem
 -----BEGIN RSA PRIVATE KEY-----
 MIIEpgIBAAKCAQEA4iak8hZop+vPlT8n7ITrZOcvzQPXALWTPm127PBqIEpae/i6
 zmlSyShum5zsfkOqxIhu2d3jMpDPf80tYhqReQ6wrq5cZp7xA1gY6fKrI3n+czzy
@@ -482,15 +549,15 @@ Gk2/oKfsa5dhE/ULai0EkpIsixFVnAXU1k9ViurT+xH+EpDnJGOUWR0Xo1Obs7Gm
 -----END RSA PRIVATE KEY-----
 EOF
 
-    # Read certificates and keys into variables
-    IDP_CERT_CONTENT=`cat $IDP_CERT_FILE`
-    SP_CERT_CONTENT=`cat $SP_CERT_FILE`
-    SP_KEY_CONTENT=`cat $SP_KEY_FILE`
+        # Read certificates and keys into variables
+        IDP_CERT_CONTENT=`cat $IDP_CERT_FILE`
+        SP_CERT_CONTENT=`cat $SP_CERT_FILE`
+        SP_KEY_CONTENT=`cat $SP_KEY_FILE`
 
-    echo "Configuring Shibboleth"
+        echo "Configuring Shibboleth"
 
-    # attribute-map.xml
-    cat << EOF > /etc/shibboleth/attribute-map.xml
+        # attribute-map.xml
+        cat << EOF > /etc/shibboleth/attribute-map.xml
 <Attributes xmlns="urn:mace:shibboleth:2.0:attribute-map" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <Attribute name="urn:mace:dir:attribute-def:cn" id="Umsso-Person-commonName" />
     <Attribute name="urn:mace:dir:attribute-def:spid$SP_NAME" id="SP-Person-Identifier" />
@@ -498,8 +565,8 @@ EOF
 </Attributes>
 EOF
 
-    # attribute-policy.xml
-    cat << EOF > /etc/shibboleth/attribute-policy.xml
+        # attribute-policy.xml
+        cat << EOF > /etc/shibboleth/attribute-policy.xml
 <afp:AttributeFilterPolicyGroup
     xmlns="urn:mace:shibboleth:2.0:afp:mf:basic" xmlns:basic="urn:mace:shibboleth:2.0:afp:mf:basic" xmlns:afp="urn:mace:shibboleth:2.0:afp" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <afp:AttributeFilterPolicy>
@@ -511,8 +578,8 @@ EOF
 </afp:AttributeFilterPolicyGroup>
 EOF
 
-    # idp-metadata.xml
-    cat << EOF > /etc/shibboleth/idp-metadata.xml
+        # idp-metadata.xml
+        cat << EOF > /etc/shibboleth/idp-metadata.xml
 <EntityDescriptor entityID="$IDP_ENTITYID" validUntil="2030-01-01T00:00:00Z" xmlns="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:shibmd="urn:mace:shibboleth:metadata:1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <IDPSSODescriptor protocolSupportEnumeration="urn:mace:shibboleth:1.0 urn:oasis:names:tc:SAML:1.1:protocol urn:oasis:names:tc:SAML:2.0:protocol">
 
@@ -570,8 +637,8 @@ $IDP_CERT_CONTENT
 </EntityDescriptor>
 EOF
 
-    # shibboleth2.xml
-    cat << EOF > /etc/shibboleth/shibboleth2.xml
+        # shibboleth2.xml
+        cat << EOF > /etc/shibboleth/shibboleth2.xml
 <SPConfig xmlns="urn:mace:shibboleth:2.0:native:sp:config"xmlns:conf="urn:mace:shibboleth:2.0:native:sp:config"xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" logger="/etc/shibboleth/syslog.logger" clockSkew="7600">
 
     <!-- The OutOfProcess section contains properties affecting the shibd daemon. -->
@@ -655,8 +722,8 @@ EOF
 </SPConfig>
 EOF
 
-    # SP_NAME-metadata.xml
-    cat << EOF > /etc/shibboleth/$SP_NAME-metadata.xml
+        # SP_NAME-metadata.xml
+        cat << EOF > /etc/shibboleth/$SP_NAME-metadata.xml
 <EntityDescriptor entityID="$SP_ENTITYID" validUntil="2030-01-01T00:00:00Z"xmlns="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:shibmd="urn:mace:shibboleth:metadata:1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <SPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
         <KeyDescriptor>
@@ -684,13 +751,13 @@ $SP_CERT_CONTENT
 </EntityDescriptor>
 EOF
 
-    # Setup Certificates
+        # Setup Certificates
 
-    # Restart the shibboleth daemon
-    service shibd restart
+        # Restart the shibboleth daemon
+        service shibd restart
 
-    # mod_shib configuration
-    cat << EOF > /etc/httpd/conf.d/shib.conf
+        # mod_shib configuration
+        cat << EOF > /etc/httpd/conf.d/shib.conf
 # Load the Shibboleth module.
 LoadModule mod_shib /usr/lib64/shibboleth/mod_shib_22.so
 
@@ -703,54 +770,54 @@ LoadModule mod_shib /usr/lib64/shibboleth/mod_shib_22.so
 </IfModule>
 EOF
 
-    echo "Done installing Shibboleth"
+        echo "Done installing Shibboleth"
 
-else
-    echo "Skipped installation step 220"
-fi
-# END Shibboleth Installation
-
-echo "Performing installation step 230"
-# Configure WebDAV
-if [ ! -d "$NGEOB_INSTALL_DIR/dav" ] ; then
-    echo "Configuring WebDAV."
-    mkdir -p "$NGEOB_INSTALL_DIR/dav"
-    printf "$WEBDAV_USER:ngEO Browse Server:$WEBDAV_PASSWORD" | md5sum - > $NGEOB_INSTALL_DIR/dav/DavUsers
-    sed -e "s/^\(.*\)  -$/test:ngEO Browse Server:\1/" -i $NGEOB_INSTALL_DIR/dav/DavUsers
-    chown -R apache:apache "$NGEOB_INSTALL_DIR/dav"
-    chmod 0640 "$NGEOB_INSTALL_DIR/dav/DavUsers"
-    if [ ! -d "$NGEOB_INSTALL_DIR/store" ] ; then
-        mkdir -p "$NGEOB_INSTALL_DIR/store"
-        chown -R apache:apache "$NGEOB_INSTALL_DIR/store"
+    else
+        echo "Skipped installation step 220"
     fi
-else
-    echo "Skipped installation step 230"
-fi
+    # END Shibboleth Installation
 
-echo "Performing installation step 240"
-# Add Apache configuration
-if [ ! -f "$APACHE_CONF" ] ; then
-    echo "Configuring Apache."
-
-    # Enable MapCache module
-    if ! grep -Fxq "LoadModule mapcache_module modules/mod_mapcache.so" /etc/httpd/conf/httpd.conf ; then
-        sed -e 's/^LoadModule version_module modules\/mod_version.so$/&\nLoadModule mapcache_module modules\/mod_mapcache.so/' -i /etc/httpd/conf/httpd.conf
+    echo "Performing installation step 230"
+    # Configure WebDAV
+    if [ ! -d "$NGEOB_INSTALL_DIR/dav" ] ; then
+        echo "Configuring WebDAV."
+        mkdir -p "$NGEOB_INSTALL_DIR/dav"
+        printf "$WEBDAV_USER:ngEO Browse Server:$WEBDAV_PASSWORD" | md5sum - > $NGEOB_INSTALL_DIR/dav/DavUsers
+        sed -e "s/^\(.*\)  -$/test:ngEO Browse Server:\1/" -i $NGEOB_INSTALL_DIR/dav/DavUsers
+        chown -R apache:apache "$NGEOB_INSTALL_DIR/dav"
+        chmod 0640 "$NGEOB_INSTALL_DIR/dav/DavUsers"
+        if [ ! -d "$NGEOB_INSTALL_DIR/store" ] ; then
+            mkdir -p "$NGEOB_INSTALL_DIR/store"
+            chown -R apache:apache "$NGEOB_INSTALL_DIR/store"
+        fi
+    else
+        echo "Skipped installation step 230"
     fi
 
-    # Enable & configure Keepalive
-    if ! grep -Fxq "KeepAlive On" /etc/httpd/conf/httpd.conf ; then
-        sed -e 's/^KeepAlive .*$/KeepAlive On/' -i /etc/httpd/conf/httpd.conf
-    fi
-    if ! grep -Fxq "MaxKeepAliveRequests 0" /etc/httpd/conf/httpd.conf ; then
-        sed -e 's/^MaxKeepAliveRequests .*$/MaxKeepAliveRequests 0/' -i /etc/httpd/conf/httpd.conf
-    fi
-    if ! grep -Fxq "KeepAliveTimeout 5" /etc/httpd/conf/httpd.conf ; then
-        sed -e 's/^KeepAliveTimeout .*$/KeepAliveTimeout 5/' -i /etc/httpd/conf/httpd.conf
-    fi
+    echo "Performing installation step 240"
+    # Add Apache configuration
+    if [ ! -f "$APACHE_CONF" ] ; then
+        echo "Configuring Apache."
 
-    echo "More performance tuning of apache is needed. Specifically the settings of the prefork module!"
-    echo "A sample configuration could look like the following."
-    cat << EOF
+        # Enable MapCache module
+        if ! grep -Fxq "LoadModule mapcache_module modules/mod_mapcache.so" /etc/httpd/conf/httpd.conf ; then
+            sed -e 's/^LoadModule version_module modules\/mod_version.so$/&\nLoadModule mapcache_module modules\/mod_mapcache.so/' -i /etc/httpd/conf/httpd.conf
+        fi
+
+        # Enable & configure Keepalive
+        if ! grep -Fxq "KeepAlive On" /etc/httpd/conf/httpd.conf ; then
+            sed -e 's/^KeepAlive .*$/KeepAlive On/' -i /etc/httpd/conf/httpd.conf
+        fi
+        if ! grep -Fxq "MaxKeepAliveRequests 0" /etc/httpd/conf/httpd.conf ; then
+            sed -e 's/^MaxKeepAliveRequests .*$/MaxKeepAliveRequests 0/' -i /etc/httpd/conf/httpd.conf
+        fi
+        if ! grep -Fxq "KeepAliveTimeout 5" /etc/httpd/conf/httpd.conf ; then
+            sed -e 's/^KeepAliveTimeout .*$/KeepAliveTimeout 5/' -i /etc/httpd/conf/httpd.conf
+        fi
+
+        echo "More performance tuning of apache is needed. Specifically the settings of the prefork module!"
+        echo "A sample configuration could look like the following."
+        cat << EOF
 <IfModule prefork.c>
 StartServers      64
 MinSpareServers   32
@@ -761,21 +828,21 @@ MaxRequestsPerChild  0
 </IfModule>
 EOF
 
-    # Configure WSGI module
-    if ! grep -Fxq "WSGISocketPrefix run/wsgi" /etc/httpd/conf.d/wsgi.conf ; then
-        echo "WSGISocketPrefix run/wsgi" >> /etc/httpd/conf.d/wsgi.conf
-    fi
+        # Configure WSGI module
+        if ! grep -Fxq "WSGISocketPrefix run/wsgi" /etc/httpd/conf.d/wsgi.conf ; then
+            echo "WSGISocketPrefix run/wsgi" >> /etc/httpd/conf.d/wsgi.conf
+        fi
 
-    # Add hostname
-    HOSTNAME=`hostname`
-    if ! grep -Gxq "127\.0\.0\.1.* $HOSTNAME" /etc/hosts ; then
-        sed -e "s/^127\.0\.0\.1.*$/& $HOSTNAME/" -i /etc/hosts
-    fi
+        # Add hostname
+        HOSTNAME=`hostname`
+        if ! grep -Gxq "127\.0\.0\.1.* $HOSTNAME" /etc/hosts ; then
+            sed -e "s/^127\.0\.0\.1.*$/& $HOSTNAME/" -i /etc/hosts
+        fi
 
-#TODO: Change depending on shibboleth installation i.e. if shibboleth is installed enable only httpd
-#if "$USE_SHIBBOLETH" ; then
-#else
-    cat << EOF > "$APACHE_CONF"
+    #TODO: Change depending on shibboleth installation i.e. if shibboleth is installed enable only httpd
+    #if "$USE_SHIBBOLETH" ; then
+    #else
+        cat << EOF > "$APACHE_CONF"
 <VirtualHost *:80>
     ServerName $APACHE_ServerName
     ServerAdmin $APACHE_ServerAdmin
@@ -829,12 +896,186 @@ EOF
     </Directory>
 </VirtualHost>
 EOF
-else
-    echo "Skipped installation step 240"
+    else
+        echo "Skipped installation step 240"
+    fi
+
+    echo "Performing installation step 250"
+    # Reload Apache
+    service httpd graceful
+
+    echo "Performing installation step 260"
+    # Configure Browse Server as service "ngeo"
+    cp ngeo /etc/init.d/
+    chkconfig --level 235 ngeo on
+    service ngeo start
+
+    echo "Finished $SUBSYSTEM installation"
+    echo "Check successful installation by pointing your browse to the "
+    echo "following URLs and check the correctness of the shown content:"
+    echo "$NGEOB_URL/browse/"
+    echo "$NGEOB_URL/browse/ows?service=wms&request=getcapabilities"
+    echo "$NGEOB_URL/browse/ingest"
+    echo "$NGEOB_URL/c/wmts?service=wmts&request=getcapabilities"
+    echo "$NGEOB_URL/c/?service=wms&request=getcapabilities"
+    echo "$NGEOB_URL/store/ (log in using username password from above)"
+    echo "Configure some browse layers."
+    echo "Send some browse reports via POST to $NGEOB_URL/browse/ingest and "
+    echo "check successful ingestion by evaluating the response and "
+    echo "consecutive WMTS and WMS requests to $NGEOB_URL/c/wmts? and "
+    echo "$NGEOB_URL/c/?"
+
+}
+
+
+# ------------------------------------------------------------------------------
+# Uninstall
+# ------------------------------------------------------------------------------
+ngeo_uninstall() {
+
+    echo "------------------------------------------------------------------------------"
+    echo " $SUBSYSTEM Uninstall"
+    echo "------------------------------------------------------------------------------"
+
+    echo "Performing uninstallation step 10"
+    echo "Delete DB for ngEO Browse Server"
+
+    if service postgresql status ; then
+        ## Write database deletion script
+        TMPFILE=`mktemp`
+        cat << EOF > "$TMPFILE"
+#!/bin/sh -e
+# cd to a "safe" location
+cd /tmp
+if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'")" == 1 ] ; then
+    echo "Deleting ngEO Browse Server database."
+    dropdb $DB_NAME
 fi
+if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'")" == 1 ] ; then
+    echo "Deleting ngEO database user."
+    dropuser $DB_USER
+fi
+EOF
+## End of database deletion script
 
-echo "Performing installation step 250"
-# Reload Apache
-service httpd graceful
+        if [ -f $TMPFILE ] ; then
+            chgrp postgres $TMPFILE
+            chmod g+rx $TMPFILE
+            su postgres -c "$TMPFILE"
+            rm "$TMPFILE"
+        else
+            echo "Script to delete DB not found."
+        fi
+        service postgresql stop
+    else
+        echo "DB not deleted because PostgreSQL server is not running"
+    fi
+    if [ -f /etc/init.d/postgresql ] ; then
+        chkconfig postgresql off
+    fi
 
-echo "Finished ngEO Browse Server installation"
+    echo "Performing uninstallation step 20"
+    echo "Stop service ngeo"
+    if [ -f /etc/init.d/ngeo ] ; then
+        service ngeo stop
+        
+        echo "Delete service ngeo"
+        rm -f /etc/init.d/ngeo
+    fi
+
+    echo "Performing uninstallation step 30"
+    echo "Delete ngEO Browse Server instance"
+    rm -rf "${NGEOB_INSTALL_DIR}/ngeo_browse_server_instance"
+
+    echo "Performing uninstallation step 40"
+    echo "Delete MapCache instance"
+    rm -rf "${MAPCACHE_DIR}"
+
+    echo "Performing uninstallation step 50"
+    echo "Delete Authorization module configuration"
+    # TODO V2
+
+    echo "Performing uninstallation step 60"
+    echo "Delete WebDAV"
+    rm -rf "${NGEOB_INSTALL_DIR}/dav"
+    rm -rf "${NGEOB_INSTALL_DIR}/store"
+    if [ -d "${NGEOB_INSTALL_DIR}" ] ; then
+        rmdir "${NGEOB_INSTALL_DIR}"
+    fi
+
+    echo "Performing uninstallation step 70"
+    echo "Delete Apache HTTP server configuration"
+    rm -rf "${APACHE_CONF}"
+
+    echo "Performing uninstallation step 80"
+    echo "If any of the data locations has been changed delete all browse data there."
+
+    echo "Performing uninstallation step 90"
+    echo "Delete extra Yum repositories"
+    yum erase -y epel-release elgis-release eox-release
+
+    echo "Performing uninstallation step 100"
+    echo "Stop Apache HTTP server"#
+    if service httpd status ; then
+        service httpd stop
+    fi
+    if [ -f /etc/init.d/httpd ] ; then
+        chkconfig httpd off
+    fi
+
+    echo "Performing uninstallation step 110"
+    echo "Remove packages"
+    yum erase -y  python-lxml mod_wsgi httpd postgresql python-psycopg2 pytz \
+                  gdal gdal-python postgis libxml2-python mapserver Django14 \
+                  mapserver-python mapcache ngEO_Browse_Server EOxServer
+
+    echo "Finished $SUBSYSTEM uninstallation"
+
+}
+
+
+# ------------------------------------------------------------------------------
+# Status (check status of a specific RPM)
+# ------------------------------------------------------------------------------
+ngeo_check_rpm_status () {
+    if [ -n "`rpm -qa | grep $1`" ] ; then
+        echo -e "$1: \033[1;32minstalled\033[m\017" 
+    else
+        echo -e "$1: \033[1;31mmissing\033[m\017"
+    fi
+}
+
+
+# ------------------------------------------------------------------------------
+# Status
+# ------------------------------------------------------------------------------
+ngeo_status() {
+    echo "------------------------------------------------------------------------------"
+    echo " $SUBSYSTEM status check"
+    echo "------------------------------------------------------------------------------"
+    ngeo_check_rpm_status ngEO_Browse_Server
+    ngeo_check_rpm_status EOxServer
+    ngeo_check_rpm_status mapcache
+}
+
+
+# ------------------------------------------------------------------------------
+# Main
+# ------------------------------------------------------------------------------
+case "$1" in
+install)
+    ngeo_install
+;;
+uninstall)
+    ngeo_uninstall
+;;
+status)
+    ngeo_status
+;;
+*)
+    echo "Usage: $0 {install|uninstall|status}"
+exit 1
+;;
+esac
+
+# END ########################################################################
