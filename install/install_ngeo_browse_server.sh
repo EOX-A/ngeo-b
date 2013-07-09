@@ -284,53 +284,6 @@ fi
 EOF
 ## End of database configuration script
 
-<<<<<<< Updated upstream:deliverables/developments/install_ngeo_browse_server.sh
-if [ -f $TMPFILE ] ; then
-    chgrp postgres $TMPFILE
-    chmod g+rx $TMPFILE
-    su postgres -c "$TMPFILE"
-    rm "$TMPFILE"
-else
-    echo "Script to configure DB not found."
-fi
-
-echo "Performing installation step 190"
-# ngEO Browse Server
-[ -d "$NGEOB_INSTALL_DIR" ] || mkdir -p "$NGEOB_INSTALL_DIR"
-cd "$NGEOB_INSTALL_DIR"
-
-# Configure ngeo_browse_server_instance
-if [ ! -d ngeo_browse_server_instance ] ; then
-    echo "Creating and configuring ngEO Browse Server instance."
-
-    django-admin startproject --extension=conf --template=`python -c "import ngeo_browse_server, os; from os.path import dirname, abspath, join; print(join(dirname(abspath(ngeo_browse_server.__file__)), 'project_template'))"` ngeo_browse_server_instance
-    
-    echo "Performing installation step 200"
-    cd ngeo_browse_server_instance
-    # Configure DBs
-    NGEOB_INSTALL_DIR_ESCAPED=`echo $NGEOB_INSTALL_DIR | sed -e 's/\//\\\&/g'`
-    sed -e "s/'ENGINE': 'django.contrib.gis.db.backends.spatialite',                  # Use 'spatialite' or change to 'postgis'./'ENGINE': 'django.contrib.gis.db.backends.postgis',/" -i ngeo_browse_server_instance/settings.py
-    sed -e "s/'NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/data.sqlite',  # Or path to database file if using spatialite./'NAME': '$DB_NAME',/" -i ngeo_browse_server_instance/settings.py
-    sed -e "s/'USER': '',                                                             # Not used with spatialite./'USER': '$DB_USER',/" -i ngeo_browse_server_instance/settings.py
-    sed -e "s/'PASSWORD': '',                                                         # Not used with spatialite./'PASSWORD': '$DB_PASSWORD',/" -i ngeo_browse_server_instance/settings.py
-    sed -e "/#'TEST_NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/test-data.sqlite', # Required for certain test cases, but slower!/d" -i ngeo_browse_server_instance/settings.py
-    sed -e "/'HOST': '',                                                             # Set to empty string for localhost. Not used with spatialite./d" -i ngeo_browse_server_instance/settings.py
-    sed -e "/'PORT': '',                                                             # Set to empty string for default. Not used with spatialite./d" -i ngeo_browse_server_instance/settings.py
-    sed -e "s/#'TEST_NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/test-mapcache.sqlite',/'TEST_NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/test-mapcache.sqlite',/" -i ngeo_browse_server_instance/settings.py
-
-    # Configure instance
-    sed -e "s,http_service_url=http://localhost:8000/ows,http_service_url=$NGEOB_URL$APACHE_NGEO_BROWSE_ALIAS/ows," -i ngeo_browse_server_instance/conf/eoxserver.conf
-    MAPCACHE_DIR_ESCAPED=`echo $MAPCACHE_DIR | sed -e 's/\//\\\&/g'`
-    sed -e "s/^tileset_root=$/tileset_root=$MAPCACHE_DIR_ESCAPED\//" -i ngeo_browse_server_instance/conf/ngeo.conf
-    sed -e "s/^config_file=$/config_file=$MAPCACHE_DIR_ESCAPED\/$MAPCACHE_CONF/" -i ngeo_browse_server_instance/conf/ngeo.conf
-    sed -e "s/^storage_dir=data\/storage$/storage_dir=$NGEOB_INSTALL_DIR_ESCAPED\/store/" -i ngeo_browse_server_instance/conf/ngeo.conf
-    
-    # Configure logging
-    if "$TESTING" ; then
-        sed -e 's/DEBUG = False/DEBUG = True/' -i ngeo_browse_server_instance/settings.py
-    else
-        sed -e 's/#logging_level=/logging_level=INFO/' -i ngeo_browse_server_instance/conf/eoxserver.conf
-=======
     if [ -f $TMPFILE ] ; then
         chgrp postgres $TMPFILE
         chmod g+rx $TMPFILE
@@ -338,7 +291,6 @@ if [ ! -d ngeo_browse_server_instance ] ; then
         rm "$TMPFILE"
     else
         echo "Script to configure DB not found."
->>>>>>> Stashed changes:deliverables/developments/install/install_ngeo_browse_server.sh
     fi
 
     echo "Performing installation step 190"
@@ -851,7 +803,7 @@ EOF
     <Directory "$NGEOB_INSTALL_DIR">
             Options Indexes FollowSymLinks
             AllowOverride None
-            Order deny,allow
+            Order Deny,Allow
             Deny from all
     </Directory>
 
@@ -864,8 +816,8 @@ EOF
         Options +ExecCGI -MultiViews +SymLinksIfOwnerMatch
         AddHandler wsgi-script .py
         WSGIProcessGroup ngeob
-        Order allow,deny
-        allow from all
+        Order Allow,Deny
+        Allow from all
     </Directory>
 
     MapCacheAlias $APACHE_NGEO_CACHE_ALIAS "$MAPCACHE_DIR/mapcache.xml"
