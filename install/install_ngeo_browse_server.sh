@@ -978,8 +978,8 @@ EOF
     echo "Performing uninstallation step 110"
     echo "Remove packages"
     yum erase -y  python-lxml mod_wsgi httpd postgresql python-psycopg2 pytz \
-                  gdal gdal-python postgis libxml2-python mapserver Django14 \
-                  mapserver-python mapcache ngEO_Browse_Server EOxServer
+                  gdal gdal-python postgis mapserver Django14 mapserver-python \
+                  mapcache ngEO_Browse_Server EOxServer
 
     echo "Finished $SUBSYSTEM uninstallation"
 
