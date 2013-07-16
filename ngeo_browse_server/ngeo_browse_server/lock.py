@@ -20,7 +20,7 @@ class FileLock(object):
         try:
             self.fd = os.open(self.lockfile, os.O_CREAT|os.O_EXCL|os.O_RDWR)
         except OSError as e:
-            if e.errno != errno.EEXIST:
+            if e.errno == errno.EEXIST:
                 raise LockException
         self.is_locked = True
 

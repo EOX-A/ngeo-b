@@ -32,7 +32,7 @@ import traceback
 from lxml import etree
 
 from django.shortcuts import render_to_response
-from django.util import simplejson as json
+from django.utils import simplejson as json
 from osgeo import gdalnumeric   # This prevents issues in parallel setups. Do 
                                 # not remove this line.
 from eoxserver.processing.preprocessing.exceptions import PreprocessingException 
@@ -44,6 +44,9 @@ from ngeo_browse_server.config.browsereport.decoding import (
 )
 from ngeo_browse_server.control.ingest.exceptions import IngestionException
 from ngeo_browse_server.control.response import JsonResponse
+from ngeo_browse_server.control.control.register import (
+    register, unregister, RegistrationException
+)
 
 
 logger = logging.getLogger(__name__)
@@ -89,7 +92,6 @@ def ingest(request):
                                   mimetype="text/xml")
 
 
-
 def controller_server(request):
 
     try:
@@ -99,9 +101,13 @@ def controller_server(request):
                 values["instanceId"], values["instanceType"],
                 values["controllerServerId"], get_client_ip(request)
             )
-        elif request_method == "DELETE":
-            unregister()
+        elif request.method == "DELETE":
+            unregister(
+                values["instanceId"], values["controllerServerId"],
+                get_client_ip(request)
+            )
     except RegistrationException as e:
+        logger.debug(traceback.format_exc())
         return JsonResponse({
             "result": "FAILURE", # TODO: check for correct string, not yet specified by schema
             # TODO:  remove these below? not included in schema?
@@ -110,6 +116,7 @@ def controller_server(request):
             "message": str(e)
         }, status=400)
     except Exception as e:
+        logger.debug(traceback.format_exc())
         return JsonResponse({
             "result": "FAILURE",
             "message": str(e)

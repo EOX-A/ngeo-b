@@ -1,4 +1,15 @@
 
+from ngeo_browse_server.control.control.config import (
+    get_instance_id, CONTROLLER_SERVER_SECTION
+)
+
+class RegistrationException(Exception):
+    def __init__(self, message, reason, instance_id=None):
+        super(RegistrationException, self).__init__(message)
+        self.reason = reason
+        self.instance_id = instance_id
+
+
 def assert_instance_id(instance_id, config):
     actual_instance_id = get_instance_id(config)
 
@@ -23,7 +34,7 @@ def assert_instance_type(instance_type, config):
 
 def assert_controller_id(cs_id, controller_config, config):
     instance_id = get_instance_id(config)
-    actual_id = controller_config.get(SEC_CONTROLLER, "identifier")
+    actual_id = controller_config.get(CONTROLLER_SERVER_SECTION, "identifier")
 
     if actual_id != cs_id:
         raise RegistrationException(
@@ -35,7 +46,7 @@ def assert_controller_id(cs_id, controller_config, config):
 
 def assert_controller_ip(cs_ip, controller_config, config):
     instance_id = get_instance_id(config)
-    actual_ip = controller_config.get(SEC_CONTROLLER, "address")
+    actual_ip = controller_config.get(CONTROLLER_SERVER_SECTION, "address")
 
     if actual_ip != cs_ip:
         raise RegistrationException(

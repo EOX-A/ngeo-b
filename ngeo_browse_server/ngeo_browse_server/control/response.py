@@ -1,5 +1,5 @@
 from django.http import HttpResponse
-from django.util import simplejson as json
+from django.utils import simplejson as json
 
 
 class JsonResponse(HttpResponse):
