@@ -28,6 +28,7 @@
 #-------------------------------------------------------------------------------
 
 from os.path import join
+from textwrap import dedent
 import logging
 
 from django.conf import settings
@@ -41,7 +42,8 @@ from ngeo_browse_server.control.testbase import (
     ExtentMixIn, SizeMixIn, ProjectionMixIn, StatisticsMixIn, WMSRasterMixIn,
     IngestFailureTestCaseMixIn, DeleteTestCaseMixIn, ExportTestCaseMixIn,
     ImportTestCaseMixIn, ImportReplaceTestCaseMixin,
-    SeedMergeTestCaseMixIn, HttpMultipleMixIn, LoggingTestCaseMixIn
+    SeedMergeTestCaseMixIn, HttpMultipleMixIn, LoggingTestCaseMixIn,
+    RegisterTestCaseMixIn, UnregisterTestCaseMixIn
 )
 from ngeo_browse_server.control.ingest.config import (
     INGEST_SECTION
@@ -2719,3 +2721,238 @@ class InfoLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCaseM
     }
 
 
+#===============================================================================
+# Register test cases
+#===============================================================================
+
+
+class RegisterSuccess(RegisterTestCaseMixIn, TestCase):
+    ip_address = "127.0.0.1"
+    request = """
+    {
+        "controllerServerId": "cs1-id",
+        "instanceId": "instance",
+        "instanceType": "BrowseServer"
+    }
+    """
+
+    expected_response = '{"result": "SUCCESS"}'
+    expected_controller_config = {
+        "identifier": "cs1-id",
+        "address": "127.0.0.1"
+    }
+
+
+class RegisterFailWrongInstanceID(RegisterTestCaseMixIn, TestCase):
+    request = """
+    {
+        "controllerServerId": "cs1-id",
+        "instanceId": "another_instance",
+        "instanceType": "BrowseServer"
+    }
+    """
+
+    expected_response = '{"instance_id": "instance", "reason": "INSTANCE_OTHER", "message": "The provided instance ID (another_instance) is not the same as the configured one (instance).", "result": "FAILURE"}'
+
+
+class RegisterFailWrongControllerIP(RegisterTestCaseMixIn, TestCase):
+    ip_address = "192.168.1.1"
+    request = """
+    {
+        "controllerServerId": "cs1-id",
+        "instanceId": "instance",
+        "instanceType": "BrowseServer"
+    }
+    """
+
+    controller_config = dedent("""
+        [controller_server]
+        identifier=cs1-id
+        address=127.0.0.1
+    """)
+
+    expected_response = '{"instance_id": "instance", "reason": "INTERFACE_OTHER", "message": "This browse server instance is registered on a controller server with the same ID but another IP-address (\'127.0.0.1\').", "result": "FAILURE"}'
+
+    test_controller_config = None
+
+
+class RegisterFailWrongControllerID(RegisterTestCaseMixIn, TestCase):
+    ip_address = "127.0.0.1"
+    request = """
+    {
+        "controllerServerId": "cs2-another-id",
+        "instanceId": "instance",
+        "instanceType": "BrowseServer"
+    }
+    """
+
+    controller_config = dedent("""
+        [controller_server]
+        identifier=cs1-id
+        address=127.0.0.1
+    """)
+
+    expected_response = '{"instance_id": "instance", "reason": "ALREADY_OTHER", "message": "This browse server instance is registered on the controller server with ID \'cs1-id\'.", "result": "FAILURE"}'
+
+    test_controller_config = None
+
+
+class RegisterFailLock(RegisterTestCaseMixIn, TestCase):
+    ip_address = "127.0.0.1"
+    request = """
+    {
+        "controllerServerId": "cs1-id",
+        "instanceId": "instance",
+        "instanceType": "BrowseServer"
+    }
+    """
+
+    expected_response = '{"instance_id": "instance", "reason": "ALREADY_OTHER", "message": "There is currently another registration in progress.", "result": "FAILURE"}'
+
+    test_controller_config = None
+
+
+    def execute(self):
+        from ngeo_browse_server.lock import FileLock
+        from ngeo_browse_server.control.control.config import get_controller_config_lockfile_path
+
+        # simulate another registration process
+        with FileLock(get_controller_config_lockfile_path()):
+            return super(RegisterFailLock, self).execute()
+
+
+class RegisterFailWrongType(RegisterTestCaseMixIn, TestCase):
+    ip_address = "127.0.0.1"
+    request = """
+    {
+        "controllerServerId": "cs1-id",
+        "instanceId": "instance",
+        "instanceType": "WebServer"
+    }
+    """
+
+    controller_config = dedent("""
+        [controller_server]
+        identifier=cs1-id
+        address=127.0.0.1
+    """)
+
+    expected_response = '{"instance_id": "instance", "reason": "TYPE_OTHER", "message": "The provided instance type \'WebServer\' is not \'BrowseServer\'.", "result": "FAILURE"}'
+
+    test_controller_config = None
+
+
+#===============================================================================
+# Unregister test cases
+#===============================================================================
+
+
+class UnregisterSuccessful(UnregisterTestCaseMixIn, TestCase):
+    ip_address = "127.0.0.1"
+    request = """
+    {
+        "controllerServerId": "cs1-id",
+        "instanceId": "instance"
+    }
+    """
+
+    controller_config = dedent("""
+        [controller_server]
+        identifier=cs1-id
+        address=127.0.0.1
+    """)
+
+    expected_response = '{"result": "SUCCESS"}'
+
+    expected_controller_config_deleted = True
+
+
+
+class UnregisterFailWrongInstanceID(UnregisterTestCaseMixIn, TestCase):
+    request = """
+    {
+        "controllerServerId": "cs1-id",
+        "instanceId": "another_instance"
+    }
+    """
+
+    controller_config = dedent("""
+        [controller_server]
+        identifier=cs1-id
+        address=127.0.0.1
+    """)
+
+    expected_response = '{"instance_id": "instance", "reason": "INSTANCE_OTHER", "message": "The provided instance ID (another_instance) is not the same as the configured one (instance).", "result": "FAILURE"}'
+
+    expected_controller_config_deleted =  False
+
+
+class UnregisterFailWrongControllerIP(UnregisterTestCaseMixIn, TestCase):
+    ip_address = "192.168.1.1"
+    request = """
+    {
+        "controllerServerId": "cs1-id",
+        "instanceId": "instance"
+    }
+    """
+
+    controller_config = dedent("""
+        [controller_server]
+        identifier=cs1-id
+        address=127.0.0.1
+    """)
+
+    expected_response = '{"instance_id": "instance", "reason": "INTERFACE_OTHER", "message": "This browse server instance is registered on a controller server with the same ID but another IP-address (\'127.0.0.1\').", "result": "FAILURE"}'
+
+    expected_controller_config_deleted =  False
+
+
+class UnregisterFailWrongControllerID(UnregisterTestCaseMixIn, TestCase):
+    ip_address = "127.0.0.1"
+    request = """
+    {
+        "controllerServerId": "cs2-another-id",
+        "instanceId": "instance",
+        "instanceType": "BrowseServer"
+    }
+    """
+
+    controller_config = dedent("""
+        [controller_server]
+        identifier=cs1-id
+        address=127.0.0.1
+    """)
+
+    expected_response = '{"instance_id": "instance", "reason": "ALREADY_OTHER", "message": "This browse server instance is registered on the controller server with ID \'cs1-id\'.", "result": "FAILURE"}'
+
+    expected_controller_config_deleted =  False
+
+
+class UnregisterFailLock(UnregisterTestCaseMixIn, TestCase):
+    ip_address = "127.0.0.1"
+    request = """
+    {
+        "controllerServerId": "cs1-id",
+        "instanceId": "instance",
+        "instanceType": "BrowseServer"
+    }
+    """
+
+    controller_config = dedent("""
+        [controller_server]
+        identifier=cs1-id
+        address=127.0.0.1
+    """)
+
+    expected_response = '{"instance_id": "instance", "reason": "ALREADY_OTHER", "message": "There is currently another registration in progress.", "result": "FAILURE"}'
+
+    expected_controller_config_deleted =  False
+
+
+    def execute(self):
+        from ngeo_browse_server.lock import FileLock
+        from ngeo_browse_server.control.control.config import get_controller_config_lockfile_path
+
+        # simulate another registration process
+        with FileLock(get_controller_config_lockfile_path()):
+            return super(UnregisterFailLock, self).execute()

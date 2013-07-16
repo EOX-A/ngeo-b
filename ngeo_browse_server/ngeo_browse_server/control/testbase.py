@@ -41,6 +41,7 @@ import numpy
 import re
 import tarfile
 import sqlite3
+from ConfigParser import ConfigParser
 
 from osgeo import gdal, osr
 from django.conf import settings
@@ -51,6 +52,7 @@ from eoxserver.core.system import System
 from eoxserver.resources.coverages import models as eoxs_models
 from eoxserver.resources.coverages.geo import getExtentFromRectifiedDS
 from eoxserver.processing.preprocessing.util import create_mem_copy
+from eoxserver.core.util.timetools import isotime
 
 from ngeo_browse_server.config import get_ngeo_config, reset_ngeo_config
 from ngeo_browse_server.config import models
@@ -63,7 +65,7 @@ from ngeo_browse_server.mapcache.config import SEED_SECTION
 from ngeo_browse_server.control.migration.package import (
     SEC_CACHE, BROWSE_LAYER_NAME, SEC_OPTIMIZED
 )
-from eoxserver.core.util.timetools import isotime
+from ngeo_browse_server.control.control.config import CTRL_SECTION
 
 
 logger = logging.getLogger(__name__)
@@ -122,6 +124,8 @@ class BaseTestCaseMixIn(object):
     copy_to_optimized = () # list of filenames to be copied to the optimized dir
     
     default_configuration = {
+        (CTRL_SECTION, "instance_id"): "instance",
+        (CTRL_SECTION, "controller_config_path"): "conf/controller.conf",
         (INGEST_SECTION, "optimized_files_postfix"): "_proc",
         (INGEST_SECTION, "compression"): "LZW",
         (INGEST_SECTION, "jpeg_quality"): "75",
@@ -233,6 +237,8 @@ class BaseTestCaseMixIn(object):
         config = get_ngeo_config()
         for configuration in (self.default_configuration, self.configuration):
             for (section, option), value in configuration.items():
+                if not config.has_section(section):
+                    config.add_section(section)
                 if value is not None:
                     config.set(section, option, value)
                 else:
@@ -1053,3 +1059,98 @@ class LoggingTestCaseMixIn(object):
             logs.setdefault(level, 0)
         
         self.assertEqual(self.expected_logs, logs)
+
+
+class ControlTestCaseMixIn(BaseTestCaseMixIn):
+    """ Test mix in for controller server interfaces
+    """
+
+    controller_config = None
+
+    url = "/controllerServer/"
+    request = None
+    request_file = None
+    ip_address = None
+    method = "post"
+    expected_response = None
+
+
+    def setUp_files(self):
+        super(ControlTestCaseMixIn, self).setUp_files()
+        self.temp_controller_server_config = join(tempfile.gettempdir(), "controller.conf")
+        if self.controller_config is not None:
+            with open(self.temp_controller_server_config, "w+") as f:
+                f.write(self.controller_config)
+
+    def setUp_config(self):
+        super(ControlTestCaseMixIn, self).setUp_config()
+        config = get_ngeo_config()
+        config.set(CTRL_SECTION, "controller_config_path", self.temp_controller_server_config)
+
+    def tearDown_files(self):
+        if exists(self.temp_controller_server_config):
+            remove(self.temp_controller_server_config)
+
+    def execute(self, request=None, url=None):
+        if not url:
+            url = self.url
+        
+        if not request:
+            request = self.get_request()
+        
+        extra = {}
+        if self.ip_address:
+            extra['REMOTE_ADDR'] = self.ip_address
+
+        client = Client()
+        return getattr(client, self.method)(url, request, "application/json", **extra)
+
+
+    def get_request(self):
+        if self.request:
+            return self.request
+        
+        elif self.request_file:
+            filename = join(settings.PROJECT_DIR, "data", self.request_file)
+            with open(filename) as f:
+                return str(f.read())
+
+
+    def test_expected_response(self):
+        """ Check that the response is equal to the provided one if present. """
+        if self.expected_response is None:
+            self.skipTest("No expected response given.")
+        
+        self.assertEqual(self.expected_response, self.response.content)
+
+
+class RegisterTestCaseMixIn(ControlTestCaseMixIn):
+    
+    expected_controller_config = None
+
+    def test_controller_config(self):
+        """Test that the controller config is present as expected and contains 
+        the correct values.
+        """
+
+        self.assertEqual((self.expected_controller_config is not None), exists(self.temp_controller_server_config))
+        if self.expected_controller_config is not None:
+            conf = ConfigParser()
+            from ngeo_browse_server.control.control.config import CONTROLLER_SERVER_SECTION as section
+            with open(self.temp_controller_server_config) as f:
+                conf.readfp(f)
+            for key, value in self.expected_controller_config.items():
+                self.assertEqual(value, conf.get(section, key))
+
+
+class UnregisterTestCaseMixIn(ControlTestCaseMixIn):
+    method = "delete" # TODO: delete is problematic when using Django < 1.5
+
+    expected_controller_config_deleted = True
+
+    def test_config_deleted(self):
+        self.assertNotEqual(
+            self.expected_controller_config_deleted,
+            exists(self.temp_controller_server_config)
+        )
+
