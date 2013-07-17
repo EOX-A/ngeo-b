@@ -31,12 +31,14 @@ import logging
 import traceback
 from lxml import etree
 
+from django.conf import settings
 from django.shortcuts import render_to_response
 from django.utils import simplejson as json
 from osgeo import gdalnumeric   # This prevents issues in parallel setups. Do 
                                 # not remove this line.
 from eoxserver.processing.preprocessing.exceptions import PreprocessingException 
 
+from ngeo_browse_server.config import get_ngeo_config
 from ngeo_browse_server.decoding import XMLDecodeError
 from ngeo_browse_server.control.ingest import ingest_browse_report
 from ngeo_browse_server.config.browsereport.decoding import (
@@ -44,9 +46,8 @@ from ngeo_browse_server.config.browsereport.decoding import (
 )
 from ngeo_browse_server.control.ingest.exceptions import IngestionException
 from ngeo_browse_server.control.response import JsonResponse
-from ngeo_browse_server.control.control.register import (
-    register, unregister, RegistrationException
-)
+from ngeo_browse_server.control.control.register import  register, unregister
+from ngeo_browse_server.control.control.config import get_instance_id
 
 
 logger = logging.getLogger(__name__)
@@ -93,34 +94,35 @@ def ingest(request):
 
 
 def controller_server(request):
-
+    config = get_ngeo_config()
     try:
         values = json.load(request)
+
+        # POST means "register"
         if request.method == "POST":
             register(
                 values["instanceId"], values["instanceType"],
-                values["controllerServerId"], get_client_ip(request)
+                values["controllerServerId"], get_client_ip(request), config
             )
+
+        # DELETE means "unregister"
         elif request.method == "DELETE":
             unregister(
                 values["instanceId"], values["controllerServerId"],
-                get_client_ip(request)
+                get_client_ip(request), config
             )
-    except RegistrationException as e:
-        logger.debug(traceback.format_exc())
-        return JsonResponse({
-            "result": "FAILURE", # TODO: check for correct string, not yet specified by schema
-            # TODO:  remove these below? not included in schema?
-            "reason": e.reason, 
-            "instance_id": e.instance_id, 
-            "message": str(e)
-        }, status=400)
+
     except Exception as e:
-        logger.debug(traceback.format_exc())
-        return JsonResponse({
-            "result": "FAILURE",
-            "message": str(e)
-        }, status=400)
+        logger.error(traceback.format_exc())
+        instance_id = get_instance_id(config)
+        values = {
+            "faultString": str(e),
+            "instanceId": instance_id, 
+            "reason": getattr(e, "reason", "NO_CODE")
+        }
+        if settings.DEBUG:
+            values["traceback"] = traceback.format_exc()
+        return JsonResponse(values, status=400)
 
     return JsonResponse({"result": "SUCCESS"})
 
