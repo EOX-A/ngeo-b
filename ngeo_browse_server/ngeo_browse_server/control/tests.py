@@ -2752,7 +2752,11 @@ class RegisterFailWrongInstanceID(RegisterTestCaseMixIn, TestCase):
     }
     """
 
-    expected_response = '{"instance_id": "instance", "reason": "INSTANCE_OTHER", "message": "The provided instance ID (another_instance) is not the same as the configured one (instance).", "result": "FAILURE"}'
+    expected_response = {
+        "instanceId": "instance",
+        "reason": "INSTANCE_OTHER",
+        "faultString": "The provided instance ID (another_instance) is not the same as the configured one (instance)."
+    }
 
 
 class RegisterFailWrongControllerIP(RegisterTestCaseMixIn, TestCase):
@@ -2771,7 +2775,11 @@ class RegisterFailWrongControllerIP(RegisterTestCaseMixIn, TestCase):
         address=127.0.0.1
     """)
 
-    expected_response = '{"instance_id": "instance", "reason": "INTERFACE_OTHER", "message": "This browse server instance is registered on a controller server with the same ID but another IP-address (\'127.0.0.1\').", "result": "FAILURE"}'
+    expected_response = {
+        "instanceId": "instance",
+        "reason": "INTERFACE_OTHER",
+        "faultString": "This browse server instance is registered on a controller server with the same ID but another IP-address ('127.0.0.1')."
+    }
 
     test_controller_config = None
 
@@ -2792,7 +2800,11 @@ class RegisterFailWrongControllerID(RegisterTestCaseMixIn, TestCase):
         address=127.0.0.1
     """)
 
-    expected_response = '{"instance_id": "instance", "reason": "ALREADY_OTHER", "message": "This browse server instance is registered on the controller server with ID \'cs1-id\'.", "result": "FAILURE"}'
+    expected_response = {
+        "instanceId": "instance",
+        "reason": "ALREADY_OTHER",
+        "faultString": "This browse server instance is registered on the controller server with ID 'cs1-id'."
+    }
 
     test_controller_config = None
 
@@ -2807,7 +2819,11 @@ class RegisterFailLock(RegisterTestCaseMixIn, TestCase):
     }
     """
 
-    expected_response = '{"instance_id": "instance", "reason": "ALREADY_OTHER", "message": "There is currently another registration in progress.", "result": "FAILURE"}'
+    expected_response = {
+        "instanceId": "instance",
+        "reason": "ALREADY_OTHER",
+        "faultString": "There is currently another registration in progress."
+    }
 
     test_controller_config = None
 
@@ -2837,7 +2853,11 @@ class RegisterFailWrongType(RegisterTestCaseMixIn, TestCase):
         address=127.0.0.1
     """)
 
-    expected_response = '{"instance_id": "instance", "reason": "TYPE_OTHER", "message": "The provided instance type \'WebServer\' is not \'BrowseServer\'.", "result": "FAILURE"}'
+    expected_response = {
+        "instanceId": "instance",
+        "reason": "TYPE_OTHER",
+        "faultString": "The provided instance type 'WebServer' is not 'BrowseServer'."
+    }
 
     test_controller_config = None
 
@@ -2862,7 +2882,7 @@ class UnregisterSuccessful(UnregisterTestCaseMixIn, TestCase):
         address=127.0.0.1
     """)
 
-    expected_response = '{"result": "SUCCESS"}'
+    expected_response = {"result": "SUCCESS"}
 
     expected_controller_config_deleted = True
 
@@ -2882,7 +2902,11 @@ class UnregisterFailWrongInstanceID(UnregisterTestCaseMixIn, TestCase):
         address=127.0.0.1
     """)
 
-    expected_response = '{"instance_id": "instance", "reason": "INSTANCE_OTHER", "message": "The provided instance ID (another_instance) is not the same as the configured one (instance).", "result": "FAILURE"}'
+    expected_response = {
+        "instanceId": "instance",
+        "reason": "INSTANCE_OTHER",
+        "faultString": "The provided instance ID (another_instance) is not the same as the configured one (instance)."
+    }
 
     expected_controller_config_deleted =  False
 
@@ -2902,7 +2926,11 @@ class UnregisterFailWrongControllerIP(UnregisterTestCaseMixIn, TestCase):
         address=127.0.0.1
     """)
 
-    expected_response = '{"instance_id": "instance", "reason": "INTERFACE_OTHER", "message": "This browse server instance is registered on a controller server with the same ID but another IP-address (\'127.0.0.1\').", "result": "FAILURE"}'
+    expected_response = {
+        "instanceId": "instance",
+        "reason": "INTERFACE_OTHER",
+        "faultString": "This browse server instance is registered on a controller server with the same ID but another IP-address ('127.0.0.1')."
+    }
 
     expected_controller_config_deleted =  False
 
@@ -2923,7 +2951,11 @@ class UnregisterFailWrongControllerID(UnregisterTestCaseMixIn, TestCase):
         address=127.0.0.1
     """)
 
-    expected_response = '{"instance_id": "instance", "reason": "ALREADY_OTHER", "message": "This browse server instance is registered on the controller server with ID \'cs1-id\'.", "result": "FAILURE"}'
+    expected_response = {
+        "instanceId": "instance",
+        "reason": "CONTROLLER_OTHER",
+        "faultString": "This browse server instance is registered on the controller server with ID 'cs1-id'."
+    }
 
     expected_controller_config_deleted =  False
 
@@ -2944,7 +2976,11 @@ class UnregisterFailLock(UnregisterTestCaseMixIn, TestCase):
         address=127.0.0.1
     """)
 
-    expected_response = '{"instance_id": "instance", "reason": "ALREADY_OTHER", "message": "There is currently another registration in progress.", "result": "FAILURE"}'
+    expected_response = {
+        "instanceId": "instance",
+        "reason": "CONTROLLER_OTHER",
+        "faultString": "There is currently another registration in progress."
+    }
 
     expected_controller_config_deleted =  False
 
@@ -2956,3 +2992,24 @@ class UnregisterFailLock(UnregisterTestCaseMixIn, TestCase):
         # simulate another registration process
         with FileLock(get_controller_config_lockfile_path()):
             return super(UnregisterFailLock, self).execute()
+
+
+class UnregisterFailUnbound(UnregisterTestCaseMixIn, TestCase):
+    ip_address = "127.0.0.1"
+    request = """
+    {
+        "controllerServerId": "cs1-id",
+        "instanceId": "instance",
+        "instanceType": "BrowseServer"
+    }
+    """
+
+    controller_config = None # write no controller config
+
+    expected_response = {
+        "instanceId": "instance",
+        "reason": "UNBOUND",
+        "faultString": "This Browse Server instance was not yet registered."
+    }
+
+    expected_controller_config_deleted =  True

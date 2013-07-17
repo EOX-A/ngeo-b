@@ -48,6 +48,7 @@ from django.conf import settings
 from django.test.client import Client
 from django.core.management import execute_from_command_line
 from django.template.loader import render_to_string
+from django.utils import simplejson as json
 from eoxserver.core.system import System
 from eoxserver.resources.coverages import models as eoxs_models
 from eoxserver.resources.coverages.geo import getExtentFromRectifiedDS
@@ -1121,7 +1122,11 @@ class ControlTestCaseMixIn(BaseTestCaseMixIn):
         if self.expected_response is None:
             self.skipTest("No expected response given.")
         
-        self.assertEqual(self.expected_response, self.response.content)
+        if isinstance(self.expected_response, basestring):
+            content = self.response.content
+        else:
+            content = json.loads(self.response.content)
+        self.assertEqual(self.expected_response, content)
 
 
 class RegisterTestCaseMixIn(ControlTestCaseMixIn):
