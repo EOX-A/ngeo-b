@@ -22,7 +22,25 @@ def get_controller_config_path(config=None):
         config.get(CTRL_SECTION, "controller_config_path")
     )
 
+
+
 def get_controller_config_lockfile_path(config=None):
+    config = config or get_ngeo_config()
+
+    return get_controller_config_path(config) + ".lck"
+
+
+def get_status_config_path(config=None):
+    """ Returns the configured failure directory. """
+    
+    config = config or get_ngeo_config()
+
+    return get_project_relative_path(
+        config.get(CTRL_SECTION, "status_config_path", "config/status")
+    )
+
+
+def get_status_config_lockfile_path(config=None):
     config = config or get_ngeo_config()
 
     return get_controller_config_path(config) + ".lck"
