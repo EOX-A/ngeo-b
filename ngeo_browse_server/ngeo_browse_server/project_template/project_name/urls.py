@@ -53,4 +53,5 @@ urlpatterns = patterns('',
 
     (r'^ingest', 'ngeo_browse_server.control.views.ingest'),
     (r'^controllerServer', 'ngeo_browse_server.control.views.controller_server'),
+    (r'^status', 'ngeo_browse_server.control.views.status')
 )

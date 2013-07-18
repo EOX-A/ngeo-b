@@ -127,6 +127,9 @@ def controller_server(request):
     return JsonResponse({"result": "SUCCESS"})
 
 
+def status(request):
+    pass
+
 
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
