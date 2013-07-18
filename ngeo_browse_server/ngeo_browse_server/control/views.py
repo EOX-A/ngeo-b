@@ -34,10 +34,12 @@ from lxml import etree
 from django.conf import settings
 from django.shortcuts import render_to_response
 from django.utils import simplejson as json
+from django.utils import timezone
 from osgeo import gdalnumeric   # This prevents issues in parallel setups. Do 
                                 # not remove this line.
 from eoxserver.processing.preprocessing.exceptions import PreprocessingException 
 
+from ngeo_browse_server import get_version
 from ngeo_browse_server.config import get_ngeo_config
 from ngeo_browse_server.decoding import XMLDecodeError
 from ngeo_browse_server.control.ingest import ingest_browse_report
@@ -128,7 +130,26 @@ def controller_server(request):
 
 
 def status(request):
-    pass
+    if request.method == "GET":
+        return JsonResponse({
+            "timestamp": timezone.now().isoformat(),
+            "state": "RUNNING", # TODO: query "state"
+            "softwareversion": get_version(),
+            "queues": [
+                # TODO: find relevant status queues
+                #{"name": "request1",
+                #"counters": [{
+                #    "name": "counter1",
+                #    "value": 2
+                #}, {
+                #    "name": "counter2",
+                #    "value": 2
+                #}]}
+            ]
+        })
+    elif request.method == "PUT":
+        # set status
+        pass
 
 
 def get_client_ip(request):
