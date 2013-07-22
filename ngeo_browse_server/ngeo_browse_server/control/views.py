@@ -50,7 +50,7 @@ from ngeo_browse_server.control.ingest.exceptions import IngestionException
 from ngeo_browse_server.control.response import JsonResponse
 from ngeo_browse_server.control.control.register import  register, unregister
 from ngeo_browse_server.control.control.config import get_instance_id
-from ngeo_browse_server.control.control.status import get_status, COMMAND_TO_METHOD
+from ngeo_browse_server.control.control.status import get_status
 
 
 logger = logging.getLogger(__name__)
@@ -131,10 +131,12 @@ def controller_server(request):
 
 
 def status(request):
+    status = get_status()
+
     if request.method == "GET":
         return JsonResponse({
             "timestamp": timezone.now().isoformat(),
-            "state": get_state(),
+            "state": status.state(),
             "softwareversion": get_version(),
             "queues": [
                 # TODO: find relevant status queues

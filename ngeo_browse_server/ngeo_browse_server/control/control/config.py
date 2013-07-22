@@ -7,6 +7,7 @@ from ngeo_browse_server.config import (
 
 CTRL_SECTION = "control"
 CONTROLLER_SERVER_SECTION = "controller_server"
+STATUS_SECTION = "status"
 
 def get_instance_id(config=None):
     config = config or get_ngeo_config()
@@ -43,7 +44,7 @@ def get_status_config_path(config=None):
 def get_status_config_lockfile_path(config=None):
     config = config or get_ngeo_config()
 
-    return get_controller_config_path(config) + ".lck"
+    return get_status_config_path(config) + ".lck"
 
 
 # controller server config only
@@ -65,5 +66,12 @@ def get_controller_config(controller_config_filename):
     return parser
 
 
+# status stuff
 
 
+def create_status_config(status_config_filename):
+    parser = ConfigParser()    
+    parser.add_section(STATUS_SECTION)
+    parser.set(STATUS_SECTION, "state", "RUNNING")
+    with open(status_config_filename, "w") as f:
+        parser.write(f)
