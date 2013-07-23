@@ -35,6 +35,8 @@ from django.conf import settings
 from django.test import TestCase, TransactionTestCase, LiveServerTestCase
 from django.utils.dateparse import parse_datetime
 
+
+from ngeo_browse_server import get_version
 from ngeo_browse_server.control.testbase import (
     BaseTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, CliMixIn, 
     IngestTestCaseMixIn, SeedTestCaseMixIn, IngestReplaceTestCaseMixIn, 
@@ -43,7 +45,7 @@ from ngeo_browse_server.control.testbase import (
     IngestFailureTestCaseMixIn, DeleteTestCaseMixIn, ExportTestCaseMixIn,
     ImportTestCaseMixIn, ImportReplaceTestCaseMixin,
     SeedMergeTestCaseMixIn, HttpMultipleMixIn, LoggingTestCaseMixIn,
-    RegisterTestCaseMixIn, UnregisterTestCaseMixIn
+    RegisterTestCaseMixIn, UnregisterTestCaseMixIn, StatusTestCaseMixIn
 )
 from ngeo_browse_server.control.ingest.config import (
     INGEST_SECTION
@@ -3013,3 +3015,35 @@ class UnregisterFailUnbound(UnregisterTestCaseMixIn, TestCase):
     }
 
     expected_controller_config_deleted =  True
+
+
+class StatusSimple(StatusTestCaseMixIn, TestCase):
+    expected_response = {
+        'queues': [],
+        'softwareversion': get_version(),
+        'state': 'RUNNING'
+    }
+
+
+class StatusPaused(StatusTestCaseMixIn, TestCase):
+    status_config = dedent("""
+        [status]
+        state=PAUSED
+    """)
+
+    expected_response = {
+        'queues': [],
+        'softwareversion': get_version(),
+        'state': 'PAUSED'
+    }
+
+
+
+class StatusLocked(StatusTestCaseMixIn, TestCase):
+    def execute(self):
+        from ngeo_browse_server.lock import FileLock
+        from ngeo_browse_server.control.control.config import get_controller_config_lockfile_path
+
+        # simulate another registration process
+        with FileLock(get_controller_config_lockfile_path()):
+            return super(UnregisterFailLock, self).execute()

@@ -1067,6 +1067,7 @@ class ControlTestCaseMixIn(BaseTestCaseMixIn):
     """
 
     controller_config = None
+    status_config = None
 
     url = "/controllerServer/"
     request = None
@@ -1079,24 +1080,35 @@ class ControlTestCaseMixIn(BaseTestCaseMixIn):
     def setUp_files(self):
         super(ControlTestCaseMixIn, self).setUp_files()
         self.temp_controller_server_config = join(tempfile.gettempdir(), "controller.conf")
+        self.temp_status_config = join(tempfile.gettempdir(), "status.conf")
+
         if self.controller_config is not None:
             with open(self.temp_controller_server_config, "w+") as f:
                 f.write(self.controller_config)
+
+        if self.status_config is not None:
+            with open(self.temp_status_config, "w+") as f:
+                f.write(self.status_config)
+
 
     def setUp_config(self):
         super(ControlTestCaseMixIn, self).setUp_config()
         config = get_ngeo_config()
         config.set(CTRL_SECTION, "controller_config_path", self.temp_controller_server_config)
+        config.set(CTRL_SECTION, "status_config_path", self.temp_status_config)
 
     def tearDown_files(self):
         if exists(self.temp_controller_server_config):
             remove(self.temp_controller_server_config)
 
+        if exists(self.temp_status_config):
+            remove(self.temp_status_config)
+
     def execute(self, request=None, url=None):
         if not url:
             url = self.url
         
-        if not request:
+        if request is not None:
             request = self.get_request()
         
         extra = {}
@@ -1104,11 +1116,13 @@ class ControlTestCaseMixIn(BaseTestCaseMixIn):
             extra['REMOTE_ADDR'] = self.ip_address
 
         client = Client()
-        return getattr(client, self.method)(url, request, "application/json", **extra)
-
+        if self.method != "get":
+            return getattr(client, self.method)(url, request, "application/json", **extra)
+        else:
+            return client.get(url, **extra);
 
     def get_request(self):
-        if self.request:
+        if self.request is not None:
             return self.request
         
         elif self.request_file:
@@ -1116,6 +1130,8 @@ class ControlTestCaseMixIn(BaseTestCaseMixIn):
             with open(filename) as f:
                 return str(f.read())
 
+    def get_response(self):
+        return json.loads(self.response.content)
 
     def test_expected_response(self):
         """ Check that the response is equal to the provided one if present. """
@@ -1125,7 +1141,7 @@ class ControlTestCaseMixIn(BaseTestCaseMixIn):
         if isinstance(self.expected_response, basestring):
             content = self.response.content
         else:
-            content = json.loads(self.response.content)
+            content = self.get_response()
         self.assertEqual(self.expected_response, content)
 
 
@@ -1158,4 +1174,18 @@ class UnregisterTestCaseMixIn(ControlTestCaseMixIn):
             self.expected_controller_config_deleted,
             exists(self.temp_controller_server_config)
         )
+
+
+class StatusTestCaseMixIn(ControlTestCaseMixIn):
+    method = "get"
+    url = "/status/"
+    
+    def get_request(self):
+        return {}
+
+    def get_response(self):
+        response = super(StatusTestCaseMixIn, self).get_response()
+        if "timestamp" in response:
+            del response["timestamp"]
+        return response
 
