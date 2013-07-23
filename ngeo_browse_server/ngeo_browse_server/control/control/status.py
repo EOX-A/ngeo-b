@@ -1,5 +1,6 @@
 from os.path import exists
 from ConfigParser import ConfigParser
+from functools import wraps
 
 from ngeo_browse_server.config import get_ngeo_config
 from ngeo_browse_server.lock import FileLock
@@ -8,30 +9,31 @@ from ngeo_browse_server.control.control.config import (
     create_status_config, STATUS_SECTION
 )
 
+
 def get_status(config=None):
+    """ Convenience function to return a `Status` object with the global 
+        configuration. 
+    """
+
     config = config or get_ngeo_config()
     return Status(config)
 
 
-class LockGuard(object):
-    def __init__(self, fn, timeout):
-        self.fn = fn
-        self.timeout = timeout
+def locked(timeout=None):
+    """ Decorator for methods that shall lock the status configuration.
+    """
+    
+    def wrap_fn(fn):
+        @wraps(fn)
+        def wrap_call(*args, **kwargs):
+            config = get_ngeo_config()
+            lockfile = get_status_config_lockfile_path()
+            with FileLock(lockfile, timeout):
+                return fn(*args, **kwargs)
+        #return LockGuard(fn, timeout)
+        return wrap_call
+    return wrap_fn
 
-    def __call__(self, *args, **kwargs):
-        config = get_ngeo_config()
-        lockfile = get_status_config_lockfile_path()
-        with FileLock(lockfile, self.timeout):
-            return self.fn(*args, **kwargs)
-
-
-class locked(object):
-    def __init__(self, timeout=None):
-        self.timeout = timeout
-
-    def __call__(self, fn):
-        return LockGuard(fn, self.timeout)
-        
 
 class Status(object):
 
@@ -79,7 +81,7 @@ class Status(object):
     def restart(self):
         raise NotImplemented
 
-    #@locked(timeout=1.)
+    @locked(timeout=1.)
     def state(self):
         status_config = self._status_config()
         return status_config.get(STATUS_SECTION, "state")
