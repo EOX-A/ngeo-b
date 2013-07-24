@@ -25,7 +25,7 @@
 SUBSYSTEM="ngEO Browse Server"
 
 # Shibboleth
-USE_SHIBBOLETH=false
+USE_SHIBBOLETH=true
 
 # ----------------------------------------------------------------------------
 # End of configuration section
