@@ -3017,6 +3017,11 @@ class UnregisterFailUnbound(UnregisterTestCaseMixIn, TestCase):
     expected_controller_config_deleted =  True
 
 
+#===============================================================================
+# Status test cases
+#===============================================================================
+
+
 class StatusSimple(StatusTestCaseMixIn, TestCase):
     expected_response = {
         'queues': [],
