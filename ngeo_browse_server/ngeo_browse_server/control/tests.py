@@ -35,7 +35,7 @@ from django.test import TestCase, TransactionTestCase, LiveServerTestCase
 from django.utils.dateparse import parse_datetime
 
 from ngeo_browse_server.control.testbase import (
-    BaseTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, CliMixIn, 
+    BaseTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, CliMixIn, CliFailureMixIn,
     IngestTestCaseMixIn, SeedTestCaseMixIn, IngestReplaceTestCaseMixIn, 
     OverviewMixIn, CompressionMixIn, BandCountMixIn, HasColorTableMixIn, 
     ExtentMixIn, SizeMixIn, ProjectionMixIn, StatisticsMixIn, WMSRasterMixIn,
@@ -2546,13 +2546,14 @@ class ExportRegularGrid(ExportTestCaseMixIn, CliMixIn, TestCase):
     expected_exported_browses = ("ASAR",)
 
 
-class ExportMerged(ExportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
+class ExportMergedFailure(CliFailureMixIn, SeedTestCaseMixIn, LiveServerTestCase):
     storage_dir = "data/merge_test_data"
     args_before_test = ["manage.py", "ngeo_ingest_browse_report", 
                         join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_1.xml"),
                         join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_2.xml"),
                         join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_3.xml")]
-
+    
+    command = "ngeo_export"
     kwargs = {
         "layer" : "TEST_SAR"
     }
@@ -2561,9 +2562,10 @@ class ExportMerged(ExportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerT
     
     @property
     def args(self):
-        return ("--output", self.temp_export_file, "--export-cache")
+        return ("--export-cache", )
     
-    expected_exported_browses = ("b_id_1", "b_id_2", "b_id_3")
+    expect_failure = True
+    expected_failure_msg = "Error: Browse layer 'TEST_SAR' contains merged browses and exporting of cache is requested. Try without exporting the cache.\n"
 
 
 #===============================================================================

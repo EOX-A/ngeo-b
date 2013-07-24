@@ -83,7 +83,8 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         make_option('--export-cache', action="store_true",
             dest='export_cache', default=False,
             help=("If this option is set, the tile cache will be exported "
-                  "aswell.")
+                  "as well. Note that this option can not be used with "
+                  "browses with merged times.")
         ),
         make_option('--output', '--output-path',
             dest='output_path',
@@ -215,10 +216,19 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                             end_time__gte=browse_model.end_time,
                             source__name=browse_layer_model.id
                         )
-
+                        
                         # get "dim" parameter
                         dim = (isotime(time_model.start_time) + "/" +
                                isotime(time_model.end_time))
+                        
+                        # exit if a merged browse is found
+                        if dim != (isotime(browse_model.start_time) + "/" +
+                               isotime(browse_model.end_time)):
+                            raise CommandError("Browse layer '%s' contains "
+                                               "merged browses and exporting "
+                                               "of cache is requested. Try "
+                                               "without exporting the cache."
+                                               % browse_layer_id)
                         
                         # get path to sqlite tileset and open it
                         ts = tileset.open(
