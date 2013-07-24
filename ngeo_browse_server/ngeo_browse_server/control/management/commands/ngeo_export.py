@@ -30,6 +30,7 @@
 import logging
 from optparse import make_option
 from itertools import izip
+import uuid
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models.aggregates import Count
@@ -238,9 +239,10 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                 # save browse report xml and add it to the package
                 p.add_browse_report(
                     serialize_browse_report(browse_report, pretty_print=True),
-                    name="%s_%s_%s.xml" % (
+                    name="%s_%s_%s_%s.xml" % (
                         browse_report.browse_type,
                         browse_report.responsible_org_name,
-                        browse_report.date_time.strftime("%Y%m%d%H%M%S%f")
+                        browse_report.date_time.strftime("%Y%m%d%H%M%S%f"),
+                        uuid.uuid4().hex
                     )
                 )
