@@ -422,8 +422,22 @@ class CliMixIn(object):
                           "".join(sys.stderr.getvalue().rsplit("\n", 1))))
 
     def get_response(self):
-        # return either stout
+        # return stout
         return self.response[0]
+
+
+class CliFailureMixIn(CliMixIn):
+    """ Common base class for CLI failure test cases. """
+    
+    expected_failure_msg = None
+    
+    def get_response(self):
+        # return sterr
+        return self.response[1]
+
+    def test_failure_msg(self):
+        """ Check the failure message. """
+        self.assertEqual(self.expected_failure_msg, self.get_response())
 
 
 class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
