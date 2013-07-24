@@ -29,6 +29,7 @@
 
 import os
 from os.path import exists, join, basename
+from time import time
 import tarfile
 from datetime import datetime
 import logging
@@ -197,6 +198,7 @@ class PackageWriter(object):
                 self._dirs.add(d)
                 info = tarfile.TarInfo(d)
                 info.type = tarfile.DIRTYPE
+                info.mtime = time()
                 self._tarfile.addfile(info)
     
     
@@ -207,6 +209,7 @@ class PackageWriter(object):
         # get file size
         f.seek(0, os.SEEK_END)
         info.size = f.tell()
+        info.mtime = time()
         f.seek(0)
         
         # actually insert the file

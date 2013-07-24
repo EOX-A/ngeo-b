@@ -1011,6 +1011,8 @@ class ExportTestCaseMixIn(BaseTestCaseMixIn):
                     cache_tiles += 1
             
             self.assertEqual(self.expected_cache_tiles, cache_tiles)
+
+        archive.close()
             
             
 
