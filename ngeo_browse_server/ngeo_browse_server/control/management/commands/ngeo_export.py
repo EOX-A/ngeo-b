@@ -148,7 +148,7 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                 try:
                     browse_layer_model = BrowseLayer.objects.get(browse_type=browse_type)
                 except BrowseLayer.DoesNotExist:
-                    raise CommandError("Browse layer with browse type'%s' does "
+                    raise CommandError("Browse layer with browse type '%s' does "
                                        "not exist" % browse_type)
             
             browse_layer = browselayer_data.BrowseLayer.from_model(browse_layer_model)
@@ -229,7 +229,7 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                                                "merged browses and exporting "
                                                "of cache is requested. Try "
                                                "without exporting the cache."
-                                               % browse_layer_id)
+                                               % browse_layer_model.id)
                         
                         # get path to sqlite tileset and open it
                         ts = tileset.open(

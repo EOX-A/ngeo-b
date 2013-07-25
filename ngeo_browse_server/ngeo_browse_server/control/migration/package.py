@@ -185,31 +185,39 @@ class PackageWriter(object):
     def close(self):
         self._tarfile.close()
     
+    def _create_info(self, name):
+        """ Create a TarInfo object with arbitraty properties set.
+        """
+        info = tarfile.TarInfo(name)
+        info.mtime = time()
+        info.uid = os.geteuid()
+        info.gid = os.getegid()
+        return info
+
 
     def _check_dir(self, name):
         """ Recursively add directory entries to the archive if they do not yet 
-        exist. """
-        
+            exist. 
+        """
         #check all subpaths as well
         dirs = name.split("/")
         for i in range(len(dirs)):
             d = "/".join(dirs[:i+1])
             if not d in self._dirs:
                 self._dirs.add(d)
-                info = tarfile.TarInfo(d)
+                info = self._create_info(d)
                 info.type = tarfile.DIRTYPE
-                info.mtime = time()
                 self._tarfile.addfile(info)
     
     
     def _add_file(self, f, name):
-        " Add a file-like object `f` to the archive with the given `name`. "
-        
-        info = tarfile.TarInfo(name)
-        # get file size
+        """ Add a file-like object `f` to the archive with the given `name`. 
+        """
+        info = self._create_info(name)
+
+        # set file size
         f.seek(0, os.SEEK_END)
         info.size = f.tell()
-        info.mtime = time()
         f.seek(0)
         
         # actually insert the file
