@@ -192,6 +192,7 @@ class PackageWriter(object):
         info.mtime = time()
         info.uid = os.geteuid()
         info.gid = os.getegid()
+        info.mode = 0664
         return info
 
 
@@ -207,6 +208,7 @@ class PackageWriter(object):
                 self._dirs.add(d)
                 info = self._create_info(d)
                 info.type = tarfile.DIRTYPE
+                info.mode = 0775
                 self._tarfile.addfile(info)
     
     
