@@ -51,6 +51,7 @@ from ngeo_browse_server.control.response import JsonResponse
 from ngeo_browse_server.control.control.register import  register, unregister
 from ngeo_browse_server.control.control.config import get_instance_id
 from ngeo_browse_server.control.control.status import get_status
+from ngeo_browse_server.control.control.logview import get_log_files
 
 
 logger = logging.getLogger(__name__)
@@ -155,6 +156,22 @@ def status(request):
         # set status
         pass
 
+def log_file_list(request):
+    datelist = []
+    for date, files in get_log_files().items():
+        datelist.append({
+            "date": date.isoformat(),
+            "files": map(lambda f: {"file": f}, files)
+        })
+
+    return JsonResponse({
+        "dates": datelist
+    })
+
+
+def log(request, date, filename):
+    get_log_files()[date]
+
 
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -162,4 +179,6 @@ def get_client_ip(request):
         return x_forwarded_for.split(',')[-1].strip()
     else:
         return request.META.get('REMOTE_ADDR')
+
+
 

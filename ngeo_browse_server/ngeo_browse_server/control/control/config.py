@@ -1,7 +1,7 @@
 from ConfigParser import ConfigParser
 
 from ngeo_browse_server.config import (
-    get_ngeo_config, get_project_relative_path
+    get_ngeo_config, get_project_relative_path, safe_get
 )
 
 
@@ -75,3 +75,15 @@ def create_status_config(status_config_filename):
     parser.set(STATUS_SECTION, "state", "RUNNING")
     with open(status_config_filename, "w") as f:
         parser.write(f)
+
+
+# log reporting stuff
+
+def get_configured_log_file_patterns(config):
+    config = config or get_ngeo_config()
+
+    patterns = safe_get(config, CTRL_SECTION, "report_log_files")
+    if patterns is None:
+        return []
+
+    return map(get_project_relative_path, patterns.split(","))
