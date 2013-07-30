@@ -30,11 +30,15 @@
 import logging
 import traceback
 from lxml import etree
+import time
+import datetime
+from os.path import basename
 
 from django.conf import settings
 from django.shortcuts import render_to_response
 from django.utils import simplejson as json
 from django.utils import timezone
+from django.http import HttpResponse, Http404
 from osgeo import gdalnumeric   # This prevents issues in parallel setups. Do 
                                 # not remove this line.
 from eoxserver.processing.preprocessing.exceptions import PreprocessingException 
@@ -51,7 +55,9 @@ from ngeo_browse_server.control.response import JsonResponse
 from ngeo_browse_server.control.control.register import  register, unregister
 from ngeo_browse_server.control.control.config import get_instance_id
 from ngeo_browse_server.control.control.status import get_status
-from ngeo_browse_server.control.control.logview import get_log_files
+from ngeo_browse_server.control.control.logview import (
+    get_log_files, get_log_file
+)
 
 
 logger = logging.getLogger(__name__)
@@ -161,7 +167,7 @@ def log_file_list(request):
     for date, files in get_log_files().items():
         datelist.append({
             "date": date.isoformat(),
-            "files": map(lambda f: {"file": f}, files)
+            "files": map(lambda f: {"name": basename(f)}, sorted(files))
         })
 
     return JsonResponse({
@@ -169,8 +175,14 @@ def log_file_list(request):
     })
 
 
-def log(request, date, filename):
-    get_log_files()[date]
+def log(request, datestr, name):
+    date = datetime.date(*time.strptime(datestr, "%Y-%m-%d")[0:3])
+    logfile = get_log_file(date, name)
+    if not logfile:
+        raise Http404
+    
+    with open(logfile) as f:
+        return HttpResponse(f.read())
 
 
 def get_client_ip(request):

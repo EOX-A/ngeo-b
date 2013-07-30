@@ -15,21 +15,26 @@ def date_of_file(filename):
 def get_log_files(config=None):
     files = {}
 
-    for pattern in get_configured_log_file_patterns(config):
+    patterns = get_configured_log_file_patterns(config)
+
+    for pattern in patterns:
         for logfile in glob(pattern):
-            #logfile = basename(logfile)
-            files.setdefault(date_of_file(logfile), set()).add(pattern)
+            files.setdefault(
+                date_of_file(logfile), set()
+            ).add(logfile)
 
     return files
 
 
+def get_log_file(date, name, config=None):
+    files = get_log_files(config)
 
-
-
-#
->>> time.mktime(d.timetuple())
-1374552000.0
->>> os.utime("/var/ngeob/autotest/logs/ngeo.log.1", (1374552000,1374552000))
-
+    try:
+        for path in files[date]:
+            if name == basename(path):
+                return path
+    except KeyError:
+        pass
+    return None
 
 

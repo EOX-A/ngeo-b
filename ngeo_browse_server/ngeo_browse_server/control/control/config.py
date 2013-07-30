@@ -1,9 +1,13 @@
+import logging
+
 from ConfigParser import ConfigParser
 
 from ngeo_browse_server.config import (
     get_ngeo_config, get_project_relative_path, safe_get
 )
 
+
+logger = logging.getLogger(__name__)
 
 CTRL_SECTION = "control"
 CONTROLLER_SERVER_SECTION = "controller_server"
@@ -82,8 +86,8 @@ def create_status_config(status_config_filename):
 def get_configured_log_file_patterns(config):
     config = config or get_ngeo_config()
 
-    patterns = safe_get(config, CTRL_SECTION, "report_log_files")
-    if patterns is None:
+    items = safe_get(config, CTRL_SECTION, "report_log_files")
+    if items is None:
         return []
 
-    return map(get_project_relative_path, patterns.split(","))
+    return items.split(",")
