@@ -28,7 +28,7 @@
 #-------------------------------------------------------------------------------
 
 import sys
-from os import walk, remove, chmod, stat
+from os import walk, remove, chmod, stat, utime
 from stat import S_IEXEC
 from os.path import join, exists, dirname
 import tempfile
@@ -42,6 +42,7 @@ import re
 import tarfile
 import sqlite3
 from ConfigParser import ConfigParser
+import time
 
 from osgeo import gdal, osr
 from django.conf import settings
@@ -1189,3 +1190,38 @@ class StatusTestCaseMixIn(ControlTestCaseMixIn):
             del response["timestamp"]
         return response
 
+
+class ControlLogMixIn(ControlTestCaseMixIn):
+    method = "get"
+    url = "/log/"
+
+    log_files = [] # list of tuples: (filename, date, content)
+
+    maxDiff = None
+
+    def setUp_files(self):
+        super(ControlLogMixIn, self).setUp_files()
+
+        self.temp_log_dir = tempfile.mkdtemp()
+        for log_file, date, content in self.log_files:
+            filename = join(self.temp_log_dir, log_file)
+            with open(join(self.temp_log_dir, log_file), "w+") as f:
+                f.write(content)
+
+            timestamp = time.mktime(date.timetuple())
+            utime(filename, (timestamp, timestamp))
+
+    def tearDown_files(self):
+        shutil.rmtree(self.temp_log_dir)
+
+    @property 
+    def configuration(self):
+        return {(CTRL_SECTION, "report_log_files"): join(self.temp_log_dir, "*")}
+
+
+class LogListMixIn(ControlLogMixIn):
+    pass
+
+
+class LogFileMixIn(ControlLogMixIn):
+    pass

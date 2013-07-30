@@ -30,6 +30,7 @@
 from os.path import join
 from textwrap import dedent
 import logging
+from datetime import date
 
 from django.conf import settings
 from django.test import TestCase, TransactionTestCase, LiveServerTestCase
@@ -45,7 +46,8 @@ from ngeo_browse_server.control.testbase import (
     IngestFailureTestCaseMixIn, DeleteTestCaseMixIn, ExportTestCaseMixIn,
     ImportTestCaseMixIn, ImportReplaceTestCaseMixin,
     SeedMergeTestCaseMixIn, HttpMultipleMixIn, LoggingTestCaseMixIn,
-    RegisterTestCaseMixIn, UnregisterTestCaseMixIn, StatusTestCaseMixIn
+    RegisterTestCaseMixIn, UnregisterTestCaseMixIn, StatusTestCaseMixIn,
+    LogListMixIn, LogFileMixIn
 )
 from ngeo_browse_server.control.ingest.config import (
     INGEST_SECTION
@@ -3052,3 +3054,55 @@ class StatusLocked(StatusTestCaseMixIn, TestCase):
         # simulate another registration process
         with FileLock(get_controller_config_lockfile_path()):
             return super(UnregisterFailLock, self).execute()
+
+
+#===============================================================================
+# Logging reporting tests
+#===============================================================================
+
+
+class LogListTestCase(LogListMixIn, TestCase):
+    log_files = [
+        ("BROW-browseServer.log", date(2013, 07, 30), "content-1"),
+        ("BROW-browseServer.log-2013-07-29", date(2013, 07, 29), "content-2"),
+        ("BROW-browseServer.log-2013-07-28", date(2013, 07, 28), "content-3"),
+        ("BROW-eoxserver.log", date(2013, 07, 30), "content-4"),
+        ("BROW-eoxserver.log-2013-07-29", date(2013, 07, 29), "content-5"),
+    ]
+
+    expected_response = {
+        "dates": [{
+            "date": "2013-07-30",
+            "files": [
+                {"name": "BROW-browseServer.log"},
+                {"name": "BROW-eoxserver.log"}
+            ]
+        }, {
+            "date": "2013-07-28",
+            "files": [
+                {"name": "BROW-browseServer.log-2013-07-28"}
+            ]
+        }, {
+            "date": "2013-07-29",
+            "files": [
+                {"name": "BROW-browseServer.log-2013-07-29"},
+                {"name": "BROW-eoxserver.log-2013-07-29"}
+            ]
+        }]
+    }
+
+
+class LogFileRetrievalTestCase(LogFileMixIn, TestCase):
+    log_files = [
+        ("BROW-browseServer.log", date(2013, 07, 30), "content-1"),
+        ("BROW-browseServer.log-2013-07-29", date(2013, 07, 29), "content-2"),
+        ("BROW-browseServer.log-2013-07-28", date(2013, 07, 28), "content-3"),
+        ("BROW-eoxserver.log", date(2013, 07, 30), "content-4"),
+        ("BROW-eoxserver.log-2013-07-29", date(2013, 07, 29), "content-5"),
+    ]
+
+    url = "/log/2013-07-30/BROW-browseServer.log"
+
+    expected_response = "content-1"
+
+
