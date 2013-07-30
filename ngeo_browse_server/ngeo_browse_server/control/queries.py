@@ -40,7 +40,7 @@ from ngeo_browse_server.config import models
 from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.mapcache.tasks import seed_mapcache
 from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
-from ngeo_browse_server.control.ingest.exceptions import IngestionException
+from ngeo_browse_server.exceptions import NGEOException
 
 
 logger = logging.getLogger(__name__)
@@ -133,9 +133,9 @@ def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
         try:
             models.NameValidator(browse.browse_identifier)
         except ValidationError, e:
-            raise IngestionException("Browse Identifier '%s' not valid: '%s'." % 
-                                     (browse.browse_identifier, str(e.messages[0])),
-                                     "ValidationError")
+            raise NGEOException("Browse Identifier '%s' not valid: '%s'." % 
+                                (browse.browse_identifier, str(e.messages[0])),
+                                "ValidationError")
 
         browse_identifier_model = models.BrowseIdentifier(
             value=browse.browse_identifier, browse=browse_model, 
