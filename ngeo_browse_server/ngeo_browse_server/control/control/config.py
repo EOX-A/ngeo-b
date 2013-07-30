@@ -90,4 +90,4 @@ def get_configured_log_file_patterns(config):
     if items is None:
         return []
 
-    return items.split(",")
+    return map(get_project_relative_path, items.split(","))
