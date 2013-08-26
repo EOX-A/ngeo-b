@@ -183,7 +183,8 @@ def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
     
     # search for time entries with the same time span
     times_qs = mapcache_models.Time.objects.filter(
-        start_time__lte=browse.end_time, end_time__gte=browse.start_time
+        start_time__lte=browse.end_time, end_time__gte=browse.start_time,
+        source=source
     )
     
     if len(times_qs) > 0:
