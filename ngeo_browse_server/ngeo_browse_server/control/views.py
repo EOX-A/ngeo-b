@@ -30,19 +30,34 @@
 import logging
 import traceback
 from lxml import etree
+import time
+import datetime
+from os.path import basename
 
+from django.conf import settings
 from django.shortcuts import render_to_response
+from django.utils import simplejson as json
+from django.utils import timezone
+from django.http import HttpResponse, Http404
 from osgeo import gdalnumeric   # This prevents issues in parallel setups. Do 
                                 # not remove this line.
-
 from eoxserver.processing.preprocessing.exceptions import PreprocessingException 
 
+from ngeo_browse_server import get_version
+from ngeo_browse_server.config import get_ngeo_config
 from ngeo_browse_server.decoding import XMLDecodeError
 from ngeo_browse_server.control.ingest import ingest_browse_report
 from ngeo_browse_server.config.browsereport.decoding import (
     decode_browse_report, DecodingException
 )
 from ngeo_browse_server.control.ingest.exceptions import IngestionException
+from ngeo_browse_server.control.response import JsonResponse
+from ngeo_browse_server.control.control.register import  register, unregister
+from ngeo_browse_server.control.control.config import get_instance_id
+from ngeo_browse_server.control.control.status import get_status
+from ngeo_browse_server.control.control.logview import (
+    get_log_files, get_log_file
+)
 
 
 logger = logging.getLogger(__name__)
@@ -86,3 +101,96 @@ def ingest(request):
                                            or type(e).__name__,
                                    "message": str(e)},
                                   mimetype="text/xml")
+
+
+def controller_server(request):
+    config = get_ngeo_config()
+    try:
+        values = json.load(request)
+
+        # POST means "register"
+        if request.method == "POST":
+            register(
+                values["instanceId"], values["instanceType"],
+                values["controllerServerId"], get_client_ip(request), config
+            )
+
+        # DELETE means "unregister"
+        elif request.method == "DELETE":
+            unregister(
+                values["instanceId"], values["controllerServerId"],
+                get_client_ip(request), config
+            )
+
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        instance_id = get_instance_id(config)
+        values = {
+            "faultString": str(e),
+            "instanceId": instance_id, 
+            "reason": getattr(e, "reason", "NO_CODE")
+        }
+        if settings.DEBUG:
+            values["traceback"] = traceback.format_exc()
+        return JsonResponse(values, status=400)
+
+    return JsonResponse({"result": "SUCCESS"})
+
+
+def status(request):
+    status = get_status()
+
+    if request.method == "GET":
+        return JsonResponse({
+            "timestamp": timezone.now().isoformat(),
+            "state": status.state(),
+            "softwareversion": get_version(),
+            "queues": [
+                # TODO: find relevant status queues
+                #{"name": "request1",
+                #"counters": [{
+                #    "name": "counter1",
+                #    "value": 2
+                #}, {
+                #    "name": "counter2",
+                #    "value": 2
+                #}]}
+            ]
+        })
+
+    elif request.method == "PUT":
+        # set status
+        pass
+
+def log_file_list(request):
+    datelist = []
+    for date, files in get_log_files().items():
+        datelist.append({
+            "date": date.isoformat(),
+            "files": map(lambda f: {"name": basename(f)}, sorted(files))
+        })
+
+    return JsonResponse({
+        "dates": datelist
+    })
+
+
+def log(request, datestr, name):
+    date = datetime.date(*time.strptime(datestr, "%Y-%m-%d")[0:3])
+    logfile = get_log_file(date, name)
+    if not logfile:
+        raise Http404
+    
+    with open(logfile) as f:
+        return HttpResponse(f.read())
+
+
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        return x_forwarded_for.split(',')[-1].strip()
+    else:
+        return request.META.get('REMOTE_ADDR')
+
+
+
