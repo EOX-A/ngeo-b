@@ -3067,15 +3067,14 @@ class StatusPaused(StatusTestCaseMixIn, TestCase):
     }
 
 
-
-class StatusLocked(StatusTestCaseMixIn, TestCase):
-    def execute(self):
-        from ngeo_browse_server.lock import FileLock
-        from ngeo_browse_server.control.control.config import get_controller_config_lockfile_path
-
-        # simulate another registration process
-        with FileLock(get_controller_config_lockfile_path()):
-            return super(UnregisterFailLock, self).execute()
+#class StatusLocked(StatusTestCaseMixIn, TestCase):
+#    def execute(self):
+#        from ngeo_browse_server.lock import FileLock
+#        from ngeo_browse_server.control.control.config import get_controller_config_lockfile_path
+#
+#        # simulate another registration process
+#        with FileLock(get_controller_config_lockfile_path()):
+#            return super(StatusLocked, self).execute()
 
 
 #===============================================================================
