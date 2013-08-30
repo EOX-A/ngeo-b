@@ -43,10 +43,11 @@ import tarfile
 import sqlite3
 from ConfigParser import ConfigParser
 import time
+from urlparse import urlparse
 
 from osgeo import gdal, osr
 from django.conf import settings
-from django.test.client import Client
+from django.test.client import Client, FakePayload
 from django.core.management import execute_from_command_line
 from django.template.loader import render_to_string
 from django.utils import simplejson as json
@@ -1129,17 +1130,23 @@ class ControlTestCaseMixIn(BaseTestCaseMixIn):
     def execute(self, request=None, url=None):
         if not url:
             url = self.url
-        
-        if request is not None:
-            request = self.get_request()
-        
+
         extra = {}
         if self.ip_address:
             extra['REMOTE_ADDR'] = self.ip_address
 
         client = Client()
         if self.method != "get":
-            return getattr(client, self.method)(url, request, "application/json", **extra)
+            # Django 1.4 is not able to handle DELETE requests with payload.
+            # workaround here:
+            extra.update({
+                'wsgi.input': FakePayload(self.request),
+                'CONTENT_LENGTH': len(self.request),
+                'CONTENT_TYPE': "text/json",
+                'PATH_INFO': client._get_path(urlparse(url)),
+                'REQUEST_METHOD': self.method.upper()
+            })
+            return client.request(**extra)
         else:
             return client.get(url, **extra);
 
