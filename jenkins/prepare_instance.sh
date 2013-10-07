@@ -1,7 +1,7 @@
 #!/bin/sh -xe
 
 # ngEO Browse Server
-NGEOB_INSTALL_DIR="$WORKSPACE/deliverables/developments/ngeo_browse_server"
+NGEOB_INSTALL_DIR="$WORKSPACE/ngeo_browse_server"
 NGEOB_URL="http://ngeo.eox.at"
 
 # PostgreSQL/PostGIS database
@@ -31,7 +31,7 @@ DJANGO_MAIL="ngeo@eox.at"
 DJANGO_PASSWORD="Aa2phu0s"
 
 # Create the virtual environment if it does not exist
-cd "$WORKSPACE/deliverables/developments/ngeo_browse_server"
+cd "$NGEOB_INSTALL_DIR"
 if [ -d ".venv" ]; then
     echo "**> virtualenv exists!"
 else
