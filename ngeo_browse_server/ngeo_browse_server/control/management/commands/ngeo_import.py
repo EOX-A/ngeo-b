@@ -49,13 +49,14 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         make_option('--ignore-cache', action="store_true",
             dest='ignore_cache', default=False,
             help=("If this option is set, the tile cache of the package will "
-                  "be ignored and the tiles will be re-seeded after each "
-                  "browse was imported.")
+                  "be ignored if present and the tiles will be re-seeded after "
+                  "each browse was imported.")
         ),
     )
     
     args = ("[--ignore-cache] <package-path> ...")
     help = ("Imports the browse reports and browses from the given package(s). "
+            "Browses already existing in the system are replaced. "
             "If cached tiles are present in the package aswell, those are "
             "inserted into the according tileset, but optionally the cache is "
             "also re-seeded.")

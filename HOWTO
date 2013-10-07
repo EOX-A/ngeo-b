@@ -58,7 +58,7 @@ python manage.py runserver 0.0.0.0:8000
 # How to build ngEO Browse Server                                      #
 ########################################################################
 
-cd git/deliverables/developments/ngeo_browse_server/
+cd git/ngeo-b/ngeo_browse_server/
 git pull
 
 vi ngeo_browse_server/__init__.py
