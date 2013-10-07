@@ -205,7 +205,7 @@ ngeo_install() {
 
     echo "Performing installation step 120"
     # Install packages
-    yum install -y gdal gdal-python postgis Django14
+    yum install -y gdal gdal-python postgis Django14 proj-epsg
 
 
     #------------------------
@@ -265,7 +265,11 @@ if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='template_p
     createdb -E UTF8 template_postgis
     createlang plpgsql -d template_postgis
     psql postgres -c "UPDATE pg_database SET datistemplate='true' WHERE datname='template_postgis';"
-    psql -d template_postgis -f /usr/share/pgsql/contrib/postgis.sql
+    if [ -f /usr/share/pgsql/contrib/postgis-64.sql ] ; then
+        psql -d template_postgis -f /usr/share/pgsql/contrib/postgis-64.sql
+    else
+        psql -d template_postgis -f /usr/share/pgsql/contrib/postgis.sql
+    fi
     psql -d template_postgis -f /usr/share/pgsql/contrib/spatial_ref_sys.sql
     psql -d template_postgis -c "GRANT ALL ON geometry_columns TO PUBLIC;"
     psql -d template_postgis -c "GRANT ALL ON geography_columns TO PUBLIC;"
@@ -1035,6 +1039,13 @@ fi
 if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'")" == 1 ] ; then
     echo "Deleting ngEO database user."
     dropuser $DB_USER
+fi
+
+
+if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='template_postgis'")" == 1 ] ; then
+    echo "Deleting template database."
+    psql postgres -c "UPDATE pg_database SET datistemplate='false' WHERE datname='template_postgis';"
+    dropdb template_postgis
 fi
 EOF
 ## End of database deletion script
