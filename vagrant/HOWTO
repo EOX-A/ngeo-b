@@ -1,0 +1,159 @@
+########################################################################
+# How to use vagrant                                                   #
+########################################################################
+
+# Prepare local environment:
+
+# svn checkout https://eoxserver.org/svn/trunk <eoxserver_trunk>
+ln -s <eoxserver_trunk> share/eoxserver
+# git clone https://github.com/EOX-A/mapcache.git <mapcache_ngeo_branch>
+# cd <mapcache_ngeo_branch>
+# git checkout ngeo
+# cd -
+ln -s <mapcache_ngeo_branch> share/mapcache
+# git clone git@gitlab.eox.at:ngeo-b.git <ngeo_browse_server>
+ln -s <ngeo_browse_server> ngeo_browse_server
+
+# vagrant add-ons:
+vagrant gem install sahara          # Sandboxing
+vagrant gem install vagrant-vbguest # Check for Virtualbox Guest Additions
+
+# Run vagrant:
+vagrant up
+vagrant ssh
+
+# Install:
+cd /var/eoxserver/
+sudo python setup.py develop
+
+cd /var/mapcache
+sudo yum install httpd-devel pixman-devel sqlite-devel libpng-devel libjpeg-devel libcurl-devel cmake geos-devel fcgi-devel
+mkdir build
+cd build
+cmake ..
+# fix dependency problems
+make
+sudo make install
+vi /etc/ld.so.conf.d/mapcache.conf
+# Add:
+#/usr/local/lib
+sudo ldconfig
+
+cd /var/ngeob/
+sudo python setup.py develop
+
+# Run development server:
+cd /var/ngeob/
+python manage.py runserver 0.0.0.0:8000
+# Access on host at http://localhost:38000/
+
+
+########################################################################
+# Build preparations                                                   #
+########################################################################
+
+# Prepare vagrant environment as described at: https://gitlab.eox.at/vagrant/builder_rpm/tree/master
+
+########################################################################
+# How to build ngEO Browse Server                                      #
+########################################################################
+
+cd git/ngeo-b/ngeo_browse_server/
+git pull
+
+vi ngeo_browse_server/__init__.py
+# Adjust version
+vi setup.py
+# Adjust Development Status
+git ci setup.py ngeo_browse_server/__init__.py -m "Adjusting version."
+git push
+# Info:
+#Development Status :: 1 - Planning
+#Development Status :: 2 - Pre-Alpha
+#Development Status :: 3 - Alpha
+#Development Status :: 4 - Beta
+#Development Status :: 5 - Production/Stable
+#Development Status :: 6 - Mature
+#Development Status :: 7 - Inactive
+
+git tag -a release-1.0.0 -m "Tagging 1.0.0 release."
+git push --tags
+git archive --format=tar --prefix=ngeob-1.0.0/ release-1.0.0 | gzip > ngeob-1.0.0.tar.gz
+mv ngeob-1.0.0.tar.gz ....
+cd ....
+vagrant ssh
+tar xzf ngeob-1.0.0.tar.gz
+rm ngeob-1.0.0.tar.gz
+cd ngeob-1.0.0/
+python setup.py bdist_rpm --release <NO>
+cd dist
+tar czf ../../ngeob-1.0.0.tar.gz ngEO_Browse_Server-1.0.0*rpm
+# scp ../../ngeob-1.0.0.tar.gz -> packages
+cd ../..
+rm -r ngeob-1.0.0/
+
+########################################################################
+# How to build EOxServer                                               #
+########################################################################
+
+svn export .... # https://eoxserver.org/svn/branches/0.3 or https://eoxserver.org/svn/tags/release-0.3beta2
+cd ....
+vagrant ssh
+python setup.py bdist_rpm --release <NO>
+tar czf ../EOxServer-0.3dev.tar.gz dist/EOxServer-0.3dev*rpm
+# scp ../EOxServer-0.3dev.tar.gz -> packages.eox.at
+
+########################################################################
+# How to build MapCache                                                #
+########################################################################
+
+cd mapcache_git
+git pull
+git archive --format=tar --prefix=mapcache-1.1dev/ master | gzip > ..../mapcache-1.1dev.tar.gz
+cd  ....
+vagrant ssh
+cd rpmbuild/SPECS/
+vi mapcache.spec
+# Adjust Release
+rpmbuild -ba mapcache.spec
+cd ..
+mv RPMS/x86_64/ .
+tar czf t x86_64/ SRPMS/
+rm -r x86_64/ SRPMS/
+# Install at packages@yum.packages.eox.at
+
+
+########################################################################
+# How to build MapServer                                               #
+########################################################################
+
+cd mapserver_git
+git pull
+vi mapserver.h
+# Adjust MS_VERSION: #define MS_VERSION "6.3dev"
+git archive --format=tar --prefix=mapserver-6.3dev/ master | gzip > mapserver-6.3dev.tar.gz
+cd ....
+vagrant ssh
+cd rpmbuild/SPECS/
+vi mapserver.spec
+# Adjust Release
+rpmbuild -ba mapserver.spec
+cd ..
+mv RPMS/x86_64/ .
+tar czf t x86_64/ SRPMS/
+rm -r x86_64/ SRPMS/
+# Install at packages@yum.packages.eox.at
+
+
+
+########################################################################
+# How to clean an ngEO Browse Server instance                          #
+########################################################################
+
+# Delete DB
+sudo su postgres -
+dropdb ngeo_browse_server_db
+exit
+
+sudo rm -r /var/www/cache/
+sudo rm -r /var/www/ngeo/ngeo_browse_server_instance/
