@@ -1,7 +1,7 @@
 #!/bin/sh -xe
 
 # ngEO Browse Server
-NGEOB_INSTALL_DIR="$WORKSPACE/deliverables/developments/ngeo_browse_server"
+NGEOB_INSTALL_DIR="$WORKSPACE/ngeo_browse_server"
 NGEOB_URL="http://ngeo.eox.at"
 
 # PostgreSQL/PostGIS database
@@ -31,7 +31,7 @@ DJANGO_MAIL="ngeo@eox.at"
 DJANGO_PASSWORD="Aa2phu0s"
 
 # Create the virtual environment if it does not exist
-cd "$WORKSPACE/deliverables/developments/ngeo_browse_server"
+cd "$NGEOB_INSTALL_DIR"
 if [ -d ".venv" ]; then
     echo "**> virtualenv exists!"
 else
@@ -77,7 +77,8 @@ sed -e "s/^tileset_root=$/tileset_root=$MAPCACHE_DIR_ESCAPED\//" -i ngeo_browse_
 sed -e "s/^config_file=$/config_file=$MAPCACHE_DIR_ESCAPED\/$MAPCACHE_CONF/" -i ngeo_browse_server_instance/conf/ngeo.conf
 sed -e "s/^storage_dir=data\/storage$/storage_dir=$NGEOB_INSTALL_DIR_ESCAPED\/store/" -i ngeo_browse_server_instance/conf/ngeo.conf
 
-sed -e 's/#logging_level=/logging_level=INFO/' -i ngeo_browse_server_instance/conf/eoxserver.conf
+sed -e 's/DEBUG = False/DEBUG = True/' -i ngeo_browse_server_instance/settings.py
+sed -e 's/logging_level=INFO/#logging_level=INFO/' -i ngeo_browse_server_instance/conf/eoxserver.conf
 
 # Drop the DB if it already exists and recreate it
 if [ `psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'"` ] ; then

@@ -1,0 +1,99 @@
+#!/bin/sh
+##############################################################################
+# @maintained by: EOX IT Services GmbH
+# @project NGEO T4
+# @version 1.0
+# @date 2013-07-09
+# @purpose NGEO service script for the Browse Server.
+#          To be placed in /etc/init.d
+##############################################################################
+### BEGIN INIT INFO
+# Provides: ngeo service
+# Required-Start: $local_fs $network
+# Required-Stop: $local_fs $network
+# Default-Start: 2 3 5
+# Default-Stop: 0 1 4 6
+# Short-Description: NGEO service script for the Browse Server
+# Description: To start, stop, restart NGEO service Browse Server
+### END INIT INFO
+
+# ----------------------------------------------------------------------------
+# Configuration section
+# ----------------------------------------------------------------------------
+
+# Subsystem name
+SUBSYSTEM="ngEO Browse Server"
+
+# Shibboleth
+USE_SHIBBOLETH=true
+
+# ----------------------------------------------------------------------------
+# End of configuration section
+# ----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
+# Start
+# ----------------------------------------------------------------------------
+ngeo_start() {
+    echo "------------------------------------------------------------------------------"
+    echo " $SUBSYSTEM Service Start"
+    echo "------------------------------------------------------------------------------"
+    service postgresql start
+    service httpd start
+    if "$USE_SHIBBOLETH" ; then
+        service shibd start
+    fi
+}
+
+# ----------------------------------------------------------------------------
+# Start
+# ----------------------------------------------------------------------------
+ngeo_stop() {
+    echo "------------------------------------------------------------------------------"
+    echo " $SUBSYSTEM Service Stop"
+    echo "------------------------------------------------------------------------------"
+    if "$USE_SHIBBOLETH" ; then
+        service shibd stop
+    fi
+    service httpd stop
+    service postgresql stop
+}
+
+# ----------------------------------------------------------------------------
+# Start
+# ----------------------------------------------------------------------------
+ngeo_status() {
+    echo -n "Checking for service ${MYSELF}:"
+    service postgresql status
+    service httpd status
+    if "$USE_SHIBBOLETH" ; then
+        service shibd status
+    fi
+}
+
+# ----------------------------------------------------------------------------
+# Main
+# ----------------------------------------------------------------------------
+case "$1" in
+start)
+    ngeo_start
+    ngeo_status
+;;
+stop)
+    ngeo_stop
+;;
+restart)
+    ngeo_stop
+    ngeo_start
+    ngeo_status
+;;
+status)
+    ngeo_status
+;;
+*)
+    echo "Usage: $0 {start|stop|restart|status}"
+exit 1
+;;
+esac
+
+# END ########################################################################
