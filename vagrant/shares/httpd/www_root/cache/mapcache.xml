@@ -147,6 +147,7 @@
     <service type="wmts" enabled="true"/>
     <service type="demo" enabled="true"/>
 
+    <errors>report</errors>
     <!--<errors>empty_img</errors>-->
     <lock_dir>/tmp</lock_dir>
 

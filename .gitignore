@@ -1,5 +1,18 @@
-/.vagrant
-/shares/eoxserver
-/shares/mapcache
-/shares/httpd/www_root/cache/*.sqlite
+# Python
+*.pyc
+
+# Django
+/ngEO_Browse_Server.egg-info
+
+# Custom
+/init.sh
+*.pydevproject
+*.project
+/tmp
 TODO
+
+# Vagrant
+/vagrant/.vagrant
+/vagrant/shares/eoxserver
+/vagrant/shares/mapcache
+/vagrant/shares/httpd/www_root/cache/*.sqlite

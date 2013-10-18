@@ -31,7 +31,7 @@ def register(instance_id, instance_type, cs_id, cs_ip, config=None):
                 controller_config = get_controller_config(controller_config_path)
 
                 assert_controller_id(cs_id, controller_config, "ALREADY_OTHER")
-                assert_controller_ip(cs_id, controller_config)
+                assert_controller_ip(cs_ip, controller_config)
 
     except LockException:
         raise ControllerAssertionError(

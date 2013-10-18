@@ -80,7 +80,7 @@ def open(path, mode="r"):
     db_exists = isfile(path)
     create = False
     if not db_exists and mode == "r":
-        raise TileSetException("TileSet '%s' does not exist.")
+        raise TileSetException("TileSet '%s' does not exist." % path)
     elif not db_exists and mode == "w":
         create = True
     
