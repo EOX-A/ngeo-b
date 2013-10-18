@@ -8,7 +8,7 @@ ngEO Browse Server is a server providing access to browse images via `OGC's
 
 ngEO Browse Server is released under the MIT license and written in `Python 
 <http://www.python.org/>`_ and entirely based on Open Source software 
-including `EOxServer <http://eoxserver.org>`, `MapServer 
+including `EOxServer <http://eoxserver.org>`_, `MapServer 
 <http://mapserver.org>`_, `Django/GeoDjango 
 <https://www.djangoproject.com>`_, `GDAL <http://www.gdal.org>`_, etc.
 
