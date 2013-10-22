@@ -2,17 +2,22 @@
 # How to use vagrant                                                   #
 ########################################################################
 
-# Prepare local environment:
+# Clone ngEO Browse Server
+git clone git@github.com:EOX-A/ngeo-b.git
+cd ngeo-b/
 
-# svn checkout https://eoxserver.org/svn/trunk <eoxserver_trunk>
-ln -s <eoxserver_trunk> share/eoxserver
-# git clone https://github.com/EOX-A/mapcache.git <mapcache_ngeo_branch>
-# cd <mapcache_ngeo_branch>
-# git checkout ngeo
-# cd -
-ln -s <mapcache_ngeo_branch> share/mapcache
-# git clone git@gitlab.eox.at:ngeo-b.git <ngeo_browse_server>
-ln -s <ngeo_browse_server> ngeo_browse_server
+# Prepare local environment:
+cd vagrant/shares/
+git clone git@github.com:EOxServer/eoxserver.git
+cd eoxserver/
+git checkout 0.3
+cd ..
+git clone git@github.com:mapserver/mapcache.git
+cd mapcache/
+git checkout branch-1-2
+cd ..
+git clone git@github.com:EOX-A/ngeo-b_autotest.git
+cd ..
 
 # vagrant add-ons:
 vagrant gem install sahara          # Sandboxing
@@ -21,6 +26,17 @@ vagrant gem install vagrant-vbguest # Check for Virtualbox Guest Additions
 # Run vagrant:
 vagrant up
 vagrant ssh
+
+# Troubleshoot vagrant:
+sudo vi /etc/resolv.conf    # Correct nameserver IP to your DNS server e.g. 192.168.122.1
+vagrant vbguest -f      # (Re-)Install virtualbox guest additions in case it complains about not matching versions.
+vagrant ssh; sudo vi /etc/yum/pluginconf.d/fastestmirror.conf   # Set enabled=0 to disable the yum fastestmirror plugin.
+vagrant ssh; sudo vi /etc/yum.repos.d/CentOS-Base.repo          # Use baseurl=... instead of mirrorlist=
+#Slow performance: Check "Enable IO APIC", uncheck "Extended Features: Enable PAE/NX", and uncheck "Enable Nested Paging" in VirtualBox Manager.
+
+# Disable SELinux:
+sudo setenforce Permissive
+sudo vi /etc/selinux/config     # Set SELINUX=disabled
 
 # Install:
 cd /var/eoxserver/
