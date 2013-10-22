@@ -28,10 +28,12 @@ vagrant up
 vagrant ssh
 
 # Troubleshoot vagrant:
-sudo vi /etc/resolv.conf    # Correct nameserver IP to your DNS server e.g. 192.168.122.1
-vagrant vbguest -f      # (Re-)Install virtualbox guest additions in case it complains about not matching versions.
-vagrant ssh; sudo vi /etc/yum/pluginconf.d/fastestmirror.conf   # Set enabled=0 to disable the yum fastestmirror plugin.
-vagrant ssh; sudo vi /etc/yum.repos.d/CentOS-Base.repo          # Use baseurl=... instead of mirrorlist=
+## Inside vagrant i.e. after "vagrant ssh":
+sudo vi /etc/resolv.conf                            # Correct nameserver IP to your DNS server e.g. 192.168.122.1
+sudo vi /etc/yum/pluginconf.d/fastestmirror.conf    # Set enabled=0 to disable the yum fastestmirror plugin.
+sudo vi /etc/yum.repos.d/CentOS-Base.repo           # Use baseurl=... instead of mirrorlist=
+## Outside vagrant:
+vagrant vbguest -f                                  # (Re-)Install virtualbox guest additions in case it complains about not matching versions.
 #Slow performance: Check "Enable IO APIC", uncheck "Extended Features: Enable PAE/NX", and uncheck "Enable Nested Paging" in VirtualBox Manager.
 
 # Disable SELinux:
@@ -50,7 +52,7 @@ cmake ..
 # fix dependency problems
 make
 sudo make install
-vi /etc/ld.so.conf.d/mapcache.conf
+sudo vi /etc/ld.so.conf.d/mapcache.conf
 # Add:
 #/usr/local/lib
 sudo ldconfig
@@ -59,7 +61,7 @@ cd /var/ngeob/
 sudo python setup.py develop
 
 # Run development server:
-cd /var/ngeob/
+cd /var/ngeob_autotest/
 python manage.py runserver 0.0.0.0:8000
 # Access on host at http://localhost:38000/
 

@@ -82,7 +82,7 @@ setup(
     maintainer_email="packages@eox.at",
     
     description="ngEO Browse Server providing access to browse images via WMS",
-    long_description=read("README"),
+    long_description=read("README.rst"),
     
     classifiers=[
           'Development Status :: 5 - Production/Stable',
