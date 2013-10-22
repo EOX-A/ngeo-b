@@ -15,4 +15,5 @@ TODO
 /vagrant/.vagrant
 /vagrant/shares/eoxserver
 /vagrant/shares/mapcache
+/vagrant/shares/ngeo-b_autotest
 /vagrant/shares/httpd/www_root/cache/*.sqlite
