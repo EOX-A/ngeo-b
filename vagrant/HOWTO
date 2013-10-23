@@ -6,7 +6,7 @@
 git clone git@github.com:EOX-A/ngeo-b.git
 cd ngeo-b/
 
-# Prepare local environment:
+# Prepare local environment
 cd vagrant/shares/
 git clone git@github.com:EOxServer/eoxserver.git
 cd eoxserver/
@@ -19,51 +19,28 @@ cd ..
 git clone git@github.com:EOX-A/ngeo-b_autotest.git
 cd ..
 
-# vagrant add-ons:
-vagrant gem install sahara          # Sandboxing
-vagrant gem install vagrant-vbguest # Check for Virtualbox Guest Additions
+# Install VirtualBox & Vagrant
+# Tested with 
+# * Vagrant v1.3.5      http://downloads.vagrantup.com/tags/v1.3.5
+# * VirtualBox 4.3.0    https://www.virtualbox.org/wiki/Downloads
 
-# Run vagrant:
+# Install Vagrant add-ons
+vagrant plugin install sahara           # Sandboxing https://github.com/jedi4ever/sahara
+vagrant plugin install vagrant-vbguest  # Check for Virtualbox Guest Additions https://github.com/dotless-de/vagrant-vbguest
+
+# Run vagrant
 vagrant up
 vagrant ssh
 
-# Troubleshoot vagrant:
-## Inside vagrant i.e. after "vagrant ssh":
-sudo vi /etc/resolv.conf                            # Correct nameserver IP to your DNS server e.g. 192.168.122.1
-sudo vi /etc/yum/pluginconf.d/fastestmirror.conf    # Set enabled=0 to disable the yum fastestmirror plugin.
-sudo vi /etc/yum.repos.d/CentOS-Base.repo           # Use baseurl=... instead of mirrorlist=
-## Outside vagrant:
-vagrant vbguest -f                                  # (Re-)Install virtualbox guest additions in case it complains about not matching versions.
+# Access server
+http://localhost:3080/
+
+# Troubleshoot vagrant
+vagrant provision       # If the provisioning didn't finish during vagrant up or after changes.
+vagrant vbguest -f      # (Re-)Install virtualbox guest additions in case it complains about not matching versions.
+
 #Slow performance: Check "Enable IO APIC", uncheck "Extended Features: Enable PAE/NX", and uncheck "Enable Nested Paging" in VirtualBox Manager.
-
-# Disable SELinux:
-sudo setenforce Permissive
-sudo vi /etc/selinux/config     # Set SELINUX=disabled
-
-# Install:
-cd /var/eoxserver/
-sudo python setup.py develop
-
-cd /var/mapcache
-sudo yum install httpd-devel pixman-devel sqlite-devel libpng-devel libjpeg-devel libcurl-devel cmake geos-devel fcgi-devel
-mkdir build
-cd build
-cmake ..
-# fix dependency problems
-make
-sudo make install
-sudo vi /etc/ld.so.conf.d/mapcache.conf
-# Add:
-#/usr/local/lib
-sudo ldconfig
-
-cd /var/ngeob/
-sudo python setup.py develop
-
-# Run development server:
-cd /var/ngeob_autotest/
-python manage.py runserver 0.0.0.0:8000
-# Access on host at http://localhost:38000/
+#Symlinks with VirtualBox 4.1 not working: vi /opt/vagrant/embedded/gems/gems/vagrant-1.3.5/plugins/providers/virtualbox/driver/version_4_1.rb and add those changes: https://github.com/mitchellh/vagrant/commit/387692f9c8fa4031050646e2773b3d2d9b2c994e
 
 
 ########################################################################
