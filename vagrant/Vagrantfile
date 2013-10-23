@@ -29,11 +29,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # the path on the guest to mount the folder. And the optional third
   # argument is a set of non-required options.
   config.vm.synced_folder  "./shares/httpd/conf", "/etc/httpd/conf.d", owner: "root", group: "root"
-  config.vm.synced_folder  "./shares/httpd/www_root", "/var/www", owner: "root", group: "root"
+  config.vm.synced_folder  "./shares/httpd/www_root", "/var/www", owner: "apache", group: "apache"
   config.vm.synced_folder  "./shares/eoxserver", "/var/eoxserver"
   config.vm.synced_folder  "./shares/mapcache", "/var/mapcache"
   config.vm.synced_folder  "..", "/var/ngeob"
-  config.vm.synced_folder  "./shares/ngeo-b_autotest", "/var/ngeob_autotest"
+  config.vm.synced_folder  "./shares/ngeo-b_autotest", "/var/ngeob_autotest", owner: "apache", group: "apache"
 
   # Shell provisioning
   config.vm.provision "shell", path: "scripts/selinux.sh"

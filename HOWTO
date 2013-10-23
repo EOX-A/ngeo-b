@@ -14,7 +14,7 @@ cd /var/ngeob/
 # How to run tests                                                     #
 ########################################################################
 
-python manage.py test config -v3
+python manage.py test control -v3
 
 #Send browse reports via:
 curl -d @<filename> http://<URL>/browse/ingest
@@ -24,7 +24,7 @@ curl -d @<filename> http://<URL>/browse/ingest
 # How to load test data (run from host machine)                        #
 ########################################################################
 
-./autotest/load_test_data.sh
+./autotest/integration_tests/load_test_data.sh
 
 # or:
 curl --digest -u username:password -T <PATH-TO-BROWSE-IMAGE> <URL>/store
@@ -45,7 +45,6 @@ xmllint --noout --schema schemas/IF-ngEO-BrowseReport-1.1.xsd tmp_report.xml
 # How to load demo (in vagrant use reset_db.sh instead)                #
 ########################################################################
 
-./autotest/load_demo_in_ngeo_browse_server.sh
 
 
 ########################################################################

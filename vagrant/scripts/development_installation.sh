@@ -2,7 +2,7 @@
 
 # EOxServer
 cd /var/eoxserver/
-sudo python setup.py develop
+python setup.py develop
 
 # MapCache
 cd /var/mapcache
@@ -10,15 +10,15 @@ mkdir -p build
 cd build
 cmake ..
 make
-sudo make install
+make install
 if ! grep -Fxq "/usr/local/lib" /etc/ld.so.conf.d/mapcache.conf ; then
     echo "/usr/local/lib" >> /etc/ld.so.conf.d/mapcache.conf
 fi
-sudo ldconfig
+ldconfig
 
 # ngEO Browse Server
 cd /var/ngeob/
-sudo python setup.py develop
+python setup.py develop
 
 # Configure ngEO Browse Server autotest instance
 cd /var/ngeob_autotest/
@@ -26,7 +26,8 @@ cd /var/ngeob_autotest/
 # Prepare DBs
 python manage.py syncdb --noinput
 python manage.py syncdb --database=mapcache --noinput
-python manage.py loaddata initial_rangetypes.json
+python manage.py loaddata auth_data.json ngeo_browse_layer.json eoxs_dataset_series.json initial_rangetypes.json
+python manage.py loaddata --database=mapcache ngeo_mapcache.json
 
 # Create admin user
 TMPFILE=`mktemp`
@@ -58,10 +59,20 @@ fi
 # Collect static files
 python manage.py collectstatic --noinput
 
-# Make the instance read- and editable by apache
-chown -R apache:apache .
+# Create runtime files
+mkdir -p /var/ngeob_autotest/data/optimized/ /var/ngeob_autotest/data/success/ /var/ngeob_autotest/data/failure/ /var/www/store/
+touch /var/ngeob_autotest/logs/eoxserver.log /var/ngeob_autotest/logs/ngeo.log
+touch /var/www/cache/TEST_SAR.sqlite /var/www/cache/TEST_OPTICAL.sqlite /var/www/cache/TEST_ASA_WSM.sqlite /var/www/cache/TEST_MER_FRS.sqlite /var/www/cache/TEST_MER_FRS_FULL.sqlite /var/www/cache/TEST_MER_FRS_FULL_NO_BANDS.sqlite /var/www/cache/TEST_GOOGLE_MERCATOR.sqlite
 
+# Upload test data
+cp /var/ngeob_autotest/data/reference_test_data/*.jpg /var/www/store/
+cp /var/ngeob_autotest/data/test_data/*.tif /var/www/store/
+cp /var/ngeob_autotest/data/test_data/*.jpg /var/www/store/
+cp /var/ngeob_autotest/data/feed_test_data/*.png /var/www/store/
+cp /var/ngeob_autotest/data/aiv_test_data/*.jpg /var/www/store/
 
-# TODO:
-#chmod o+w /var/ngeob_autotest/logs/*.log
-#loaddata
+# Make the instance read- and editable by everybody
+chmod -R a+w /var/ngeob_autotest/
+chmod -R a+w /var/www/
+
+service httpd restart
