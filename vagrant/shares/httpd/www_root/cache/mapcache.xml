@@ -77,7 +77,7 @@
         <expires>3600</expires>
         <read-only>true</read-only>
         <timedimension type="sqlite" default="2010">
-            <dbfile>/var/ngeob_data/mapcache.sqlite</dbfile>
+            <dbfile>/var/ngeob_autotest/data/mapcache.sqlite</dbfile>
             <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&lt;=datetime(:end_timestamp,'unixepoch') and end_time&gt;=datetime(:start_timestamp,'unixepoch') and maxx&gt;=:minx and maxy&gt;=:miny and minx&lt;=:maxx and miny&lt;=:maxy order by end_time limit 100</query>
         </timedimension>
     </tileset>
@@ -92,7 +92,7 @@
         <expires>3600</expires>
         <read-only>true</read-only>
         <timedimension type="sqlite" default="2010">
-            <dbfile>/var/ngeob_data/mapcache.sqlite</dbfile>
+            <dbfile>/var/ngeob_autotest/data/mapcache.sqlite</dbfile>
             <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&lt;=datetime(:end_timestamp,'unixepoch') and end_time&gt;=datetime(:start_timestamp,'unixepoch') and maxx&gt;=:minx and maxy&gt;=:miny and minx&lt;=:maxx and miny&lt;=:maxy order by end_time limit 100</query>
         </timedimension>
     </tileset>
@@ -106,7 +106,7 @@
         <expires>3600</expires>
         <read-only>true</read-only>
         <timedimension type="sqlite" default="2010">
-            <dbfile>/var/ngeob_data/mapcache.sqlite</dbfile>
+            <dbfile>/var/ngeob_autotest/data/mapcache.sqlite</dbfile>
             <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&lt;=datetime(:end_timestamp,'unixepoch') and end_time&gt;=datetime(:start_timestamp,'unixepoch') and maxx&gt;=:minx and maxy&gt;=:miny and minx&lt;=:maxx and miny&lt;=:maxy order by end_time limit 100</query>
         </timedimension>
     </tileset>
@@ -120,7 +120,7 @@
         <expires>3600</expires>
         <read-only>true</read-only>
         <timedimension type="sqlite" default="2010">
-            <dbfile>/var/ngeob_data/mapcache.sqlite</dbfile>
+            <dbfile>/var/ngeob_autotest/data/mapcache.sqlite</dbfile>
             <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&lt;=datetime(:end_timestamp,'unixepoch') and end_time&gt;=datetime(:start_timestamp,'unixepoch') and maxx&gt;=:minx and maxy&gt;=:miny and minx&lt;=:maxx and miny&lt;=:maxy order by end_time limit 100</query>
         </timedimension>
     </tileset>
@@ -175,7 +175,7 @@
         <expires>3600</expires>
         <read-only>true</read-only>
         <timedimension type="sqlite" default="2010">
-            <dbfile>/var/ngeob_data/mapcache.sqlite</dbfile>
+            <dbfile>/var/ngeob_autotest/data/mapcache.sqlite</dbfile>
             <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&lt;=datetime(:end_timestamp,'unixepoch') and end_time&gt;=datetime(:start_timestamp,'unixepoch') and maxx&gt;=:minx and maxy&gt;=:miny and minx&lt;=:maxx and miny&lt;=:maxy order by end_time limit 100</query>
         </timedimension>
     </tileset>
@@ -204,7 +204,7 @@
         <expires>3600</expires>
         <read-only>true</read-only>
         <timedimension type="sqlite" default="2010">
-            <dbfile>/var/ngeob_data/mapcache.sqlite</dbfile>
+            <dbfile>/var/ngeob_autotest/data/mapcache.sqlite</dbfile>
             <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&lt;=datetime(:end_timestamp,'unixepoch') and end_time&gt;=datetime(:start_timestamp,'unixepoch') and maxx&gt;=:minx and maxy&gt;=:miny and minx&lt;=:maxx and miny&lt;=:maxy order by end_time limit 100</query>
         </timedimension>
     </tileset>
@@ -227,216 +227,13 @@
     <tileset name="TEST_GOOGLE_MERCATOR">
         <source>TEST_GOOGLE_MERCATOR</source>
         <cache>TEST_GOOGLE_MERCATOR</cache>
-        <grid max-cached-zoom="6" out-of-zoom-strategy="reassemble">WGS84</grid>
+        <grid max-cached-zoom="6" out-of-zoom-strategy="reassemble">GoogleMapsCompatible</grid>
         <format>mixed</format>
         <metatile>8 8</metatile>
         <expires>3600</expires>
         <read-only>true</read-only>
         <timedimension type="sqlite" default="2010">
-            <dbfile>/var/ngeob_data/mapcache.sqlite</dbfile>
-            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&lt;=datetime(:end_timestamp,'unixepoch') and end_time&gt;=datetime(:start_timestamp,'unixepoch') and maxx&gt;=:minx and maxy&gt;=:miny and minx&lt;=:maxx and miny&lt;=:maxy order by end_time limit 100</query>
-        </timedimension>
-    </tileset>
-
-    <cache name="AATRS" type="sqlite3">
-        <dbfile>/var/www/cache/AATRS.sqlite</dbfile>
-        <detect_blank>true</detect_blank>
-    </cache>
-    <source name="AATRS" type="wms">
-        <getmap>
-            <params>
-                <LAYERS>AATRS</LAYERS>
-                <TRANSPARENT>true</TRANSPARENT>
-            </params>
-        </getmap>
-        <http>
-            <url>http://localhost/browse/ows?</url>
-        </http>
-    </source>
-    <tileset name="AATRS">
-        <source>AATRS</source>
-        <cache>AATRS</cache>
-        <grid max-cached-zoom="4" out-of-zoom-strategy="reassemble">WGS84</grid>
-        <format>mixed</format>
-        <metatile>8 8</metatile>
-        <expires>3600</expires>
-        <read-only>true</read-only>
-        <timedimension type="sqlite" default="2010">
-            <dbfile>/var/ngeob_data/mapcache.sqlite</dbfile>
-            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&lt;=datetime(:end_timestamp,'unixepoch') and end_time&gt;=datetime(:start_timestamp,'unixepoch') and maxx&gt;=:minx and maxy&gt;=:miny and minx&lt;=:maxx and miny&lt;=:maxy order by end_time limit 100</query>
-        </timedimension>
-    </tileset>
-
-    <cache name="ASAR_WS" type="sqlite3">
-        <dbfile>/var/www/cache/ASAR_WS.sqlite</dbfile>
-        <detect_blank>true</detect_blank>
-    </cache>
-    <source name="ASAR_WS" type="wms">
-        <getmap>
-            <params>
-                <LAYERS>ASAR_WS</LAYERS>
-                <TRANSPARENT>true</TRANSPARENT>
-            </params>
-        </getmap>
-        <http>
-            <url>http://localhost/browse/ows?</url>
-        </http>
-    </source>
-    <tileset name="ASAR_WS">
-        <source>ASAR_WS</source>
-        <cache>ASAR_WS</cache>
-        <grid max-cached-zoom="5" out-of-zoom-strategy="reassemble">WGS84</grid>
-        <format>mixed</format>
-        <metatile>8 8</metatile>
-        <expires>3600</expires>
-        <read-only>true</read-only>
-        <timedimension type="sqlite" default="2010">
-            <dbfile>/var/ngeob_data/mapcache.sqlite</dbfile>
-            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&lt;=datetime(:end_timestamp,'unixepoch') and end_time&gt;=datetime(:start_timestamp,'unixepoch') and maxx&gt;=:minx and maxy&gt;=:miny and minx&lt;=:maxx and miny&lt;=:maxy order by end_time limit 100</query>
-        </timedimension>
-    </tileset>
-
-    <cache name="ASAR_APC" type="sqlite3">
-        <dbfile>/var/www/cache/ASAR_APC.sqlite</dbfile>
-        <detect_blank>true</detect_blank>
-    </cache>
-    <source name="ASAR_APC" type="wms">
-        <getmap>
-            <params>
-                <LAYERS>ASAR_APC</LAYERS>
-                <TRANSPARENT>true</TRANSPARENT>
-            </params>
-        </getmap>
-        <http>
-            <url>http://localhost/browse/ows?</url>
-        </http>
-    </source>
-    <tileset name="ASAR_APC">
-        <source>ASAR_APC</source>
-        <cache>ASAR_APC</cache>
-        <grid max-cached-zoom="5" out-of-zoom-strategy="reassemble">WGS84</grid>
-        <format>mixed</format>
-        <metatile>8 8</metatile>
-        <expires>3600</expires>
-        <read-only>true</read-only>
-        <timedimension type="sqlite" default="2010">
-            <dbfile>/var/ngeob_data/mapcache.sqlite</dbfile>
-            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&lt;=datetime(:end_timestamp,'unixepoch') and end_time&gt;=datetime(:start_timestamp,'unixepoch') and maxx&gt;=:minx and maxy&gt;=:miny and minx&lt;=:maxx and miny&lt;=:maxy order by end_time limit 100</query>
-        </timedimension>
-    </tileset>
-
-    <cache name="ASAR_IM" type="sqlite3">
-        <dbfile>/var/www/cache/ASAR_IM.sqlite</dbfile>
-        <detect_blank>true</detect_blank>
-    </cache>
-    <source name="ASAR_IM" type="wms">
-        <getmap>
-            <params>
-                <LAYERS>ASAR_IM</LAYERS>
-                <TRANSPARENT>true</TRANSPARENT>
-            </params>
-        </getmap>
-        <http>
-            <url>http://localhost/browse/ows?</url>
-        </http>
-    </source>
-    <tileset name="ASAR_IM">
-        <source>ASAR_IM</source>
-        <cache>ASAR_IM</cache>
-        <grid max-cached-zoom="6" out-of-zoom-strategy="reassemble">WGS84</grid>
-        <format>mixed</format>
-        <metatile>8 8</metatile>
-        <expires>3600</expires>
-        <read-only>true</read-only>
-        <timedimension type="sqlite" default="2010">
-            <dbfile>/var/ngeob_data/mapcache.sqlite</dbfile>
-            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&lt;=datetime(:end_timestamp,'unixepoch') and end_time&gt;=datetime(:start_timestamp,'unixepoch') and maxx&gt;=:minx and maxy&gt;=:miny and minx&lt;=:maxx and miny&lt;=:maxy order by end_time limit 100</query>
-        </timedimension>
-    </tileset>
-
-    <cache name="ASAR_GM" type="sqlite3">
-        <dbfile>/var/www/cache/ASAR_GM.sqlite</dbfile>
-        <detect_blank>true</detect_blank>
-    </cache>
-    <source name="ASAR_GM" type="wms">
-        <getmap>
-            <params>
-                <LAYERS>ASAR_GM</LAYERS>
-                <TRANSPARENT>true</TRANSPARENT>
-            </params>
-        </getmap>
-        <http>
-            <url>http://localhost/browse/ows?</url>
-        </http>
-    </source>
-    <tileset name="ASAR_GM">
-        <source>ASAR_GM</source>
-        <cache>ASAR_GM</cache>
-        <grid max-cached-zoom="5" out-of-zoom-strategy="reassemble">WGS84</grid>
-        <format>mixed</format>
-        <metatile>8 8</metatile>
-        <expires>3600</expires>
-        <read-only>true</read-only>
-        <timedimension type="sqlite" default="2010">
-            <dbfile>/var/ngeob_data/mapcache.sqlite</dbfile>
-            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&lt;=datetime(:end_timestamp,'unixepoch') and end_time&gt;=datetime(:start_timestamp,'unixepoch') and maxx&gt;=:minx and maxy&gt;=:miny and minx&lt;=:maxx and miny&lt;=:maxy order by end_time limit 100</query>
-        </timedimension>
-    </tileset>
-
-    <cache name="MERIS_RR" type="sqlite3">
-        <dbfile>/var/www/cache/MERIS_RR.sqlite</dbfile>
-        <detect_blank>true</detect_blank>
-    </cache>
-    <source name="MERIS_RR" type="wms">
-        <getmap>
-            <params>
-                <LAYERS>MERIS_RR</LAYERS>
-                <TRANSPARENT>true</TRANSPARENT>
-            </params>
-        </getmap>
-        <http>
-            <url>http://localhost/browse/ows?</url>
-        </http>
-    </source>
-    <tileset name="MERIS_RR">
-        <source>MERIS_RR</source>
-        <cache>MERIS_RR</cache>
-        <grid max-cached-zoom="3" out-of-zoom-strategy="reassemble">WGS84</grid>
-        <format>mixed</format>
-        <metatile>8 8</metatile>
-        <expires>3600</expires>
-        <read-only>true</read-only>
-        <timedimension type="sqlite" default="2010">
-            <dbfile>/var/ngeob_data/mapcache.sqlite</dbfile>
-            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&lt;=datetime(:end_timestamp,'unixepoch') and end_time&gt;=datetime(:start_timestamp,'unixepoch') and maxx&gt;=:minx and maxy&gt;=:miny and minx&lt;=:maxx and miny&lt;=:maxy order by end_time limit 100</query>
-        </timedimension>
-    </tileset>
-
-    <cache name="MERIS_FR" type="sqlite3">
-        <dbfile>/var/www/cache/MERIS_FR.sqlite</dbfile>
-        <detect_blank>true</detect_blank>
-    </cache>
-    <source name="MERIS_FR" type="wms">
-        <getmap>
-            <params>
-                <LAYERS>MERIS_FR</LAYERS>
-                <TRANSPARENT>true</TRANSPARENT>
-            </params>
-        </getmap>
-        <http>
-            <url>http://localhost/browse/ows?</url>
-        </http>
-    </source>
-    <tileset name="MERIS_FR">
-        <source>MERIS_FR</source>
-        <cache>MERIS_FR</cache>
-        <grid max-cached-zoom="4" out-of-zoom-strategy="reassemble">WGS84</grid>
-        <format>mixed</format>
-        <metatile>8 8</metatile>
-        <expires>3600</expires>
-        <read-only>true</read-only>
-        <timedimension type="sqlite" default="2010">
-            <dbfile>/var/ngeob_data/mapcache.sqlite</dbfile>
+            <dbfile>/var/ngeob_autotest/data/mapcache.sqlite</dbfile>
             <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&lt;=datetime(:end_timestamp,'unixepoch') and end_time&gt;=datetime(:start_timestamp,'unixepoch') and maxx&gt;=:minx and maxy&gt;=:miny and minx&lt;=:maxx and miny&lt;=:maxy order by end_time limit 100</query>
         </timedimension>
     </tileset>
