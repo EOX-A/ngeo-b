@@ -11,7 +11,7 @@ cd build
 cmake ..
 make
 make install
-if ! grep -Fxq "/usr/local/lib" /etc/ld.so.conf.d/mapcache.conf ; then
+if [ ! -f /etc/ld.so.conf.d/mapcache.conf ] || ! grep -Fxq "/usr/local/lib" /etc/ld.so.conf.d/mapcache.conf ; then
     echo "/usr/local/lib" >> /etc/ld.so.conf.d/mapcache.conf
 fi
 ldconfig
@@ -74,5 +74,3 @@ cp /var/ngeob_autotest/data/aiv_test_data/*.jpg /var/www/store/
 # Make the instance read- and editable by everybody
 chmod -R a+w /var/ngeob_autotest/
 chmod -R a+w /var/www/
-
-service httpd restart

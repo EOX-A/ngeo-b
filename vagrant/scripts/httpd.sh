@@ -10,4 +10,4 @@ sed -e 's/^#ServerName www.example.com:80$/ServerName ngeo-b_vagrant/' -i /etc/h
 # Permanently start Apache
 chkconfig httpd on
 # Reload Apache
-service httpd graceful
+service httpd restart
