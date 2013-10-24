@@ -225,7 +225,7 @@
     <tileset name="TEST_GOOGLE_MERCATOR">
         <source>TEST_GOOGLE_MERCATOR</source>
         <cache>TEST_GOOGLE_MERCATOR</cache>
-        <grid max-cached-zoom="6" out-of-zoom-strategy="reassemble">WGS84</grid>
+        <grid max-cached-zoom="6" out-of-zoom-strategy="reassemble">GoogleMapsCompatible</grid>
         <format>mixed</format>
         <metatile>8 8</metatile>
         <expires>3600</expires>
