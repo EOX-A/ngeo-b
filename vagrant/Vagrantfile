@@ -16,6 +16,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # doesn't already exist on the user's system.
   config.vm.box_url = "http://downloads.eox.at/boxes/centos-6.4-x86_64.box"
 
+  config.vm.hostname = "ngeob-vagrant"
+
   # Create a forwarded port mapping which allows access to a specific port
   # within the machine from a port on the host machine. In the example below,
   # accessing "localhost:8080" will access port 80 on the guest machine.
@@ -30,12 +32,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # argument is a set of non-required options.
   config.vm.synced_folder  "./shares/httpd/conf", "/etc/httpd/conf.d", owner: "root", group: "root"
   config.vm.synced_folder  "./shares/httpd/www_root", "/var/www", mount_options: ["dmode=777","fmode=777"]
-  config.vm.synced_folder  "./shares/ngeo-b_autotest", "/var/ngeob_autotest", mount_options: ["dmode=777","fmode=777"]
   # owner: "apache", group: "apache" does not work because of order during boot
   # i.e. user apache is not available before httpd is installed.
   config.vm.synced_folder  "./shares/eoxserver", "/var/eoxserver"
   config.vm.synced_folder  "./shares/mapcache", "/var/mapcache"
   config.vm.synced_folder  "..", "/var/ngeob"
+  config.vm.synced_folder  "./shares/ngeo-b_autotest", "/var/ngeob_autotest"
 
   # Shell provisioning
   config.vm.provision "shell", path: "scripts/selinux.sh"
