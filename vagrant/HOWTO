@@ -13,11 +13,11 @@ cd vagrant/shares/
 git clone git@github.com:EOxServer/eoxserver.git
 cd eoxserver/
 git checkout 0.3
-cd ..
+cd ../
 git clone git@github.com:mapserver/mapcache.git
 cd mapcache/
 git checkout branch-1-2
-cd ..
+cd ../../
 
 # Install VirtualBox & Vagrant
 # Tested with 
