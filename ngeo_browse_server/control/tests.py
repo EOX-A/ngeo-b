@@ -1980,9 +1980,9 @@ class IngestRasterExtent(BaseTestCaseMixIn, HttpMixIn, ExtentMixIn, TestCase):
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "2010", "ASA_IM__0P_20100722_213840_proc.tif"))
     
     expected_extent = (-2.7900000000000005, 
-                       49.46107291365005, 
-                       -0.029483356685753748, 
-                       53.079999999999991)
+                       49.461072913650007, 
+                       -0.029483356685718665, 
+                       53.079999999999998)
 
 
 class IngestRasterSize(BaseTestCaseMixIn, HttpMixIn, SizeMixIn, TestCase):
