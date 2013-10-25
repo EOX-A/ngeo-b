@@ -37,7 +37,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.synced_folder  "./shares/eoxserver", "/var/eoxserver"
   config.vm.synced_folder  "./shares/mapcache", "/var/mapcache"
   config.vm.synced_folder  "..", "/var/ngeob"
-  config.vm.synced_folder  "./shares/ngeo-b_autotest", "/var/ngeob_autotest"
+  config.vm.synced_folder  "../ngeo-b_autotest", "/var/ngeob_autotest"
 
   # Shell provisioning
   config.vm.provision "shell", path: "scripts/selinux.sh"
