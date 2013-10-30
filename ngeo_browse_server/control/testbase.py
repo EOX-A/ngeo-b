@@ -51,7 +51,6 @@ from django.test.client import Client, FakePayload
 from django.core.management import execute_from_command_line
 from django.template.loader import render_to_string
 from django.utils import simplejson as json
-from eoxserver.core.system import System
 from eoxserver.resources.coverages import models as eoxs_models
 from eoxserver.resources.coverages.geo import getExtentFromRectifiedDS
 from eoxserver.processing.preprocessing.util import create_mem_copy
@@ -120,7 +119,7 @@ class BaseTestCaseMixIn(object):
     
     surveilled_model_classes = (
         models.Browse,
-        eoxs_models.RectifiedDatasetRecord,
+        eoxs_models.RectifiedDataset,
         mapcache_models.Time
     )
     
@@ -463,8 +462,6 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
     def test_expected_inserted_browses(self):
         """ Check that the expected browses are inserted. """
         
-        System.init()
-        
         if not self.expected_ingested_browse_ids:
             self.skipTest("No expected browse IDs given.")
         
@@ -488,12 +485,12 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
                     ).exists()
                 )
             
+            with self.assert
             # test if the EOxServer rectified dataset was created
-            coverage_wrapper = System.getRegistry().getFromFactory(
-                "resources.coverages.wrappers.EOCoverageFactory",
-                {"obj_id": coverage_id}
-            )
-            self.assertTrue(coverage_wrapper is not None)
+            try:
+                eoxs_models.RectifiedDataset.objects.get(identifier=coverage_id)
+            except eoxs_models.RectifiedDataset.DoesNotExist:
+                self.fail("RectifiedDataset record does not exist.")
         
     
     def test_expected_inserted_into_series(self):
@@ -503,15 +500,18 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
             not self.expected_ingested_browse_ids):
             self.skipTest("No expected browse IDs or dataset series ID given.")
         
-        dataset_series = System.getRegistry().getFromFactory(
-            "resources.coverages.wrappers.DatasetSeriesFactory",
-            {"obj_id": self.expected_inserted_into_series}
-        )
-        
-        self.assertTrue(dataset_series is not None)
-        
+        try:
+            dataset_series = eoxs_models.DatasetSeries.objects.get(
+                identifier=self.expected_inserted_into_series
+            )
+        except eoxs_models.DatasetSeries.DoesNotExist:
+            self.fail(
+                "DatasetSeries with ID '%s' does not exist." 
+                % self.expected_inserted_into_series
+            )
+
         expected_coverage_ids = self.expected_ingested_coverage_ids or self.expected_ingested_browse_ids
-        actual_ids = set([c.getCoverageId() for c in dataset_series.getEOCoverages()])
+        actual_ids = set([c.identifier for c in dataset_series])
         
         self.assertItemsEqual(expected_coverage_ids, actual_ids)
     

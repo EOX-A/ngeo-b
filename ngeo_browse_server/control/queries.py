@@ -31,10 +31,9 @@ import logging
 
 from django.core.exceptions import ValidationError
 
-from eoxserver.core.system import System
+from eoxserver.resources.coverages import models
 from eoxserver.resources.coverages.crss import fromShortCode
-from eoxserver.resources.coverages.metadata import EOMetadata
-from eoxserver.core.util.timetools import isotime
+from eoxserver.core.util.timetools import isoformat
 
 from ngeo_browse_server.config import models
 from ngeo_browse_server.mapcache import models as mapcache_models
@@ -144,42 +143,61 @@ def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
         browse_identifier_model.full_clean()
         browse_identifier_model.save()
     
-    # initialize the Coverage Manager for Rectified Datasets to register the
-    # datasets in the database
-    rect_mgr = System.getRegistry().findAndBind(
-        intf_id="resources.coverages.interfaces.Manager",
-        params={
-            "resources.coverages.interfaces.res_type": "eo.rect_dataset"
-        }
-    )
-    
-    # create EO metadata necessary for registration
-    eo_metadata = EOMetadata(
-        coverage_id, browse.start_time, browse.end_time, footprint
-    )
-    
-    # get dataset series ID from browse layer, if available
-    container_ids = []
-    if browse_layer_model:
-        container_ids.append(browse_layer_model.id)
-    
-    range_type_name = "RGB" if num_bands == 3 else "RGBA"
-    
+
     # register the optimized dataset
     logger.info("Creating Rectified Dataset.")
-    coverage = rect_mgr.create(obj_id=coverage_id, 
-                               range_type_name=range_type_name,
-                               default_srid=srid, visible=False, 
-                               local_path=filename,
-                               eo_metadata=eo_metadata, force=False, 
-                               container_ids=container_ids)
+
+    # fetch the right range type
+    range_type_name = "RGB" if num_bands == 3 else "RGBA"
+    range_type = models.RangeType.objects.get(name=range_type_name)
+
+    # calculate extent and size from dataset
+    # TODO: maybe a more elegant way than this?
+    from osgeo import gdal
+    ds = gdal.Open(filename)
+    gt = ds.GetGeoTransform()
+    size_x, size_y = ds.RasterXSize, ds.RasterYSize
+    ds = None
+
+    x0 = gt[0]
+    x1 = gt[0] + gt[1] * size_x
+    y0 = gt[3]
+    y1 = gt[3] + gt[5] * size_y
+
+    minx, miny, maxx, maxy = (
+        min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1)
+    )
     
-    extent = coverage.getExtent()
+    # create the coverage itself
+    coverage = model.RectifiedDataset.objects.create(
+        identifier=coverage_id, range_type=range_type, srid=srid
+        minx=minx, miny=miny, maxx=maxx, maxy=maxy, 
+        size_x=size_x, size_y=size_y,
+        begin_time=browse.start_time, end_time=browse.end_time,
+        footprint=footprint
+    )
+
+    # save a file reference as a data item
+    data_item = models.DataItem.objects.create(
+        location=filename, semantic="bands[1:%d]" % num_bands,
+        format="image/tiff", dataset=coverage
+    )
+
+    # insert the coverage into the dataset series if a browse layer was given
+    if browse_layer_model:
+        collection = models.DatasetSeries.objects.get(
+            identifier=browse_layer_model.id
+        )
+        collection.insert(coverage)
+    
+    extent = coverage.extent
     minx, miny, maxx, maxy = extent
     start_time, end_time = browse.start_time, browse.end_time
     
     # create mapcache models
-    source, _ = mapcache_models.Source.objects.get_or_create(name=browse_layer_model.id)
+    source, _ = mapcache_models.Source.objects.get_or_create(
+        name=browse_layer_model.id
+    )
     
     # search for time entries with the same time span
     times_qs = mapcache_models.Time.objects.filter(
@@ -209,8 +227,8 @@ def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
                           delete=True,
                           **get_mapcache_seed_config(config))
     
-        logger.info("Result time span is %s/%s." % (isotime(start_time),
-                                                    isotime(end_time)))
+        logger.info("Result time span is %s/%s." % (isoformat(start_time),
+                                                    isoformat(end_time)))
         times_qs.delete()
     
     time_model = mapcache_models.Time(start_time=start_time, end_time=end_time,
@@ -234,21 +252,13 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
     """
     
     # get previous extent to "un-seed" MapCache in that area
-    rect_ds = System.getRegistry().getFromFactory(
-        "resources.coverages.wrappers.EOCoverageFactory",
-        {"obj_id": browse_model.coverage_id}
-    )
-    replaced_extent = rect_ds.getExtent()
-    replaced_filename = rect_ds.getData().getLocation().getPath()
+    coverage = models.RectifiedDataset.objects.get(identifier=coverage_id)
+    replaced_extent = coverage.extent
+    replaced_filename = coverage.data_items.get(
+        semantic__startswith="bands"
+    ).location
     
-    # delete the EOxServer rectified dataset entry
-    rect_mgr = System.getRegistry().findAndBind(
-        intf_id="resources.coverages.interfaces.Manager",
-        params={
-            "resources.coverages.interfaces.res_type": "eo.rect_dataset"
-        }
-    )
-    rect_mgr.delete(obj_id=browse_model.coverage_id)
+    coverage.delete()
     browse_model.delete()
     
     time_model = mapcache_models.Time.objects.get(
@@ -307,11 +317,10 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
         # get "areas" with extent and time slice
         areas = []
         for browse in intersecting_browses_qs:
-            coverage = System.getRegistry().getFromFactory(
-                "resources.coverages.wrappers.EOCoverageFactory",
-                {"obj_id": browse.coverage_id}
+            coverage = models.RectifiedDataset.objects.get(
+                identifier=browse.coverage_id
             )
-            minx, miny, maxx, maxy = coverage.getExtent()
+            minx, miny, maxx, maxy = coverage.extent
             areas.append(Area(
                 minx, miny, maxx, maxy, browse.start_time, browse.end_time
             ))

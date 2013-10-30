@@ -39,15 +39,18 @@ from django.db import models
 from django.core.validators import RegexValidator
 from django.core.exceptions import ValidationError
 
-from eoxserver.resources.coverages.models import NCNameValidator
 
-ReferenceSystemIdentifierValidator = RegexValidator( 
+ReferenceSystemIdentifierValidator = RegexValidator(
     re.compile(r'^EPSG:[0-9]+$|^RAW$'),
     message="Reference system identifier must be 'RAW' or follow the pattern 'EPSG:<code>."
 )
 NameValidator = RegexValidator(
     re.compile(r'^[a-zA-Z_:][a-zA-Z0-9.\-_:]*$'),
     message="This field must contain a valid Name i.e. beginning with a letter, an underscore, or a colon, and continuing with letters, digits, hyphens, underscores, colons, or full stops."
+)
+NCNameValidator = RegexValidator(
+    re.compile(r'^[a-zA-z_][a-zA-Z0-9_.-]*$'),
+    message="This field must contain a valid NCName."
 )
 FileNameValidator = RegexValidator(
     re.compile('^[a-zA-Z0-9-_:/.]+$'),
