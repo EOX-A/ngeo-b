@@ -33,7 +33,9 @@ Django settings for ngEO Browse Server's {{ project_name }} instance.
 """
 from os.path import join
 
-PROJECT_DIR = '{{ project_directory }}/{{ project_name }}'
+from os.path import join, abspath, dirname
+
+PROJECT_DIR = dirname(abspath(__file__))
 PROJECT_URL_PREFIX = ''
 
 #TEST_RUNNER = 'eoxserver.testing.core.EOxServerTestRunner'
@@ -50,8 +52,8 @@ MANAGERS = ADMINS
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.spatialite',                  # Use 'spatialite' or change to 'postgis'.
-        'NAME': '{{ project_directory }}/{{ project_name }}/data/data.sqlite',  # Or path to database file if using spatialite.
-        #'TEST_NAME': '{{ project_directory }}/{{ project_name }}/data/test-data.sqlite', # Required for certain test cases, but slower!
+        'NAME': join(PROJECT_DIR, 'data/config.sqlite'),                        # Or path to database file if using spatialite.
+        #'TEST_NAME': join(PROJECT_DIR, 'data/test-config.sqlite'),             # Required for certain test cases, but slower!
         'USER': '',                                                             # Not used with spatialite.
         'PASSWORD': '',                                                         # Not used with spatialite.
         'HOST': '',                                                             # Set to empty string for localhost. Not used with spatialite.
@@ -188,6 +190,28 @@ INSTALLED_APPS = (
     'ngeo_browse_server.mapcache',
 )
 
+
+# The configured EOxServer components. Components add specific functionality
+# to the EOxServer and must adhere to a given interface. In order to activate 
+# a component, its module must be included in the following list or imported at
+# some other place. To help configuring all required components, each module 
+# path can end with either a '*' or '**'. The single '*' means that all direct
+# modules in the package will be included. With the double '**' a recursive 
+# search will be done.
+COMPONENTS = (
+    'eoxserver.backends.storages.*',
+    'eoxserver.backends.packages.*',
+    'eoxserver.resources.coverages.metadata.formats.*',
+    'eoxserver.services.ows.wms.**',
+    'eoxserver.services.mapserver.**',
+)
+
+
+# A sample logging configuration. The only tangible logging
+# performed by this configuration is to send an email to
+# the site admins on every HTTP 500 error when DEBUG=False.
+# See http://docs.djangoproject.com/en/dev/topics/logging for
+# more details on how to customize your logging configuration.
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': True,

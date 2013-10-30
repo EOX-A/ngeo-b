@@ -41,7 +41,6 @@ urlpatterns = patterns('',
     (r'^$', 'ngeo_browse_server.views.index'),
     (r'^eoxserver', 'eoxserver.views.index'),
     (r'^ows', 'eoxserver.services.views.ows'),
-    (r'^logview', 'eoxserver.logging.views.logview'),
     (r'^client/$', 'eoxserver.webclient.views.index'),
     (r'^client/(.*)', 'eoxserver.webclient.views.webclient'),
 
