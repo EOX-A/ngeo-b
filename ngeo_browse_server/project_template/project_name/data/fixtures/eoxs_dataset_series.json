@@ -1,235 +1,149 @@
 [
-    {
-        "pk": 1, 
-        "model": "coverages.eometadatarecord", 
-        "fields": {
-            "footprint": "MULTIPOLYGON (((0.0000000000000000 0.0000000000000000, 0.0000000000000000 1.0000000000000000, 1.0000000000000000 1.0000000000000000, 1.0000000000000000 0.0000000000000000, 0.0000000000000000 0.0000000000000000)))", 
-            "timestamp_end": "2012-11-02T15:14:24.999Z", 
-            "timestamp_begin": "2012-11-02T15:14:24.999Z", 
-            "eo_gml": ""
-        }
-    }, 
-    {
-        "pk": 2, 
-        "model": "coverages.eometadatarecord", 
-        "fields": {
-            "footprint": "MULTIPOLYGON (((0.0000000000000000 0.0000000000000000, 0.0000000000000000 1.0000000000000000, 1.0000000000000000 1.0000000000000000, 1.0000000000000000 0.0000000000000000, 0.0000000000000000 0.0000000000000000)))", 
-            "timestamp_end": "2012-11-02T15:14:24.999Z", 
-            "timestamp_begin": "2012-11-02T15:14:24.999Z", 
-            "eo_gml": ""
-        }
-    }, 
-    {
-        "pk": 3, 
-        "model": "coverages.eometadatarecord", 
-        "fields": {
-            "footprint": "MULTIPOLYGON (((0.0000000000000000 0.0000000000000000, 0.0000000000000000 1.0000000000000000, 1.0000000000000000 1.0000000000000000, 1.0000000000000000 0.0000000000000000, 0.0000000000000000 0.0000000000000000)))", 
-            "timestamp_end": "2012-11-02T15:14:24.999Z", 
-            "timestamp_begin": "2012-11-02T15:14:24.999Z", 
-            "eo_gml": ""
-        }
-    }, 
-    {
-        "pk": 4, 
-        "model": "coverages.eometadatarecord", 
-        "fields": {
-            "footprint": "MULTIPOLYGON (((0.0000000000000000 0.0000000000000000, 0.0000000000000000 1.0000000000000000, 1.0000000000000000 1.0000000000000000, 1.0000000000000000 0.0000000000000000, 0.0000000000000000 0.0000000000000000)))", 
-            "timestamp_end": "2012-11-02T15:14:24.999Z", 
-            "timestamp_begin": "2012-11-02T15:14:24.999Z", 
-            "eo_gml": ""
-        }
-    },  
-    {
-        "pk": 5, 
-        "model": "coverages.eometadatarecord", 
-        "fields": {
-            "footprint": "MULTIPOLYGON (((0.0000000000000000 0.0000000000000000, 0.0000000000000000 1.0000000000000000, 1.0000000000000000 1.0000000000000000, 1.0000000000000000 0.0000000000000000, 0.0000000000000000 0.0000000000000000)))", 
-            "timestamp_end": "2012-11-02T15:14:24.999Z", 
-            "timestamp_begin": "2012-11-02T15:14:24.999Z", 
-            "eo_gml": ""
-        }
-    },  
-    {
-        "pk": 6, 
-        "model": "coverages.eometadatarecord", 
-        "fields": {
-            "footprint": "MULTIPOLYGON (((0.0000000000000000 0.0000000000000000, 0.0000000000000000 1.0000000000000000, 1.0000000000000000 1.0000000000000000, 1.0000000000000000 0.0000000000000000, 0.0000000000000000 0.0000000000000000)))", 
-            "timestamp_end": "2012-11-02T15:14:24.999Z", 
-            "timestamp_begin": "2012-11-02T15:14:24.999Z", 
-            "eo_gml": ""
-        }
-    },   
-    {
-        "pk": 7, 
-        "model": "coverages.eometadatarecord", 
-        "fields": {
-            "footprint": "MULTIPOLYGON (((0.0000000000000000 0.0000000000000000, 0.0000000000000000 1.0000000000000000, 1.0000000000000000 1.0000000000000000, 1.0000000000000000 0.0000000000000000, 0.0000000000000000 0.0000000000000000)))", 
-            "timestamp_end": "2012-11-02T15:14:24.999Z", 
-            "timestamp_begin": "2012-11-02T15:14:24.999Z", 
-            "eo_gml": ""
-        }
-    }, 
-    {
-        "pk": 1, 
-        "model": "coverages.datasetseriesrecord", 
-        "fields": {
-            "rect_stitched_mosaics": [], 
-            "data_sources": [], 
-            "layer_metadata": [
-                1, 
-                2
-            ], 
-            "ref_datasets": [], 
-            "eo_metadata": 1, 
-            "rect_datasets": [], 
-            "eo_id": "TEST_SAR"
-        }
-    }, 
-    {
-        "pk": 2, 
-        "model": "coverages.datasetseriesrecord", 
-        "fields": {
-            "rect_stitched_mosaics": [], 
-            "data_sources": [], 
-            "layer_metadata": [
-                1, 
-                2
-            ], 
-            "ref_datasets": [], 
-            "eo_metadata": 2, 
-            "rect_datasets": [], 
-            "eo_id": "TEST_OPTICAL"
-        }
-    }, 
-    {
-        "pk": 3, 
-        "model": "coverages.datasetseriesrecord", 
-        "fields": {
-            "rect_stitched_mosaics": [], 
-            "data_sources": [], 
-            "layer_metadata": [
-                1, 
-                2
-            ], 
-            "ref_datasets": [], 
-            "eo_metadata": 3, 
-            "rect_datasets": [], 
-            "eo_id": "TEST_ASA_WSM"
-        }
-    }, 
-    {
-        "pk": 4, 
-        "model": "coverages.datasetseriesrecord", 
-        "fields": {
-            "rect_stitched_mosaics": [], 
-            "data_sources": [], 
-            "layer_metadata": [
-                1, 
-                2
-            ], 
-            "ref_datasets": [], 
-            "eo_metadata": 4, 
-            "rect_datasets": [], 
-            "eo_id": "TEST_MER_FRS"
-        }
-    },  
-    {
-        "pk": 5, 
-        "model": "coverages.datasetseriesrecord", 
-        "fields": {
-            "rect_stitched_mosaics": [], 
-            "data_sources": [], 
-            "layer_metadata": [
-                1, 
-                2
-            ], 
-            "ref_datasets": [], 
-            "eo_metadata": 5, 
-            "rect_datasets": [], 
-            "eo_id": "TEST_MER_FRS_FULL"
-        }
-    },  
-    {
-        "pk": 6, 
-        "model": "coverages.datasetseriesrecord", 
-        "fields": {
-            "rect_stitched_mosaics": [], 
-            "data_sources": [], 
-            "layer_metadata": [
-                1, 
-                2
-            ], 
-            "ref_datasets": [], 
-            "eo_metadata": 6, 
-            "rect_datasets": [], 
-            "eo_id": "TEST_MER_FRS_FULL_NO_BANDS"
-        }
-    },  
-    {
-        "pk": 7, 
-        "model": "coverages.datasetseriesrecord", 
-        "fields": {
-            "rect_stitched_mosaics": [], 
-            "data_sources": [], 
-            "layer_metadata": [
-                1, 
-                2
-            ], 
-            "ref_datasets": [], 
-            "eo_metadata": 7, 
-            "rect_datasets": [], 
-            "eo_id": "TEST_GOOGLE_MERCATOR"
-        }
-    }, 
-    {
-        "pk": 1, 
-        "model": "core.resource", 
-        "fields": {}
-    }, 
-    {
-        "pk": 2, 
-        "model": "core.resource", 
-        "fields": {}
-    },
-    {
-        "pk": 3, 
-        "model": "core.resource", 
-        "fields": {}
-    },
-    {
-        "pk": 4, 
-        "model": "core.resource", 
-        "fields": {}
-    },
-    {
-        "pk": 5, 
-        "model": "core.resource", 
-        "fields": {}
-    },
-    {
-        "pk": 6, 
-        "model": "core.resource", 
-        "fields": {}
-    },
-    {
-        "pk": 7, 
-        "model": "core.resource", 
-        "fields": {}
-    },
-    {
-        "pk": 1, 
-        "model": "coverages.layermetadatarecord", 
-        "fields": {
-            "value": "Test abstract.", 
-            "key": "wms_abstract"
-        }
-    }, 
-    {
-        "pk": 2, 
-        "model": "coverages.layermetadatarecord", 
-        "fields": {
-            "value": "Test title.", 
-            "key": "wms_title"
-        }
+{
+    "pk": 1, 
+    "model": "coverages.eoobject", 
+    "fields": {
+        "real_content_type": 30, 
+        "footprint": null, 
+        "identifier": "TEST_SAR", 
+        "end_time": null, 
+        "begin_time": null
     }
+},
+{
+    "pk": 2, 
+    "model": "coverages.eoobject", 
+    "fields": {
+        "real_content_type": 30, 
+        "footprint": null, 
+        "identifier": "TEST_OPTICAL", 
+        "end_time": null, 
+        "begin_time": null
+    }
+},
+{
+    "pk": 3, 
+    "model": "coverages.eoobject", 
+    "fields": {
+        "real_content_type": 30, 
+        "footprint": null, 
+        "identifier": "TEST_ASA_WSM", 
+        "end_time": null, 
+        "begin_time": null
+    }
+},
+{
+    "pk": 4, 
+    "model": "coverages.eoobject", 
+    "fields": {
+        "real_content_type": 30, 
+        "footprint": null, 
+        "identifier": "TEST_MER_FRS", 
+        "end_time": null, 
+        "begin_time": null
+    }
+},
+{
+    "pk": 5, 
+    "model": "coverages.eoobject", 
+    "fields": {
+        "real_content_type": 30, 
+        "footprint": null, 
+        "identifier": "TEST_MER_FRS_FULL", 
+        "end_time": null, 
+        "begin_time": null
+    }
+},
+{
+    "pk": 6, 
+    "model": "coverages.eoobject", 
+    "fields": {
+        "real_content_type": 30, 
+        "footprint": null, 
+        "identifier": "TEST_MER_FRS_FULL_NO_BANDS", 
+        "end_time": null, 
+        "begin_time": null
+    }
+},
+{
+    "pk": 7, 
+    "model": "coverages.eoobject", 
+    "fields": {
+        "real_content_type": 30, 
+        "footprint": null, 
+        "identifier": "TEST_GOOGLE_MERCATOR", 
+        "end_time": null, 
+        "begin_time": null
+    }
+},
+{
+    "pk": 1, 
+    "model": "coverages.collection", 
+    "fields": {}
+},
+{
+    "pk": 2, 
+    "model": "coverages.collection", 
+    "fields": {}
+},
+{
+    "pk": 3, 
+    "model": "coverages.collection", 
+    "fields": {}
+},
+{
+    "pk": 4, 
+    "model": "coverages.collection", 
+    "fields": {}
+},
+{
+    "pk": 5, 
+    "model": "coverages.collection", 
+    "fields": {}
+},
+{
+    "pk": 6, 
+    "model": "coverages.collection", 
+    "fields": {}
+},
+{
+    "pk": 7, 
+    "model": "coverages.collection", 
+    "fields": {}
+},
+{
+    "pk": 1, 
+    "model": "coverages.datasetseries", 
+    "fields": {}
+},
+{
+    "pk": 2, 
+    "model": "coverages.datasetseries", 
+    "fields": {}
+},
+{
+    "pk": 3, 
+    "model": "coverages.datasetseries", 
+    "fields": {}
+},
+{
+    "pk": 4, 
+    "model": "coverages.datasetseries", 
+    "fields": {}
+},
+{
+    "pk": 5, 
+    "model": "coverages.datasetseries", 
+    "fields": {}
+},
+{
+    "pk": 6, 
+    "model": "coverages.datasetseries", 
+    "fields": {}
+},
+{
+    "pk": 7, 
+    "model": "coverages.datasetseries", 
+    "fields": {}
+}
 ]
