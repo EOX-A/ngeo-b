@@ -36,7 +36,6 @@ from django.conf import settings
 from django.test import TestCase, TransactionTestCase, LiveServerTestCase
 from django.utils.dateparse import parse_datetime
 
-
 from ngeo_browse_server import get_version
 from ngeo_browse_server.control.testbase import (
     BaseTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, CliMixIn, CliFailureMixIn,
