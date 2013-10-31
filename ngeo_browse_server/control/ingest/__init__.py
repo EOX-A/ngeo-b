@@ -43,12 +43,10 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.template.loader import render_to_string
-from eoxserver.core.system import System
 from eoxserver.processing.preprocessing import WMSPreProcessor, RGB, RGBA, ORIG_BANDS
 from eoxserver.processing.preprocessing.format import get_format_selection
 from eoxserver.processing.preprocessing.georeference import Extent, GCPList
 from eoxserver.resources.coverages.crss import fromShortCode, hasSwappedAxes
-from eoxserver.resources.coverages.models import NCNameValidator
 from eoxserver.processing.preprocessing.exceptions import GCPTransformException
 
 from ngeo_browse_server.config import get_ngeo_config, safe_get
@@ -91,9 +89,6 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
     """ Ingests a browse report. reraise_exceptions if errors shall be handled 
     externally
     """
-    
-    # initialize the EOxServer system/registry/configuration
-    System.init()
     
     try:
         # get the according browse layer
@@ -306,7 +301,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                     % coverage_id)
     else:
         try:
-            NCNameValidator(coverage_id)
+            models.NCNameValidator(coverage_id)
         except ValidationError:
             # given ID is not valid, generate a new identifier
             old_id = coverage_id

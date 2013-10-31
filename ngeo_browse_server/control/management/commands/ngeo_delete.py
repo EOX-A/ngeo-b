@@ -36,7 +36,6 @@ from optparse import make_option
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction 
 from eoxserver.resources.coverages.management.commands import CommandOutputMixIn
-from eoxserver.core.system import System
 from eoxserver.core.util.timetools import getDateTime
 
 from ngeo_browse_server.control.management.commands import LogToConsoleMixIn
@@ -77,8 +76,6 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
             "Only browses that are completely contained in the time interval"
             "are actually deleted.")
     def handle(self, *args, **kwargs):
-        System.init()
-        
         # parse command arguments
         self.verbosity = int(kwargs.get("verbosity", 1))
         traceback = kwargs.get("traceback", False)

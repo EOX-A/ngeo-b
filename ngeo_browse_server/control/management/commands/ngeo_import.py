@@ -33,7 +33,6 @@ from optparse import make_option
 
 from django.core.management.base import BaseCommand, CommandError
 from eoxserver.resources.coverages.management.commands import CommandOutputMixIn
-from eoxserver.core.system import System
 
 from ngeo_browse_server.control.management.commands import LogToConsoleMixIn
 from ngeo_browse_server.config import get_ngeo_config
@@ -62,8 +61,6 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
             "also re-seeded.")
 
     def handle(self, *args, **kwargs):
-        System.init()
-        
         # parse command arguments
         self.verbosity = int(kwargs.get("verbosity", 1))
         traceback = kwargs.get("traceback", False)

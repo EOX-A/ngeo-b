@@ -53,7 +53,7 @@ from ngeo_browse_server.mapcache.config import (
     get_mapcache_seed_config, get_tileset_path
 )
 from ngeo_browse_server.mapcache.tasks import seed_mapcache
-from eoxserver.core.util.timetools import isotime
+from eoxserver.core.util.timetools import isoformat
 from ngeo_browse_server.mapcache.tileset import URN_TO_GRID
 from ngeo_browse_server.mapcache import tileset
 import traceback
@@ -171,7 +171,7 @@ def import_browse_report(p, browse_report_file, browse_layer_model, crs,
                     continue
         
         tileset_name = browse_layer_model.id
-        dim = isotime(browse.start_time) + "/" + isotime(browse.end_time)
+        dim = isoformat(browse.start_time) + "/" + isoformat(browse.end_time)
         ts = tileset.open(get_tileset_path(tileset_name, config), mode="w")
         
         grid = URN_TO_GRID[browse_layer_model.grid]
