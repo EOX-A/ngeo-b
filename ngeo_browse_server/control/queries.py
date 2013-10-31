@@ -31,7 +31,9 @@ import logging
 
 from django.core.exceptions import ValidationError
 
-from eoxserver.resources.coverages import models
+from eoxserver.contrib import gdal
+from eoxserver.backends import models as backends_models
+from eoxserver.resources.coverages import models as eoxs_models
 from eoxserver.resources.coverages.crss import fromShortCode
 from eoxserver.core.util.timetools import isoformat
 
@@ -149,11 +151,10 @@ def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
 
     # fetch the right range type
     range_type_name = "RGB" if num_bands == 3 else "RGBA"
-    range_type = models.RangeType.objects.get(name=range_type_name)
+    range_type = eoxs_models.RangeType.objects.get(name=range_type_name)
 
     # calculate extent and size from dataset
     # TODO: maybe a more elegant way than this?
-    from osgeo import gdal
     ds = gdal.Open(filename)
     gt = ds.GetGeoTransform()
     size_x, size_y = ds.RasterXSize, ds.RasterYSize
@@ -169,23 +170,23 @@ def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
     )
     
     # create the coverage itself
-    coverage = model.RectifiedDataset.objects.create(
-        identifier=coverage_id, range_type=range_type, srid=srid
-        minx=minx, miny=miny, maxx=maxx, maxy=maxy, 
+    coverage = eoxs_models.RectifiedDataset.objects.create(
+        identifier=coverage_id, range_type=range_type, srid=srid,
+        min_x=minx, min_y=miny, max_x=maxx, max_y=maxy, 
         size_x=size_x, size_y=size_y,
         begin_time=browse.start_time, end_time=browse.end_time,
         footprint=footprint
     )
 
     # save a file reference as a data item
-    data_item = models.DataItem.objects.create(
+    data_item = backends_models.DataItem.objects.create(
         location=filename, semantic="bands[1:%d]" % num_bands,
         format="image/tiff", dataset=coverage
     )
 
     # insert the coverage into the dataset series if a browse layer was given
     if browse_layer_model:
-        collection = models.DatasetSeries.objects.get(
+        collection = eoxs_models.DatasetSeries.objects.get(
             identifier=browse_layer_model.id
         )
         collection.insert(coverage)
@@ -252,7 +253,7 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
     """
     
     # get previous extent to "un-seed" MapCache in that area
-    coverage = models.RectifiedDataset.objects.get(identifier=coverage_id)
+    coverage = eoxs_models.RectifiedDataset.objects.get(identifier=coverage_id)
     replaced_extent = coverage.extent
     replaced_filename = coverage.data_items.get(
         semantic__startswith="bands"
@@ -317,7 +318,7 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
         # get "areas" with extent and time slice
         areas = []
         for browse in intersecting_browses_qs:
-            coverage = models.RectifiedDataset.objects.get(
+            coverage = eoxs_models.RectifiedDataset.objects.get(
                 identifier=browse.coverage_id
             )
             minx, miny, maxx, maxy = coverage.extent

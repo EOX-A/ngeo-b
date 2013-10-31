@@ -38,10 +38,7 @@ from cStringIO import StringIO
 from io import BytesIO
 
 from django.contrib.gis.geos.geometry import GEOSGeometry
-from eoxserver.core.util.xmltools import DOMElementToXML
-from eoxserver.resources.coverages.metadata import (
-    NativeMetadataFormatEncoder, NativeMetadataFormat
-)
+from eoxserver.resources.coverages.metadata.formats.native import NativeFormat
 
 from ngeo_browse_server.exceptions import NGEOException
 
@@ -145,7 +142,7 @@ class PackageWriter(object):
         " Add browse metadata to the archive. "
         
         self._check_dir(SEC_OPTIMIZED)
-        encoder = NativeMetadataFormatEncoder()
+        frmt = NativeFormat(env)
         xml = DOMElementToXML(encoder.encodeMetadata(coverage_id,
                                                      begin_time, end_time,
                                                      footprint))

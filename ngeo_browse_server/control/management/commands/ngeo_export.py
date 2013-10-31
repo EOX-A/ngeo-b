@@ -34,9 +34,9 @@ import uuid
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models.aggregates import Count
+from eoxserver.resources.coverages import models as eoxs_models
 from eoxserver.resources.coverages.management.commands import CommandOutputMixIn
-from eoxserver.core.system import System
-from eoxserver.core.util.timetools import getDateTime, isotime
+from eoxserver.core.util.timetools import getDateTime, isoformat
 
 from ngeo_browse_server.control.management.commands import LogToConsoleMixIn
 from ngeo_browse_server.config.models import ( 
@@ -107,8 +107,6 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
             "window.")
 
     def handle(self, *args, **kwargs):
-        System.init()
-        
         # parse command arguments
         self.verbosity = int(kwargs.get("verbosity", 1))
         traceback = kwargs.get("traceback", False)
@@ -189,9 +187,8 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                 
                 # iterate over all browses in the query
                 for browse, browse_model in izip(browse_report, browses_qs):
-                    coverage_wrapper = System.getRegistry().getFromFactory(
-                        "resources.coverages.wrappers.EOCoverageFactory",
-                        {"obj_id": browse_model.coverage_id}
+                    coverage = eoxs_models.RectifiedDataset.objects.get(
+                        identifier=browse_model.coverage_id
                     )
                     
                     # set the 
@@ -203,12 +200,14 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                     browse._file_name = data_filename
                     
                     # add optimized browse image to package
-                    data_package = coverage_wrapper.getData()
-                    data_package.prepareAccess()
-                    browse_file_path = data_package.getGDALDatasetIdentifier()
+                    data_item = coverage.data_items.get(
+                        semantic__startswith="bands"
+                    )
+                    browse_file_path = data_item.location
+                    
                     with open(browse_file_path) as f:
                         p.add_browse(f, data_filename)
-                        wkb = coverage_wrapper.getFootprint().wkb
+                        wkb = coverage.footprint.wkb
                         p.add_footprint(footprint_filename, wkb)
                     
                     if export_cache:
@@ -219,12 +218,12 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                         )
                         
                         # get "dim" parameter
-                        dim = (isotime(time_model.start_time) + "/" +
-                               isotime(time_model.end_time))
+                        dim = (isoformat(time_model.start_time) + "/" +
+                               isoformat(time_model.end_time))
                         
                         # exit if a merged browse is found
-                        if dim != (isotime(browse_model.start_time) + "/" +
-                               isotime(browse_model.end_time)):
+                        if dim != (isoformat(browse_model.start_time) + "/" +
+                               isoformat(browse_model.end_time)):
                             raise CommandError("Browse layer '%s' contains "
                                                "merged browses and exporting "
                                                "of cache is requested. Try "

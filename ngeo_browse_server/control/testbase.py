@@ -54,7 +54,7 @@ from django.utils import simplejson as json
 from eoxserver.resources.coverages import models as eoxs_models
 from eoxserver.resources.coverages.geo import getExtentFromRectifiedDS
 from eoxserver.processing.preprocessing.util import create_mem_copy
-from eoxserver.core.util.timetools import isotime
+from eoxserver.core.util.timetools import isoformat
 
 from ngeo_browse_server.config import get_ngeo_config, reset_ngeo_config
 from ngeo_browse_server.config import models
@@ -485,7 +485,6 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
                     ).exists()
                 )
             
-            with self.assert
             # test if the EOxServer rectified dataset was created
             try:
                 eoxs_models.RectifiedDataset.objects.get(identifier=coverage_id)
@@ -623,7 +622,7 @@ class DeleteTestCaseMixIn(BaseTestCaseMixIn):
 
     surveilled_model_classes = (
         models.Browse,
-        eoxs_models.RectifiedDatasetRecord,
+        eoxs_models.RectifiedDataset,
     )
    
     def test_deleted_optimized_files(self):
@@ -714,7 +713,7 @@ class SeedMergeTestCaseMixIn(SeedTestCaseMixIn):
         db_filename = join(self.temp_mapcache_dir, 
                        self.expected_inserted_into_series + ".sqlite")
         
-        expected_timespans = ["%s/%s" % (isotime(area[-2]), isotime(area[-1]))
+        expected_timespans = ["%s/%s" % (isoformat(area[-2]), isoformat(area[-1]))
                               for area in self.expected_seeded_areas]
         
         with sqlite3.connect(db_filename) as connection:
