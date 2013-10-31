@@ -42,6 +42,9 @@ fi
 # activate the virtual environment
 source .venv/bin/activate
 
+# Install EOxServer
+pip install --upgrade git+https://github.com/EOxServer/eoxserver.git
+
 # Install ngEO Browse Server
 echo "**> installing ngeo-b..."
 python setup.py develop
