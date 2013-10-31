@@ -42,7 +42,8 @@ fi
 # activate the virtual environment
 source .venv/bin/activate
 
-# Install EOxServer
+# Uninstall/Install EOxServer
+pip uninstall --yes EOxServer
 pip install --upgrade git+https://github.com/EOxServer/eoxserver.git
 
 # Install ngEO Browse Server
