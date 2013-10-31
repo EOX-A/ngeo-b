@@ -13,7 +13,8 @@ if [ `psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'"` ]
 fi
 
 # Remove test instance
-rm -rf $NGEOB_INSTALL_DIR/ngeo_browse_server_instance/
+echo "**> cleaning instance..."
+[ ! -d "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance" ] || rm -rf "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance"
 
 # Uninstall EOxServer
 pip uninstall --yes EOxServer
