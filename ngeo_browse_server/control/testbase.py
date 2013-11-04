@@ -460,8 +460,6 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
         
         # check that all optimized files are beeing created
         files = self.get_file_list(self.temp_optimized_files_dir)
-        # normalize files i.e. strip UUID
-        files = [file[33:] for file in files]
         
         if self.save_optimized_files:
             save_dir = join(settings.PROJECT_DIR, "results/ingest")
@@ -469,6 +467,11 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
             for path, _, filenames in walk(self.temp_optimized_files_dir):
                 for file_to_save in filenames:
                     shutil.copy(join(path, file_to_save), save_dir) 
+        
+        # normalize files i.e. remove/add UUID
+        for i in range(len(files)):
+            if self.expected_optimized_files[i] != files[i]:
+                files[i] = files[i][33:]
         
         self.assertItemsEqual(self.expected_optimized_files, files)
     
