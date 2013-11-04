@@ -38,6 +38,7 @@ import logging
 import traceback
 from datetime import datetime
 import string
+import uuid
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -330,8 +331,10 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
     except ValidationError, e:
         raise IngestionException("%s" % str(e), "ValidationError")
     
-    output_filename = _valid_path(get_optimized_path(parsed_browse.file_name, 
-                                                     browse_layer.id+"/"+str(parsed_browse.start_time.year),
+    # Get filename to store preprocessed image
+    output_filename = "%s_%s" % (uuid.uuid4().hex, parsed_browse.file_name)
+    output_filename = _valid_path(get_optimized_path(output_filename, 
+                                                     browse_layer.id + "/" + str(parsed_browse.start_time.year),
                                                      config=config))
     output_filename = preprocessor.generate_filename(output_filename)
     
