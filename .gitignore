@@ -12,7 +12,7 @@
 TODO
 
 # Vagrant
-/vagrant/.vagrant
+/vagrant/.vagrant*
 /vagrant/shares/eoxserver
 /vagrant/shares/mapcache
 /vagrant/shares/httpd/conf/README
