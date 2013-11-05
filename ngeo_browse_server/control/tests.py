@@ -1532,64 +1532,6 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 """
 
 
-class IngestFailureFileOverwrite(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
-    """ Test to check that the program fails when a file in the optimized files
-        dir would be overwritten.
-    """
-    
-    expected_failed_browse_ids = ("FAILURE",)
-    expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
-    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
-    expected_optimized_files = ["ATS_TOA_1P_20100722_101606_proc.tif"]
-    
-    copy_to_optimized = [("reference_test_data/ATS_TOA_1P_20100722_101606.jpg", "TEST_OPTICAL/2010/ATS_TOA_1P_20100722_101606_proc.tif")]
-    
-    request = """\
-<?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
-    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
-    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
-    <rep:browseType>OPTICAL</rep:browseType>
-    <rep:browse>
-        <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
-        <rep:fileName>ATS_TOA_1P_20100722_101606.jpg</rep:fileName>
-        <rep:imageType>Jpeg</rep:imageType>
-        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
-        <rep:footprint nodeNumber="5">
-            <rep:colRowList>0 0 128 0 128 129 0 129 0 0 </rep:colRowList>
-            <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
-        </rep:footprint>
-        <rep:startTime>2010-07-22T10:16:06Z</rep:startTime>
-        <rep:endTime>2010-07-22T10:17:22Z</rep:endTime>
-    </rep:browse>
-</rep:browseReport>"""
-
-    @property
-    def expected_response(self):
-        return """\
-<?xml version="1.0" encoding="UTF-8"?>
-<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
-xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-    <bsi:status>partial</bsi:status>
-    <bsi:ingestionSummary>
-        <bsi:toBeReplaced>1</bsi:toBeReplaced>
-        <bsi:actuallyInserted>0</bsi:actuallyInserted>
-        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
-    </bsi:ingestionSummary>
-    <bsi:ingestionResult>
-        <bsi:briefRecord>
-            <bsi:identifier>FAILURE</bsi:identifier>
-            <bsi:status>failure</bsi:status>
-            <bsi:error>
-                <bsi:exceptionCode>IngestionException</bsi:exceptionCode>
-                <bsi:exceptionMessage>Output file &#39;%s/TEST_OPTICAL/2010/ATS_TOA_1P_20100722_101606_proc.tif&#39; already exists and is not to be replaced.</bsi:exceptionMessage>
-            </bsi:error>
-        </bsi:briefRecord>
-    </bsi:ingestionResult>
-</bsi:ingestBrowseResponse>
-""" % self.temp_optimized_files_dir
-
-
 class IngestFailureContradictingIDs(IngestFailureTestCaseMixIn, IngestReplaceTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_before_test_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327.xml"
     
