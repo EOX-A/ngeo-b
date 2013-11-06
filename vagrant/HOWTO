@@ -1,5 +1,5 @@
 ########################################################################
-# How to use vagrant                                                   #
+# How to use vagrant in Linux environment                              #
 ########################################################################
 
 # Clone ngEO Browse Server
@@ -34,6 +34,51 @@ vagrant ssh
 
 # Access server
 http://localhost:3080/
+
+########################################################################
+# How to use vagrant in Windows environment                            #
+########################################################################
+
+Use the following steps:
+1) Install git from http://git-scm.com/download/win
+2) Install VirtualBox from
+http://download.virtualbox.org/virtualbox/4.3.2/VirtualBox-4.3.2-90405-Win.exe
+3) Install vagrant from http://downloads.vagrantup.com/tags/v1.3.5 (use the .msi file)
+4) Start a git bash and execute the following commands:
+git clone git@github.com:EOX-A/ngeo-b.git
+cd ngeo-b/
+git submodule init
+git submodule update
+
+# Prepare local environment
+cd vagrant/shares/
+git clone git@github.com:EOxServer/eoxserver.git
+cd eoxserver/
+git checkout 0.3
+cd ../
+git clone git@github.com:mapserver/mapcache.git
+cd mapcache/
+git checkout branch-1-2
+cd ../../
+
+5) Open the Vagrantfile (located in ngeo-b/vagrant ) with an editor.
+6) Add v.customize ["setextradata", :id, "VBoxInternal2/SharedFoldersEnableSymlinksCreate/vagrant", "1"] before the line # Use GUI for debugging purposes
+7) Save and close Vagrantfile
+8) Open an Administrator Console (right click on the command prompt icon and select "Run as administrator")
+9) Enter secpol.msc (and hit enter). Navigate to Local Policies, User Rights Assignment and check "Create symbolic links". Make sure that the Administrator account is added. Close it.
+10) Still in the admin console enter: fsutil behavior set SymlinkEvaluation L2L:1 R2R:1 L2R:1 R2L:1 (and hit enter. This step isn't necessary on all systems. Only if you use net shares. But it does not hurt 
+11) Open the Administrative Tools Panel from the Control Panel. Open Component Services.
+12) Select Computers, My Computer, Select DCOM Config.
+13) Right click on "Virtual Box Application". Select Security. At "Launch and Activation Permissions" select Customize. Hit Edit.
+14) Add your user account and Administrator. Select Permissions: Local Launch, Remote Launch, Local Activation and Remote Activation. Hit Ok. And again ok. Close the Component Services.
+15) Log off and log on again.
+16) Open an Administrator console and enter:
+vagrant plugin install sahara
+vagrant plugin install vagrant-vbguest
+vagrant up
+17) You are done.
+
+
 
 # Troubleshoot vagrant
 vagrant provision       # If the provisioning didn't finish during vagrant up or after changes.
