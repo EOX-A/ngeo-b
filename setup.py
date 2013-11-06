@@ -67,6 +67,9 @@ setup(
     packages=packages,
     data_files=data_files,
     include_package_data=True,
+    scripts=[
+        "tools/ngeo-b_add_browse_layers.sh",
+    ]
     
     install_requires=[
         'django>=1.4.1',
