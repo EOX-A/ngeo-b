@@ -31,7 +31,6 @@
 Django settings for ngEO Browse Server's {{ project_name }} instance.
 
 """
-from os.path import join
 
 from os.path import join, abspath, dirname
 
