@@ -63,7 +63,6 @@ vi ngeo_browse_server/__init__.py
 vi setup.py
 # Adjust Development Status
 git commit setup.py ngeo_browse_server/__init__.py -m "Adjusting version."
-git push
 # Info:
 #Development Status :: 1 - Planning
 #Development Status :: 2 - Pre-Alpha
@@ -73,21 +72,26 @@ git push
 #Development Status :: 6 - Mature
 #Development Status :: 7 - Inactive
 
-git tag -a release-1.0.1 -m "Tagging 1.0.1 release."
-git push --tags
-git archive --format=tar --prefix=ngeob-1.0.1/ release-1.0.1 | gzip > ngeob-1.0.1.tar.gz
-mv ngeob-1.0.1.tar.gz ....
+git tag -a release-1.0.2 -m "Tagging 1.0.2 release."
+git archive --format=tar --prefix=ngeob-1.0.2/ release-1.0.2 | gzip > ngeob-1.0.2.tar.gz
+mv ngeob-1.0.2.tar.gz ....
 cd ....
+
 vagrant ssh
-tar xzf ngeob-1.0.1.tar.gz
-rm ngeob-1.0.1.tar.gz
-cd ngeob-1.0.1/
+tar xzf ngeob-1.0.2.tar.gz
+rm ngeob-1.0.2.tar.gz
+cd ngeob-1.0.2/
 python setup.py bdist_rpm --release <NO>
 cd dist
-tar czf ../../ngeob-1.0.1.tar.gz ngEO_Browse_Server-1.0.1*rpm
-# scp ../../ngeob-1.0.1.tar.gz -> packages
+tar czf ../../ngeob-1.0.2.tar.gz ngEO_Browse_Server-1.0.2*rpm
+# scp ../../ngeob-1.0.2.tar.gz -> packages@packages.eox.at:.
 cd ../..
-rm -r ngeob-1.0.1/
+rm -r ngeob-1.0.2/
+exit # vagrant
+
+git push
+git push --tags
+
 
 ########################################################################
 # How to build EOxServer                                               #
