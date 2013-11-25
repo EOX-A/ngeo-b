@@ -232,8 +232,8 @@ ngeo_install() {
         sed -e 's/^\[eox-noarch\]$/&\nincludepkgs=ngEO_Browse_Server/' -i /etc/yum.repos.d/eox.repo
     fi
     # Set includepkgs in EOX Testing
-    if ! grep -Fxq "includepkgs=EOxServer mapcache" /etc/yum.repos.d/eox-testing.repo ; then
-        sed -e 's/^\[eox-testing\]$/&\nincludepkgs=EOxServer mapcache/' -i /etc/yum.repos.d/eox-testing.repo
+    if ! grep -Fxq "includepkgs=mapcache" /etc/yum.repos.d/eox-testing.repo ; then
+        sed -e 's/^\[eox-testing\]$/&\nincludepkgs=mapcache/' -i /etc/yum.repos.d/eox-testing.repo
     fi
     if ! grep -Fxq "includepkgs=ngEO_Browse_Server" /etc/yum.repos.d/eox-testing.repo ; then
         sed -e 's/^\[eox-testing-noarch\]$/&\nincludepkgs=ngEO_Browse_Server/' -i /etc/yum.repos.d/eox-testing.repo
@@ -341,7 +341,7 @@ EOF
         # Create admin user
         python manage.py createsuperuser --username=$DJANGO_USER --email=$DJANGO_MAIL --noinput
         python -c "import os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ngeo_browse_server_instance.settings'); \
-                   from django.contrib.auth.models import User;  admin = User.objects.get(username='$DJANGO_USER'); \
+                   from django.contrib.auth.models import User;  admin = User.objects.get(username__exact='$DJANGO_USER'); \
                    admin.set_password('$DJANGO_PASSWORD'); admin.save();"
 
         # Collect static files
