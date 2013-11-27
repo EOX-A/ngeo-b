@@ -184,13 +184,19 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
             except Exception, e:
                 logger.warn("Un-seeding failed: %s" % str(e))
                 
-            # delete *one* of the fitting Time objects
-            mapcache_models.Time.objects.filter(
+            mapcache_qs = mapcache_models.Time.objects.filter(
                 start_time=browse_model.start_time,
                 end_time=browse_model.end_time,
                 source__name=browse_layer_model.id
-            )[0].delete()
-                
+            )
+            import pdb;pdb.set_trace()
+            # delete *one* of the fitting Time objects
+            if len(mapcache_qs) > 0:
+                mapcache_qs[0].delete()
+            # issue a warning if no Time object exists
+            else:
+                logger.warning("No MapCache Time object found for time: %s, %s" % (browse_model.start_time, browse_model.end_time))
+            
             logger.info("Coverage, browse and seed for id %s deleted."%id_to_delete) 
             
         
