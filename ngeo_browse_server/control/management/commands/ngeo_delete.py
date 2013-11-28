@@ -189,7 +189,6 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                 end_time=browse_model.end_time,
                 source__name=browse_layer_model.id
             )
-            import pdb;pdb.set_trace()
             # delete *one* of the fitting Time objects
             if len(mapcache_qs) > 0:
                 mapcache_qs[0].delete()
