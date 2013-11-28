@@ -40,6 +40,7 @@ from ngeo_browse_server.config.browselayer.decoding import decode_browse_layers
 from ngeo_browse_server.config.models import BrowseLayer, BrowseIdentifier
 from ngeo_browse_server.config.browsereport.decoding import decode_browse_report
 from ngeo_browse_server.control.migration import package
+from ngeo_browse_server.control.ingest.exceptions import IngestionException # Dirty hack to work around circular import
 from ngeo_browse_server.control.queries import (
     get_existing_browse, create_browse_report, create_browse, remove_browse
 )
