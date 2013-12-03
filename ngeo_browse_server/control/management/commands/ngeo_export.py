@@ -30,6 +30,7 @@
 import logging
 from optparse import make_option
 from itertools import izip
+import uuid
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models.aggregates import Count
@@ -47,6 +48,7 @@ from ngeo_browse_server.config.browselayer import data as browselayer_data
 from ngeo_browse_server.config.browselayer.serialization import serialize_browse_layers
 from ngeo_browse_server.control.migration import package
 from ngeo_browse_server.mapcache import tileset
+from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.mapcache.config import get_tileset_path
 from ngeo_browse_server.mapcache.tileset import URN_TO_GRID
 
@@ -82,7 +84,8 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         make_option('--export-cache', action="store_true",
             dest='export_cache', default=False,
             help=("If this option is set, the tile cache will be exported "
-                  "aswell.")
+                  "as well. Note that this option can not be used with "
+                  "browses with merged times.")
         ),
         make_option('--output', '--output-path',
             dest='output_path',
@@ -145,7 +148,7 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                 try:
                     browse_layer_model = BrowseLayer.objects.get(browse_type=browse_type)
                 except BrowseLayer.DoesNotExist:
-                    raise CommandError("Browse layer with browse type'%s' does "
+                    raise CommandError("Browse layer with browse type '%s' does "
                                        "not exist" % browse_type)
             
             browse_layer = browselayer_data.BrowseLayer.from_model(browse_layer_model)
@@ -209,9 +212,24 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                         p.add_footprint(footprint_filename, wkb)
                     
                     if export_cache:
+                        time_model = mapcache_models.Time.objects.get(
+                            start_time__lte=browse_model.start_time,
+                            end_time__gte=browse_model.end_time,
+                            source__name=browse_layer_model.id
+                        )
+                        
                         # get "dim" parameter
-                        dim = (isotime(browse_model.start_time) + "/" +
-                               isotime(browse_model.end_time))
+                        dim = (isotime(time_model.start_time) + "/" +
+                               isotime(time_model.end_time))
+                        
+                        # exit if a merged browse is found
+                        if dim != (isotime(browse_model.start_time) + "/" +
+                               isotime(browse_model.end_time)):
+                            raise CommandError("Browse layer '%s' contains "
+                                               "merged browses and exporting "
+                                               "of cache is requested. Try "
+                                               "without exporting the cache."
+                                               % browse_layer_model.id)
                         
                         # get path to sqlite tileset and open it
                         ts = tileset.open(
@@ -226,24 +244,15 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                         ):
                             p.add_cache_file(*tile_desc)
                             
-                        """ 
-                        tiles_qs = tileset.open_queryset(get_tileset_path(browse_layer.id))
-                        tiles_qs.filter(grid=URN_TO_GRID[browse_layer.grid], tileset=browse_layer.id,
-                                        dim=dim, z__lte=browse_layer.highest_map_level,
-                                        z__gte=browse_layer.lowest_map_level)
                         
-                        for tile_model in tiles_qs:
-                            p.add_cache_file(tile_model.tileset, tile_model.grid,
-                                             tile_model.x, tile_model.y, tile_model.z,
-                                             tile_model.dim, tile_model.data)
-                        """ 
                 
                 # save browse report xml and add it to the package
                 p.add_browse_report(
                     serialize_browse_report(browse_report, pretty_print=True),
-                    name="%s_%s_%s.xml" % (
+                    name="%s_%s_%s_%s.xml" % (
                         browse_report.browse_type,
                         browse_report.responsible_org_name,
-                        browse_report.date_time.strftime("%Y%m%d%H%M%S%f")
+                        browse_report.date_time.strftime("%Y%m%d%H%M%S%f"),
+                        uuid.uuid4().hex
                     )
                 )

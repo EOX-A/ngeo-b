@@ -67,10 +67,12 @@ setup(
     packages=packages,
     data_files=data_files,
     include_package_data=True,
+    scripts=[
+        "tools/ngeo-b_add_browse_layers.sh",
+    ],
     
     install_requires=[
         'django>=1.4.1',
-        'pysqlite>=2.5',
         'eoxserver>=0.2.1',
         'pytz',
     ],
@@ -82,7 +84,7 @@ setup(
     maintainer_email="packages@eox.at",
     
     description="ngEO Browse Server providing access to browse images via WMS",
-    long_description=read("README"),
+    long_description=read("README.rst"),
     
     classifiers=[
           'Development Status :: 1 - Planning',

@@ -38,6 +38,10 @@
     <ul>
         <li><a href="{% url eoxserver.views.index %}">EOxServer</a></li>
         <li><a href="{% url admin:index %}">Admin Client</a></li>
+        <li><a href="{% url ngeo_browse_server.control.views.status %}">Status</a></li>
+        <li><a href="{% url ngeo_browse_server.control.views.log_file_list %}">Log file list</a>: Construct as "{% url ngeo_browse_server.control.views.log_file_list %}&lt;YEAR-MM-DD&gt;/&lt;FILENAME&gt;"</li>
+        <li><a href="{% url ngeo_browse_server.control.views.ingest %}">Ingest</a>: Send browse reports as XML via POST</li>
+        <li><a href="{% url ngeo_browse_server.control.views.controller_server %}">Controller Server</a>: Send register json via POST and unregister one via DELETE</li>
     </ul>
 
     Powered by <a href="http://ngeo.eox.at" target="_blank">ngEO Browse Server

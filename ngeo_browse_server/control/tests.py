@@ -39,7 +39,7 @@ from django.utils.dateparse import parse_datetime
 
 from ngeo_browse_server import get_version
 from ngeo_browse_server.control.testbase import (
-    BaseTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, CliMixIn, 
+    BaseTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, CliMixIn, CliFailureMixIn,
     IngestTestCaseMixIn, SeedTestCaseMixIn, IngestReplaceTestCaseMixIn, 
     OverviewMixIn, CompressionMixIn, BandCountMixIn, HasColorTableMixIn, 
     ExtentMixIn, SizeMixIn, ProjectionMixIn, StatisticsMixIn, WMSRasterMixIn,
@@ -928,7 +928,7 @@ class SeedMerge3(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
     storage_dir = "data/merge_test_data"
     
     expected_inserted_into_series = "TEST_SAR"
-    expected_tiles = {0: 4, 1: 16, 2: 64, 3: 192, 4: 320}
+    expected_tiles = {0: 4, 1: 16, 2: 64, 3: 192, 4: 192}
     expected_seeded_areas = [
         (parse_datetime("2010-07-22T21:38:40Z"),
          parse_datetime("2010-07-22T21:40:38Z")),
@@ -1642,64 +1642,6 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 """
 
 
-class IngestFailureFileOverwrite(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
-    """ Test to check that the program fails when a file in the optimized files
-        dir would be overwritten.
-    """
-    
-    expected_failed_browse_ids = ("FAILURE",)
-    expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
-    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
-    expected_optimized_files = ["ATS_TOA_1P_20100722_101606_proc.tif"]
-    
-    copy_to_optimized = [("reference_test_data/ATS_TOA_1P_20100722_101606.jpg", "TEST_OPTICAL/2010/ATS_TOA_1P_20100722_101606_proc.tif")]
-    
-    request = """\
-<?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
-    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
-    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
-    <rep:browseType>OPTICAL</rep:browseType>
-    <rep:browse>
-        <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
-        <rep:fileName>ATS_TOA_1P_20100722_101606.jpg</rep:fileName>
-        <rep:imageType>Jpeg</rep:imageType>
-        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
-        <rep:footprint nodeNumber="5">
-            <rep:colRowList>0 0 128 0 128 129 0 129 0 0 </rep:colRowList>
-            <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
-        </rep:footprint>
-        <rep:startTime>2010-07-22T10:16:06Z</rep:startTime>
-        <rep:endTime>2010-07-22T10:17:22Z</rep:endTime>
-    </rep:browse>
-</rep:browseReport>"""
-
-    @property
-    def expected_response(self):
-        return """\
-<?xml version="1.0" encoding="UTF-8"?>
-<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
-xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-    <bsi:status>partial</bsi:status>
-    <bsi:ingestionSummary>
-        <bsi:toBeReplaced>1</bsi:toBeReplaced>
-        <bsi:actuallyInserted>0</bsi:actuallyInserted>
-        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
-    </bsi:ingestionSummary>
-    <bsi:ingestionResult>
-        <bsi:briefRecord>
-            <bsi:identifier>FAILURE</bsi:identifier>
-            <bsi:status>failure</bsi:status>
-            <bsi:error>
-                <bsi:exceptionCode>IngestionException</bsi:exceptionCode>
-                <bsi:exceptionMessage>Output file &#39;%s/TEST_OPTICAL/2010/ATS_TOA_1P_20100722_101606_proc.tif&#39; already exists and is not to be replaced.</bsi:exceptionMessage>
-            </bsi:error>
-        </bsi:briefRecord>
-    </bsi:ingestionResult>
-</bsi:ingestBrowseResponse>
-""" % self.temp_optimized_files_dir
-
-
 class IngestFailureContradictingIDs(IngestFailureTestCaseMixIn, IngestReplaceTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_before_test_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327.xml"
     
@@ -2090,9 +2032,9 @@ class IngestRasterExtent(BaseTestCaseMixIn, HttpMixIn, ExtentMixIn, TestCase):
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "2010", "ASA_IM__0P_20100722_213840_proc.tif"))
     
     expected_extent = (-2.7900000000000005, 
-                       49.46107291365005, 
-                       -0.029483356685753748, 
-                       53.079999999999991)
+                       49.461072913650007, 
+                       -0.029483356685718665, 
+                       53.079999999999998)
 
 
 class IngestRasterSize(BaseTestCaseMixIn, HttpMixIn, SizeMixIn, TestCase):
@@ -2449,7 +2391,31 @@ class DeleteFromCommandStartEndMerge1(DeleteTestCaseMixIn, CliMixIn, SeedMergeTe
         (parse_datetime("2010-07-22T21:40:38Z"),
          parse_datetime("2010-07-22T21:42:38Z"))
     ]
+
+
+class DeleteFromCommandStartEndMerge2(DeleteTestCaseMixIn, CliMixIn, SeedMergeTestCaseMixIn, LiveServerTestCase):
+    kwargs = {
+        "layer" : "TEST_SAR",
+        "start": "2010-07-22T21:37:00Z",
+        "end": "2010-07-22T21:40:00Z"
+    }
     
+    storage_dir = "data/merge_test_data"
+    
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report", 
+                        join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_1.xml"),
+                        join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_2.xml"),
+                        join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_3.xml")]
+    
+    expected_remaining_browses = 2
+    #expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
+    expected_inserted_into_series = "TEST_SAR"
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
+    
+    expected_seeded_areas = [
+        (parse_datetime("2010-07-22T21:39:00Z"),
+         parse_datetime("2010-07-22T21:42:38Z"))
+    ]
 
 
 #===============================================================================
@@ -2528,6 +2494,28 @@ class ExportRegularGrid(ExportTestCaseMixIn, CliMixIn, TestCase):
     expected_exported_browses = ("ASAR",)
 
 
+class ExportMergedFailure(CliFailureMixIn, SeedTestCaseMixIn, LiveServerTestCase):
+    storage_dir = "data/merge_test_data"
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report", 
+                        join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_1.xml"),
+                        join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_2.xml"),
+                        join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_3.xml")]
+    
+    command = "ngeo_export"
+    kwargs = {
+        "layer" : "TEST_SAR"
+    }
+
+    test_seed = None # turn off unused test
+    
+    @property
+    def args(self):
+        return ("--export-cache", )
+    
+    expect_failure = True
+    expected_failure_msg = "Error: Browse layer 'TEST_SAR' contains merged browses and exporting of cache is requested. Try without exporting the cache.\n"
+
+
 #===============================================================================
 # Import test cases
 #===============================================================================
@@ -2602,8 +2590,8 @@ class DebugLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCase
     test_expected_inserted_browses = None
     
     expected_logs = {
-        logging.DEBUG: 21,
-        logging.INFO: 29,
+        logging.DEBUG: 3,
+        logging.INFO: 16,
         logging.WARN: 0,
         logging.ERROR: 0,
         logging.CRITICAL: 0
@@ -2626,13 +2614,6 @@ class DebugLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCase
             }
         },
         'handlers': {
-            'eoxserver_file': {
-                'level': 'DEBUG',
-                'class': 'logging.handlers.WatchedFileHandler',
-                'filename': join(settings.PROJECT_DIR, 'logs', 'eoxserver.log'),
-                'formatter': 'simple',
-                'filters': [],
-            },
             'ngeo_file': {
                 'level': 'DEBUG',
                 'class': 'logging.handlers.WatchedFileHandler',
@@ -2642,11 +2623,6 @@ class DebugLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCase
             }
         },
         'loggers': {
-            'eoxserver': {
-                'handlers': ['eoxserver_file'],
-                'level': 'DEBUG',
-                'propagate': False,
-            },
             'ngeo_browse_server': {
                 'handlers': ['ngeo_file'],
                 'level': 'DEBUG',
@@ -2672,7 +2648,7 @@ class InfoLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCaseM
     
     expected_logs = {
         logging.DEBUG: 0,
-        logging.INFO: 29,
+        logging.INFO: 16,
         logging.WARN: 0,
         logging.ERROR: 0,
         logging.CRITICAL: 0
@@ -2695,13 +2671,6 @@ class InfoLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCaseM
             }
         },
         'handlers': {
-            'eoxserver_file': {
-                'level': 'INFO',
-                'class': 'logging.handlers.WatchedFileHandler',
-                'filename': join(settings.PROJECT_DIR, 'logs', 'eoxserver.log'),
-                'formatter': 'simple',
-                'filters': [],
-            },
             'ngeo_file': {
                 'level': 'INFO',
                 'class': 'logging.handlers.WatchedFileHandler',
@@ -2711,11 +2680,6 @@ class InfoLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCaseM
             }
         },
         'loggers': {
-            'eoxserver': {
-                'handlers': ['eoxserver_file'],
-                'level': 'INFO',
-                'propagate': False,
-            },
             'ngeo_browse_server': {
                 'handlers': ['ngeo_file'],
                 'level': 'INFO',
@@ -3045,15 +3009,14 @@ class StatusPaused(StatusTestCaseMixIn, TestCase):
     }
 
 
-
-class StatusLocked(StatusTestCaseMixIn, TestCase):
-    def execute(self):
-        from ngeo_browse_server.lock import FileLock
-        from ngeo_browse_server.control.control.config import get_controller_config_lockfile_path
-
-        # simulate another registration process
-        with FileLock(get_controller_config_lockfile_path()):
-            return super(UnregisterFailLock, self).execute()
+#class StatusLocked(StatusTestCaseMixIn, TestCase):
+#    def execute(self):
+#        from ngeo_browse_server.lock import FileLock
+#        from ngeo_browse_server.control.control.config import get_controller_config_lockfile_path
+#
+#        # simulate another registration process
+#        with FileLock(get_controller_config_lockfile_path()):
+#            return super(StatusLocked, self).execute()
 
 
 #===============================================================================

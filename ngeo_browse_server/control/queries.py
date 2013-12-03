@@ -40,7 +40,7 @@ from ngeo_browse_server.config import models
 from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.mapcache.tasks import seed_mapcache
 from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
-from ngeo_browse_server.control.ingest.exceptions import IngestionException
+from ngeo_browse_server.exceptions import NGEOException
 
 
 logger = logging.getLogger(__name__)
@@ -133,9 +133,9 @@ def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
         try:
             models.NameValidator(browse.browse_identifier)
         except ValidationError, e:
-            raise IngestionException("Browse Identifier '%s' not valid: '%s'." % 
-                                     (browse.browse_identifier, str(e.messages[0])),
-                                     "ValidationError")
+            raise NGEOException("Browse Identifier '%s' not valid: '%s'." % 
+                                (browse.browse_identifier, str(e.messages[0])),
+                                "ValidationError")
 
         browse_identifier_model = models.BrowseIdentifier(
             value=browse.browse_identifier, browse=browse_model, 
@@ -183,7 +183,8 @@ def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
     
     # search for time entries with the same time span
     times_qs = mapcache_models.Time.objects.filter(
-        start_time__lte=browse.end_time, end_time__gte=browse.start_time
+        start_time__lte=browse.end_time, end_time__gte=browse.start_time,
+        source=source
     )
     
     if len(times_qs) > 0:
@@ -250,11 +251,15 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
     rect_mgr.delete(obj_id=browse_model.coverage_id)
     browse_model.delete()
     
-    time_model = mapcache_models.Time.objects.get(
-        start_time__lte=browse_model.start_time,
-        end_time__gte=browse_model.end_time,
-        source__name=browse_layer_model.id
-    )
+    try:
+        time_model = mapcache_models.Time.objects.get(
+            start_time__lte=browse_model.start_time,
+            end_time__gte=browse_model.end_time,
+            source__name=browse_layer_model.id
+        )
+    except DoesNotExist:
+        # issue a warning if no corresponding Time object exists
+        logger.warning("No MapCache Time object found for time: %s, %s" % (browse_model.start_time, browse_model.end_time))
     
     # unseed here
     try:
@@ -364,9 +369,9 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
             
             for browse in group[1:]:
                 minx = min(minx, browse.minx)
-                miny = min(minx, browse.miny)
-                maxx = max(minx, browse.maxx)
-                maxy = max(minx, browse.maxy)
+                miny = min(miny, browse.miny)
+                maxx = max(maxx, browse.maxx)
+                maxy = max(maxy, browse.maxy)
                 start_time = min(start_time, browse.start_time)
                 end_time = max(end_time, browse.end_time)
             

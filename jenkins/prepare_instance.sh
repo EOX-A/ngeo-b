@@ -1,7 +1,7 @@
 #!/bin/sh -xe
 
 # ngEO Browse Server
-NGEOB_INSTALL_DIR="$WORKSPACE/ngeo_browse_server"
+NGEOB_INSTALL_DIR="$WORKSPACE"
 NGEOB_URL="http://ngeo.eox.at"
 
 # PostgreSQL/PostGIS database
@@ -105,4 +105,4 @@ cd ..
 
 # Copy autotest data
 echo "**> copy autotest data..."
-cp -r $NGEOB_INSTALL_DIR/autotest/data/ $NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/
+cp -r $NGEOB_INSTALL_DIR/ngeo-b_autotest/data/ $NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/

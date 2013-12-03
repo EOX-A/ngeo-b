@@ -28,9 +28,9 @@
 #-------------------------------------------------------------------------------
 
 import sys
-from os import walk, remove, chmod, stat, utime
+from os import walk, remove, chmod, stat, utime, listdir
 from stat import S_IEXEC
-from os.path import join, exists, dirname
+from os.path import join, exists, dirname, isfile, basename
 import tempfile
 import shutil
 from cStringIO import StringIO
@@ -43,10 +43,11 @@ import tarfile
 import sqlite3
 from ConfigParser import ConfigParser
 import time
+from urlparse import urlparse
 
 from osgeo import gdal, osr
 from django.conf import settings
-from django.test.client import Client
+from django.test.client import Client, FakePayload
 from django.core.management import execute_from_command_line
 from django.template.loader import render_to_string
 from django.utils import simplejson as json
@@ -157,6 +158,7 @@ class BaseTestCaseMixIn(object):
     args_before_test = ()
     
     def setUp(self):
+        logger.info("Starting Test Case: %s" % self.__class__.__name__)
         super(BaseTestCaseMixIn, self).setUp()
         self.setUp_files()
         self.setUp_config()
@@ -177,6 +179,7 @@ class BaseTestCaseMixIn(object):
         
         # reset the config settings
         reset_ngeo_config()
+        logger.info("Finished Test Case: %s" % self.__class__.__name__)
     
     def setUp_files(self):
         # create a temporary storage directory, copy the reference test data
@@ -428,8 +431,22 @@ class CliMixIn(object):
                           "".join(sys.stderr.getvalue().rsplit("\n", 1))))
 
     def get_response(self):
-        # return either stout
+        # return stout
         return self.response[0]
+
+
+class CliFailureMixIn(CliMixIn):
+    """ Common base class for CLI failure test cases. """
+    
+    expected_failure_msg = None
+    
+    def get_response(self):
+        # return sterr
+        return self.response[1]
+
+    def test_failure_msg(self):
+        """ Check the failure message. """
+        self.assertEqual(self.expected_failure_msg, self.get_response())
 
 
 class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
@@ -506,11 +523,16 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
         files = self.get_file_list(self.temp_optimized_files_dir)
         
         if self.save_optimized_files:
-            save_dir = join(settings.PROJECT_DIR, "results/ingest")
+            save_dir = join(settings.PROJECT_DIR, "results/ingest/")
             safe_makedirs(dirname(save_dir))
             for path, _, filenames in walk(self.temp_optimized_files_dir):
                 for file_to_save in filenames:
                     shutil.copy(join(path, file_to_save), save_dir) 
+        
+        # normalize files i.e. remove/add UUID
+        for i in range(len(files)):
+            if self.expected_optimized_files[i] != files[i]:
+                files[i] = files[i][33:]
         
         self.assertItemsEqual(self.expected_optimized_files, files)
     
@@ -603,6 +625,11 @@ class DeleteTestCaseMixIn(BaseTestCaseMixIn):
     
     expected_remaining_browses = None
     expected_deleted_files = []
+
+    surveilled_model_classes = (
+        models.Browse,
+        eoxs_models.RectifiedDatasetRecord,
+    )
    
     def test_deleted_optimized_files(self):
         """ Check that all optimized files have been deleted. """
@@ -746,6 +773,12 @@ class RasterMixIn(object):
         raster_file = raster_file or self.raster_file
         
         filename = join(dir_name, raster_file)
+
+        # check filename and adjust if necessary i.e. add UUID
+        if not isfile(filename):
+            for file in listdir(dirname(filename)):
+                if file.find(basename(raster_file)):
+                    filename = join(dirname(filename), file)
         
         if self.save_to_file:
             save_filename = join(settings.PROJECT_DIR, self.save_to_file)
@@ -998,6 +1031,8 @@ class ExportTestCaseMixIn(BaseTestCaseMixIn):
                     cache_tiles += 1
             
             self.assertEqual(self.expected_cache_tiles, cache_tiles)
+
+        archive.close()
             
             
 
@@ -1037,14 +1072,12 @@ class LoggingTestCaseMixIn(object):
         super(LoggingTestCaseMixIn, self).setUp()
         self.log_handler = TestLogHandler()
         log.dictConfig(self.logging_config)
-        for comp in ("ngeo_browse_server", "eoxserver"):
-            logging.getLogger(comp).addHandler(self.log_handler)
+        logging.getLogger("ngeo_browse_server").addHandler(self.log_handler)
     
     def tearDown(self):
         super(LoggingTestCaseMixIn, self).tearDown()
         log.dictConfig(settings.LOGGING)
-        for comp in ("ngeo_browse_server", "eoxserver"):
-            logging.getLogger(comp).removeHandler(self.log_handler)
+        logging.getLogger("ngeo_browse_server").removeHandler(self.log_handler)
 
             
     def test_expected_logs(self):
@@ -1108,17 +1141,23 @@ class ControlTestCaseMixIn(BaseTestCaseMixIn):
     def execute(self, request=None, url=None):
         if not url:
             url = self.url
-        
-        if request is not None:
-            request = self.get_request()
-        
+
         extra = {}
         if self.ip_address:
             extra['REMOTE_ADDR'] = self.ip_address
 
         client = Client()
         if self.method != "get":
-            return getattr(client, self.method)(url, request, "application/json", **extra)
+            # Django 1.4 is not able to handle DELETE requests with payload.
+            # workaround here:
+            extra.update({
+                'wsgi.input': FakePayload(self.request),
+                'CONTENT_LENGTH': len(self.request),
+                'CONTENT_TYPE': "text/json",
+                'PATH_INFO': client._get_path(urlparse(url)),
+                'REQUEST_METHOD': self.method.upper()
+            })
+            return client.request(**extra)
         else:
             return client.get(url, **extra);
 

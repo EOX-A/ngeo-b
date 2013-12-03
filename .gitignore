@@ -12,7 +12,15 @@
 TODO
 
 # Vagrant
-/vagrant/.vagrant
+/vagrant/.vagrant*
 /vagrant/shares/eoxserver
 /vagrant/shares/mapcache
+/vagrant/shares/httpd/conf/README
+/vagrant/shares/httpd/conf/welcome.conf
+/vagrant/shares/httpd/conf/wsgi.conf.rpmnew
 /vagrant/shares/httpd/www_root/cache/*.sqlite
+/vagrant/shares/httpd/www_root/dav/DavLock.dir
+/vagrant/shares/httpd/www_root/dav/DavLock.pag
+/vagrant/shares/httpd/www_root/store/
+/vagrant/shares/httpd/www_root/error/
+/vagrant/shares/httpd/www_root/icons/

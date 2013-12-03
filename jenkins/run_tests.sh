@@ -1,7 +1,7 @@
 #!/bin/sh -xe
 
 # activate the virtual environment
-cd "$WORKSPACE/ngeo_browse_server"
+cd "$WORKSPACE"
 source .venv/bin/activate
 
 echo "**> running tests ..."

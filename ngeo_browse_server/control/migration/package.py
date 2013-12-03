@@ -29,6 +29,7 @@
 
 import os
 from os.path import exists, join, basename
+from time import time
 import tarfile
 from datetime import datetime
 import logging
@@ -113,6 +114,7 @@ class PackageWriter(object):
             path, "w:" + COMPRESSION_TO_SPECIFIER[compression]
         )
         self._dirs = set()
+        self._cache_files = set()
     
     
     def set_browse_layer(self, browse_layer_file):
@@ -162,6 +164,11 @@ class PackageWriter(object):
 
     def add_cache_file(self, tileset, grid, x, y, z, dim, tile_file):
         " Add a cache file to the archive. "
+
+        if (tileset, grid, x, y, z, dim) in self._cache_files:
+            return # already inserted
+
+        self._cache_files.add((tileset, grid, x, y, z, dim))
         
         # construct dir name
         d = join(SEC_CACHE, tileset, grid)
@@ -178,27 +185,39 @@ class PackageWriter(object):
     def close(self):
         self._tarfile.close()
     
+    def _create_info(self, name):
+        """ Create a TarInfo object with arbitraty properties set.
+        """
+        info = tarfile.TarInfo(name)
+        info.mtime = time()
+        info.uid = os.geteuid()
+        info.gid = os.getegid()
+        info.mode = 0664
+        return info
+
 
     def _check_dir(self, name):
         """ Recursively add directory entries to the archive if they do not yet 
-        exist. """
-        
+            exist. 
+        """
         #check all subpaths as well
         dirs = name.split("/")
         for i in range(len(dirs)):
             d = "/".join(dirs[:i+1])
             if not d in self._dirs:
                 self._dirs.add(d)
-                info = tarfile.TarInfo(d)
+                info = self._create_info(d)
                 info.type = tarfile.DIRTYPE
+                info.mode = 0775
                 self._tarfile.addfile(info)
     
     
     def _add_file(self, f, name):
-        " Add a file-like object `f` to the archive with the given `name`. "
-        
-        info = tarfile.TarInfo(name)
-        # get file size
+        """ Add a file-like object `f` to the archive with the given `name`. 
+        """
+        info = self._create_info(name)
+
+        # set file size
         f.seek(0, os.SEEK_END)
         info.size = f.tell()
         f.seek(0)

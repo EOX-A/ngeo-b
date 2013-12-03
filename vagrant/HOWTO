@@ -1,51 +1,92 @@
 ########################################################################
-# How to use vagrant                                                   #
+# How to use vagrant in Linux environment                              #
 ########################################################################
 
-# Prepare local environment:
+# Clone ngEO Browse Server
+git clone git@github.com:EOX-A/ngeo-b.git
+cd ngeo-b/
+git submodule init
+git submodule update
 
-# svn checkout https://eoxserver.org/svn/trunk <eoxserver_trunk>
-ln -s <eoxserver_trunk> share/eoxserver
-# git clone https://github.com/EOX-A/mapcache.git <mapcache_ngeo_branch>
-# cd <mapcache_ngeo_branch>
-# git checkout ngeo
-# cd -
-ln -s <mapcache_ngeo_branch> share/mapcache
-# git clone git@gitlab.eox.at:ngeo-b.git <ngeo_browse_server>
-ln -s <ngeo_browse_server> ngeo_browse_server
+# Prepare local environment
+cd vagrant/shares/
+git clone git@github.com:EOxServer/eoxserver.git
+cd eoxserver/
+git checkout 0.3
+cd ../
+git clone git@github.com:mapserver/mapcache.git
+cd mapcache/
+git checkout branch-1-2
+cd ../../
 
-# vagrant add-ons:
-vagrant gem install sahara          # Sandboxing
-vagrant gem install vagrant-vbguest # Check for Virtualbox Guest Additions
+# Install VirtualBox & Vagrant
+# Tested with 
+# * Vagrant v1.3.5      http://downloads.vagrantup.com/tags/v1.3.5
+# * VirtualBox 4.3.0    https://www.virtualbox.org/wiki/Downloads
 
-# Run vagrant:
+# Install Vagrant add-ons
+vagrant plugin install sahara           # Sandboxing https://github.com/jedi4ever/sahara
+vagrant plugin install vagrant-vbguest  # Check for Virtualbox Guest Additions https://github.com/dotless-de/vagrant-vbguest
+vagrant plugin install vagrant-cachier  # Cache yum/apt/etc. packages https://github.com/fgrehm/vagrant-cachier
+
+# Run vagrant
 vagrant up
 vagrant ssh
 
-# Install:
-cd /var/eoxserver/
-sudo python setup.py develop
+# Access server
+http://localhost:3080/
 
-cd /var/mapcache
-sudo yum install httpd-devel pixman-devel sqlite-devel libpng-devel libjpeg-devel libcurl-devel cmake geos-devel fcgi-devel
-mkdir build
-cd build
-cmake ..
-# fix dependency problems
-make
-sudo make install
-vi /etc/ld.so.conf.d/mapcache.conf
-# Add:
-#/usr/local/lib
-sudo ldconfig
+########################################################################
+# How to use vagrant in Windows environment                            #
+########################################################################
 
-cd /var/ngeob/
-sudo python setup.py develop
+Use the following steps:
+1) Install git from http://git-scm.com/download/win
+2) Install VirtualBox from
+http://download.virtualbox.org/virtualbox/4.3.2/VirtualBox-4.3.2-90405-Win.exe
+3) Install vagrant from http://downloads.vagrantup.com/tags/v1.3.5 (use the .msi file)
+4) Start a git bash and execute the following commands:
+git clone git@github.com:EOX-A/ngeo-b.git
+cd ngeo-b/
+git submodule init
+git submodule update
 
-# Run development server:
-cd /var/ngeob/
-python manage.py runserver 0.0.0.0:8000
-# Access on host at http://localhost:38000/
+# Prepare local environment
+cd vagrant/shares/
+git clone git@github.com:EOxServer/eoxserver.git
+cd eoxserver/
+git checkout 0.3
+cd ../
+git clone git@github.com:mapserver/mapcache.git
+cd mapcache/
+git checkout branch-1-2
+cd ../../
+
+5) Open the Vagrantfile (located in ngeo-b/vagrant ) with an editor.
+6) Add v.customize ["setextradata", :id, "VBoxInternal2/SharedFoldersEnableSymlinksCreate/vagrant", "1"] before the line # Use GUI for debugging purposes
+7) Save and close Vagrantfile
+8) Open an Administrator Console (right click on the command prompt icon and select "Run as administrator")
+9) Enter secpol.msc (and hit enter). Navigate to Local Policies, User Rights Assignment and check "Create symbolic links". Make sure that the Administrator account is added. Close it.
+10) Still in the admin console enter: fsutil behavior set SymlinkEvaluation L2L:1 R2R:1 L2R:1 R2L:1 (and hit enter. This step isn't necessary on all systems. Only if you use net shares. But it does not hurt 
+11) Open the Administrative Tools Panel from the Control Panel. Open Component Services.
+12) Select Computers, My Computer, Select DCOM Config.
+13) Right click on "Virtual Box Application". Select Security. At "Launch and Activation Permissions" select Customize. Hit Edit.
+14) Add your user account and Administrator. Select Permissions: Local Launch, Remote Launch, Local Activation and Remote Activation. Hit Ok. And again ok. Close the Component Services.
+15) Log off and log on again.
+16) Open an Administrator console and enter:
+vagrant plugin install sahara
+vagrant plugin install vagrant-vbguest
+vagrant up
+17) You are done.
+
+
+
+# Troubleshoot vagrant
+vagrant provision       # If the provisioning didn't finish during vagrant up or after changes.
+vagrant vbguest -f      # (Re-)Install virtualbox guest additions in case it complains about not matching versions.
+
+#Slow performance: Check "Enable IO APIC", uncheck "Extended Features: Enable PAE/NX", and uncheck "Enable Nested Paging" in VirtualBox Manager.
+#Symlinks with VirtualBox 4.1 not working: vi /opt/vagrant/embedded/gems/gems/vagrant-1.3.5/plugins/providers/virtualbox/driver/version_4_1.rb and add those changes: https://github.com/mitchellh/vagrant/commit/387692f9c8fa4031050646e2773b3d2d9b2c994e
 
 
 ########################################################################
@@ -54,19 +95,19 @@ python manage.py runserver 0.0.0.0:8000
 
 # Prepare vagrant environment as described at: https://gitlab.eox.at/vagrant/builder_rpm/tree/master
 
+
 ########################################################################
 # How to build ngEO Browse Server                                      #
 ########################################################################
 
-cd git/ngeo-b/ngeo_browse_server/
+cd git/ngeo-b/
 git pull
 
 vi ngeo_browse_server/__init__.py
 # Adjust version
 vi setup.py
 # Adjust Development Status
-git ci setup.py ngeo_browse_server/__init__.py -m "Adjusting version."
-git push
+git commit setup.py ngeo_browse_server/__init__.py -m "Adjusting version."
 # Info:
 #Development Status :: 1 - Planning
 #Development Status :: 2 - Pre-Alpha
@@ -76,21 +117,26 @@ git push
 #Development Status :: 6 - Mature
 #Development Status :: 7 - Inactive
 
-git tag -a release-1.0.0 -m "Tagging 1.0.0 release."
-git push --tags
-git archive --format=tar --prefix=ngeob-1.0.0/ release-1.0.0 | gzip > ngeob-1.0.0.tar.gz
-mv ngeob-1.0.0.tar.gz ....
+git tag -a release-1.0.2 -m "Tagging 1.0.2 release."
+git archive --format=tar --prefix=ngEO_Browse_Server-1.0.2/ release-1.0.2 | gzip > ngEO_Browse_Server-1.0.2.tar.gz
+mv ngEO_Browse_Server-1.0.2.tar.gz ....
 cd ....
+
 vagrant ssh
-tar xzf ngeob-1.0.0.tar.gz
-rm ngeob-1.0.0.tar.gz
-cd ngeob-1.0.0/
+tar xzf ngEO_Browse_Server-1.0.2.tar.gz
+rm ngEO_Browse_Server-1.0.2.tar.gz
+cd ngEO_Browse_Server-1.0.2/
 python setup.py bdist_rpm --release <NO>
 cd dist
-tar czf ../../ngeob-1.0.0.tar.gz ngEO_Browse_Server-1.0.0*rpm
-# scp ../../ngeob-1.0.0.tar.gz -> packages
+tar czf ../../rpmbuild/RPMS/ngEO_Browse_Server-1.0.2.tar.gz ngEO_Browse_Server-*rpm
+# scp ../../ngEO_Browse_Server-1.0.2.tar.gz -> packages@packages.eox.at:.
 cd ../..
-rm -r ngeob-1.0.0/
+rm -r ngEO_Browse_Server-1.0.2/
+exit # vagrant
+
+git push
+git push --tags
+
 
 ########################################################################
 # How to build EOxServer                                               #
