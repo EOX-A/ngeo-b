@@ -499,9 +499,12 @@ def _georef_from_parsed(parsed_browse):
     swap_axes = hasSwappedAxes(srid)
     
     if parsed_browse.geo_type == "rectifiedBrowse":
-        coords = decode_coord_list(parsed_browse.coord_list, swap_axes)
-        coords = [coord for pair in coords for coord in pair]
-        assert(len(coords) == 4)
+        coords = parse_coord_list(parsed_browse.coord_list, swap_axes)
+        assert(len(coords) == 2)
+        # values are for top/left and bottom/right pixel
+        coords = [coords[0][0], coords[1][1], coords[1][0], coords[0][1]]
+        assert(coords[0] < coords[2])
+        assert(coords[1] < coords[3])
         return Extent(*coords, srid=srid)
         
     elif parsed_browse.geo_type == "footprintBrowse":
