@@ -93,6 +93,10 @@ def parse_browse(browse_elem):
     if browse_identifier is not None:
         kwargs["browse_identifier"] = browse_identifier.text
     
+    # allow spaces in reference_system_identifier e.g. "EPSG: 4326"
+    # work-around for ESA's Landsat data
+    kwargs['reference_system_identifier'] = kwargs['reference_system_identifier'].replace(" ", "")
+    
     # check type of geo reference
     rectified_browse = browse_elem.find(ns_rep("rectifiedBrowse"))
     footprint = browse_elem.find(ns_rep("footprint"))
