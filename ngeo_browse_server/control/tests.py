@@ -2065,6 +2065,33 @@ class IngestRectifiedWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
     ]
 
 
+class IngestRectifiedFlippedWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
+    wms_request = ("/ows?service=WMS&request=GetMap&version=1.3.0&"
+                   "layers=%(layers)s&crs=EPSG:4326&bbox=%(bbox)s&"
+                   "width=%(width)d&height=%(height)d&format=image/png" % {
+                       "layers": "MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced",
+                       "bbox": ",".join(map(str, (
+                            32.1902500,
+                            8.4784500,
+                            46.2686450,
+                            25.4101500))),
+                       "width": 100,
+                       "height": 100,
+                    }
+                   )
+
+    storage_dir = "data/test_data/"
+    request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_nogeo_flipped.xml"
+
+    save_to_file = "results/wms/IngestRectifiedFlippedWMSRaster.png"
+
+    expected_statistics = [
+        {'max': 251.0, 'checksum': 10335, 'mean': 40.872199999999999, 'stddev': 42.13926277428213, 'min': 0.0},
+        {'max': 250.0, 'checksum': 9440, 'mean': 40.122500000000002, 'stddev': 40.939221948517776, 'min': 0.0},
+        {'max': 252.0, 'checksum': 11907, 'mean': 42.537399999999998, 'stddev': 39.100483388827818, 'min': 0.0}
+    ]
+
+
 class IngestFootprintWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
     wms_request = ("/ows?service=WMS&request=GetMap&version=1.3.0&"
                    "layers=%(layers)s&crs=EPSG:4326&bbox=%(bbox)s&"
