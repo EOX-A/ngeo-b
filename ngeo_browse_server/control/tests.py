@@ -2060,21 +2060,21 @@ class IngestRasterStatistics(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, Test
     expected_statistics = [{
         "min": 0.0,
         "max": 255.0,
-        "mean": 64.244023630714196,
-        "stddev": 76.138905033891447,
-        "checksum": 13096
+        "mean": 64.246238253058323,
+        "stddev": 76.142837880325871,
+        "checksum": 10724
     }, {
         "min": 0.0,
         "max": 255.0,
-        "mean": 64.244023630714196,
-        "stddev": 76.138905033891447,
-        "checksum": 13096
+        "mean": 64.246238253058323,
+        "stddev": 76.142837880325871,
+        "checksum": 10724
     }, {
         "min": 0.0,
         "max": 255.0,
-        "mean": 64.244023630714196,
-        "stddev": 76.138905033891447,
-        "checksum": 13096
+        "mean": 64.246238253058323,
+        "stddev": 76.142837880325871,
+        "checksum": 10724
     }, {
         "min": 0.0,
         "max": 255.0,
@@ -2224,9 +2224,9 @@ class IngestFootprintWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
     expected_statistics = [{
         "min": 0.0,
         "max": 255.0,
-        "mean": 64.370999999999995,
-        "stddev": 76.192750042244839,
-        "checksum": 57389
+        "mean": 64.406300000000002,
+        "stddev": 76.223977987966478,
+        "checksum": 57259
     }] * 3
 
 
@@ -2248,7 +2248,7 @@ class IngestRegularGridWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, 
                    )
     
     expected_statistics = [
-        {'max': 251.0, 'checksum': 11342, 'mean': 29.2577, 'stddev': 33.854823743596718, 'min': 0.0}
+        {'max': 251.0, 'checksum': 10783, 'mean': 29.288, 'stddev': 33.909860748755662, 'min': 0.0}
     ] * 3
 
 
@@ -2270,9 +2270,9 @@ class IngestFootprintCrossesDatelineRaster(BaseTestCaseMixIn, HttpMixIn, Statist
                    )
     
     expected_statistics = [
-        {'checksum': 22934, 'max': 250.0, 'mean': 148.99510000000001, 'min': 0.0, 'stddev': 116.90873567013715},
-        {'checksum': 17599, 'max': 249.0, 'mean': 147.95439999999999, 'min': 0.0, 'stddev': 116.12004013364789},
-        {'checksum': 1606, 'max': 242.0, 'mean': 140.77260000000001, 'min': 0.0, 'stddev': 110.5817764789479}
+        {'checksum': 22981, 'max': 250.0, 'mean': 149.01589999999999, 'min': 0.0, 'stddev': 116.91123405041111},
+        {'checksum': 17526, 'max': 249.0, 'mean': 147.9785, 'min': 0.0, 'stddev': 116.12415441134544},
+        {'checksum': 1612, 'max': 242.0, 'mean': 140.79480000000001, 'min': 0.0, 'stddev': 110.58494785891973}
     ]
     
 class IngestFootprintCrossesDatelineRasterSecond(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
@@ -2293,9 +2293,11 @@ class IngestFootprintCrossesDatelineRasterSecond(BaseTestCaseMixIn, HttpMixIn, S
                     }
                    )
     
-    expected_statistics = [{'checksum': 22934, 'max': 250.0, 'mean': 148.99510000000001, 'min': 0.0, 'stddev': 116.90873567013715},
-                           {'checksum': 17599, 'max': 249.0, 'mean': 147.95439999999999, 'min': 0.0, 'stddev': 116.12004013364789},
-                           {'checksum': 1606, 'max': 242.0, 'mean': 140.77260000000001, 'min': 0.0, 'stddev': 110.5817764789479}]
+    expected_statistics = [
+        {'checksum': 22981, 'max': 250.0, 'mean': 149.01589999999999, 'min': 0.0, 'stddev': 116.91123405041111},
+        {'checksum': 17526, 'max': 249.0, 'mean': 147.9785, 'min': 0.0, 'stddev': 116.12415441134544},
+        {'checksum': 1612, 'max': 242.0, 'mean': 140.79480000000001, 'min': 0.0, 'stddev': 110.58494785891973}
+    ]
     
 class IngestFootprintCrossesDatelineRasterThird(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
     """ Test the region that overlaps the dateline boundary """
@@ -2315,9 +2317,11 @@ class IngestFootprintCrossesDatelineRasterThird(BaseTestCaseMixIn, HttpMixIn, St
                     }
                    )
     
-    expected_statistics = [{'checksum': 19103, 'max': 255.0, 'mean': 2.3617534999999998, 'min': 0.0, 'stddev': 22.610579181109841},
-                           {'checksum': 46676, 'max': 255.0, 'mean': 2.4700384999999998, 'min': 0.0, 'stddev': 22.499895873281673},
-                           {'checksum': 34584, 'max': 255.0, 'mean': 2.527612, 'min': 0.0, 'stddev': 22.227140899752627}]
+    expected_statistics = [
+        {'checksum': 18991, 'max': 255.0, 'mean': 2.361958, 'min': 0.0, 'stddev': 22.611632015540938},
+        {'checksum': 46269, 'max': 255.0, 'mean': 2.4702989999999998, 'min': 0.0, 'stddev': 22.501223318979772},
+        {'checksum': 34188, 'max': 255.0, 'mean': 2.5279354999999999, 'min': 0.0, 'stddev': 22.22917375000339}
+    ]
 
 
 #===============================================================================
