@@ -220,6 +220,7 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
                     # report error
                     logger.error("Failure during ingestion of browse '%s'." %
                                  parsed_browse.browse_identifier)
+                    logger.error("Exception was '%s': %s" % (type(e).__name__, str(e)))
                     logger.debug(traceback.format_exc() + "\n")
                     
                     # undo latest changes, append the failure and continue
