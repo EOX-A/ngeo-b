@@ -55,8 +55,20 @@ vagrant vbguest -f      # (Re-)Install virtualbox guest additions in case it com
 # How to build ngEO Browse Server                                      #
 ########################################################################
 
+# Check Jenkins build is passing.
+
+# Prepare a vagrant environment as described at:
+# https://gitlab.eox.at/vagrant/builder_rpm/tree/master
+
 cd git/ngeo-b/
 git pull
+
+# If starting a new release branch:
+git checkout -b branch-1-1
+vi ngeo_browse_server/__init__.py
+# Adjust version to future one
+git commit ngeo_browse_server/__init__.py -m "Adjusting version."
+git push origin branch-1-1
 
 vi ngeo_browse_server/__init__.py
 # Adjust version
@@ -72,37 +84,43 @@ git commit setup.py ngeo_browse_server/__init__.py -m "Adjusting version."
 #Development Status :: 6 - Mature
 #Development Status :: 7 - Inactive
 
-git tag -a release-1.0.2 -m "Tagging 1.0.2 release."
-git archive --format=tar --prefix=ngEO_Browse_Server-1.0.2/ release-1.0.2 | gzip > ngEO_Browse_Server-1.0.2.tar.gz
-mv ngEO_Browse_Server-1.0.2.tar.gz ....
-cd ....
-
+git tag -a release-1.0.4 -m "Tagging 1.0.4 release."
+git archive --format=tar --prefix=ngEO_Browse_Server-1.0.4/ release-1.0.4 | gzip > ngEO_Browse_Server-1.0.4.tar.gz
+mv ngEO_Browse_Server-1.0.4.tar.gz <path-to-builder_rpm>
+cd <path-to-builder_rpm>/
 vagrant ssh
-tar xzf ngEO_Browse_Server-1.0.2.tar.gz
-rm ngEO_Browse_Server-1.0.2.tar.gz
-cd ngEO_Browse_Server-1.0.2/
+
+tar xzf ngEO_Browse_Server-1.0.4.tar.gz
+rm ngEO_Browse_Server-1.0.4.tar.gz
+cd ngEO_Browse_Server-1.0.4/
 python setup.py bdist_rpm --release <NO>
 cd dist
-tar czf ../../rpmbuild/RPMS/ngEO_Browse_Server-1.0.2.tar.gz ngEO_Browse_Server-*rpm
-# scp ../../ngEO_Browse_Server-1.0.2.tar.gz -> packages@packages.eox.at:.
+tar czf ../../rpmbuild/RPMS/ngEO_Browse_Server-1.0.4.tar.gz ngEO_Browse_Server-*rpm
+# scp ../../ngEO_Browse_Server-1.0.4.tar.gz -> packages@packages.eox.at:.
 cd ../..
-rm -r ngEO_Browse_Server-1.0.2/
+rm -r ngEO_Browse_Server-1.0.4/
 exit # vagrant
+
+vi ngeo_browse_server/__init__.py
+# Adjust version to dev
+vi setup.py
+# Adjust Development Status if necessary
+git commit setup.py ngeo_browse_server/__init__.py -m "Adjusting version."
 
 git push
 git push --tags
+
+# Edit release at https://github.com/EOX-A/ngeo-b/releases
+# Edit milestones at https://github.com/EOX-A/ngeo-b/issues/milestones
+# Mail to dev & users
+# Tweet
 
 
 ########################################################################
 # How to build EOxServer                                               #
 ########################################################################
 
-svn export .... # https://eoxserver.org/svn/branches/0.3 or https://eoxserver.org/svn/tags/release-0.3beta2
-cd ....
-vagrant ssh
-python setup.py bdist_rpm --release <NO>
-tar czf ../EOxServer-0.3dev.tar.gz dist/EOxServer-0.3dev*rpm
-# scp ../EOxServer-0.3dev.tar.gz -> packages.eox.at
+See https://github.com/EOxServer/eoxserver/blob/master/vagrant/HOWTO#L127
 
 ########################################################################
 # How to build MapCache                                                #
@@ -110,10 +128,13 @@ tar czf ../EOxServer-0.3dev.tar.gz dist/EOxServer-0.3dev*rpm
 
 cd mapcache_git
 git pull
-git archive --format=tar --prefix=mapcache-1.1dev/ master | gzip > ..../mapcache-1.1dev.tar.gz
-cd  ....
+git archive --format=tar --prefix=mapcache-1.2.0/ rel-1-2-0 | gzip > mapcache-1.2.0.tar.gz
+mv mapcache-1.2.0.tar.gz <path-to-builder_rpm>
+cd <path-to-builder_rpm>/
 vagrant ssh
+
 cd rpmbuild/SPECS/
+rpmdev-bumpspec --comment="<COMMENT>" --userstring="<NAME> <<MAIL>>" mapcache.spec
 vi mapcache.spec
 # Adjust Release
 rpmbuild -ba mapcache.spec
