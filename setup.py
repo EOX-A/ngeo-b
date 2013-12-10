@@ -73,7 +73,7 @@ setup(
     
     install_requires=[
         'django>=1.4.1',
-        'eoxserver>=0.2.1',
+        'eoxserver>=0.3.2',
         'pytz',
     ],
     
