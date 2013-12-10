@@ -503,8 +503,6 @@ def _georef_from_parsed(parsed_browse):
         assert(len(coords) == 2)
         # values are for top/left and bottom/right pixel
         coords = [coords[0][0], coords[1][1], coords[1][0], coords[0][1]]
-        assert(coords[0] < coords[2])
-        assert(coords[1] < coords[3])
         return Extent(*coords, srid=srid)
         
     elif parsed_browse.geo_type == "footprintBrowse":
