@@ -28,9 +28,9 @@
 #-------------------------------------------------------------------------------
 
 import sys
-from os import walk, remove, chmod, stat, utime
+from os import walk, remove, chmod, stat, utime, listdir
 from stat import S_IEXEC
-from os.path import join, exists, dirname
+from os.path import join, exists, dirname, isfile, basename
 import tempfile
 import shutil
 from cStringIO import StringIO
@@ -529,6 +529,11 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
                 for file_to_save in filenames:
                     shutil.copy(join(path, file_to_save), save_dir) 
         
+        # normalize files i.e. remove/add UUID
+        for i in range(len(files)):
+            if self.expected_optimized_files[i] != files[i]:
+                files[i] = files[i][33:]
+        
         self.assertItemsEqual(self.expected_optimized_files, files)
     
     
@@ -768,6 +773,12 @@ class RasterMixIn(object):
         raster_file = raster_file or self.raster_file
         
         filename = join(dir_name, raster_file)
+
+        # check filename and adjust if necessary i.e. add UUID
+        if not isfile(filename):
+            for file in listdir(dirname(filename)):
+                if file.find(basename(raster_file)):
+                    filename = join(dirname(filename), file)
         
         if self.save_to_file:
             save_filename = join(settings.PROJECT_DIR, self.save_to_file)

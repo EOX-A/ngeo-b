@@ -38,6 +38,7 @@ import logging
 import traceback
 from datetime import datetime
 import string
+import uuid
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -222,6 +223,7 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
                     # report error
                     logger.error("Failure during ingestion of browse '%s'." %
                                  parsed_browse.browse_identifier)
+                    logger.error("Exception was '%s': %s" % (type(e).__name__, str(e)))
                     logger.debug(traceback.format_exc() + "\n")
                     
                     # undo latest changes, append the failure and continue
@@ -333,7 +335,9 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
     except ValidationError, e:
         raise IngestionException("%s" % str(e), "ValidationError")
     
-    output_filename = _valid_path(get_optimized_path(parsed_browse.file_name, 
+    # Get filename to store preprocessed image
+    output_filename = "%s_%s" % (uuid.uuid4().hex, parsed_browse.file_name)
+    output_filename = _valid_path(get_optimized_path(output_filename, 
                                                      browse_layer.id + "/" + str(parsed_browse.start_time.year),
                                                      config=config))
     output_filename = preprocessor.generate_filename(output_filename)
@@ -497,8 +501,9 @@ def _georef_from_parsed(parsed_browse):
     
     if parsed_browse.geo_type == "rectifiedBrowse":
         coords = decode_coord_list(parsed_browse.coord_list, swap_axes)
-        coords = [coord for pair in coords for coord in pair]
-        assert(len(coords) == 4)
+        assert(len(coords) == 2)
+        # values are for top/left and bottom/right pixel
+        coords = [coords[0][0], coords[1][1], coords[1][0], coords[0][1]]
         return Extent(*coords, srid=srid)
         
     elif parsed_browse.geo_type == "footprintBrowse":

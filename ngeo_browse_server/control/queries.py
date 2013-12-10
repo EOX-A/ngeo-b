@@ -251,11 +251,15 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
     rect_mgr.delete(obj_id=browse_model.coverage_id)
     browse_model.delete()
     
-    time_model = mapcache_models.Time.objects.get(
-        start_time__lte=browse_model.start_time,
-        end_time__gte=browse_model.end_time,
-        source__name=browse_layer_model.id
-    )
+    try:
+        time_model = mapcache_models.Time.objects.get(
+            start_time__lte=browse_model.start_time,
+            end_time__gte=browse_model.end_time,
+            source__name=browse_layer_model.id
+        )
+    except DoesNotExist:
+        # issue a warning if no corresponding Time object exists
+        logger.warning("No MapCache Time object found for time: %s, %s" % (browse_model.start_time, browse_model.end_time))
     
     # unseed here
     try:
