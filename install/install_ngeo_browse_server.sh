@@ -218,10 +218,9 @@ ngeo_install() {
     echo "Performing installation step 140"
     # EOX
     rpm -Uvh --replacepkgs http://yum.packages.eox.at/el/eox-release-6-2.noarch.rpm
-    #TODO: Enable only in testing mode once stable enough.
-    #if "$TESTING" ; then
+    if "$TESTING" ; then
         sed -e 's/^enabled=0/enabled=1/' -i /etc/yum.repos.d/eox-testing.repo
-    #fi
+    fi
 
     echo "Performing installation step 150"
     # Set includepkgs in EOX Stable
@@ -232,8 +231,8 @@ ngeo_install() {
         sed -e 's/^\[eox-noarch\]$/&\nincludepkgs=ngEO_Browse_Server/' -i /etc/yum.repos.d/eox.repo
     fi
     # Set includepkgs in EOX Testing
-    if ! grep -Fxq "includepkgs=mapcache" /etc/yum.repos.d/eox-testing.repo ; then
-        sed -e 's/^\[eox-testing\]$/&\nincludepkgs=mapcache/' -i /etc/yum.repos.d/eox-testing.repo
+    if ! grep -Fxq "includepkgs=EOxServer mapcache" /etc/yum.repos.d/eox-testing.repo ; then
+        sed -e 's/^\[eox-testing\]$/&\nincludepkgs=EOxServer mapcache/' -i /etc/yum.repos.d/eox-testing.repo
     fi
     if ! grep -Fxq "includepkgs=ngEO_Browse_Server" /etc/yum.repos.d/eox-testing.repo ; then
         sed -e 's/^\[eox-testing-noarch\]$/&\nincludepkgs=ngEO_Browse_Server/' -i /etc/yum.repos.d/eox-testing.repo

@@ -223,6 +223,7 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
                     # report error
                     logger.error("Failure during ingestion of browse '%s'." %
                                  parsed_browse.browse_identifier)
+                    logger.error("Exception was '%s': %s" % (type(e).__name__, str(e)))
                     logger.debug(traceback.format_exc() + "\n")
                     
                     # undo latest changes, append the failure and continue
@@ -500,8 +501,9 @@ def _georef_from_parsed(parsed_browse):
     
     if parsed_browse.geo_type == "rectifiedBrowse":
         coords = decode_coord_list(parsed_browse.coord_list, swap_axes)
-        coords = [coord for pair in coords for coord in pair]
-        assert(len(coords) == 4)
+        assert(len(coords) == 2)
+        # values are for top/left and bottom/right pixel
+        coords = [coords[0][0], coords[1][1], coords[1][0], coords[0][1]]
         return Extent(*coords, srid=srid)
         
     elif parsed_browse.geo_type == "footprintBrowse":
