@@ -92,7 +92,9 @@ class BrowseLayer(models.Model):
     # ingestion strategy
     strategy = models.CharField(max_length=8, default="inherit",
         choices=(
-            "replace", "merge", "inherit"
+            ("replace", "replace"), 
+            ("merge", "merge"), 
+            ("inherit", "inherit")
         )
     )
 
@@ -100,7 +102,7 @@ class BrowseLayer(models.Model):
     timedimension_default = models.CharField(max_length=64)
 
     # for mapcache lookup query limit
-    tile_query_limit = model.PositiveIntegerField()
+    tile_query_limit = models.PositiveIntegerField()
     
     def __unicode__(self):
         return "Browse Layer '%s' with Browse Type '%s'" % (
