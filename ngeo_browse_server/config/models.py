@@ -102,7 +102,7 @@ class BrowseLayer(models.Model):
     timedimension_default = models.CharField(max_length=64)
 
     # for mapcache lookup query limit
-    tile_query_limit = models.PositiveIntegerField()
+    tile_query_limit = models.PositiveIntegerField(default=100)
     
     def __unicode__(self):
         return "Browse Layer '%s' with Browse Type '%s'" % (
