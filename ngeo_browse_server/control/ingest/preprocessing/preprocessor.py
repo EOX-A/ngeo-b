@@ -1,12 +1,14 @@
 
-from django.contrib.gis.geos import GEOSGeometry, Polygon
+from django.contrib.gis.geos import GEOSGeometry, MultiPolygon, Polygon
 from eoxserver.contrib import gdal
-from eoxserver.processing.preprocessing import WMSPreProcessor
+from eoxserver.processing.preprocessing import (
+    WMSPreProcessor, PreProcessResult
+)
 from eoxserver.processing.preprocessing.optimization import *
 from eoxserver.processing.preprocessing.util import create_mem_copy
 
 from ngeo_browse_server.control.ingest.preprocessing.merge import (
-    GDALDatasetMerger
+    GDALDatasetMerger, GDALGeometryMaskMergeSource
 )
 
 

@@ -6,13 +6,82 @@ from itertools import izip
 import numpy as np
 from django.contrib.gis.geos import GEOSGeometry
 from eoxserver.contrib import gdal, ogr, osr, gdal_array
-from eoxserver.core.util.rect import Rect
+#from eoxserver.core.util.rect import Rect
 from eoxserver.processing.preprocessing.util import create_mem, copy_projection
 
 
 ################################################################################
 ################################################################################
 ################################################################################
+
+
+class Rect(tuple):
+    """ Named tuple to describe areas in a 2D array like in images. The tuple
+        is always in the form (offset_x, offset_y, size_x, size_y).
+    """
+    __slots__ = ()
+
+    def __new__(cls, offset_x=0, offset_y=0, size_x=None, size_y=None, 
+                upper_x=0, upper_y=0):
+
+        # To subclass tuples, it is necessary to overwrite the `__new__`
+        # method.
+
+        size_x = size_x if size_x is not None else max(0, upper_x - offset_x)
+        size_y = size_y if size_y is not None else max(0, upper_y - offset_y)
+
+        return tuple.__new__(cls, (offset_x, offset_y, size_x, size_y))
+
+    offset_x = property(lambda self: self[0])
+    offset_y = property(lambda self: self[1])
+    offset = property(lambda self: (self.offset_x, self.offset_y))
+
+    size_x = property(lambda self: self[2])
+    size_y = property(lambda self: self[3])
+    size = property(lambda self: (self.size_x, self.size_y))
+
+    upper_x = property(lambda self: self.offset_x + self.size_x)
+    upper_y = property(lambda self: self.offset_y + self.size_y)
+    upper = property(lambda self: (self.upper_x, self.upper_y))
+
+    area = property(lambda self: self.size_x * self.size_y)
+
+
+    def combination(self, other):
+        """ Returns a combined rect 
+        """
+        return Rect(
+            offset_x=min(self.offset_x, other[0]), 
+            offset_y=min(self.offset_y, other[1]),
+            upper_x=max(self.upper_x, other[0] + other[2]), 
+            upper_y=max(self.upper_y, other[1] + other[3])
+        )
+
+    __or__ = combination
+
+    def intersection(self, other):
+        return Rect(
+            offset_x=max(self.offset_x, other[0]), 
+            offset_y=max(self.offset_y, other[1]),
+            upper_x=min(self.upper_x, other[0] + other[2]), 
+            upper_y=min(self.upper_y, other[1] + other[3])
+        )
+
+    __and__ = intersection
+
+    def intersects(self, other):
+        return self.intersection(other).area > 0
+
+
+    def translated(self, (diff_x, diff_y)):
+        return Rect(
+            self.size_x, self.size_y, 
+            self.offset_x + diff_x, self.offset_y + diff_y
+        )
+
+    __add__ = translated
+
+    __sub__ = (lambda self, (x, y): self.translated((-x, -y)))
 
 
 class BBox(tuple):
@@ -122,7 +191,7 @@ class GDALMergeSource(GDALDatasetWrapper):
         self.dataset = dataset
         self.use_nodata = use_nodata
 
-    def get_mask(self, rect, source_array):
+    def get_mask(self, rect, size_x, size_y, source_array):
         nodata_value = src_band.GetNoDataValue()
         if self.use_nodata and not nodata_value is None:
             return np.equal(source_array, nodata_value)
@@ -151,11 +220,11 @@ class GDALGeometryMaskMergeSource(GDALMergeSource):
         ogr_mem_driver = ogr.GetDriverByName("Memory")
         data_source = ogr_mem_driver.CreateDataSource("xxx")
         
-        layer = data_source.CreateLayer("poly", srs.sr)
+        layer = data_source.CreateLayer("poly", srs)
 
         # create a single feature and add the given geometry
         feature = ogr.Feature(layer.GetLayerDefn())
-        feature.SetGeometryDirectly(ogr.Geometry(wkt=wkt))
+        feature.SetGeometryDirectly(ogr.Geometry(wkt=str(wkt)))
         #feature.SetField("id", 0)
         layer.CreateFeature(feature)
 
@@ -174,10 +243,10 @@ class GDALGeometryMaskMergeSource(GDALMergeSource):
         # finally rasterize the vector layer to the mask dataset
         gdal.RasterizeLayer(self.mask_dataset, (1,), layer, burn_values=(0,))
 
-    def get_mask(self, rect, source_array):
+    def get_mask(self, rect, size_x, size_y, source_array):
         # read the values from the previously created mask dataset
         band = self.mask_dataset.GetRasterBand(1)
-        return band.ReadAsArray(*rect)
+        return band.ReadAsArray(*rect, buf_xsize=size_x, buf_ysize=size_y)
 
 
 class GDALAlphaMaskMergeSource(GDALMergeSource):
@@ -191,11 +260,13 @@ class GDALAlphaMaskMergeSource(GDALMergeSource):
         self.alpha_band_index = alpha_band_index
 
 
-    def get_mask(self, rect, source_array):
+    def get_mask(self, rect, size_x, size_y, source_array):
         alpha_band = self.dataset.GetRasterBand(self.alpha_band_index)
         dt = gdal_array.GDALTypeCodeToNumericTypeCode(alpha_band.DataType)
         
-        raw_alphas = alpha_band.ReadAsArray(*rect)
+        raw_alphas = alpha_band.ReadAsArray(
+            *rect, buf_xsize=size_x, buf_ysize=size_y
+        )
         if issubclass(dt, np.floating):
             return raw_alphas
         elif issubclass(dt, np.integer):
@@ -230,12 +301,15 @@ class GDALMergeTarget(GDALDatasetWrapper):
 
         res_x, res_y = first.resolution
         bbox = first.bbox
-        projection = first.dataset.GetProjection()
+        first_srs = osr.SpatialReference()
+        first_srs.ImportFromWkt(first.dataset.GetProjection())
         bandnum = len(first)
 
         for source in others:
             # check the sources
-            if source.dataset.GetProjection() != projection or len(source) != len(first):
+            source_srs = osr.SpatialReference()
+            source_srs.ImportFromWkt(source.dataset.GetProjection())
+            if not source_srs.IsSame(first_srs) or len(source) != len(first):
                 raise Exception("Could not create merge target.")
 
             new_res_x, new_res_y = source.resolution
@@ -295,7 +369,10 @@ class GDALDatasetMerger(object):
                 )
 
                 # get a mask if available
-                mask_data = source.get_mask(source_rect, source_data)
+                mask_data = source.get_mask(
+                    source_rect, target_rect.size_x, target_rect.size_y, 
+                    source_data
+                )
                 if mask_data is not None:
                     # first read the data from the target, to allow applying a 
                     # mask
