@@ -168,20 +168,33 @@ def get_optimization_config(config=None):
     return values
 
 
+
+time_delta_keys = {
+    "w": "weeks",
+    "d": "days",
+    "h": "hours",
+    "m": "minutes",
+    "ms": "milliseconds",
+    "us": "microseconds"
+}
+
+time_delta_regex = re.compile("".join([
+    "((?P<%s>\d+)%s ?)?" % (unit, short)
+    for short, unit in time_delta_keys.items()
+]))
+
 def parse_time_delta(string):
-    keys = ["weeks", "days", "hours", "minutes"]
-    regex = "".join(["((?P<%s>\d+)%s ?)?" % (k, k[0]) for k in keys])
     kwargs = {}
-    for k,v in re.match(regex, string).groupdict(default="0").items():
+    for k,v in time_delta_regex.match(string).groupdict(default="0").items():
         kwargs[k] = int(v)
     return timedelta(**kwargs)
 
 
-def get_ingestion_config(config=None):
+def get_ingest_config(config=None):
     config = config or get_ngeo_config()
 
     return {
-        "strategy", safe_get(config, INGEST_SECTION, "strategy", "replace"),
+        "strategy": safe_get(config, INGEST_SECTION, "strategy", "replace"),
         "merge_threshold": parse_time_delta(
             safe_get(config, INGEST_SECTION, "merge_threshold", "5d")
         )
