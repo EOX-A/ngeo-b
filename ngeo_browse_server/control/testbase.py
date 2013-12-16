@@ -759,6 +759,8 @@ class IngestReplaceTestCaseMixIn(IngestTestCaseMixIn):
         for filename in self.expected_deleted_optimized_files:
             self.assertFalse(exists(join(self.temp_optimized_files_dir, filename)))
 
+class IngestMergeTestCaseMixIn(IngestReplaceTestCaseMixIn):
+    pass
 
 class RasterMixIn(object):
     """ Test case mix-in to test the optimized (GDAL-)raster files. """
