@@ -366,9 +366,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
             current_time = browse_report.date_time
             timedelta = current_time - previous_time
 
-            # TODO calculate timedelta from last Browse report to this one
-
-            # TODO: get strategy and merge threshold
+            # get strategy and merge threshold
             ingest_config = get_ingest_config(config)
             strategy = ingest_config["strategy"]
             threshold = ingest_config["merge_threshold"]
@@ -388,8 +386,8 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                 
                 replaced_time_interval = (existing_browse_model.start_time,
                                           existing_browse_model.end_time)
-                                
-                remove_browse(
+
+                _, _ = remove_browse(
                     existing_browse_model, browse_layer, coverage_id, 
                     seed_areas, config
                 )
