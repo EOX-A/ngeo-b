@@ -1,5 +1,7 @@
 
-from django.contrib.gis.geos import GEOSGeometry, MultiPolygon, Polygon
+from django.contrib.gis.geos import (
+    GEOSGeometry, MultiPolygon, Polygon, LinearRing, 
+)
 from eoxserver.contrib import gdal
 from eoxserver.processing.preprocessing import (
     WMSPreProcessor, PreProcessResult
@@ -71,6 +73,10 @@ class NGEOPreProcessor(WMSPreProcessor):
                 output_filename, self.format_selection.driver_name,
                 self.format_selection.creation_options
             )
+            # cleanup previous file
+            driver = original_ds.GetDriver()
+            original_ds = None
+            driver.Delete(merge_with) 
 
         else:
             logger.debug("Writing file to disc using options: %s."
