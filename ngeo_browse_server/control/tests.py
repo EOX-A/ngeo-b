@@ -827,7 +827,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class IngestFootprintBrowseMerge(IngestMergeTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_before_test_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327.xml"
-    request_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_new.xml"
+    request_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_new_merge.xml"
     
     expected_num_replaced = 1
     
