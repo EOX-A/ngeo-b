@@ -194,8 +194,8 @@ def get_ingest_config(config=None):
     config = config or get_ngeo_config()
 
     return {
-        "strategy": safe_get(config, INGEST_SECTION, "strategy", "replace"),
+        "strategy": safe_get(config, INGEST_SECTION, "strategy", "merge"),
         "merge_threshold": parse_time_delta(
-            safe_get(config, INGEST_SECTION, "merge_threshold", "5d")
+            safe_get(config, INGEST_SECTION, "merge_threshold", "5h")
         )
     }
