@@ -31,11 +31,13 @@ from os.path import join
 from textwrap import dedent
 import logging
 from datetime import date
+from SocketServer import TCPServer, ThreadingMixIn
+from BaseHTTPServer import BaseHTTPRequestHandler
+import threading
 
 from django.conf import settings
 from django.test import TestCase, TransactionTestCase, LiveServerTestCase
 from django.utils.dateparse import parse_datetime
-
 
 from ngeo_browse_server import get_version
 from ngeo_browse_server.control.testbase import (
@@ -52,6 +54,7 @@ from ngeo_browse_server.control.testbase import (
 from ngeo_browse_server.control.ingest.config import (
     INGEST_SECTION
 )
+from ngeo_browse_server.control.control.notification import notify
 
 
 #===============================================================================
@@ -3100,3 +3103,32 @@ class LogFileRetrievalTestCase(LogFileMixIn, TestCase):
     expected_response = "content-1"
 
 
+
+
+class NotifyTestCase(TestCase):
+    def test_notification(self):
+        
+        class POSTHandler(BaseHTTPRequestHandler):
+            def do_POST(self):
+                content_len = int(self.headers.getheader('content-length'))
+                post_body = self.rfile.read(content_len)
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.close()
+            
+            def log_request(self, *args, **kwargs):
+                pass
+
+        class ThreadedTCPServer(ThreadingMixIn, TCPServer):
+            pass
+
+        server = ThreadedTCPServer(("localhost", 9000), POSTHandler)
+        server_thread = threading.Thread(target=server.serve_forever)
+
+        # Exit the server thread when the main thread terminates
+        server_thread.daemon = True
+        server_thread.start()
+
+        notify("Summary", "Message", "INFO", "localhost:9000")
+
+        server.shutdown()
