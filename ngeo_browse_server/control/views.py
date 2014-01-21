@@ -140,6 +140,7 @@ def controller_server(request):
 def status(request):
     status = get_status()
 
+    # GET means "status"
     if request.method == "GET":
         return JsonResponse({
             "timestamp": timezone.now().isoformat(),
@@ -158,9 +159,31 @@ def status(request):
             ]
         })
 
+    # PUT means "control"
     elif request.method == "PUT":
         # set status
-        pass
+        values = json.load(request)
+        command = values["command"]
+
+        try:
+            status.command(command)
+            return JsonResponse({"result": "SUCCESS"})
+        except AttributeError:
+            fault_string = "Invalid command '%s'." % command
+        except NotImplemented, e:
+            fault_string = "Command '%s' is not supported." % command
+        except Exception, e:
+            fault_string = str(e)
+
+        return JsonResponse({
+            "faultString": fault_string,
+            "detail": {
+                "currentState": str(status),
+                "failedState": command,
+                "instanceId": get_instance_id(get_ngeo_config())
+            }
+        }, status=400)
+
 
 def log_file_list(request):
     datelist = []
