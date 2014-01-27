@@ -58,6 +58,9 @@ from ngeo_browse_server.control.control.status import get_status
 from ngeo_browse_server.control.control.logview import (
     get_log_files, get_log_file
 )
+from ngeo_browse_server.control.control.configuration import (
+    get_schema_and_configuration
+)
 
 
 logger = logging.getLogger(__name__)
@@ -206,6 +209,21 @@ def log(request, datestr, name):
     
     with open(logfile) as f:
         return HttpResponse(f.read())
+
+
+def config(request):
+    try:
+        status = get_status()
+        if not status.state != "running":
+            raise Exception("Not running")
+
+        tree = get_schema_and_configuration()
+        return HttpResponse(
+            etree.tostring(tree, pretty_print=True), status=200
+        )
+    except Exception, e:
+        return HttpResponse(str(e),status=400)
+
 
 
 def get_client_ip(request):
