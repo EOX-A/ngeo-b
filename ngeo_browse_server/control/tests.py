@@ -49,7 +49,7 @@ from ngeo_browse_server.control.testbase import (
     ImportTestCaseMixIn, ImportReplaceTestCaseMixin,
     SeedMergeTestCaseMixIn, HttpMultipleMixIn, LoggingTestCaseMixIn,
     RegisterTestCaseMixIn, UnregisterTestCaseMixIn, StatusTestCaseMixIn,
-    LogListMixIn, LogFileMixIn
+    LogListMixIn, LogFileMixIn, ConfigMixIn
 )
 from ngeo_browse_server.control.ingest.config import (
     INGEST_SECTION
@@ -3132,3 +3132,192 @@ class NotifyTestCase(TestCase):
         notify("Summary", "Message", "INFO", "localhost:9000")
 
         server.shutdown()
+
+
+
+class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
+    expected_response = """\
+<getConfigurationAndSchemaResponse>
+  <xsdSchema>
+    <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+      <xsd:complexType name="ingestType">
+        <xsd:element type="string" name="optimized_files_postfix">
+          <xsd:annotation>
+            <xsd:label>Browse file postfix</xsd:label>
+            <xsd:tooltip>String that is attached at the end of filenames of optimized browses.</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="string" name="compression">
+          <xsd:annotation>
+            <xsd:label>Compression method</xsd:label>
+            <xsd:tooltip>Compression method used. One of "JPEG", "LZW", "PACKBITS", "DEFLATE", "CCITTRLE", "CCITTFAX3", "CCITTFAX4", or "NONE". Default is "NONE"</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="integer" name="jpeg_quality">
+          <xsd:annotation>
+            <xsd:label>JPEG compression quality</xsd:label>
+            <xsd:tooltip>JPEG quality if compression is "JPEG". Integer between 1-100. </xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="string" name="zlevel">
+          <xsd:annotation>
+            <xsd:label>DEFLATE Compression level</xsd:label>
+            <xsd:tooltip>zlevel option for "DEFLATE" compression. Integer between 1-9.</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="boolean" name="tiling">
+          <xsd:annotation>
+            <xsd:label>Internal tiling</xsd:label>
+            <xsd:tooltip>Defines whether or not the browse images shall be internally tiled.</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="boolean" name="overviews">
+          <xsd:annotation>
+            <xsd:label>Generate overviews</xsd:label>
+            <xsd:tooltip>Defines whether internal browse overviews shall be generated.</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="string" name="overview_resampling">
+          <xsd:annotation>
+            <xsd:label>Overview resampling</xsd:label>
+            <xsd:tooltip>Defines the resampling method used to generate the overviews. One of "NEAREST", "GAUSS", "CUBIC", "AVERAGE", "MODE", "AVERAGE_MAGPHASE" or "NONE".</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="string" name="overview_levels">
+          <xsd:annotation>
+            <xsd:label>Overview levels</xsd:label>
+            <xsd:tooltip>A comma separated list of integer overview levels. Defaults to a automatic selection of overview levels according to the dataset size.</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="integer" name="overview_minsize">
+          <xsd:annotation>
+            <xsd:label>Overview minimum size</xsd:label>
+            <xsd:tooltip>A (positive) integer value declaring the lowest size the highest overview level at most shall have.</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="boolean" name="color_index">
+          <xsd:annotation>
+            <xsd:label>Color index table</xsd:label>
+            <xsd:tooltip>Defines if a color index shall be calculated.</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="boolean" name="footprint_alpha">
+          <xsd:annotation>
+            <xsd:label></xsd:label>
+            <xsd:tooltip>Defines whether or not a alpha channel shall be used to display the images area of interest.</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="integer" name="simplification_factor">
+          <xsd:annotation>
+            <xsd:label></xsd:label>
+            <xsd:tooltip>Sets the factor for the simplification algorithm. See `http://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm` for details. Defaults to 2 (2 * resolution == 2 pixels) which provides reasonable results.</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="string" name="threshold">
+          <xsd:annotation>
+            <xsd:label>Merge time threshold</xsd:label>
+            <xsd:tooltip>The maximum time difference between the two browse report to allow a 'merge'. E.g: 1w 5d 3h 12m 18ms. Defaults to '5h'.</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="string" name="strategy">
+          <xsd:annotation>
+            <xsd:label>Ident browse strategy</xsd:label>
+            <xsd:tooltip>Sets the 'strategy' for when an ingested browse is equal with an existing one. The 'merge'-strategy tries to merge the two existing images to one single. This is only possible if the time difference of the two browse reports (the report of the to be ingested browse and the one of the already existing one) is lower than the threshold. Otherwise a 'replace' is done. The 'replace' strategy removes the previous browse, before ingesting the new one.</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+      </xsd:complexType>
+      <xsd:complexType name="cacheType">
+        <xsd:element type="integer" name="threads">
+          <xsd:annotation>
+            <xsd:label></xsd:label>
+            <xsd:tooltip></xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+      </xsd:complexType>
+      <xsd:complexType name="logType">
+        <xsd:element type="levelType" name="level">
+          <xsd:annotation>
+            <xsd:label>Log level</xsd:label>
+            <xsd:tooltip>Log level, to determine which log types shall be logged.</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+      </xsd:complexType>
+      <xsd:simpleType name="levelType">
+        <xsd:restriction base="string">
+          <xsd:enumeration value="DEBUG">
+            <xsd:annotation>
+              <xsd:documentation>
+                <xsd:tooltip>Log debug, info, warning and error messages</xsd:tooltip>
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:enumeration>
+          <xsd:enumeration value="INFO">
+            <xsd:annotation>
+              <xsd:documentation>
+                <xsd:tooltip>Log info, warning and error messages</xsd:tooltip>
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:enumeration>
+          <xsd:enumeration value="WARNING">
+            <xsd:annotation>
+              <xsd:documentation>
+                <xsd:tooltip>Log warning and error messages</xsd:tooltip>
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:enumeration>
+          <xsd:enumeration value="ERROR">
+            <xsd:annotation>
+              <xsd:documentation>
+                <xsd:tooltip>Log only error messages</xsd:tooltip>
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:enumeration>
+          <xsd:enumeration value="OFF">
+            <xsd:annotation>
+              <xsd:documentation>
+                <xsd:tooltip>Turn logging off</xsd:tooltip>
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:enumeration>
+        </xsd:restriction>
+      </xsd:simpleType>
+      <xsd:complexType name="configurationType">
+        <xsd:sequence>
+          <xsd:element type="ingestType" name="ingest"/>
+          <xsd:element type="cacheType" name="cache"/>
+          <xsd:element type="logType" name="log"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:element type="configurationType" name="configuration"/>
+    </xsd:schema>
+  </xsdSchema>
+  <configurationData>
+    <configuration>
+      <ingest>
+        <optimized_files_postfix>_proc</optimized_files_postfix>
+        <compression>LZW</compression>
+        <jpeg_quality>75</jpeg_quality>
+        <zlevel>6</zlevel>
+        <tiling>true</tiling>
+        <overviews>true</overviews>
+        <overview_resampling>NEAREST</overview_resampling>
+        <overview_levels>2,4,8,16</overview_levels>
+        <overview_minsize>256</overview_minsize>
+        <color_index>false</color_index>
+        <footprint_alpha>true</footprint_alpha>
+        <simplification_factor>2</simplification_factor>
+        <threshold>5h</threshold>
+        <strategy>merge</strategy>
+      </ingest>
+      <cache>
+        <threads>1</threads>
+      </cache>
+      <log>
+        <level>INFO</level>
+      </log>
+    </configuration>
+  </configurationData>
+</getConfigurationAndSchemaResponse>
+"""
+
+

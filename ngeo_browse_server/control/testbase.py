@@ -1264,3 +1264,8 @@ class LogListMixIn(ControlLogMixIn):
 
 class LogFileMixIn(ControlLogMixIn):
     pass
+
+
+class ConfigMixIn(ControlTestCaseMixIn):
+    method = "get"
+    url = "/config/"
