@@ -46,6 +46,16 @@ def get_ngeo_config():
     
     return _config_instance
 
+def write_ngeo_config():
+    """ Writes the current ngeo config to the config file.
+    """
+    
+    global _config_instance
+
+    with open(join(settings.PROJECT_DIR, "conf", "ngeo.conf")) as f:
+        _config_instance.write(f)
+
+
 
 def reset_ngeo_config():
     """ Reset the global configuration instance and reread the contents from the 
