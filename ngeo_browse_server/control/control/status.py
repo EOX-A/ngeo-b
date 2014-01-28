@@ -67,7 +67,7 @@ class Status(object):
 
     def _get_status(self):
         status_config = self._status_config()
-        return status_config.get(STATUS_SECTION, "state")
+        return status_config.get(STATUS_SECTION, "state").upper()
 
 
     def command(self, command):
@@ -80,15 +80,15 @@ class Status(object):
 
     @locked()
     def pause(self):
-        if self._get_status() != "running":
+        if self._get_status() != "RUNNING":
             raise StatusError("To 'pause', the server needs to be 'running'.")
-        self._set_status("paused")
+        self._set_status("PAUSED")
 
     @locked()
     def resume(self):
-        if self._get_status() != "paused":
+        if self._get_status() != "PAUSED":
             raise StatusError("To 'resume', the server needs to be 'paused'.")
-        self._set_status("running")
+        self._set_status("RUNNING")
 
     #@locked()
     #def start(self):
@@ -112,4 +112,4 @@ class Status(object):
     @property
     @locked()
     def running(self):
-        return self._get_status == "running"
+        return self._get_status() == "RUNNING"
