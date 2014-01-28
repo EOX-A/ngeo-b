@@ -115,6 +115,7 @@ def ingest(request):
 def controller_server(request):
     config = get_ngeo_config()
     try:
+        status = get_status()
         if not status.running:
             raise Exception("Server is currently not running.")
 
@@ -249,6 +250,3 @@ def get_client_ip(request):
         return x_forwarded_for.split(',')[-1].strip()
     else:
         return request.META.get('REMOTE_ADDR')
-
-
-
