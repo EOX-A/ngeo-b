@@ -88,6 +88,21 @@ class BrowseLayer(models.Model):
     )
     highest_map_level = models.IntegerField(null=True, blank=True, default=None)
     lowest_map_level = models.IntegerField(null=True, blank=True, default=None)
+
+    # ingestion strategy
+    strategy = models.CharField(max_length=8, default="inherit",
+        choices=(
+            ("replace", "replace"), 
+            ("merge", "merge"), 
+            ("inherit", "inherit")
+        )
+    )
+
+    # for mapache timedimension default
+    timedimension_default = models.CharField(max_length=64)
+
+    # for mapcache lookup query limit
+    tile_query_limit = models.PositiveIntegerField(default=100)
     
     def __unicode__(self):
         return "Browse Layer '%s' with Browse Type '%s'" % (
