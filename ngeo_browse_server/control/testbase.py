@@ -44,6 +44,7 @@ import sqlite3
 from ConfigParser import ConfigParser
 import time
 from urlparse import urlparse
+from textwrap import dedent
 
 from osgeo import gdal, osr
 from django.conf import settings
@@ -147,6 +148,11 @@ class BaseTestCaseMixIn(object):
     }
     
     configuration = {}
+
+    status_config = dedent("""
+        [status]
+        state=RUNNING
+    """)
     
     # check the number of DS, Browse and Time models in the database
     model_counts = {}
@@ -235,11 +241,15 @@ class BaseTestCaseMixIn(object):
         chmod(self.seed_command, st.st_mode | S_IEXEC)
         
         config.set(SEED_SECTION, "seed_command", self.seed_command)
+
+        self.temp_status_config = join(tempfile.gettempdir(), "status.conf")
     
     def setUp_config(self):
         # set up default config and specific config
         
         config = get_ngeo_config()
+        config.set(CTRL_SECTION, "status_config_path", self.temp_status_config)
+        
         for configuration in (self.default_configuration, self.configuration):
             for (section, option), value in configuration.items():
                 if not config.has_section(section):
@@ -248,6 +258,10 @@ class BaseTestCaseMixIn(object):
                     config.set(section, option, value)
                 else:
                     config.remove_option(section, option)
+
+        if self.status_config is not None:
+            with open(self.temp_status_config, "w+") as f:
+                f.write(self.status_config)
     
     def setUp_ingest(self):
         self.before_test_files = 0
@@ -273,6 +287,9 @@ class BaseTestCaseMixIn(object):
                   self.temp_mapcache_dir):
             shutil.rmtree(d)
         remove(self.seed_command)
+
+        if exists(self.temp_status_config):
+            remove(self.temp_status_config)
     
     def add_counts(self, *model_classes):
         # save the count of each model class to be checked later on.
@@ -1101,7 +1118,6 @@ class ControlTestCaseMixIn(BaseTestCaseMixIn):
     """
 
     controller_config = None
-    status_config = None
 
     url = "/controllerServer/"
     request = None
@@ -1114,29 +1130,20 @@ class ControlTestCaseMixIn(BaseTestCaseMixIn):
     def setUp_files(self):
         super(ControlTestCaseMixIn, self).setUp_files()
         self.temp_controller_server_config = join(tempfile.gettempdir(), "controller.conf")
-        self.temp_status_config = join(tempfile.gettempdir(), "status.conf")
 
         if self.controller_config is not None:
             with open(self.temp_controller_server_config, "w+") as f:
                 f.write(self.controller_config)
-
-        if self.status_config is not None:
-            with open(self.temp_status_config, "w+") as f:
-                f.write(self.status_config)
 
 
     def setUp_config(self):
         super(ControlTestCaseMixIn, self).setUp_config()
         config = get_ngeo_config()
         config.set(CTRL_SECTION, "controller_config_path", self.temp_controller_server_config)
-        config.set(CTRL_SECTION, "status_config_path", self.temp_status_config)
 
     def tearDown_files(self):
         if exists(self.temp_controller_server_config):
             remove(self.temp_controller_server_config)
-
-        if exists(self.temp_status_config):
-            remove(self.temp_status_config)
 
     def execute(self, request=None, url=None):
         if not url:
