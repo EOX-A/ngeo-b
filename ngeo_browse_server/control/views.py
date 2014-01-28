@@ -71,6 +71,12 @@ def ingest(request):
     """
     
     try:
+        status = get_status()
+        if not status.running:
+            raise IngestionException("Ingest is not possible if the state of "
+                                     "the server is not 'RUNNING'.",
+                                     "InvalidState")
+
         if request.method != "POST":
             raise IngestionException("Method '%s' is not allowed, use 'POST' "
                                      "only." % request.method.upper(),
@@ -109,6 +115,9 @@ def ingest(request):
 def controller_server(request):
     config = get_ngeo_config()
     try:
+        if not status.running:
+            raise Exception("Server is currently not running.")
+
         values = json.load(request)
 
         # POST means "register"
@@ -189,6 +198,10 @@ def status(request):
 
 
 def log_file_list(request):
+    status = get_status()
+    if not status.running:
+        return HttpResponse("", status=400)
+
     datelist = []
     for date, files in get_log_files().items():
         datelist.append({
@@ -202,6 +215,10 @@ def log_file_list(request):
 
 
 def log(request, datestr, name):
+    status = get_status()
+    if not status.running:
+        return HttpResponse("", status=400)
+    
     date = datetime.date(*time.strptime(datestr, "%Y-%m-%d")[0:3])
     logfile = get_log_file(date, name)
     if not logfile:

@@ -10,6 +10,10 @@ from ngeo_browse_server.control.control.config import (
 )
 
 
+class StatusError(Exception):
+    pass
+
+
 def get_status(config=None):
     """ Convenience function to return a `Status` object with the global 
         configuration. 
@@ -76,24 +80,27 @@ class Status(object):
 
     @locked()
     def pause(self):
+        if self._get_status() != "running":
+            raise StatusError("To 'pause', the server needs to be 'running'.")
         self._set_status("paused")
 
     @locked()
     def resume(self):
-        if self.status
+        if self._get_status() != "paused":
+            raise StatusError("To 'resume', the server needs to be 'paused'.")
         self._set_status("running")
 
-    @locked()
-    def start(self):
-        self._set_status("running")
+    #@locked()
+    #def start(self):
+    #    self._set_status("running")#
 
-    @locked()
-    def shutdown(self):
-        self._set_status("shutting_down")
+    #@locked()
+    #def shutdown(self):
+    #    self._set_status("shutting_down")
 
-    @locked()
-    def restart(self):
-        self._set_status("running")
+    #@locked()
+    #def restart(self):
+    #    self._set_status("running")
 
     @locked(timeout=1.)
     def state(self):
@@ -101,3 +108,8 @@ class Status(object):
 
     def __str__(self):
         return self.state()
+
+    @property
+    @locked()
+    def running(self):
+        return self._get_status == "running"
