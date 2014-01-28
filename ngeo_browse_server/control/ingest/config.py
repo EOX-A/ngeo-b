@@ -27,7 +27,9 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
+import re
 from os.path import join, basename, splitext
+from datetime import timedelta
 
 from eoxserver.processing.preprocessing import RGB, RGBA
 
@@ -165,3 +167,35 @@ def get_optimization_config(config=None):
     
     return values
 
+
+
+time_delta_keys = {
+    "w": "weeks",
+    "d": "days",
+    "h": "hours",
+    "m": "minutes",
+    "ms": "milliseconds",
+    "us": "microseconds"
+}
+
+time_delta_regex = re.compile("".join([
+    "((?P<%s>\d+)%s ?)?" % (unit, short)
+    for short, unit in time_delta_keys.items()
+]))
+
+def parse_time_delta(string):
+    kwargs = {}
+    for k,v in time_delta_regex.match(string).groupdict(default="0").items():
+        kwargs[k] = int(v)
+    return timedelta(**kwargs)
+
+
+def get_ingest_config(config=None):
+    config = config or get_ngeo_config()
+
+    return {
+        "strategy": safe_get(config, INGEST_SECTION, "strategy", "merge"),
+        "merge_threshold": parse_time_delta(
+            safe_get(config, INGEST_SECTION, "merge_threshold", "5h")
+        )
+    }

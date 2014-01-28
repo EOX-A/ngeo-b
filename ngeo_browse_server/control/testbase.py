@@ -142,6 +142,8 @@ class BaseTestCaseMixIn(object):
         (INGEST_SECTION, "footprint_alpha"): "true",
         (INGEST_SECTION, "delete_on_success"): "true",
         (INGEST_SECTION, "leave_original"): "false",
+        (INGEST_SECTION, "strategy"): "merge",
+        (INGEST_SECTION, "merge_threshold"): "5h"
         # storage_dir, success_dir, failure_dir, optimized_files_dir, and 
         # seed_command are set automatically in setUp_files.
     }
@@ -759,6 +761,8 @@ class IngestReplaceTestCaseMixIn(IngestTestCaseMixIn):
         for filename in self.expected_deleted_optimized_files:
             self.assertFalse(exists(join(self.temp_optimized_files_dir, filename)))
 
+class IngestMergeTestCaseMixIn(IngestReplaceTestCaseMixIn):
+    pass
 
 class RasterMixIn(object):
     """ Test case mix-in to test the optimized (GDAL-)raster files. """
