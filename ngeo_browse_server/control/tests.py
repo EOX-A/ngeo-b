@@ -43,13 +43,13 @@ from ngeo_browse_server import get_version
 from ngeo_browse_server.control.testbase import (
     BaseTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, CliMixIn, CliFailureMixIn,
     IngestTestCaseMixIn, SeedTestCaseMixIn, IngestReplaceTestCaseMixIn, 
-    OverviewMixIn, CompressionMixIn, BandCountMixIn, HasColorTableMixIn, 
-    ExtentMixIn, SizeMixIn, ProjectionMixIn, StatisticsMixIn, WMSRasterMixIn,
-    IngestFailureTestCaseMixIn, DeleteTestCaseMixIn, ExportTestCaseMixIn,
-    ImportTestCaseMixIn, ImportReplaceTestCaseMixin,
-    SeedMergeTestCaseMixIn, HttpMultipleMixIn, LoggingTestCaseMixIn,
-    RegisterTestCaseMixIn, UnregisterTestCaseMixIn, StatusTestCaseMixIn,
-    LogListMixIn, LogFileMixIn, ConfigMixIn
+    IngestMergeTestCaseMixIn, OverviewMixIn, CompressionMixIn, BandCountMixIn, 
+    HasColorTableMixIn, ExtentMixIn, SizeMixIn, ProjectionMixIn, 
+    StatisticsMixIn, WMSRasterMixIn, IngestFailureTestCaseMixIn, 
+    DeleteTestCaseMixIn, ExportTestCaseMixIn, ImportTestCaseMixIn, 
+    ImportReplaceTestCaseMixin, SeedMergeTestCaseMixIn, HttpMultipleMixIn, 
+    LoggingTestCaseMixIn, RegisterTestCaseMixIn, UnregisterTestCaseMixIn, 
+    StatusTestCaseMixIn, LogListMixIn, LogFileMixIn, ConfigMixIn
 )
 from ngeo_browse_server.control.ingest.config import (
     INGEST_SECTION
@@ -826,6 +826,39 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
     </bsi:ingestionResult>
 </bsi:ingestBrowseResponse>
 """
+
+
+class IngestFootprintBrowseMerge(IngestMergeTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    request_before_test_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327.xml"
+    request_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_new_merge.xml"
+    
+    expected_num_replaced = 1
+    
+    expected_ingested_browse_ids = ("b_id_3",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['ASA_IM__0P_20100807_101327_new_proc.tif']
+    expected_deleted_files = ['ASA_IM__0P_20100807_101327_new.jpg']
+    expected_deleted_optimized_files = ['ASA_IM__0P_20100807_101327.tif']
+    
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>0</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>1</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>b_id_3</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
 
 #===============================================================================
 # Ingest partial (some success and some failure) tests
