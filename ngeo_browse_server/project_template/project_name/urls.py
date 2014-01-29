@@ -51,9 +51,10 @@ urlpatterns = patterns('',
     # Enable the admin:
     url(r'^admin/', include(admin.site.urls)),
 
-    (r'^ingest', 'ngeo_browse_server.control.views.ingest'),
-    (r'^controllerServer', 'ngeo_browse_server.control.views.controller_server'),
-    (r'^status', 'ngeo_browse_server.control.views.status'),
+    (r'^ingest/$', 'ngeo_browse_server.control.views.ingest'),
+    (r'^controllerServer/$', 'ngeo_browse_server.control.views.controller_server'),
+    (r'^status/$', 'ngeo_browse_server.control.views.status'),
     (r'^log/$', 'ngeo_browse_server.control.views.log_file_list'),
     (r'^log/(\d{4}-\d{2}-\d{2})/(.*)$', 'ngeo_browse_server.control.views.log'),
+    (r'^config/$', 'ngeo_browse_server.control.views.config'),
 )
