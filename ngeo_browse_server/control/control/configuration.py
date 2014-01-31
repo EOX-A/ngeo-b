@@ -3,7 +3,9 @@
 from lxml import etree
 from lxml.builder import ElementMaker, E
 
-from ngeo_browse_server.config import get_ngeo_config, write_ngeo_config
+from ngeo_browse_server.config import (
+    get_ngeo_config, write_ngeo_config, safe_get
+)
 
 
 ns_xsd_uri = "http://www.w3.org/2001/XMLSchema"
@@ -72,7 +74,7 @@ class Parameter(object):
         )
 
     def parse(self, element):
-        return TYPE_MAP.get(self.type, self.type)(element.text)
+        return TYPE_MAP.get(self.type, self.type)(element)
 
     def encode(self, value):
         return E(self.name, ENCODE_MAP.get(self.type, str)(value))
@@ -91,12 +93,15 @@ class Configurator(object):
 
         for parameter in self.parameters:
             value_element = element.find(parameter.name)
-            if not value_element:
+            if value_element is None:
                 raise ConfiguratorException("Element '%s/%s' not found" % (
-                    self.type_name, parameter.name
+                    self.element, parameter.name
                 ))
+
             kwargs[value_element.tag] = parameter.parse(value_element.text)
 
+
+        print kwargs
         self.set_values(**kwargs)
 
     def encode(self):
@@ -161,8 +166,6 @@ class ngEOConfigConfigurator(Configurator):
         section = self.section
         for key, value in kwargs.items():
             config.set(self.section, key, value)
-
-        write_ngeo_config()
 
 
 class IngestConfigurator(ngEOConfigConfigurator):
@@ -338,3 +341,31 @@ def get_schema_and_configuration():
         )
     )
 
+def get_config_revision():
+    pass
+
+def change_configuration(tree):
+    config_elem = tree.find("configurationData/configuration")
+
+    # TODO: count up config revision
+
+    for element in config_elem:
+        tag = element.tag
+        print tag
+        for configurator in CONFIGURATORS:
+            if configurator.element_name == tag:
+                break
+        else:
+            raise Exception("Invalid configuration element '%s' found." % tag)
+
+        configurator.parse(element)
+
+    config = get_ngeo_config()
+    
+    if not config.has_section("config"):
+        config.add_section("config")
+
+    revision = int(safe_get(config, "config", "revision", 0))
+    config.set("config", "revision", str(revision + 1))
+
+    #write_ngeo_config()
