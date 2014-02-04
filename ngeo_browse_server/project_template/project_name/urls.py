@@ -56,5 +56,5 @@ urlpatterns = patterns('',
     (r'^status/$', 'ngeo_browse_server.control.views.status'),
     (r'^log/$', 'ngeo_browse_server.control.views.log_file_list'),
     (r'^log/(\d{4}-\d{2}-\d{2})/(.*)$', 'ngeo_browse_server.control.views.log'),
-    (r'^config/$', 'ngeo_browse_server.control.views.config'),
+    (r'^instanceconfig/$', 'ngeo_browse_server.control.views.config'),
 )

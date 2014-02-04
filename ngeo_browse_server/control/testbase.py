@@ -1279,4 +1279,4 @@ class LogFileMixIn(ControlLogMixIn):
 
 class ConfigMixIn(ControlTestCaseMixIn):
     method = "get"
-    url = "/config/"
+    url = "/instanceconfig/"
