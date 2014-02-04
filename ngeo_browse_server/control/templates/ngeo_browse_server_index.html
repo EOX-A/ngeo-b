@@ -42,6 +42,7 @@
         <li><a href="{% url ngeo_browse_server.control.views.log_file_list %}">Log file list</a>: Construct as "{% url ngeo_browse_server.control.views.log_file_list %}&lt;YEAR-MM-DD&gt;/&lt;FILENAME&gt;"</li>
         <li><a href="{% url ngeo_browse_server.control.views.ingest %}">Ingest</a>: Send browse reports as XML via POST</li>
         <li><a href="{% url ngeo_browse_server.control.views.controller_server %}">Controller Server</a>: Send register json via POST and unregister one via DELETE</li>
+        <li><a href="{% url ngeo_browse_server.control.views.config %}">Configuration</a>: Retrieve the current configuration and its schema via GET, or set the new configuration via PUT</li>
     </ul>
 
     Powered by <a href="http://ngeo.eox.at" target="_blank">ngEO Browse Server

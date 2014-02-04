@@ -59,7 +59,7 @@ from ngeo_browse_server.control.control.logview import (
     get_log_files, get_log_file
 )
 from ngeo_browse_server.control.control.configuration import (
-    get_schema_and_configuration
+    get_schema_and_configuration, change_configuration, get_config_revision
 )
 
 
@@ -153,49 +153,60 @@ def controller_server(request):
 def status(request):
     status = get_status()
 
-    # GET means "status"
-    if request.method == "GET":
+    try:
+        # GET means "status"
+        if request.method == "GET":
+            return JsonResponse({
+                "timestamp": timezone.now().isoformat(),
+                "state": status.state(),
+                "softwareversion": get_version(),
+                "queues": [
+                    # TODO: find relevant status queues
+                    #{"name": "request1",
+                    #"counters": [{
+                    #    "name": "counter1",
+                    #    "value": 2
+                    #}, {
+                    #    "name": "counter2",
+                    #    "value": 2
+                    #}]}
+                ]
+            })
+
+        # PUT means "control"
+        elif request.method == "PUT":
+            # set status
+            values = json.load(request)
+            command = values["command"]
+
+            try:
+                status.command(command)
+                return JsonResponse({"result": "SUCCESS"})
+            except AttributeError:
+                fault_string = "Invalid command '%s'." % command
+            except NotImplemented, e:
+                fault_string = "Command '%s' is not supported." % command
+            except Exception, e:
+                fault_string = str(e)
+
+            return JsonResponse({
+                "faultString": fault_string,
+                "detail": {
+                    "currentState": str(status),
+                    "failedState": command,
+                    "instanceId": get_instance_id(get_ngeo_config())
+                }
+            }, status=400)
+        else:
+            raise Exception("Invalid method '%s'" % request.method)
+
+    except Exception, e:
+        print logger.handlers
+        logger.warning(str(e))
         return JsonResponse({
-            "timestamp": timezone.now().isoformat(),
-            "state": status.state(),
-            "softwareversion": get_version(),
-            "queues": [
-                # TODO: find relevant status queues
-                #{"name": "request1",
-                #"counters": [{
-                #    "name": "counter1",
-                #    "value": 2
-                #}, {
-                #    "name": "counter2",
-                #    "value": 2
-                #}]}
-            ]
-        })
-
-    # PUT means "control"
-    elif request.method == "PUT":
-        # set status
-        values = json.load(request)
-        command = values["command"]
-
-        try:
-            status.command(command)
-            return JsonResponse({"result": "SUCCESS"})
-        except AttributeError:
-            fault_string = "Invalid command '%s'." % command
-        except NotImplemented, e:
-            fault_string = "Command '%s' is not supported." % command
-        except Exception, e:
-            fault_string = str(e)
-
-        return JsonResponse({
-            "faultString": fault_string,
-            "detail": {
-                "currentState": str(status),
-                "failedState": command,
-                "instanceId": get_instance_id(get_ngeo_config())
-            }
+            "faultString": str(e)
         }, status=400)
+
 
 
 def log_file_list(request):
@@ -235,12 +246,47 @@ def config(request):
         if not status.state != "running":
             raise Exception("Not running")
 
-        tree = get_schema_and_configuration()
-        return HttpResponse(
-            etree.tostring(tree, pretty_print=True), status=200
-        )
+        if request.method == "GET":
+
+            tree = get_schema_and_configuration()
+            return HttpResponse(
+                etree.tostring(tree, pretty_print=True),
+                content_type="text/xml"
+            )
+        elif request.method == "PUT":
+            tree = etree.fromstring(request.body)
+
+            change_configuration(tree)
+
+            return HttpResponse(
+                '<?xml version="1.0"?>\n<updateConfigurationResponse/>',
+                content_type="text/xml"
+            )
+        else:
+            raise Exception("Invalid request method '%s'." % request.method)
+
     except Exception, e:
-        return HttpResponse(str(e),status=400)
+        #return HttpResponse(str(e), status=400)
+        raise
+
+
+def revision(request):
+    try:
+        status = get_status()
+        if not status.state != "running":
+            raise Exception("Not running")
+
+        if request.method == "GET":
+            tree = get_config_revision()
+            return HttpResponse(
+                etree.tostring(tree, pretty_print=True),
+                content_type="text/xml"
+            )
+        else:
+            raise Exception("Invalid request method '%s'." % request.method)
+
+    except Exception, e:
+        return HttpResponse(str(e), status=400)
 
 
 
