@@ -194,6 +194,9 @@ class BaseTestCaseMixIn(object):
         # into it, and point the control.ingest.storage_dir to this location
         self.temp_storage_dir = tempfile.mktemp() # create a temp dir
         
+        self.config_filename = tempfile.NamedTemporaryFile(delete=False).name
+        os.environ["NGEO_CONFIG_FILE"] = self.config_filename
+
         config = get_ngeo_config()
         section = "control.ingest"
         
@@ -292,6 +295,8 @@ class BaseTestCaseMixIn(object):
 
         if exists(self.temp_status_config):
             remove(self.temp_status_config)
+        remove(self.config_filename)
+        del os.environ["NGEO_CONFIG_FILE"]
     
     def add_counts(self, *model_classes):
         # save the count of each model class to be checked later on.
