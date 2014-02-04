@@ -26,6 +26,8 @@
 #-------------------------------------------------------------------------------
 
 
+import logging
+import threading
 import urllib2
 
 from lxml import etree
@@ -51,6 +53,9 @@ def notify(summary, message, urgency=None, ip_address=None, config=None):
         ctrl_config = get_controller_config(get_controller_config_path(config))
         ip_address = safe_get(ctrl_config, CONTROLLER_SERVER_SECTION, "address")
 
+    if not ip_address:
+        return
+
     tree = E("notifyControllerServer",
         E("header",
             E("timestamp", isotime(now())),
@@ -70,3 +75,25 @@ def notify(summary, message, urgency=None, ip_address=None, config=None):
         headers={'Content-Type': 'text/xml'}
     )
     response = urllib2.urlopen(req, timeout=1)
+
+
+class NotifyControllerServerHandler(logging.Handler):
+
+    def emit(self, record):
+        # translate levels to urgency
+        if record.levelno > logging.ERROR:
+            urgency = "BLOCK"
+        elif record.levelno > logging.WARNING:
+            urgency = "CRITICAL"
+        else:
+            urgency = "INFO"
+
+        # start a thread to send the notification
+        thread = threading.Thread(
+            target=notify, args=(record.message, record.message, urgency)
+        )
+        thread.daemon = True
+        thread.start()
+
+
+
