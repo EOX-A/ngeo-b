@@ -153,49 +153,60 @@ def controller_server(request):
 def status(request):
     status = get_status()
 
-    # GET means "status"
-    if request.method == "GET":
+    try:
+        # GET means "status"
+        if request.method == "GET":
+            return JsonResponse({
+                "timestamp": timezone.now().isoformat(),
+                "state": status.state(),
+                "softwareversion": get_version(),
+                "queues": [
+                    # TODO: find relevant status queues
+                    #{"name": "request1",
+                    #"counters": [{
+                    #    "name": "counter1",
+                    #    "value": 2
+                    #}, {
+                    #    "name": "counter2",
+                    #    "value": 2
+                    #}]}
+                ]
+            })
+
+        # PUT means "control"
+        elif request.method == "PUT":
+            # set status
+            values = json.load(request)
+            command = values["command"]
+
+            try:
+                status.command(command)
+                return JsonResponse({"result": "SUCCESS"})
+            except AttributeError:
+                fault_string = "Invalid command '%s'." % command
+            except NotImplemented, e:
+                fault_string = "Command '%s' is not supported." % command
+            except Exception, e:
+                fault_string = str(e)
+
+            return JsonResponse({
+                "faultString": fault_string,
+                "detail": {
+                    "currentState": str(status),
+                    "failedState": command,
+                    "instanceId": get_instance_id(get_ngeo_config())
+                }
+            }, status=400)
+        else:
+            raise Exception("Invalid method '%s'" % request.method)
+
+    except Exception, e:
+        print logger.handlers
+        logger.warning(str(e))
         return JsonResponse({
-            "timestamp": timezone.now().isoformat(),
-            "state": status.state(),
-            "softwareversion": get_version(),
-            "queues": [
-                # TODO: find relevant status queues
-                #{"name": "request1",
-                #"counters": [{
-                #    "name": "counter1",
-                #    "value": 2
-                #}, {
-                #    "name": "counter2",
-                #    "value": 2
-                #}]}
-            ]
-        })
-
-    # PUT means "control"
-    elif request.method == "PUT":
-        # set status
-        values = json.load(request)
-        command = values["command"]
-
-        try:
-            status.command(command)
-            return JsonResponse({"result": "SUCCESS"})
-        except AttributeError:
-            fault_string = "Invalid command '%s'." % command
-        except NotImplemented, e:
-            fault_string = "Command '%s' is not supported." % command
-        except Exception, e:
-            fault_string = str(e)
-
-        return JsonResponse({
-            "faultString": fault_string,
-            "detail": {
-                "currentState": str(status),
-                "failedState": command,
-                "instanceId": get_instance_id(get_ngeo_config())
-            }
+            "faultString": str(e)
         }, status=400)
+
 
 
 def log_file_list(request):
