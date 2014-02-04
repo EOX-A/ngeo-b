@@ -100,10 +100,12 @@ def get_controller_config(controller_config_filename):
 # status stuff
 
 
-def create_status_config(status_config_filename):
-    parser = ConfigParser()    
-    parser.add_section(STATUS_SECTION)
-    parser.set(STATUS_SECTION, "state", "RUNNING")
+def write_status_config(status_config_filename, parser=None):
+    parser = parser or ConfigParser()
+    if not parser.has_section(STATUS_SECTION):
+        parser.add_section(STATUS_SECTION)
+        parser.set(STATUS_SECTION, "state", "RUNNING")
+
     with open(status_config_filename, "w") as f:
         parser.write(f)
 

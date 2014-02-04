@@ -6,7 +6,7 @@ from ngeo_browse_server.config import get_ngeo_config
 from ngeo_browse_server.lock import FileLock
 from ngeo_browse_server.control.control.config import (
     get_status_config_path, get_status_config_lockfile_path, 
-    create_status_config, STATUS_SECTION
+    write_status_config, STATUS_SECTION
 )
 
 
@@ -42,7 +42,7 @@ def locked(timeout=None):
 class Status(object):
 
     commands = frozenset(("pause", "resume", "start", "shutdown", "restart"))
-    states = frozenset(("running", "resuming", "pausing", "paused", "starting", "shutting_down"))
+    states = frozenset(("RUNNING", "RESUMING", "PAUSING", "PAUSED", "STARTING", "SHUTTING_DOWN"))
 
     def __init__(self, config=None):
         self.config = config or get_ngeo_config()
@@ -51,7 +51,7 @@ class Status(object):
     def _status_config(self):
         status_config_path = get_status_config_path(self.config)
         if not exists(status_config_path):
-            create_status_config(status_config_path)
+            write_status_config(status_config_path)
 
         parser = ConfigParser()
         with open(status_config_path) as f:
@@ -60,9 +60,16 @@ class Status(object):
 
     
     def _set_status(self, new_status):
+        new_status = new_status.upper()
         if not new_status in self.states:
-            raise ValueError("Invalid state '%s'.")
-        self.config.set(STATUS_SECTION, "state", new_status.upper())
+            raise ValueError("Invalid state '%s'." % new_status)
+
+        status_config = self._status_config()
+
+        if not status_config.has_section(STATUS_SECTION):
+            status_config.add_section(STATUS_SECTION)
+        status_config.set(STATUS_SECTION, "state", new_status)
+        write_status_config(get_status_config_path(self.config), status_config)
 
 
     def _get_status(self):
