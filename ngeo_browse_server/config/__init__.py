@@ -27,6 +27,7 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
+import os
 from os.path import isabs, join
 from django.conf import settings
 
@@ -52,7 +53,7 @@ def write_ngeo_config():
     
     global _config_instance
 
-    with open(join(settings.PROJECT_DIR, "conf", "ngeo.conf")) as f:
+    with open(get_ngeo_config_path(), "w") as f:
         _config_instance.write(f)
 
 
@@ -63,8 +64,19 @@ def reset_ngeo_config():
     
     global _config_instance
     _config_instance = ConfigParser()
-    _config_instance.read([join(settings.PROJECT_DIR, "conf", "ngeo.conf"),
-                           ])
+    _config_instance.read([get_ngeo_config_path(),])
+
+
+def get_ngeo_config_path():
+    """ Get the absolute path to the current ngeo config file. This is either
+        the ``NGEO_CONFIG_FILE`` environment variable, or 
+        $PROJECT_DIR/conf/ngeo.conf.
+    """
+
+    return os.environ.get(
+        "NGEO_CONFIG_FILE", 
+        join(settings.PROJECT_DIR, "conf", "ngeo.conf")
+    )
 
 
 def safe_get(config, section, option, default=None):
