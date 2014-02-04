@@ -59,7 +59,7 @@ from ngeo_browse_server.control.control.logview import (
     get_log_files, get_log_file
 )
 from ngeo_browse_server.control.control.configuration import (
-    get_schema_and_configuration, change_configuration
+    get_schema_and_configuration, change_configuration, get_config_revision
 )
 
 
@@ -268,6 +268,25 @@ def config(request):
     except Exception, e:
         #return HttpResponse(str(e), status=400)
         raise
+
+
+def revision(request):
+    try:
+        status = get_status()
+        if not status.state != "running":
+            raise Exception("Not running")
+
+        if request.method == "GET":
+            tree = get_config_revision()
+            return HttpResponse(
+                etree.tostring(tree, pretty_print=True),
+                content_type="text/xml"
+            )
+        else:
+            raise Exception("Invalid request method '%s'." % request.method)
+
+    except Exception, e:
+        return HttpResponse(str(e), status=400)
 
 
 

@@ -341,8 +341,13 @@ def get_schema_and_configuration():
         )
     )
 
+
 def get_config_revision():
-    pass
+    config = get_ngeo_config()
+    return E("getConfigurationRevisionResponse",
+        E("revision", str(safe_get(config, "config", "revision", 0)))
+    )
+
 
 def change_configuration(tree):
     config_elem = tree.find("configurationData/configuration")
@@ -368,4 +373,4 @@ def change_configuration(tree):
     revision = int(safe_get(config, "config", "revision", 0))
     config.set("config", "revision", str(revision + 1))
 
-    #write_ngeo_config()
+    write_ngeo_config()
