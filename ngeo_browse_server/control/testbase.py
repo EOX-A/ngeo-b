@@ -1128,7 +1128,7 @@ class ControlTestCaseMixIn(BaseTestCaseMixIn):
 
     controller_config = None
 
-    url = "/controllerServer/"
+    url = "/controllerServer"
     request = None
     request_file = None
     ip_address = None
@@ -1234,7 +1234,7 @@ class UnregisterTestCaseMixIn(ControlTestCaseMixIn):
 
 class StatusTestCaseMixIn(ControlTestCaseMixIn):
     method = "get"
-    url = "/status/"
+    url = "/status"
     
     def get_request(self):
         return {}
@@ -1284,4 +1284,4 @@ class LogFileMixIn(ControlLogMixIn):
 
 class ConfigMixIn(ControlTestCaseMixIn):
     method = "get"
-    url = "/instanceconfig/"
+    url = "/instanceconfig"
