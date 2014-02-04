@@ -73,10 +73,11 @@ def get_ngeo_config_path():
         $PROJECT_DIR/conf/ngeo.conf.
     """
 
-    return os.environ.get(
-        "NGEO_CONFIG_FILE", 
-        join(settings.PROJECT_DIR, "conf", "ngeo.conf")
-    )
+    return join(settings.PROJECT_DIR, "conf", "ngeo.conf")
+    #return os.environ.get(
+    #    "NGEO_CONFIG_FILE", 
+    #    
+    #)
 
 
 def safe_get(config, section, option, default=None):
