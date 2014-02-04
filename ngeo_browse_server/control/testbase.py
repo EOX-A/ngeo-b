@@ -28,7 +28,7 @@
 #-------------------------------------------------------------------------------
 
 import sys
-from os import walk, remove, chmod, stat, utime, listdir
+from os import walk, remove, chmod, stat, utime, listdir, environ
 from stat import S_IEXEC
 from os.path import join, exists, dirname, isfile, basename
 import tempfile
@@ -194,12 +194,12 @@ class BaseTestCaseMixIn(object):
         # into it, and point the control.ingest.storage_dir to this location
         self.temp_storage_dir = tempfile.mktemp() # create a temp dir
         
-        self.config_filename = tempfile.NamedTemporaryFile(delete=False).name
-        os.environ["NGEO_CONFIG_FILE"] = self.config_filename
-
         config = get_ngeo_config()
         section = "control.ingest"
-        
+
+        self.config_filename = tempfile.NamedTemporaryFile(delete=False).name
+        environ["NGEO_CONFIG_FILE"] = self.config_filename
+
         shutil.copytree(join(settings.PROJECT_DIR, self.storage_dir), self.temp_storage_dir)
         config.set(section, "storage_dir", self.temp_storage_dir)
         
@@ -296,7 +296,7 @@ class BaseTestCaseMixIn(object):
         if exists(self.temp_status_config):
             remove(self.temp_status_config)
         remove(self.config_filename)
-        del os.environ["NGEO_CONFIG_FILE"]
+        del environ["NGEO_CONFIG_FILE"]
     
     def add_counts(self, *model_classes):
         # save the count of each model class to be checked later on.
