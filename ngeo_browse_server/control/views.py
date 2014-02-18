@@ -289,6 +289,28 @@ def revision(request):
         return HttpResponse(str(e), status=400)
 
 
+def config(request):
+    try:
+        status = get_status()
+
+        if request.method not in ("PUT", "POST"):
+            raise Exception("Invalid request method '%s'." % request.method)
+
+        if request.method == "POST":
+            # "setting" new configuration, which means removing the previous one.
+            pass
+
+            
+
+
+
+
+
+
+
+    except Exception, e:
+        return HttpResponse(str(e), status=400)
+
 
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
