@@ -66,7 +66,7 @@ from ngeo_browse_server.control.ingest.config import (
     get_project_relative_path, get_storage_path, get_optimized_path, 
     get_format_config, get_optimization_config, get_ingest_config
 )
-from ngeo_browse_server.control.ingest.filetransaction import FileTransaction
+from ngeo_browse_server.filetransaction import FileTransaction
 from ngeo_browse_server.control.ingest.config import (
     get_success_dir, get_failure_dir
 )

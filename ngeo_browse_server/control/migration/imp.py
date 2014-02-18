@@ -45,7 +45,7 @@ from ngeo_browse_server.control.queries import (
     get_existing_browse, create_browse_report, create_browse, remove_browse
 )
 from ngeo_browse_server.control.ingest.config import get_optimized_path
-from ngeo_browse_server.control.ingest.filetransaction import FileTransaction
+from ngeo_browse_server.filetransaction import FileTransaction
 from ngeo_browse_server.control.ingest.result import (
     IngestBrowseResult, IngestBrowseReplaceResult, IngestBrowseReportResult,
     IngestBrowseFailureResult
