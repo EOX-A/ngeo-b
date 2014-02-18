@@ -27,21 +27,27 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
+import os
 import logging
+import shutil
+from datetime import datetime
 
 from django.core.exceptions import ValidationError
+from django.contrib.gis.geos import Polygon, MultiPolygon
 
 from eoxserver.core.system import System
 from eoxserver.resources.coverages.crss import fromShortCode
 from eoxserver.resources.coverages.metadata import EOMetadata
 from eoxserver.core.util.timetools import isotime
 
-from ngeo_browse_server.config import models
+from ngeo_browse_server.config import models, get_ngeo_config
 from ngeo_browse_server.mapcache import models as mapcache_models
-from ngeo_browse_server.mapcache.tasks import seed_mapcache
+from ngeo_browse_server.mapcache.tasks import (
+    seed_mapcache, add_mapcache_layer_xml, remove_mapcache_layer_xml
+)
 from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
 from ngeo_browse_server.exceptions import NGEOException
-
+from ngeo_browse_server.control.ingest.config import get_optimized_path
 
 logger = logging.getLogger(__name__)
 
@@ -394,3 +400,129 @@ def _create_model(browse, browse_report_model, browse_layer_model, coverage_id, 
     model = model_cls(browse_report=browse_report_model, browse_layer=browse_layer_model, 
                       coverage_id=coverage_id, **browse.get_kwargs())
     return model
+
+
+
+
+
+
+"""
+
+    <cache name="$LAYER_NAME" type="sqlite3">
+        <dbfile>$MAPCACHE_DIR/$LAYER_NAME.sqlite</dbfile>
+        <detect_blank>true</detect_blank>
+    </cache>
+    <source name="$LAYER_NAME" type="wms">
+        <getmap>
+            <params>
+                <LAYERS>$LAYER_NAME</LAYERS>
+                <TRANSPARENT>true</TRANSPARENT>
+            </params>
+        </getmap>
+        <http>
+            <url>http://localhost/browse/ows?</url>
+        </http>
+    </source>
+    <tileset name="$LAYER_NAME">
+        <source>$LAYER_NAME</source>
+        <cache>$LAYER_NAME</cache>
+        <grid max-cached-zoom="$HIGHEST_MAP_LEVEL" out-of-zoom-strategy="reassemble">$GRID_CACHE</grid>
+        <format>mixed</format>
+        <metatile>8 8</metatile>
+        <expires>3600</expires>
+        <read-only>true</read-only>
+        <timedimension type="sqlite" default="2010">
+            <dbfile>$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/data/mapcache.sqlite</dbfile>
+            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&lt;=datetime(:end_timestamp,'unixepoch') and end_time&gt;=datetime(:start_timestamp,'unixepoch') and maxx&gt;=:minx and maxy&gt;=:miny and minx&lt;=:maxx and miny&lt;=:maxy order by end_time desc limit 100</query>
+        </timedimension>
+    </tileset>
+</mapcache>
+
+"""
+
+
+# browse layer management
+def add_browse_layer(browse_layer, config=None):
+
+    config = config or get_ngeo_config()
+
+    # create a new browse layer model
+    models.BrowseLayer.objects.create(**browse_layer.get_kwargs())
+
+    # create EOxServer dataset series
+    dss_mgr = System.getRegistry().findAndBind(
+        intf_id="resources.coverages.interfaces.Manager",
+        params={
+            "resources.coverages.interfaces.res_type": "eo.dataset_series"
+        }
+    )
+
+    dss_mgr.create(browse_layer.id,
+        eo_metadata=EOMetadata(
+            browse_layer.id,
+            datetime.now(), datetime.now(), 
+            MultiPolygon(Polygon.from_bbox((0, 0, 1, 1)))
+        )
+    )
+
+    # remove source from mapcache sqlite
+    mapcache_models.Source.objects.create(name=browse_layer.id)
+
+    # add an XML section to the mapcache config xml
+    add_mapcache_layer_xml(browse_layer, config)
+
+    # create a base directory for optimized files
+    directory = get_optimized_path("", browse_layer.id)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+
+
+    
+
+def update_browse_layer(browse_layer):
+    try:
+        previous_layer_model = models.BrowseLayer.objects.get(id=browse_layer.id)
+    except models.BrowseLayer.DoesNotExist:
+        raise Exception("Could not update the previous browse layer")
+
+
+
+    config = get_ngeo_config()
+
+
+
+    # TODO: calculate areas to be newly seeded and deprecated to be unseeded
+    previous_highest_map_level
+    previous_lowest_map_level
+
+    seed_areas, unseed_areas
+    
+
+    for unseed_area in unseed_areas:
+        seed_mapcache( delete=True)
+    remove_mapcache_layer_xml(browse_layer)
+
+
+    add_mapcache_layer_xml(browse_layer)
+    for seed_area in seed_areas:
+        seed_mapcache()
+
+
+
+def delete_browse_layer(browse_layer):
+    # remove browse layer model. This should also delete all related browses 
+    # and browse reports
+    models.BrowseLayer.objects.get(id=browse_layer.id).delete()
+
+    # remove source from mapcache sqlite
+    mapcache_models.Source.objects.get(name=browse_layer.id).delete()
+
+    # remove browse layer from mapcache XML
+    remove_mapcache_layer_xml(browse_layer)
+
+    # delete browse layer cache
+    os.remove(get_tileset_path(browse_layer.browse_type))
+
+    # delete all optimzed files by deleting the whole directory of the layer
+    shutil.rmtree()
