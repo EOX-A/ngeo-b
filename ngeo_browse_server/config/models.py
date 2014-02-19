@@ -124,7 +124,7 @@ class BrowseLayer(models.Model):
 class RelatedDataset(models.Model):
     """The Browse Layer configuration contains Related Datasets.
     
-    Note that this information is no needed by the Browse Server but stored 
+    Note that this information is not needed by the Browse Server but stored 
     for completeness.
     
     """
