@@ -125,10 +125,11 @@ def read_mapcache_xml(config):
     mapcache_config = get_mapcache_seed_config(config)
     mapcache_xml_filename = mapcache_config["config_file"]
     with open(mapcache_xml_filename) as f:
-        return etree.parse(f).getroot()
+        parser = etree.XMLParser(remove_blank_text=True)
+        return etree.parse(f, parser).getroot()
 
 
-def write_mapcache_xml(config):
+def write_mapcache_xml(root, config):
     mapcache_config = get_mapcache_seed_config(config)
     mapcache_xml_filename = mapcache_config["config_file"]
     with open(mapcache_xml_filename, "w") as f:
@@ -143,11 +144,11 @@ def add_mapcache_layer_xml(browse_layer, config=None):
 
     root = read_mapcache_xml(config)
 
-    if len(root.xpath("cache[name='%s']|source[name='%s']|tileset[name='%s']" % (name, name, name))):
+    if len(root.xpath("cache[@name='%s']|source[@name='%s']|tileset[@name='%s']" % (name, name, name))):
         raise Exception(
             "Cannot add browse layer to mapcache config, because a layer with "
-            "the name '%s' is already inserted." % name)
-        # TODO: already there. Raise error
+            "the name '%s' is already inserted." % name
+        )
 
     tileset_path = get_tileset_path(browse_layer.browse_type)
 
@@ -191,6 +192,8 @@ def add_mapcache_layer_xml(browse_layer, config=None):
         )
     ])
 
+    write_mapcache_xml(root, config)
+
     
 
 
@@ -203,12 +206,11 @@ def remove_mapcache_layer_xml(browse_layer, config=None):
 
     root = read_mapcache_xml(config)
 
-    root.remove(root.xpath("cache[name='%s']" % name)[0])
-    root.remove(root.xpath("source[name='%s']" % name)[0])
-    root.remove(root.xpath("tileset[name='%s']" % name)[0])
+    root.remove(root.xpath("cache[@name='%s']" % name)[0])
+    root.remove(root.xpath("source[@name='%s']" % name)[0])
+    root.remove(root.xpath("tileset[@name='%s']" % name)[0])
 
-    with open(mapcache_xml_filename, "w") as f:
-        f.write(etree.tostring(root, pretty_print=True))
+    write_mapcache_xml(root, config)
 
 
     
