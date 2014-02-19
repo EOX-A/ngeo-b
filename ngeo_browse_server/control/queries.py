@@ -443,19 +443,26 @@ def _create_model(browse, browse_report_model, browse_layer_model, coverage_id, 
 
 # browse layer management
 def add_browse_layer(browse_layer, config=None):
-
+    """ Add a browse layer to the ngEO Browse Server system. This includes the 
+        database models, cache configuration and filesystem paths.
+    """
     config = config or get_ngeo_config()
 
-    # create a new browse layer model
-    models.BrowseLayer.objects.create(**browse_layer.get_kwargs())
+    try:
+        # create a new browse layer model
+        models.BrowseLayer.objects.create(**browse_layer.get_kwargs())
 
-    # create EOxServer dataset series
-    dss_mgr = System.getRegistry().findAndBind(
-        intf_id="resources.coverages.interfaces.Manager",
-        params={
-            "resources.coverages.interfaces.res_type": "eo.dataset_series"
-        }
-    )
+        # TODO related datasets
+
+        # create EOxServer dataset series
+        dss_mgr = System.getRegistry().findAndBind(
+            intf_id="resources.coverages.interfaces.Manager",
+            params={
+                "resources.coverages.interfaces.res_type": "eo.dataset_series"
+            }
+        )
+    except IntegrityError:
+        raise
 
     dss_mgr.create(browse_layer.id,
         eo_metadata=EOMetadata(
@@ -477,36 +484,45 @@ def add_browse_layer(browse_layer, config=None):
         os.makedirs(directory)
 
 
+def update_browse_layer(browse_layer, config=None):
+    config = config or get_ngeo_config()
 
-    
-
-def update_browse_layer(browse_layer):
     try:
-        previous_layer_model = models.BrowseLayer.objects.get(id=browse_layer.id)
+        browse_layer_model = models.BrowseLayer.objects.get(id=browse_layer.id)
     except models.BrowseLayer.DoesNotExist:
         raise Exception("Could not update the previous browse layer")
 
 
-
-    config = get_ngeo_config()
-
-
-
-    # TODO: calculate areas to be newly seeded and deprecated to be unseeded
-    previous_highest_map_level
-    previous_lowest_map_level
-
-    seed_areas, unseed_areas
-    
-
-    for unseed_area in unseed_areas:
-        seed_mapcache( delete=True)
-    remove_mapcache_layer_xml(browse_layer)
+    immutable_values = (
+        "id", "browse_type", "contains_vertical_curtains", "r_band", "g_band",
+        "b_band", "radiometric_interval_min", "radiometric_interval_max",
+        "grid", "lowest_map_level", "highest_map_level", "strategy"
+    )
+    for key in immutable_values:
+        if getattr(browse_layer_model, key) != getattr(browse_layer, key):
+            raise Exception("Cannot change immutable property '%s'." % key)
 
 
-    add_mapcache_layer_xml(browse_layer)
-    for seed_area in seed_areas:
-        seed_mapcache()
+    mutable_values = [
+        "title", "description", "browse_access_policy", 
+        "timedimension_default", "tile_query_limit"
+    ]
+
+
+    refresh_mapcache_xml = False
+    for key in mutable_values:
+        setattr(browse_layer_model, key, getattr(browse_layer, key))
+        if key in ("timedimension_default", "tile_query_limit"):
+            refresh_mapcache_xml = True
+
+    # TODO related datasets
+
+    browse_layer_model.full_clean()
+    browse_layer_model.save()
+
+    if refresh_mapcache_xml:
+        remove_mapcache_layer_xml(browse_layer, config)
+        add_mapcache_layer_xml(browse_layer, config)
 
 
 
