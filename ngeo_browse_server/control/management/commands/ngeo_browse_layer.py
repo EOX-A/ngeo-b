@@ -119,11 +119,11 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
 
         for browse_layer in browse_layers:
             if mode == "add":
-                add_browse_layer(browse_layer)
+                add_browse_layer(browse_layer, config)
 
             elif mode == "update":
-                update_browse_layer(browse_layer)
+                update_browse_layer(browse_layer, config)
 
             elif mode == "remove":
-                delete_browse_layer(browse_layer)
+                delete_browse_layer(browse_layer, config)
 
