@@ -28,6 +28,7 @@
 #-------------------------------------------------------------------------------
 
 import os
+from os.path import join
 import logging
 import shutil
 from datetime import datetime
@@ -45,9 +46,11 @@ from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.mapcache.tasks import (
     seed_mapcache, add_mapcache_layer_xml, remove_mapcache_layer_xml
 )
-from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
+from ngeo_browse_server.mapcache.config import (
+    get_mapcache_seed_config, get_tileset_path
+)
 from ngeo_browse_server.exceptions import NGEOException
-from ngeo_browse_server.control.ingest.config import get_optimized_path
+from ngeo_browse_server.control.ingest.config import INGEST_SECTION
 
 logger = logging.getLogger(__name__)
 
@@ -454,16 +457,17 @@ def add_browse_layer(browse_layer, config=None):
 
         # TODO related datasets
 
-        # create EOxServer dataset series
-        dss_mgr = System.getRegistry().findAndBind(
-            intf_id="resources.coverages.interfaces.Manager",
-            params={
-                "resources.coverages.interfaces.res_type": "eo.dataset_series"
-            }
-        )
-    except IntegrityError:
+        
+    except Exception:
         raise
 
+    # create EOxServer dataset series
+    dss_mgr = System.getRegistry().findAndBind(
+        intf_id="resources.coverages.interfaces.Manager",
+        params={
+            "resources.coverages.interfaces.res_type": "eo.dataset_series"
+        }
+    )
     dss_mgr.create(browse_layer.id,
         eo_metadata=EOMetadata(
             browse_layer.id,
@@ -479,7 +483,7 @@ def add_browse_layer(browse_layer, config=None):
     add_mapcache_layer_xml(browse_layer, config)
 
     # create a base directory for optimized files
-    directory = get_optimized_path("", browse_layer.id)
+    directory = join(config.get(INGEST_SECTION, "optimized_files_dir"), browse_layer.id)
     if not os.path.exists(directory):
         os.makedirs(directory)
 
@@ -526,19 +530,35 @@ def update_browse_layer(browse_layer, config=None):
 
 
 
-def delete_browse_layer(browse_layer):
+def delete_browse_layer(browse_layer, config=None):
+    config = config or get_ngeo_config()
+
     # remove browse layer model. This should also delete all related browses 
     # and browse reports
     models.BrowseLayer.objects.get(id=browse_layer.id).delete()
+
+    dss_mgr = System.getRegistry().findAndBind(
+        intf_id="resources.coverages.interfaces.Manager",
+        params={
+            "resources.coverages.interfaces.res_type": "eo.dataset_series"
+        }
+    )
+    dss_mgr.delete(browse_layer.id)
 
     # remove source from mapcache sqlite
     mapcache_models.Source.objects.get(name=browse_layer.id).delete()
 
     # remove browse layer from mapcache XML
-    remove_mapcache_layer_xml(browse_layer)
+    remove_mapcache_layer_xml(browse_layer, config)
 
     # delete browse layer cache
-    os.remove(get_tileset_path(browse_layer.browse_type))
+    try:
+        os.remove(get_tileset_path(browse_layer.browse_type))
+    except OSError:
+        pass # when no browse was ingested, the sqlite file does not exist
 
     # delete all optimzed files by deleting the whole directory of the layer
-    shutil.rmtree()
+
+    shutil.rmtree(
+        join(config.get(INGEST_SECTION, "optimized_files_dir"), browse_layer.id)
+    )
