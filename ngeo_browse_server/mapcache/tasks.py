@@ -174,7 +174,7 @@ def add_mapcache_layer_xml(browse_layer, config=None):
             E("source", name),
             E("cache", name),
             E("grid", 
-                browse_layer.grid, **{
+                URN_TO_GRID[browse_layer.grid], **{
                     "max-cached-zoom": str(browse_layer.highest_map_level),
                     "out-of-zoom-strategy": "reassemble"
                 }
@@ -211,6 +211,3 @@ def remove_mapcache_layer_xml(browse_layer, config=None):
     root.remove(root.xpath("tileset[@name='%s']" % name)[0])
 
     write_mapcache_xml(root, config)
-
-
-    
