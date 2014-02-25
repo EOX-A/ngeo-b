@@ -49,9 +49,13 @@ def notify(summary, message, urgency=None, ip_address=None, config=None):
     if urgency not in ("INFO", "CRITICAL", "BLOCK"):
         raise ValueError("Invalid urgency value '%s'." % urgency)
 
-    if not ip_address:
-        ctrl_config = get_controller_config(get_controller_config_path(config))
-        ip_address = safe_get(ctrl_config, CONTROLLER_SERVER_SECTION, "address")
+    try:
+        if not ip_address:
+            ctrl_config = get_controller_config(get_controller_config_path(config))
+            ip_address = safe_get(ctrl_config, CONTROLLER_SERVER_SECTION, "address")
+    except IOError:
+        # probably no config file present, so IP cannot be determined.
+        pass
 
     if not ip_address:
         return
@@ -74,7 +78,11 @@ def notify(summary, message, urgency=None, ip_address=None, config=None):
         data=etree.tostring(tree, pretty_print=True), 
         headers={'Content-Type': 'text/xml'}
     )
-    response = urllib2.urlopen(req, timeout=1)
+    try:
+        response = urllib2.urlopen(req, timeout=1)
+    except urllib2.HTTPError:
+        # could not send notification. Out of options
+        pass
 
 
 class NotifyControllerServerHandler(logging.Handler):
@@ -94,6 +102,4 @@ class NotifyControllerServerHandler(logging.Handler):
         )
         thread.daemon = True
         thread.start()
-
-
 
