@@ -1,6 +1,5 @@
 #!/bin/sh -xe
 
-
 # ngEO Browse Server
 NGEOB_INSTALL_DIR="$WORKSPACE"
 NGEOB_URL="http://ngeo.eox.at"
