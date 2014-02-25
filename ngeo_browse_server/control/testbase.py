@@ -1246,9 +1246,24 @@ class StatusTestCaseMixIn(ControlTestCaseMixIn):
         return response
 
 
+class ComponentControlTestCaseMixIn(ControlTestCaseMixIn):
+    method = "put"
+    url = "/status"
+
+    command = None
+    expected_new_status = None
+    
+    def get_request(self):
+        return {"command": self.command}
+
+    def test_new_status(self):
+        # TODO: read status
+        self.assertEqual(self.expected_new_status, )
+
+
 class ControlLogMixIn(ControlTestCaseMixIn):
     method = "get"
-    url = "/log/"
+    url = "/log"
 
     log_files = [] # list of tuples: (filename, date, content)
 
