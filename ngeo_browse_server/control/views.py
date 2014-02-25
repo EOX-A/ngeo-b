@@ -44,7 +44,9 @@ from osgeo import gdalnumeric   # This prevents issues in parallel setups. Do
 from eoxserver.processing.preprocessing.exceptions import PreprocessingException 
 
 from ngeo_browse_server import get_version
-from ngeo_browse_server.config import get_ngeo_config, models
+from ngeo_browse_server.config import (
+    get_ngeo_config, write_ngeo_config, models
+)
 from ngeo_browse_server.decoding import XMLDecodeError
 from ngeo_browse_server.namespace import ns_cfg
 from ngeo_browse_server.control.ingest import ingest_browse_report
@@ -335,6 +337,18 @@ def config(request):
         for browse_layer in remove_layers:
             delete_browse_layer(browse_layer, config)
 
+        # set the new revision
+        config = get_ngeo_config()
+    
+        if not config.has_section("config"):
+            config.add_section("config")
+
+        revision = int(safe_get(config, "config", "revision", 0))
+        config.set("config", "revision", end_revision)
+
+        write_ngeo_config()
+
+        # return with the new revision
         return HttpResponse("<?xml version="1.0"?>\n"
             "<synchronizeConfigurationResponse>%s</synchronizeConfigurationResponse>"
             % end_revision
