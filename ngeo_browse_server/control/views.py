@@ -247,7 +247,7 @@ def log(request, datestr, name):
         return HttpResponse(f.read())
 
 
-def config(request):
+def instanceconfig(request):
     try:
         status = get_status()
         if not status.state != "running":
