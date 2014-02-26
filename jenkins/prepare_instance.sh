@@ -101,7 +101,6 @@ python -c "import os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ngeo_brow
 # Collect static files
 python manage.py collectstatic --noinput
 
-
 cd ..
 
 # Copy autotest data
