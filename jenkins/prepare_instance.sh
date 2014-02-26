@@ -101,8 +101,6 @@ python -c "import os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ngeo_brow
 # Collect static files
 python manage.py collectstatic --noinput
 
-python manage.py ngeo_browse_layer --add /var/ngeob_autotest/data/layer_management/defaultLayers.xml
-
 cd ..
 
 # Copy autotest data
