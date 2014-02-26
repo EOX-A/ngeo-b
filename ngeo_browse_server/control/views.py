@@ -349,8 +349,8 @@ def config(request):
         write_ngeo_config()
 
         # return with the new revision
-        return HttpResponse("<?xml version="1.0"?>\n"
-            "<synchronizeConfigurationResponse>%s</synchronizeConfigurationResponse>"
+        return HttpResponse('<?xml version="1.0"?>\n'
+            '<synchronizeConfigurationResponse>%s</synchronizeConfigurationResponse>'
             % end_revision
         )
 
