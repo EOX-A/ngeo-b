@@ -36,7 +36,9 @@ from lxml.builder import E
 from django.conf import settings
 from django.core.urlresolvers import reverse
 
-from ngeo_browse_server.config import get_ngeo_config
+from ngeo_browse_server.config import (
+    get_ngeo_config, get_project_relative_path
+)
 from ngeo_browse_server.lock import FileLock
 from ngeo_browse_server.mapcache.exceptions import SeedException
 from ngeo_browse_server.mapcache.tileset import URN_TO_GRID
@@ -116,7 +118,7 @@ def lock_mapcache_config(func):
     def wrapper(*args, **kwargs):
         config = get_ngeo_config()
         mapcache_config = get_mapcache_seed_config(config)
-        with FileLock(mapcache_config["config_file"] + ".lck"):
+        with FileLock(get_project_relative_path("mapcache.xml.lck")):
             return func(*args, **kwargs)
     return wrapper
 
