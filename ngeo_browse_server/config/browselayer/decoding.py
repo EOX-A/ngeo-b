@@ -52,7 +52,7 @@ def decode_browse_layers(browse_layers_elem):
         }
         description_elem = browse_layer_elem.find(ns_cfg("description"))
         if description_elem is not None:
-            opt["description"] = description_elem.text
+            opt["description"] = description_elem.text or ""
         
         related_dataset_ids_elem = browse_layer_elem.find(ns_cfg("relatedDatasetIds"))
         related_dataset_ids = [elem.text for elem in related_dataset_ids_elem]

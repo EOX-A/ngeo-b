@@ -33,7 +33,7 @@ class BrowseLayer(object):
                  browse_access_policy, contains_vertical_curtains, 
                  highest_map_level, lowest_map_level, 
                  hosting_browse_server_name, related_dataset_ids,
-                 description=None, r_band=None, g_band=None, b_band=None,
+                 description="", r_band=None, g_band=None, b_band=None,
                  radiometric_interval_min=None, radiometric_interval_max=None,
                  strategy=None, timedimension_default=None, 
                  tile_query_limit=None):
