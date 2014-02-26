@@ -166,7 +166,7 @@ def add_mapcache_layer_xml(browse_layer, config=None):
                 )
             ),
             E("http", 
-                E("url", "http://localhost/browse/ows?"
+                E("url", "http://localhost/browse/ows?")
             ),
             name=name, type="wms"
         ),
