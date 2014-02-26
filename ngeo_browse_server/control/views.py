@@ -44,12 +44,16 @@ from osgeo import gdalnumeric   # This prevents issues in parallel setups. Do
 from eoxserver.processing.preprocessing.exceptions import PreprocessingException 
 
 from ngeo_browse_server import get_version
-from ngeo_browse_server.config import get_ngeo_config
+from ngeo_browse_server.config import (
+    get_ngeo_config, write_ngeo_config, models
+)
 from ngeo_browse_server.decoding import XMLDecodeError
+from ngeo_browse_server.namespace import ns_cfg
 from ngeo_browse_server.control.ingest import ingest_browse_report
 from ngeo_browse_server.config.browsereport.decoding import (
     decode_browse_report, DecodingException
 )
+from ngeo_browse_server.config.browselayer.decoding import decode_browse_layers
 from ngeo_browse_server.control.ingest.exceptions import IngestionException
 from ngeo_browse_server.control.response import JsonResponse
 from ngeo_browse_server.control.control.register import  register, unregister
@@ -60,6 +64,9 @@ from ngeo_browse_server.control.control.logview import (
 )
 from ngeo_browse_server.control.control.configuration import (
     get_schema_and_configuration, change_configuration, get_config_revision
+)
+from ngeo_browse_server.control.queries import (
+    add_browse_layer, update_browse_layer, delete_browse_layer
 )
 
 
@@ -288,6 +295,68 @@ def revision(request):
     except Exception, e:
         return HttpResponse(str(e), status=400)
 
+
+def config(request):
+    try:
+        status = get_status()
+        config = get_ngeo_config()
+
+        if request.method not in ("PUT", "POST"):
+            raise Exception("Invalid request method '%s'." % request.method)
+
+        if request.method == "POST":
+            # "setting" new configuration, which means removing the previous one.
+            action = "set"
+        else:
+            action = "update"
+
+        root = etree.parse(request)
+
+        start_revision = root.findtext(ns_cfg("startRevision"))
+        end_revision = root.findtext(ns_cfg("endRevision"))
+
+        # TODO: check current and last revision
+
+        remove_layers_elems = root.xpath("cfg:removeConfiguration/cfg:browseLayers", namespaces={"cfg": ns_cfg.uri})
+        add_layers_elems = root.xpath("cfg:addConfiguration/cfg:browseLayers", namespaces={"cfg": ns_cfg.uri})
+
+        add_layers = []
+        for layers_elem in add_layers_elems:
+            add_layers.extend(decode_browse_layers(layers_elem))
+
+        remove_layers = []
+        for layers_elem in remove_layers_elems:
+            remove_layers.extend(decode_browse_layers(layers_elem))
+
+        for browse_layer in add_layers:
+            if models.BrowseLayer.objects.filter(id=browse_layer.id).exists():
+                update_browse_layer(browse_layer, config)
+            else:
+                add_browse_layer(browse_layer, config)
+
+        for browse_layer in remove_layers:
+            delete_browse_layer(browse_layer, config)
+
+        # set the new revision
+        config = get_ngeo_config()
+    
+        if not config.has_section("config"):
+            config.add_section("config")
+
+        revision = int(safe_get(config, "config", "revision", 0))
+        config.set("config", "revision", end_revision)
+
+        write_ngeo_config()
+
+        # return with the new revision
+        return HttpResponse("<?xml version="1.0"?>\n"
+            "<synchronizeConfigurationResponse>%s</synchronizeConfigurationResponse>"
+            % end_revision
+        )
+
+    except Exception, e:
+        # TODO: correct encoding here
+        return HttpResponse(str(e), status=400)
 
 
 def get_client_ip(request):

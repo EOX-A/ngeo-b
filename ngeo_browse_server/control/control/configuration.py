@@ -100,8 +100,6 @@ class Configurator(object):
 
             kwargs[value_element.tag] = parameter.parse(value_element.text)
 
-
-        print kwargs
         self.set_values(**kwargs)
 
     def encode(self):
@@ -351,9 +349,7 @@ def get_config_revision():
 
 def change_configuration(tree):
     config_elem = tree.find("configurationData/configuration")
-
-    # TODO: count up config revision
-
+    
     for element in config_elem:
         tag = element.tag
         print tag
@@ -364,13 +360,5 @@ def change_configuration(tree):
             raise Exception("Invalid configuration element '%s' found." % tag)
 
         configurator.parse(element)
-
-    config = get_ngeo_config()
-    
-    if not config.has_section("config"):
-        config.add_section("config")
-
-    revision = int(safe_get(config, "config", "revision", 0))
-    config.set("config", "revision", str(revision + 1))
 
     write_ngeo_config()

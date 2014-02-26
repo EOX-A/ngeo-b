@@ -58,4 +58,5 @@ urlpatterns = patterns('',
     (r'^log/(\d{4}-\d{2}-\d{2})/(.*)$', 'ngeo_browse_server.control.views.log'),
     (r'^instanceconfig$', 'ngeo_browse_server.control.views.config'),
     (r'^revision$', 'ngeo_browse_server.control.views.revision'),
+    (r'^config$', 'ngeo_browse_server.control.views.config'),
 )
