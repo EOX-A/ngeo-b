@@ -72,7 +72,7 @@ def decode_browse_layers(browse_layers_elem):
             opt["strategy"] = strategy_elem.text
 
         opt["timedimension_default"] = browse_layer_elem.find(ns_cfg("timeDimensionDefault"))
-        opt["tile_query_limit"] = int(browse_layer_elem.findtext(ns_cfg("tileQueryLimit")))
+        opt["tile_query_limit"] = int(browse_layer_elem.findtext(ns_cfg("tileQueryLimit")) or 100)
 
         browse_layers.append(BrowseLayer(
             browse_layer_elem.get("browseLayerId"),
