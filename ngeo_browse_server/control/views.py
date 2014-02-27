@@ -45,7 +45,7 @@ from eoxserver.processing.preprocessing.exceptions import PreprocessingException
 
 from ngeo_browse_server import get_version
 from ngeo_browse_server.config import (
-    get_ngeo_config, write_ngeo_config, models
+    get_ngeo_config, write_ngeo_config, models, safe_get
 )
 from ngeo_browse_server.decoding import XMLDecodeError
 from ngeo_browse_server.namespace import ns_cfg
@@ -355,8 +355,10 @@ def config(request):
         )
 
     except Exception, e:
-        # TODO: correct encoding here
-        return HttpResponse(str(e), status=400)
+        return HttpResponse(
+            '<faultcode>ConfigurationError</faultcode>\n'
+            '<faultstring>%s</faultstring>' % str(e), status=400
+        )
 
 
 def get_client_ip(request):
