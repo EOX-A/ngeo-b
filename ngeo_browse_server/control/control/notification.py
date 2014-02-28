@@ -80,7 +80,7 @@ def notify(summary, message, urgency=None, ip_address=None, config=None):
     )
     try:
         response = urllib2.urlopen(req, timeout=1)
-    except urllib2.HTTPError:
+    except (urllib2.HTTPError, urllib2.URLError):
         # could not send notification. Out of options
         pass
 
