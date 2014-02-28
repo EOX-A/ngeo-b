@@ -355,6 +355,9 @@ def config(request):
         )
 
     except Exception, e:
+        logger.error("%s: %s" % (type(e).__name__, str(e)))
+        logger.debug(traceback.format_exc())
+
         return HttpResponse(
             '<faultcode>ConfigurationError</faultcode>\n'
             '<faultstring>%s</faultstring>' % str(e), status=400

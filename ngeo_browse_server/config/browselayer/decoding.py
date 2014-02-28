@@ -46,9 +46,7 @@ def decode_browse_layers(browse_layers_elem):
     for browse_layer_elem in browse_layers_elem.findall(ns_cfg("browseLayer")):
     
         opt = {
-            "strategy": "inherit",
-            "tile_query_limit": 100,
-            "timedimension_default": "2010"
+            "strategy": "inherit"
         }
         description_elem = browse_layer_elem.find(ns_cfg("description"))
         if description_elem is not None:
@@ -71,7 +69,7 @@ def decode_browse_layers(browse_layers_elem):
         if strategy_elem is not None:
             opt["strategy"] = strategy_elem.text
 
-        opt["timedimension_default"] = browse_layer_elem.find(ns_cfg("timeDimensionDefault"))
+        opt["timedimension_default"] = browse_layer_elem.findtext(ns_cfg("timeDimensionDefault")) or ""
         opt["tile_query_limit"] = int(browse_layer_elem.findtext(ns_cfg("tileQueryLimit")) or 100)
 
         browse_layers.append(BrowseLayer(
