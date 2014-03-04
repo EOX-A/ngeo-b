@@ -52,6 +52,7 @@ from ngeo_browse_server.mapcache.config import (
 from ngeo_browse_server.exceptions import NGEOException
 from ngeo_browse_server.control.ingest.config import INGEST_SECTION
 
+
 logger = logging.getLogger(__name__)
 
 def get_existing_browse(browse, browse_layer_id):
@@ -266,7 +267,7 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
             end_time__gte=browse_model.end_time,
             source__name=browse_layer_model.id
         )
-    except DoesNotExist:
+    except mapcache_models.Time.DoesNotExist:
         # issue a warning if no corresponding Time object exists
         logger.warning("No MapCache Time object found for time: %s, %s" % (browse_model.start_time, browse_model.end_time))
     
@@ -372,10 +373,10 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
             minx = group[0].minx
             miny = group[0].miny
             maxx = group[0].maxx
-            maxy = group[0].maxy 
+            maxy = group[0].maxy
             start_time = group[0].start_time
             end_time = group[0].end_time
-            
+
             for browse in group[1:]:
                 minx = min(minx, browse.minx)
                 miny = min(miny, browse.miny)
@@ -383,7 +384,7 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
                 maxy = max(maxy, browse.maxy)
                 start_time = min(start_time, browse.start_time)
                 end_time = max(end_time, browse.end_time)
-            
+
             # create time model
             time = mapcache_models.Time(
                 minx=minx, miny=miny, maxx=maxx, maxy=maxy,
@@ -392,10 +393,10 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
             )
             time.full_clean()
             time.save()
-            
+
             # add it to the regions that need to be seeded
             seed_areas.append((minx, miny, maxx, maxy, start_time, end_time))
-    
+
     return replaced_extent, replaced_filename
 
 
@@ -405,46 +406,8 @@ def _create_model(browse, browse_report_model, browse_layer_model, coverage_id, 
     return model
 
 
-
-
-
-
-"""
-
-    <cache name="$LAYER_NAME" type="sqlite3">
-        <dbfile>$MAPCACHE_DIR/$LAYER_NAME.sqlite</dbfile>
-        <detect_blank>true</detect_blank>
-    </cache>
-    <source name="$LAYER_NAME" type="wms">
-        <getmap>
-            <params>
-                <LAYERS>$LAYER_NAME</LAYERS>
-                <TRANSPARENT>true</TRANSPARENT>
-            </params>
-        </getmap>
-        <http>
-            <url>http://localhost/browse/ows?</url>
-        </http>
-    </source>
-    <tileset name="$LAYER_NAME">
-        <source>$LAYER_NAME</source>
-        <cache>$LAYER_NAME</cache>
-        <grid max-cached-zoom="$HIGHEST_MAP_LEVEL" out-of-zoom-strategy="reassemble">$GRID_CACHE</grid>
-        <format>mixed</format>
-        <metatile>8 8</metatile>
-        <expires>3600</expires>
-        <read-only>true</read-only>
-        <timedimension type="sqlite" default="2010">
-            <dbfile>$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/data/mapcache.sqlite</dbfile>
-            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&lt;=datetime(:end_timestamp,'unixepoch') and end_time&gt;=datetime(:start_timestamp,'unixepoch') and maxx&gt;=:minx and maxy&gt;=:miny and minx&lt;=:maxx and miny&lt;=:maxy order by end_time desc limit 100</query>
-        </timedimension>
-    </tileset>
-</mapcache>
-
-"""
-
-
 # browse layer management
+
 def add_browse_layer(browse_layer, config=None):
     """ Add a browse layer to the ngEO Browse Server system. This includes the 
         database models, cache configuration and filesystem paths.
@@ -453,11 +416,18 @@ def add_browse_layer(browse_layer, config=None):
 
     try:
         # create a new browse layer model
-        models.BrowseLayer.objects.create(**browse_layer.get_kwargs())
+        browse_layer_model = models.BrowseLayer(
+            **browse_layer.get_kwargs()
+        )
 
-        # TODO related datasets
+        browse_layer_model.full_clean()
+        browse_layer_model.save()
 
-        
+        for related_dataset_id in browse_layer.related_dataset_ids:
+            models.RelatedDataset.objects.get_or_create(
+                dataset_id=related_dataset_id, browse_layer=browse_layer_model
+            )
+
     except Exception:
         raise
 
@@ -471,7 +441,7 @@ def add_browse_layer(browse_layer, config=None):
     dss_mgr.create(browse_layer.id,
         eo_metadata=EOMetadata(
             browse_layer.id,
-            datetime.now(), datetime.now(), 
+            datetime.now(), datetime.now(),
             MultiPolygon(Polygon.from_bbox((0, 0, 1, 1)))
         )
     )
@@ -483,7 +453,9 @@ def add_browse_layer(browse_layer, config=None):
     add_mapcache_layer_xml(browse_layer, config)
 
     # create a base directory for optimized files
-    directory = join(config.get(INGEST_SECTION, "optimized_files_dir"), browse_layer.id)
+    directory = join(
+        config.get(INGEST_SECTION, "optimized_files_dir"), browse_layer.id
+    )
     if not os.path.exists(directory):
         os.makedirs(directory)
 
@@ -496,7 +468,6 @@ def update_browse_layer(browse_layer, config=None):
     except models.BrowseLayer.DoesNotExist:
         raise Exception("Could not update the previous browse layer")
 
-
     immutable_values = (
         "id", "browse_type", "contains_vertical_curtains", "r_band", "g_band",
         "b_band", "radiometric_interval_min", "radiometric_interval_max",
@@ -506,12 +477,10 @@ def update_browse_layer(browse_layer, config=None):
         if getattr(browse_layer_model, key) != getattr(browse_layer, key):
             raise Exception("Cannot change immutable property '%s'." % key)
 
-
     mutable_values = [
-        "title", "description", "browse_access_policy", 
+        "title", "description", "browse_access_policy",
         "timedimension_default", "tile_query_limit"
     ]
-
 
     refresh_mapcache_xml = False
     for key in mutable_values:
@@ -519,7 +488,17 @@ def update_browse_layer(browse_layer, config=None):
         if key in ("timedimension_default", "tile_query_limit"):
             refresh_mapcache_xml = True
 
-    # TODO related datasets
+    for related_dataset_id in browse_layer.related_dataset_ids:
+        models.RelatedDataset.objects.get_or_create(
+            dataset_id=related_dataset_id, browse_layer=browse_layer_model
+        )
+
+    # remove all related datasets that are not referenced anymore
+    models.RelatedDataset.objects.filter(
+        browse_layer=browse_layer_model
+    ).exclude(
+        dataset_id__in=browse_layer.related_dataset_ids
+    ).delete()
 
     browse_layer_model.full_clean()
     browse_layer_model.save()
@@ -529,11 +508,10 @@ def update_browse_layer(browse_layer, config=None):
         add_mapcache_layer_xml(browse_layer, config)
 
 
-
 def delete_browse_layer(browse_layer, config=None):
     config = config or get_ngeo_config()
 
-    # remove browse layer model. This should also delete all related browses 
+    # remove browse layer model. This should also delete all related browses
     # and browse reports
     models.BrowseLayer.objects.get(id=browse_layer.id).delete()
 
@@ -555,10 +533,21 @@ def delete_browse_layer(browse_layer, config=None):
     try:
         os.remove(get_tileset_path(browse_layer.browse_type))
     except OSError:
-        pass # when no browse was ingested, the sqlite file does not exist
+        # when no browse was ingested, the sqlite file does not exist, so just
+        # issue a warning
+        logger.warning(
+            "Could not remove tileset '%s'." 
+            % get_tileset_path(browse_layer.browse_type)
+        )
 
     # delete all optimzed files by deleting the whole directory of the layer
-
-    shutil.rmtree(
-        join(config.get(INGEST_SECTION, "optimized_files_dir"), browse_layer.id)
+    optimized_dir = join(
+        config.get(INGEST_SECTION, "optimized_files_dir"), browse_layer.id
     )
+    try:
+        shutil.rmtree(optimized_dir)
+    except OSError:
+        logger.error(
+            "Could not remove directory for optimzed files: '%s'." 
+            % optimized_dir
+        )
