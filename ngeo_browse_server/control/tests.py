@@ -3422,7 +3422,7 @@ class AddBrowseLayerTestCase(ConfigurationManagementMixIn, TestCase):
 </synchronizeConfiguration>
 """
 
-    expected_response = "<?xml version="1.0"?>\n<synchronizeConfigurationResponse>1</synchronizeConfigurationResponse>"
+    expected_response = '<?xml version="1.0"?>\n<synchronizeConfigurationResponse>1</synchronizeConfigurationResponse>'
 
 class AddDefaultBrowseLayersTestCase(ConfigurationManagementMixIn, TestCase):
     # operating on an "empty" server.
@@ -3436,7 +3436,7 @@ class AddDefaultBrowseLayersTestCase(ConfigurationManagementMixIn, TestCase):
 
     request_file = "layer_management/synchronizeConfiguration_defaultLayers.xml"
 
-    expected_response = "<?xml version="1.0"?>\n<synchronizeConfigurationResponse>1</synchronizeConfigurationResponse>"
+    expected_response = '<?xml version="1.0"?>\n<synchronizeConfigurationResponse>1</synchronizeConfigurationResponse>'
 
 
 class RemoveBrowseLayerTestCase(ConfigurationManagementMixIn, TestCase):
@@ -3476,4 +3476,4 @@ class RemoveBrowseLayerTestCase(ConfigurationManagementMixIn, TestCase):
 </synchronizeConfiguration>
 """
 
-    expected_response = "<?xml version="1.0"?>\n<synchronizeConfigurationResponse>1</synchronizeConfigurationResponse>"
+    expected_response = '<?xml version="1.0"?>\n<synchronizeConfigurationResponse>1</synchronizeConfigurationResponse>'
