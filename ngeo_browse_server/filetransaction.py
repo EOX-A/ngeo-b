@@ -33,6 +33,7 @@ import tempfile
 import shutil
 from os import remove
 from os.path import exists
+from functools import wraps
 
 
 logger = logging.getLogger(__name__)
@@ -46,8 +47,9 @@ class FileTransaction(object):
     be used with the "with"-statement.
     """
     
-    def __init__(self, *subject_filenames):
+    def __init__(self, subject_filenames, copy=False):
         self._subject_filenames = subject_filenames
+        self._copy = copy
     
     
     def __enter__(self):
@@ -65,8 +67,10 @@ class FileTransaction(object):
             _, self._file_map[filename] = tempfile.mkstemp()
             logger.debug("Generating backup file for '%s'." % filename)
             
-            shutil.move(filename, self._file_map[filename])
-        
+            if self._copy:
+                shutil.copy(filename, self._file_map[filename])
+            else:
+                shutil.move(filename, self._file_map[filename])
     
     
     def __exit__(self, etype, value, traceback):
@@ -95,3 +99,17 @@ class FileTransaction(object):
             for filename, backup_filename in self._file_map.items():
                 logger.debug("Restoring backup for '%s'." % filename)
                 shutil.move(backup_filename, filename)
+
+
+def filetransaction(subject_filenames, copy=False):
+    """ Decorator function for file transactions.
+    """
+
+    def outer(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            with FileTransaction(subject_filenames, copy):
+                return func(*args, **kwargs)
+        return wrapper
+    return outer
+
