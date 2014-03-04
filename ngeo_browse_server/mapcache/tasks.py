@@ -196,12 +196,9 @@ def add_mapcache_layer_xml(browse_layer, config=None):
 
     write_mapcache_xml(root, config)
 
-    
-
 
 @lock_mapcache_config
 def remove_mapcache_layer_xml(browse_layer, config=None):
-
     config = config or get_ngeo_config()
 
     name = browse_layer.id
