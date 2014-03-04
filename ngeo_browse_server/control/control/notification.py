@@ -75,11 +75,11 @@ def notify(summary, message, urgency=None, ip_address=None, config=None):
 
     req = urllib2.Request(
         url="http://%s/notify" % ip_address,
-        data=etree.tostring(tree, pretty_print=True), 
+        data=etree.tostring(tree, pretty_print=True),
         headers={'Content-Type': 'text/xml'}
     )
     try:
-        response = urllib2.urlopen(req, timeout=1)
+        urllib2.urlopen(req, timeout=1)
     except (urllib2.HTTPError, urllib2.URLError):
         # could not send notification. Out of options
         pass
@@ -102,4 +102,3 @@ class NotifyControllerServerHandler(logging.Handler):
         )
         thread.daemon = True
         thread.start()
-
