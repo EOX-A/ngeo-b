@@ -73,8 +73,6 @@ class BrowseLayer(object):
     radiometric_interval_max = property(lambda self: self._radiometric_interval_max)
     highest_map_level = property(lambda self: self._highest_map_level)
     lowest_map_level = property(lambda self: self._lowest_map_level)
-
-    # TODO:
     strategy = property(lambda self: self._strategy)
     timedimension_default = property(lambda self: self._timedimension_default)
     tile_query_limit = property(lambda self: self._tile_query_limit)
@@ -95,7 +93,10 @@ class BrowseLayer(object):
             "radiometric_interval_min": self.radiometric_interval_min,
             "radiometric_interval_max": self.radiometric_interval_max,
             "highest_map_level": self.highest_map_level,
-            "lowest_map_level": self.lowest_map_level
+            "lowest_map_level": self.lowest_map_level,
+            "strategy": self.strategy,
+            "timedimension_default": self.timedimension_default,
+            "tile_query_limit": self.tile_query_limit
         }
 
     @classmethod

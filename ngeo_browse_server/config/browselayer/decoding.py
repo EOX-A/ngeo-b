@@ -29,6 +29,7 @@
 
 import logging
 
+from ngeo_browse_server.config import get_ngeo_config, safe_get
 from ngeo_browse_server.namespace import ns_cfg
 from ngeo_browse_server.config.browselayer.data import BrowseLayer
 from ngeo_browse_server.decoding import XMLDecoder
@@ -37,10 +38,18 @@ from ngeo_browse_server.decoding import XMLDecoder
 logger = logging.getLogger(__name__)
 
 
-def decode_browse_layers(browse_layers_elem):
+def decode_browse_layers(browse_layers_elem, config=None):
     logger.info("Start decoding browse layer.")
     
-    #TODO: browse_layers_elem.tag == ns_cfg("browseLayers")
+    config = config or get_ngeo_config()
+    timedimension_default = safe_get(
+        config, "mapcache", "timedimension_default", "2014"
+    )
+    tile_query_limit_default = safe_get(
+        config, "mapcache", "tile_query_limit_default", "100"
+    )
+
+
     
     browse_layers = []
     for browse_layer_elem in browse_layers_elem.findall(ns_cfg("browseLayer")):
@@ -69,9 +78,14 @@ def decode_browse_layers(browse_layers_elem):
         if strategy_elem is not None:
             opt["strategy"] = strategy_elem.text
 
-        opt["timedimension_default"] = browse_layer_elem.findtext(ns_cfg("timeDimensionDefault")) or ""
-        opt["tile_query_limit"] = int(browse_layer_elem.findtext(ns_cfg("tileQueryLimit")) or 100)
-
+        opt["timedimension_default"] = browse_layer_elem.findtext(
+            ns_cfg("timeDimensionDefault")
+        ) or timedimension_default
+        opt["tile_query_limit"] = int(
+            browse_layer_elem.findtext(ns_cfg("tileQueryLimit")) 
+            or tile_query_limit_default
+        )
+        
         browse_layers.append(BrowseLayer(
             browse_layer_elem.get("browseLayerId"),
             browse_layer_elem.find(ns_cfg("browseType")).text,
