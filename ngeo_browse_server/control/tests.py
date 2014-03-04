@@ -49,7 +49,8 @@ from ngeo_browse_server.control.testbase import (
     DeleteTestCaseMixIn, ExportTestCaseMixIn, ImportTestCaseMixIn, 
     ImportReplaceTestCaseMixin, SeedMergeTestCaseMixIn, HttpMultipleMixIn, 
     LoggingTestCaseMixIn, RegisterTestCaseMixIn, UnregisterTestCaseMixIn, 
-    StatusTestCaseMixIn, LogListMixIn, LogFileMixIn, ConfigMixIn
+    StatusTestCaseMixIn, LogListMixIn, LogFileMixIn, ConfigMixIn,
+    ComponentControlTestCaseMixIn, ConfigurationManagementMixIn
 )
 from ngeo_browse_server.control.ingest.config import (
     INGEST_SECTION
@@ -3086,6 +3087,34 @@ class StatusPaused(StatusTestCaseMixIn, TestCase):
 #            return super(StatusLocked, self).execute()
 
 
+class ComponentControlPause(ComponentControlTestCaseMixIn, TestCase):
+    command = "pause"
+    expected_new_status = "paused"
+
+
+class ComponentControlResume(ComponentControlTestCaseMixIn, TestCase):
+    command = "resume"
+    expected_new_status = "running"
+
+    status_config = dedent("""
+        [status]
+        state=PAUSED
+    """)
+
+class ComponentControlShutdown(ComponentControlTestCaseMixIn, TestCase):
+    command = "shutdown"
+    expected_new_status = "stopped"
+
+
+class ComponentControlPauseFailed(ComponentControlTestCaseMixIn, TestCase):
+    command = "pause"
+    expected_new_status = "paused"
+
+    status_config = dedent("""
+        [status]
+        state=PAUSED
+    """)
+
 #===============================================================================
 # Logging reporting tests
 #===============================================================================
@@ -3353,4 +3382,98 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
 </getConfigurationAndSchemaResponse>
 """
 
+class AddBrowseLayerTestCase(ConfigurationManagementMixIn, TestCase):
+    # operating on an "empty" server.
+    fixtures = ["initial_rangetypes.json",]
 
+    expected_layers = ["TEST_SAR"]
+
+    request = """\
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<synchronizeConfiguration xmlns="http://ngeo.eo.esa.int/schema/configurationElements">
+  <startRevision>0</startRevision>
+  <endRevision>1</endRevision>
+  <removeConfiguration />
+  <addConfiguration>
+    <browseLayers>
+      <browseLayer browseLayerId="TEST_SAR">
+        <browseType>SAR</browseType>
+        <title>TEST_SAR</title>
+        <description>TEST_SAR Browse Layer</description>
+        <browseAccessPolicy>OPEN</browseAccessPolicy>
+        <hostingBrowseServerName>browse_GMV</hostingBrowseServerName>
+        <relatedDatasetIds>
+          <datasetId>ENVISAT_ASA_WS__0P</datasetId>
+        </relatedDatasetIds>
+        <containsVerticalCurtains>false</containsVerticalCurtains>
+        <rgbBands>1,2,3</rgbBands>
+        <grid>urn:ogc:def:wkss:OGC:1.0:GoogleMapsCompatible</grid>
+        <radiometricInterval>
+          <min>0</min>
+          <max>6</max>
+        </radiometricInterval>
+        <highestMapLevel>6</highestMapLevel>
+        <lowestMapLevel>0</lowestMapLevel>
+        <tileQueryLimit>100</tileQueryLimit>
+        <timeDimensionDefault>2010</timeDimensionDefault>
+      </browseLayer>
+    </browseLayers>
+  </addConfiguration>
+</synchronizeConfiguration>
+"""
+
+    expected_response = "<?xml version="1.0"?>\n<synchronizeConfigurationResponse>1</synchronizeConfigurationResponse>"
+
+class AddDefaultBrowseLayersTestCase(ConfigurationManagementMixIn, TestCase):
+    # operating on an "empty" server.
+    fixtures = ["initial_rangetypes.json",]
+
+    expected_layers = [
+        "TEST_SAR", "TEST_OPTICAL", "TEST_ASA_WSM", "TEST_MER_FRS", 
+        "TEST_MER_FRS_FULL", "TEST_MER_FRS_FULL_NO_BANDS", 
+        "TEST_GOOGLE_MERCATOR"
+    ]
+
+    request_file = "layer_management/synchronizeConfiguration_defaultLayers.xml"
+
+    expected_response = "<?xml version="1.0"?>\n<synchronizeConfigurationResponse>1</synchronizeConfigurationResponse>"
+
+
+class RemoveBrowseLayerTestCase(ConfigurationManagementMixIn, TestCase):
+    expected_removed_layers = ["TEST_SAR"]
+
+    request = """\
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<synchronizeConfiguration xmlns="http://ngeo.eo.esa.int/schema/configurationElements">
+  <startRevision>0</startRevision>
+  <endRevision>1</endRevision>
+  <addConfiguration />
+  <removeConfiguration>
+    <browseLayers>
+      <browseLayer browseLayerId="TEST_SAR">
+        <browseType>SAR</browseType>
+        <title>TEST_SAR</title>
+        <description>TEST_SAR Browse Layer</description>
+        <browseAccessPolicy>OPEN</browseAccessPolicy>
+        <hostingBrowseServerName>browse_GMV</hostingBrowseServerName>
+        <relatedDatasetIds>
+          <datasetId>ENVISAT_ASA_WS__0P</datasetId>
+        </relatedDatasetIds>
+        <containsVerticalCurtains>false</containsVerticalCurtains>
+        <rgbBands>1,2,3</rgbBands>
+        <grid>urn:ogc:def:wkss:OGC:1.0:GoogleMapsCompatible</grid>
+        <radiometricInterval>
+          <min>0</min>
+          <max>6</max>
+        </radiometricInterval>
+        <highestMapLevel>6</highestMapLevel>
+        <lowestMapLevel>0</lowestMapLevel>
+        <tileQueryLimit>100</tileQueryLimit>
+        <timeDimensionDefault>2010</timeDimensionDefault>
+      </browseLayer>
+    </browseLayers>
+  </removeConfiguration>
+</synchronizeConfiguration>
+"""
+
+    expected_response = "<?xml version="1.0"?>\n<synchronizeConfigurationResponse>1</synchronizeConfigurationResponse>"

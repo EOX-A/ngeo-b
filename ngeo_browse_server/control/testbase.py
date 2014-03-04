@@ -225,6 +225,7 @@ class BaseTestCaseMixIn(object):
         self.temp_mapcache_dir = tempfile.mkdtemp() + "/"
         db_file = settings.DATABASES["mapcache"]["TEST_NAME"]
         mapcache_config_file = join(self.temp_mapcache_dir, "mapcache.xml")
+        self.mapcache_config_file = mapcache_config_file
         
         with open(mapcache_config_file, "w+") as f:
             f.write(render_to_string("test_control/mapcache.xml",
@@ -233,7 +234,7 @@ class BaseTestCaseMixIn(object):
                                       "browse_layers": models.BrowseLayer.objects.all(),
                                       "base_url": getattr(self, "live_server_url",
                                                           "http://localhost/browse")}))
-        
+
         config.set(SEED_SECTION, "config_file", mapcache_config_file)
         config.set("mapcache", "tileset_root", self.temp_mapcache_dir)
         
@@ -1162,13 +1163,15 @@ class ControlTestCaseMixIn(BaseTestCaseMixIn):
         if self.ip_address:
             extra['REMOTE_ADDR'] = self.ip_address
 
+        request = request or self.get_request()
+
         client = Client()
         if self.method != "get":
             # Django 1.4 is not able to handle DELETE requests with payload.
             # workaround here:
             extra.update({
-                'wsgi.input': FakePayload(self.request),
-                'CONTENT_LENGTH': len(self.request),
+                'wsgi.input': FakePayload(request),
+                'CONTENT_LENGTH': len(request),
                 'CONTENT_TYPE': "text/json",
                 'PATH_INFO': client._get_path(urlparse(url)),
                 'REQUEST_METHOD': self.method.upper()
@@ -1300,3 +1303,53 @@ class LogFileMixIn(ControlLogMixIn):
 class ConfigMixIn(ControlTestCaseMixIn):
     method = "get"
     url = "/instanceconfig"
+
+
+class ConfigurationManagementMixIn(ControlTestCaseMixIn):
+    url = "/config"
+
+    expected_layers = []
+    expected_removed_layers = []
+
+    def test_layers(self):
+        for layer in self.expected_layers:
+            # check DatasetSeries models
+            dataset_series = System.getRegistry().getFromFactory(
+                "resources.coverages.wrappers.DatasetSeriesFactory",
+                {"obj_id": layer}
+            )
+            self.assertNotEqual(None, dataset_series)
+
+            # check BrowseLayer models
+            self.assertTrue(
+                models.BrowseLayer.objects.filter(id=layer).exists()
+            )
+
+            # check mapcache xml tileset, cache and source
+            root = etree.parse(self.mapcache_config_file)
+            self.assertEqual(len(root.xpath("cache[@name='%s']" % layer)), 1)
+            self.assertEqual(len(root.xpath("source[@name='%s']" % layer)), 1)
+            self.assertEqual(len(root.xpath("tileset[@name='%s']" % layer)), 1)
+            
+            # check tileset file
+            #self.assertTrue(exists()) # TODO: really required?
+
+    def test_removed_layers(self):
+        for layer in self.expected_removed_layers:
+            # check DatasetSeries models
+            dataset_series = System.getRegistry().getFromFactory(
+                "resources.coverages.wrappers.DatasetSeriesFactory",
+                {"obj_id": layer}
+            )
+            self.assertEqual(None, dataset_series)
+
+            # check BrowseLayer models
+            self.assertFalse(
+                models.BrowseLayer.objects.filter(id=layer).exists()
+            )
+
+            # check mapcache xml tileset, cache and source
+            root = etree.parse(self.mapcache_config_file)
+            self.assertEqual(len(root.xpath("cache[@name='%s']" % layer)), 0)
+            self.assertEqual(len(root.xpath("source[@name='%s']" % layer)), 0)
+            self.assertEqual(len(root.xpath("tileset[@name='%s']" % layer)), 0)
