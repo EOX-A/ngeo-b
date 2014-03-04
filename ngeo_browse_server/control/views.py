@@ -39,6 +39,7 @@ from django.shortcuts import render_to_response
 from django.utils import simplejson as json
 from django.utils import timezone
 from django.http import HttpResponse, Http404
+from django.db import transaction
 from osgeo import gdalnumeric   # This prevents issues in parallel setups. Do 
                                 # not remove this line.
 from eoxserver.processing.preprocessing.exceptions import PreprocessingException 
@@ -68,6 +69,8 @@ from ngeo_browse_server.control.control.configuration import (
 from ngeo_browse_server.control.queries import (
     add_browse_layer, update_browse_layer, delete_browse_layer
 )
+from ngeo_browse_server.filetransaction import FileTransaction
+from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
 
 
 logger = logging.getLogger(__name__)
@@ -215,7 +218,6 @@ def status(request):
         }, status=400)
 
 
-
 def log_file_list(request):
     status = get_status()
     if not status.running:
@@ -237,12 +239,12 @@ def log(request, datestr, name):
     status = get_status()
     if not status.running:
         return HttpResponse("", status=400)
-    
+
     date = datetime.date(*time.strptime(datestr, "%Y-%m-%d")[0:3])
     logfile = get_log_file(date, name)
     if not logfile:
         raise Http404
-    
+
     with open(logfile) as f:
         return HttpResponse(f.read())
 
@@ -328,18 +330,27 @@ def config(request):
         for layers_elem in remove_layers_elems:
             remove_layers.extend(decode_browse_layers(layers_elem))
 
-        for browse_layer in add_layers:
-            if models.BrowseLayer.objects.filter(id=browse_layer.id).exists():
-                update_browse_layer(browse_layer, config)
-            else:
-                add_browse_layer(browse_layer, config)
+        # get the mapcache config xml file path to make it transaction safe
 
-        for browse_layer in remove_layers:
-            delete_browse_layer(browse_layer, config)
+        mapcache_config = get_mapcache_seed_config(config)
+        mapcache_xml_filename = mapcache_config["config_file"]
+
+        # transaction safety here
+        with FileTransaction((mapcache_xml_filename,), copy=True):
+            with transaction.commit_on_success():
+                with transaction.commit_on_success(using="mapcache"):
+                    for browse_layer in add_layers:
+                        if models.BrowseLayer.objects.filter(id=browse_layer.id).exists():
+                            update_browse_layer(browse_layer, config)
+                        else:
+                            add_browse_layer(browse_layer, config)
+
+                    for browse_layer in remove_layers:
+                        delete_browse_layer(browse_layer, config)
 
         # set the new revision
         config = get_ngeo_config()
-    
+
         if not config.has_section("config"):
             config.add_section("config")
 
