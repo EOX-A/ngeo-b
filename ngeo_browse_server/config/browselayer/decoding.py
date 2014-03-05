@@ -48,8 +48,6 @@ def decode_browse_layers(browse_layers_elem, config=None):
     tile_query_limit_default = safe_get(
         config, "mapcache", "tile_query_limit_default", "100"
     )
-
-
     
     browse_layers = []
     for browse_layer_elem in browse_layers_elem.findall(ns_cfg("browseLayer")):
@@ -85,7 +83,7 @@ def decode_browse_layers(browse_layers_elem, config=None):
             browse_layer_elem.findtext(ns_cfg("tileQueryLimit")) 
             or tile_query_limit_default
         )
-        
+
         browse_layers.append(BrowseLayer(
             browse_layer_elem.get("browseLayerId"),
             browse_layer_elem.find(ns_cfg("browseType")).text,
