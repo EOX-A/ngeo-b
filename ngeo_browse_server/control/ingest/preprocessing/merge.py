@@ -450,7 +450,7 @@ def generate_footprint_wkt(ds, simplification_factor=2):
         feature = layer.GetNextFeature()
         geometry = feature.GetGeometryRef()
     
-    if geometry.GetGeometryType() != ogr.wkbPolygon:
+    if geometry.GetGeometryType() not in (ogr.wkbPolygon, ogr.wkbMultiPolygon):
         raise RuntimeError("Error during poligonization. Wrong geometry "
                            "type.")
     
@@ -473,12 +473,16 @@ def generate_footprint_wkt(ds, simplification_factor=2):
         geometry = geometry.SimplifyPreserveTopology(simplification_value)
     except AttributeError:
         # use GeoDjango bindings if OGR is too old
-        geometry = ogr.CreateGeometryFromWkt(GEOSGeometry(geometry.ExportToWkt()).simplify(simplification_value, True).wkt)
+        geometry = ogr.CreateGeometryFromWkt(
+            GEOSGeometry(
+                geometry.ExportToWkt()
+            ).simplify(simplification_value, True).wkt
+        )
     
     return geometry.ExportToWkt()
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
     import sys
     if len(sys.argv) < 3:
         raise ValueError("Too few arguments given. Usage: inputA inputB (inputC ...) output")
