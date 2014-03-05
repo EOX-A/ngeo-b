@@ -40,6 +40,7 @@ from django.test import TestCase, TransactionTestCase, LiveServerTestCase
 from django.utils.dateparse import parse_datetime
 
 from ngeo_browse_server import get_version
+from ngeo_browse_server.config import models
 from ngeo_browse_server.control.testbase import (
     BaseTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, CliMixIn, CliFailureMixIn,
     IngestTestCaseMixIn, SeedTestCaseMixIn, IngestReplaceTestCaseMixIn, 
@@ -3423,6 +3424,104 @@ class AddBrowseLayerTestCase(ConfigurationManagementMixIn, TestCase):
 """
 
     expected_response = '<?xml version="1.0"?>\n<synchronizeConfigurationResponse>1</synchronizeConfigurationResponse>'
+
+
+class AddBrowseLayerDefaultTileAndTimeTestCase(ConfigurationManagementMixIn, TestCase):
+    # operating on an "empty" server.
+    fixtures = ["initial_rangetypes.json",]
+
+    expected_layers = ["TEST_SAR"]
+
+    configuration = {
+        ("mapcache", "timedimension_default"): "2015",
+        ("mapcache", "tile_query_limit_default"): "75"
+    }
+
+    request = """\
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<synchronizeConfiguration xmlns="http://ngeo.eo.esa.int/schema/configurationElements">
+  <startRevision>0</startRevision>
+  <endRevision>1</endRevision>
+  <removeConfiguration />
+  <addConfiguration>
+    <browseLayers>
+      <browseLayer browseLayerId="TEST_SAR">
+        <browseType>SAR</browseType>
+        <title>TEST_SAR</title>
+        <description>TEST_SAR Browse Layer</description>
+        <browseAccessPolicy>OPEN</browseAccessPolicy>
+        <hostingBrowseServerName>browse_GMV</hostingBrowseServerName>
+        <relatedDatasetIds>
+          <datasetId>ENVISAT_ASA_WS__0P</datasetId>
+        </relatedDatasetIds>
+        <containsVerticalCurtains>false</containsVerticalCurtains>
+        <rgbBands>1,2,3</rgbBands>
+        <grid>urn:ogc:def:wkss:OGC:1.0:GoogleMapsCompatible</grid>
+        <radiometricInterval>
+          <min>0</min>
+          <max>6</max>
+        </radiometricInterval>
+        <highestMapLevel>6</highestMapLevel>
+        <lowestMapLevel>0</lowestMapLevel>
+      </browseLayer>
+    </browseLayers>
+  </addConfiguration>
+</synchronizeConfiguration>
+"""
+
+    expected_response = '<?xml version="1.0"?>\n<synchronizeConfigurationResponse>1</synchronizeConfigurationResponse>'
+
+    def test_tile_and_time(self):
+        browse_layer_model = models.BrowseLayer.objects.get(id="TEST_SAR")
+        self.assertEqual(browse_layer_model.tile_query_limit, 75)
+        self.assertEqual(browse_layer_model.timedimension_default, "2015")
+
+
+class AddBrowseLayerDefaultTileAndTimeDefaultTestCase(ConfigurationManagementMixIn, TestCase):
+    # operating on an "empty" server.
+    fixtures = ["initial_rangetypes.json",]
+
+    expected_layers = ["TEST_SAR"]
+
+    request = """\
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<synchronizeConfiguration xmlns="http://ngeo.eo.esa.int/schema/configurationElements">
+  <startRevision>0</startRevision>
+  <endRevision>1</endRevision>
+  <removeConfiguration />
+  <addConfiguration>
+    <browseLayers>
+      <browseLayer browseLayerId="TEST_SAR">
+        <browseType>SAR</browseType>
+        <title>TEST_SAR</title>
+        <description>TEST_SAR Browse Layer</description>
+        <browseAccessPolicy>OPEN</browseAccessPolicy>
+        <hostingBrowseServerName>browse_GMV</hostingBrowseServerName>
+        <relatedDatasetIds>
+          <datasetId>ENVISAT_ASA_WS__0P</datasetId>
+        </relatedDatasetIds>
+        <containsVerticalCurtains>false</containsVerticalCurtains>
+        <rgbBands>1,2,3</rgbBands>
+        <grid>urn:ogc:def:wkss:OGC:1.0:GoogleMapsCompatible</grid>
+        <radiometricInterval>
+          <min>0</min>
+          <max>6</max>
+        </radiometricInterval>
+        <highestMapLevel>6</highestMapLevel>
+        <lowestMapLevel>0</lowestMapLevel>
+      </browseLayer>
+    </browseLayers>
+  </addConfiguration>
+</synchronizeConfiguration>
+"""
+
+    expected_response = '<?xml version="1.0"?>\n<synchronizeConfigurationResponse>1</synchronizeConfigurationResponse>'
+
+    def test_tile_and_time(self):
+        browse_layer_model = models.BrowseLayer.objects.get(id="TEST_SAR")
+        self.assertEqual(browse_layer_model.tile_query_limit, 100)
+        self.assertEqual(browse_layer_model.timedimension_default, "2014")
+
 
 class AddDefaultBrowseLayersTestCase(ConfigurationManagementMixIn, TestCase):
     # operating on an "empty" server.
