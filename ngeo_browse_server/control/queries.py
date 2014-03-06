@@ -40,8 +40,9 @@ from eoxserver.core.system import System
 from eoxserver.resources.coverages.crss import fromShortCode
 from eoxserver.resources.coverages.metadata import EOMetadata
 from eoxserver.core.util.timetools import isotime
-
-from ngeo_browse_server.config import models, get_ngeo_config
+from ngeo_browse_server.config import (
+    models, get_ngeo_config, get_project_relative_path
+)
 from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.mapcache.tasks import (
     seed_mapcache, add_mapcache_layer_xml, remove_mapcache_layer_xml
@@ -453,9 +454,9 @@ def add_browse_layer(browse_layer, config=None):
     add_mapcache_layer_xml(browse_layer, config)
 
     # create a base directory for optimized files
-    directory = join(
+    directory = get_project_relative_path(join(
         config.get(INGEST_SECTION, "optimized_files_dir"), browse_layer.id
-    )
+    ))
     if not os.path.exists(directory):
         os.makedirs(directory)
 
@@ -541,9 +542,9 @@ def delete_browse_layer(browse_layer, config=None):
         )
 
     # delete all optimzed files by deleting the whole directory of the layer
-    optimized_dir = join(
+    optimized_dir = get_project_relative_path(join(
         config.get(INGEST_SECTION, "optimized_files_dir"), browse_layer.id
-    )
+    ))
     try:
         shutil.rmtree(optimized_dir)
     except OSError:
