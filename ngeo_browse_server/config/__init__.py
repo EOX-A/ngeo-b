@@ -69,9 +69,10 @@ def reset_ngeo_config():
     """ Reset the global configuration instance and reread the contents from the 
     config file. """
     
-    global _config_instance
+    global _config_instance, _last_config_timestamp
     _config_instance = ConfigParser()
     _config_instance.read([get_ngeo_config_path(),])
+    _last_config_timestamp = getmtime(get_ngeo_config_path())
 
 
 def get_ngeo_config_path():
