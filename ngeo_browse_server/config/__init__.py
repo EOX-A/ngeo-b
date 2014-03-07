@@ -28,21 +28,28 @@
 #-------------------------------------------------------------------------------
 
 import os
-from os.path import isabs, join
+from os.path import isabs, join, getmtime
 from django.conf import settings
 
 from ConfigParser import ConfigParser
 
 
 _config_instance = None
+_last_config_timestamp = 0
 
 
 def get_ngeo_config():
     """ Return the global configuration instance. Initialize it, if it has not 
-    yet been done."""
+    yet been done or the configuration has been updated. """
     
-    global _config_instance 
-    if not _config_instance:
+    global _config_instance, _last_config_timestamp
+    
+    try:
+        timestamp = getmtime(get_ngeo_config_path())
+    except OSError:
+        timestamp = 0
+
+    if not _config_instance or _last_config_timestamp < timestamp:
         reset_ngeo_config()
     
     return _config_instance
