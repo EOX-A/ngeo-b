@@ -318,7 +318,7 @@ class HttpMixIn(object):
     """ Base class for testing the HTTP interface. """
     request = None
     request_file = None
-    url = "/ingest/"
+    url = "/ingest"
     
     expected_status = 200
     expected_response = None
@@ -368,7 +368,7 @@ class HttpMultipleMixIn(object):
     """ Base class for testing the HTTP interface. """
     requests = ()
     request_files = ()
-    url = "/ingest/"
+    url = "/ingest"
     
     expected_status = 200
     expected_response = None
