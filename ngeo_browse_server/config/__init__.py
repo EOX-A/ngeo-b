@@ -27,34 +27,65 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
-from os.path import isabs, join
+import os
+from os.path import isabs, join, getmtime
 from django.conf import settings
 
 from ConfigParser import ConfigParser
 
 
 _config_instance = None
+_last_config_timestamp = 0
 
 
 def get_ngeo_config():
     """ Return the global configuration instance. Initialize it, if it has not 
-    yet been done."""
+    yet been done or the configuration has been updated. """
     
-    global _config_instance 
-    if not _config_instance:
+    global _config_instance, _last_config_timestamp
+    
+    try:
+        timestamp = getmtime(get_ngeo_config_path())
+    except OSError:
+        timestamp = 0
+
+    if not _config_instance or _last_config_timestamp < timestamp:
         reset_ngeo_config()
     
     return _config_instance
+
+def write_ngeo_config():
+    """ Writes the current ngeo config to the config file.
+    """
+    
+    global _config_instance
+
+    with open(get_ngeo_config_path(), "w") as f:
+        _config_instance.write(f)
+
 
 
 def reset_ngeo_config():
     """ Reset the global configuration instance and reread the contents from the 
     config file. """
     
-    global _config_instance
+    global _config_instance, _last_config_timestamp
     _config_instance = ConfigParser()
-    _config_instance.read([join(settings.PROJECT_DIR, "conf", "ngeo.conf"),
-                           ])
+    _config_instance.read([get_ngeo_config_path(),])
+    _last_config_timestamp = getmtime(get_ngeo_config_path())
+
+
+def get_ngeo_config_path():
+    """ Get the absolute path to the current ngeo config file. This is either
+        the ``NGEO_CONFIG_FILE`` environment variable, or 
+        $PROJECT_DIR/conf/ngeo.conf.
+    """
+
+    return join(settings.PROJECT_DIR, "conf", "ngeo.conf")
+    #return os.environ.get(
+    #    "NGEO_CONFIG_FILE", 
+    #    
+    #)
 
 
 def safe_get(config, section, option, default=None):

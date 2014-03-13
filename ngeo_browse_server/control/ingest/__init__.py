@@ -38,6 +38,7 @@ import logging
 import traceback
 from datetime import datetime
 import string
+import uuid
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -61,9 +62,9 @@ from ngeo_browse_server.control.ingest.result import (
 )
 from ngeo_browse_server.control.ingest.config import (
     get_project_relative_path, get_storage_path, get_optimized_path, 
-    get_format_config, get_optimization_config
+    get_format_config, get_optimization_config, get_ingest_config
 )
-from ngeo_browse_server.control.ingest.filetransaction import FileTransaction
+from ngeo_browse_server.filetransaction import FileTransaction
 from ngeo_browse_server.control.ingest.config import (
     get_success_dir, get_failure_dir
 )
@@ -76,6 +77,9 @@ from ngeo_browse_server.config.browsereport.serialization import (
 )
 from ngeo_browse_server.control.queries import (
     get_existing_browse, create_browse_report, create_browse, remove_browse
+)
+from ngeo_browse_server.control.ingest.preprocessing.preprocessor import (
+    NGEOPreProcessor
 )
 
 
@@ -144,7 +148,7 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
             
             params["bands"] = bands
         
-        preprocessor = WMSPreProcessor(format_selection, crs=crs, **params)
+        preprocessor = NGEOPreProcessor(format_selection, crs=crs, **params)
     else:
         preprocessor = None # TODO: CopyPreprocessor
     
@@ -217,6 +221,7 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
                     # report error
                     logger.error("Failure during ingestion of browse '%s'." %
                                  parsed_browse.browse_identifier)
+                    logger.error("Exception was '%s': %s" % (type(e).__name__, str(e)))
                     logger.debug(traceback.format_exc() + "\n")
                     
                     # undo latest changes, append the failure and continue
@@ -290,6 +295,8 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
     replaced = False
     replaced_extent = None
     replaced_filename = None
+    merge_with = None
+    merge_footprint = None
     
     config = config or get_ngeo_config()
     
@@ -328,7 +335,9 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
     except ValidationError, e:
         raise IngestionException("%s" % str(e), "ValidationError")
     
-    output_filename = _valid_path(get_optimized_path(parsed_browse.file_name, 
+    # Get filename to store preprocessed image
+    output_filename = "%s_%s" % (uuid.uuid4().hex, parsed_browse.file_name)
+    output_filename = _valid_path(get_optimized_path(output_filename, 
                                                      browse_layer.id + "/" + str(parsed_browse.start_time.year),
                                                      config=config))
     output_filename = preprocessor.generate_filename(output_filename)
@@ -338,20 +347,60 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         existing_browse_model = get_existing_browse(parsed_browse, browse_layer.id)
         if existing_browse_model:
             identifier = existing_browse_model.browse_identifier
+
+            # if the to be ingested browse is equal to an already stored one
+            # then raise an exception if the identifiers don't match
             if (identifier and parsed_browse.browse_identifier
                 and  identifier.value != parsed_browse.browse_identifier):
                 raise IngestionException("Existing browse with same start and end "
                                          "time does not have the same browse ID "
                                          "as the one to ingest.") 
             
-            replaced_time_interval = (existing_browse_model.start_time,
-                                      existing_browse_model.end_time)
-            
-            replaced_extent, replaced_filename = remove_browse(
-                existing_browse_model, browse_layer, coverage_id, seed_areas, config
-            )
-            replaced = True
-            logger.info("Existing browse found, replacing it.")
+
+            previous_time = existing_browse_model.browse_report.date_time
+            current_time = browse_report.date_time
+            timedelta = current_time - previous_time
+
+            # get strategy and merge threshold
+            ingest_config = get_ingest_config(config)
+            strategy = ingest_config["strategy"]
+            threshold = ingest_config["merge_threshold"]
+
+            if strategy == "merge" and timedelta < threshold:
+
+                if previous_time > current_time:
+                    # TODO: raise exception?
+                    pass
+
+                rect_ds = System.getRegistry().getFromFactory(
+                    "resources.coverages.wrappers.EOCoverageFactory",
+                    {"obj_id": existing_browse_model.coverage_id}
+                )
+                merge_footprint = rect_ds.getFootprint()
+                merge_with = rect_ds.getData().getLocation().getPath()
+                
+                replaced_time_interval = (existing_browse_model.start_time,
+                                          existing_browse_model.end_time)
+
+                _, _ = remove_browse(
+                    existing_browse_model, browse_layer, coverage_id, 
+                    seed_areas, config
+                )
+                replaced = True
+
+                logger.debug("Existing browse found, merging it.")
+            else: 
+                # perform replacement
+
+                replaced_time_interval = (existing_browse_model.start_time,
+                                          existing_browse_model.end_time)
+                
+                replaced_extent, replaced_filename = remove_browse(
+                    existing_browse_model, browse_layer, coverage_id, 
+                    seed_areas, config
+                )
+                replaced = True
+                logger.info("Existing browse found, replacing it.")
                 
         else:
             # A browse with that identifier does not exist, so just create a new one
@@ -367,7 +416,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                                      "not to be replaced." % output_filename)
         
         # wrap all file operations with IngestionTransaction
-        with FileTransaction(output_filename, replaced_filename):
+        with FileTransaction((output_filename, replaced_filename)):
         
             # initialize a GeoReference for the preprocessor
             geo_reference = _georef_from_parsed(parsed_browse)
@@ -385,8 +434,10 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                         % (input_filename, output_filename))
             
             try:
-                result = preprocessor.process(input_filename, output_filename,
-                                              geo_reference, generate_metadata=True)
+                result = preprocessor.process(
+                    input_filename, output_filename, geo_reference, 
+                    True, merge_with, merge_footprint
+                )
             except (RuntimeError, GCPTransformException), e:
                 raise IngestionException(str(e))
             
@@ -492,6 +543,7 @@ def _georef_from_parsed(parsed_browse):
     
     if parsed_browse.geo_type == "rectifiedBrowse":
         coords = decode_coord_list(parsed_browse.coord_list, swap_axes)
+        # values are for bottom/left and top/right pixel
         coords = [coord for pair in coords for coord in pair]
         assert(len(coords) == 4)
         return Extent(*coords, srid=srid)

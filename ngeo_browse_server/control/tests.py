@@ -31,26 +31,32 @@ from os.path import join
 from textwrap import dedent
 import logging
 from datetime import date
+from SocketServer import TCPServer, ThreadingMixIn
+from BaseHTTPServer import BaseHTTPRequestHandler
+import threading
 
 from django.conf import settings
 from django.test import TestCase, TransactionTestCase, LiveServerTestCase
 from django.utils.dateparse import parse_datetime
 
 from ngeo_browse_server import get_version
+from ngeo_browse_server.config import models
 from ngeo_browse_server.control.testbase import (
     BaseTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, CliMixIn, CliFailureMixIn,
     IngestTestCaseMixIn, SeedTestCaseMixIn, IngestReplaceTestCaseMixIn, 
-    OverviewMixIn, CompressionMixIn, BandCountMixIn, HasColorTableMixIn, 
-    ExtentMixIn, SizeMixIn, ProjectionMixIn, StatisticsMixIn, WMSRasterMixIn,
-    IngestFailureTestCaseMixIn, DeleteTestCaseMixIn, ExportTestCaseMixIn,
-    ImportTestCaseMixIn, ImportReplaceTestCaseMixin,
-    SeedMergeTestCaseMixIn, HttpMultipleMixIn, LoggingTestCaseMixIn,
-    RegisterTestCaseMixIn, UnregisterTestCaseMixIn, StatusTestCaseMixIn,
-    LogListMixIn, LogFileMixIn
+    IngestMergeTestCaseMixIn, OverviewMixIn, CompressionMixIn, BandCountMixIn, 
+    HasColorTableMixIn, ExtentMixIn, SizeMixIn, ProjectionMixIn, 
+    StatisticsMixIn, WMSRasterMixIn, IngestFailureTestCaseMixIn, 
+    DeleteTestCaseMixIn, ExportTestCaseMixIn, ImportTestCaseMixIn, 
+    ImportReplaceTestCaseMixin, SeedMergeTestCaseMixIn, HttpMultipleMixIn, 
+    LoggingTestCaseMixIn, RegisterTestCaseMixIn, UnregisterTestCaseMixIn, 
+    StatusTestCaseMixIn, LogListMixIn, LogFileMixIn, ConfigMixIn,
+    ComponentControlTestCaseMixIn, ConfigurationManagementMixIn
 )
 from ngeo_browse_server.control.ingest.config import (
     INGEST_SECTION
 )
+from ngeo_browse_server.control.control.notification import notify
 
 
 #===============================================================================
@@ -822,6 +828,39 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
     </bsi:ingestionResult>
 </bsi:ingestBrowseResponse>
 """
+
+
+class IngestFootprintBrowseMerge(IngestMergeTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    request_before_test_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327.xml"
+    request_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_new_merge.xml"
+    
+    expected_num_replaced = 1
+    
+    expected_ingested_browse_ids = ("b_id_3",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['ASA_IM__0P_20100807_101327_new_proc.tif']
+    expected_deleted_files = ['ASA_IM__0P_20100807_101327_new.jpg']
+    expected_deleted_optimized_files = ['ASA_IM__0P_20100807_101327.tif']
+    
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>0</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>1</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>b_id_3</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
 
 #===============================================================================
 # Ingest partial (some success and some failure) tests
@@ -1641,64 +1680,6 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 """
 
 
-class IngestFailureFileOverwrite(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
-    """ Test to check that the program fails when a file in the optimized files
-        dir would be overwritten.
-    """
-    
-    expected_failed_browse_ids = ("FAILURE",)
-    expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
-    expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
-    expected_optimized_files = ["ATS_TOA_1P_20100722_101606_proc.tif"]
-    
-    copy_to_optimized = [("reference_test_data/ATS_TOA_1P_20100722_101606.jpg", "TEST_OPTICAL/2010/ATS_TOA_1P_20100722_101606_proc.tif")]
-    
-    request = """\
-<?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
-    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
-    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
-    <rep:browseType>OPTICAL</rep:browseType>
-    <rep:browse>
-        <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
-        <rep:fileName>ATS_TOA_1P_20100722_101606.jpg</rep:fileName>
-        <rep:imageType>Jpeg</rep:imageType>
-        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
-        <rep:footprint nodeNumber="5">
-            <rep:colRowList>0 0 128 0 128 129 0 129 0 0 </rep:colRowList>
-            <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
-        </rep:footprint>
-        <rep:startTime>2010-07-22T10:16:06Z</rep:startTime>
-        <rep:endTime>2010-07-22T10:17:22Z</rep:endTime>
-    </rep:browse>
-</rep:browseReport>"""
-
-    @property
-    def expected_response(self):
-        return """\
-<?xml version="1.0" encoding="UTF-8"?>
-<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
-xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-    <bsi:status>partial</bsi:status>
-    <bsi:ingestionSummary>
-        <bsi:toBeReplaced>1</bsi:toBeReplaced>
-        <bsi:actuallyInserted>0</bsi:actuallyInserted>
-        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
-    </bsi:ingestionSummary>
-    <bsi:ingestionResult>
-        <bsi:briefRecord>
-            <bsi:identifier>FAILURE</bsi:identifier>
-            <bsi:status>failure</bsi:status>
-            <bsi:error>
-                <bsi:exceptionCode>IngestionException</bsi:exceptionCode>
-                <bsi:exceptionMessage>Output file &#39;%s/TEST_OPTICAL/2010/ATS_TOA_1P_20100722_101606_proc.tif&#39; already exists and is not to be replaced.</bsi:exceptionMessage>
-            </bsi:error>
-        </bsi:briefRecord>
-    </bsi:ingestionResult>
-</bsi:ingestBrowseResponse>
-""" % self.temp_optimized_files_dir
-
-
 class IngestFailureContradictingIDs(IngestFailureTestCaseMixIn, IngestReplaceTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_before_test_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327.xml"
     
@@ -2117,21 +2098,21 @@ class IngestRasterStatistics(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, Test
     expected_statistics = [{
         "min": 0.0,
         "max": 255.0,
-        "mean": 64.244023630714196,
-        "stddev": 76.138905033891447,
-        "checksum": 13096
+        "mean": 64.246238253058323,
+        "stddev": 76.142837880325871,
+        "checksum": 10724
     }, {
         "min": 0.0,
         "max": 255.0,
-        "mean": 64.244023630714196,
-        "stddev": 76.138905033891447,
-        "checksum": 13096
+        "mean": 64.246238253058323,
+        "stddev": 76.142837880325871,
+        "checksum": 10724
     }, {
         "min": 0.0,
         "max": 255.0,
-        "mean": 64.244023630714196,
-        "stddev": 76.138905033891447,
-        "checksum": 13096
+        "mean": 64.246238253058323,
+        "stddev": 76.142837880325871,
+        "checksum": 10724
     }, {
         "min": 0.0,
         "max": 255.0,
@@ -2232,6 +2213,33 @@ class IngestRectifiedWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
     ]
 
 
+class IngestRectifiedFlippedWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
+    wms_request = ("/ows?service=WMS&request=GetMap&version=1.3.0&"
+                   "layers=%(layers)s&crs=EPSG:4326&bbox=%(bbox)s&"
+                   "width=%(width)d&height=%(height)d&format=image/png" % {
+                       "layers": "MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced",
+                       "bbox": ",".join(map(str, (
+                            32.1902500,
+                            8.4784500,
+                            46.2686450,
+                            25.4101500))),
+                       "width": 100,
+                       "height": 100,
+                    }
+                   )
+
+    storage_dir = "data/test_data/"
+    request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_nogeo_flipped.xml"
+
+    save_to_file = "results/wms/IngestRectifiedFlippedWMSRaster.png"
+
+    expected_statistics = [
+        {'max': 251.0, 'checksum': 10335, 'mean': 40.872199999999999, 'stddev': 42.13926277428213, 'min': 0.0},
+        {'max': 250.0, 'checksum': 9440, 'mean': 40.122500000000002, 'stddev': 40.939221948517776, 'min': 0.0},
+        {'max': 252.0, 'checksum': 11907, 'mean': 42.537399999999998, 'stddev': 39.100483388827818, 'min': 0.0}
+    ]
+
+
 class IngestFootprintWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
     wms_request = ("/ows?service=WMS&request=GetMap&version=1.3.0&"
                    "layers=%(layers)s&crs=EPSG:4326&bbox=%(bbox)s&"
@@ -2254,9 +2262,9 @@ class IngestFootprintWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
     expected_statistics = [{
         "min": 0.0,
         "max": 255.0,
-        "mean": 64.370999999999995,
-        "stddev": 76.192750042244839,
-        "checksum": 57389
+        "mean": 64.406300000000002,
+        "stddev": 76.223977987966478,
+        "checksum": 57259
     }] * 3
 
 
@@ -2278,7 +2286,7 @@ class IngestRegularGridWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, 
                    )
     
     expected_statistics = [
-        {'max': 251.0, 'checksum': 11342, 'mean': 29.2577, 'stddev': 33.854823743596718, 'min': 0.0}
+        {'max': 251.0, 'checksum': 10783, 'mean': 29.288, 'stddev': 33.909860748755662, 'min': 0.0}
     ] * 3
 
 
@@ -2300,9 +2308,9 @@ class IngestFootprintCrossesDatelineRaster(BaseTestCaseMixIn, HttpMixIn, Statist
                    )
     
     expected_statistics = [
-        {'checksum': 22934, 'max': 250.0, 'mean': 148.99510000000001, 'min': 0.0, 'stddev': 116.90873567013715},
-        {'checksum': 17599, 'max': 249.0, 'mean': 147.95439999999999, 'min': 0.0, 'stddev': 116.12004013364789},
-        {'checksum': 1606, 'max': 242.0, 'mean': 140.77260000000001, 'min': 0.0, 'stddev': 110.5817764789479}
+        {'checksum': 22981, 'max': 250.0, 'mean': 149.01589999999999, 'min': 0.0, 'stddev': 116.91123405041111},
+        {'checksum': 17526, 'max': 249.0, 'mean': 147.9785, 'min': 0.0, 'stddev': 116.12415441134544},
+        {'checksum': 1612, 'max': 242.0, 'mean': 140.79480000000001, 'min': 0.0, 'stddev': 110.58494785891973}
     ]
     
 class IngestFootprintCrossesDatelineRasterSecond(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
@@ -2323,9 +2331,11 @@ class IngestFootprintCrossesDatelineRasterSecond(BaseTestCaseMixIn, HttpMixIn, S
                     }
                    )
     
-    expected_statistics = [{'checksum': 22934, 'max': 250.0, 'mean': 148.99510000000001, 'min': 0.0, 'stddev': 116.90873567013715},
-                           {'checksum': 17599, 'max': 249.0, 'mean': 147.95439999999999, 'min': 0.0, 'stddev': 116.12004013364789},
-                           {'checksum': 1606, 'max': 242.0, 'mean': 140.77260000000001, 'min': 0.0, 'stddev': 110.5817764789479}]
+    expected_statistics = [
+        {'checksum': 22981, 'max': 250.0, 'mean': 149.01589999999999, 'min': 0.0, 'stddev': 116.91123405041111},
+        {'checksum': 17526, 'max': 249.0, 'mean': 147.9785, 'min': 0.0, 'stddev': 116.12415441134544},
+        {'checksum': 1612, 'max': 242.0, 'mean': 140.79480000000001, 'min': 0.0, 'stddev': 110.58494785891973}
+    ]
     
 class IngestFootprintCrossesDatelineRasterThird(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
     """ Test the region that overlaps the dateline boundary """
@@ -2345,9 +2355,11 @@ class IngestFootprintCrossesDatelineRasterThird(BaseTestCaseMixIn, HttpMixIn, St
                     }
                    )
     
-    expected_statistics = [{'checksum': 19103, 'max': 255.0, 'mean': 2.3617534999999998, 'min': 0.0, 'stddev': 22.610579181109841},
-                           {'checksum': 46676, 'max': 255.0, 'mean': 2.4700384999999998, 'min': 0.0, 'stddev': 22.499895873281673},
-                           {'checksum': 34584, 'max': 255.0, 'mean': 2.527612, 'min': 0.0, 'stddev': 22.227140899752627}]
+    expected_statistics = [
+        {'checksum': 18991, 'max': 255.0, 'mean': 2.361958, 'min': 0.0, 'stddev': 22.611632015540938},
+        {'checksum': 46269, 'max': 255.0, 'mean': 2.4702989999999998, 'min': 0.0, 'stddev': 22.501223318979772},
+        {'checksum': 34188, 'max': 255.0, 'mean': 2.5279354999999999, 'min': 0.0, 'stddev': 22.22917375000339}
+    ]
 
 
 #===============================================================================
@@ -3076,6 +3088,34 @@ class StatusPaused(StatusTestCaseMixIn, TestCase):
 #            return super(StatusLocked, self).execute()
 
 
+class ComponentControlPause(ComponentControlTestCaseMixIn, TestCase):
+    command = "pause"
+    expected_new_status = "paused"
+
+
+class ComponentControlResume(ComponentControlTestCaseMixIn, TestCase):
+    command = "resume"
+    expected_new_status = "running"
+
+    status_config = dedent("""
+        [status]
+        state=PAUSED
+    """)
+
+class ComponentControlShutdown(ComponentControlTestCaseMixIn, TestCase):
+    command = "shutdown"
+    expected_new_status = "stopped"
+
+
+class ComponentControlPauseFailed(ComponentControlTestCaseMixIn, TestCase):
+    command = "pause"
+    expected_new_status = "paused"
+
+    status_config = dedent("""
+        [status]
+        state=PAUSED
+    """)
+
 #===============================================================================
 # Logging reporting tests
 #===============================================================================
@@ -3126,3 +3166,413 @@ class LogFileRetrievalTestCase(LogFileMixIn, TestCase):
     expected_response = "content-1"
 
 
+
+
+class NotifyTestCase(TestCase):
+    def test_notification(self):
+        
+        class POSTHandler(BaseHTTPRequestHandler):
+            def do_POST(self):
+                content_len = int(self.headers.getheader('content-length'))
+                post_body = self.rfile.read(content_len)
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.close()
+            
+            def log_request(self, *args, **kwargs):
+                pass
+
+        class ThreadedTCPServer(ThreadingMixIn, TCPServer):
+            pass
+
+        server = ThreadedTCPServer(("localhost", 9000), POSTHandler)
+        server_thread = threading.Thread(target=server.serve_forever)
+
+        # Exit the server thread when the main thread terminates
+        server_thread.daemon = True
+        server_thread.start()
+
+        notify("Summary", "Message", "INFO", "localhost:9000")
+
+        server.shutdown()
+
+
+
+class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
+    expected_response = """\
+<getConfigurationAndSchemaResponse>
+  <xsdSchema>
+    <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+      <xsd:complexType name="ingestType">
+        <xsd:element type="string" name="optimized_files_postfix">
+          <xsd:annotation>
+            <xsd:label>Browse file postfix</xsd:label>
+            <xsd:tooltip>String that is attached at the end of filenames of optimized browses.</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="string" name="compression">
+          <xsd:annotation>
+            <xsd:label>Compression method</xsd:label>
+            <xsd:tooltip>Compression method used. One of "JPEG", "LZW", "PACKBITS", "DEFLATE", "CCITTRLE", "CCITTFAX3", "CCITTFAX4", or "NONE". Default is "NONE"</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="integer" name="jpeg_quality">
+          <xsd:annotation>
+            <xsd:label>JPEG compression quality</xsd:label>
+            <xsd:tooltip>JPEG quality if compression is "JPEG". Integer between 1-100. </xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="string" name="zlevel">
+          <xsd:annotation>
+            <xsd:label>DEFLATE Compression level</xsd:label>
+            <xsd:tooltip>zlevel option for "DEFLATE" compression. Integer between 1-9.</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="boolean" name="tiling">
+          <xsd:annotation>
+            <xsd:label>Internal tiling</xsd:label>
+            <xsd:tooltip>Defines whether or not the browse images shall be internally tiled.</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="boolean" name="overviews">
+          <xsd:annotation>
+            <xsd:label>Generate overviews</xsd:label>
+            <xsd:tooltip>Defines whether internal browse overviews shall be generated.</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="string" name="overview_resampling">
+          <xsd:annotation>
+            <xsd:label>Overview resampling</xsd:label>
+            <xsd:tooltip>Defines the resampling method used to generate the overviews. One of "NEAREST", "GAUSS", "CUBIC", "AVERAGE", "MODE", "AVERAGE_MAGPHASE" or "NONE".</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="string" name="overview_levels">
+          <xsd:annotation>
+            <xsd:label>Overview levels</xsd:label>
+            <xsd:tooltip>A comma separated list of integer overview levels. Defaults to a automatic selection of overview levels according to the dataset size.</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="integer" name="overview_minsize">
+          <xsd:annotation>
+            <xsd:label>Overview minimum size</xsd:label>
+            <xsd:tooltip>A (positive) integer value declaring the lowest size the highest overview level at most shall have.</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="boolean" name="color_index">
+          <xsd:annotation>
+            <xsd:label>Color index table</xsd:label>
+            <xsd:tooltip>Defines if a color index shall be calculated.</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="boolean" name="footprint_alpha">
+          <xsd:annotation>
+            <xsd:label></xsd:label>
+            <xsd:tooltip>Defines whether or not a alpha channel shall be used to display the images area of interest.</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="integer" name="simplification_factor">
+          <xsd:annotation>
+            <xsd:label></xsd:label>
+            <xsd:tooltip>Sets the factor for the simplification algorithm. See `http://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm` for details. Defaults to 2 (2 * resolution == 2 pixels) which provides reasonable results.</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="string" name="threshold">
+          <xsd:annotation>
+            <xsd:label>Merge time threshold</xsd:label>
+            <xsd:tooltip>The maximum time difference between the two browse report to allow a 'merge'. E.g: 1w 5d 3h 12m 18ms. Defaults to '5h'.</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element type="string" name="strategy">
+          <xsd:annotation>
+            <xsd:label>Ident browse strategy</xsd:label>
+            <xsd:tooltip>Sets the 'strategy' for when an ingested browse is equal with an existing one. The 'merge'-strategy tries to merge the two existing images to one single. This is only possible if the time difference of the two browse reports (the report of the to be ingested browse and the one of the already existing one) is lower than the threshold. Otherwise a 'replace' is done. The 'replace' strategy removes the previous browse, before ingesting the new one.</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+      </xsd:complexType>
+      <xsd:complexType name="cacheType">
+        <xsd:element type="integer" name="threads">
+          <xsd:annotation>
+            <xsd:label></xsd:label>
+            <xsd:tooltip></xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+      </xsd:complexType>
+      <xsd:complexType name="logType">
+        <xsd:element type="levelType" name="level">
+          <xsd:annotation>
+            <xsd:label>Log level</xsd:label>
+            <xsd:tooltip>Log level, to determine which log types shall be logged.</xsd:tooltip>
+          </xsd:annotation>
+        </xsd:element>
+      </xsd:complexType>
+      <xsd:simpleType name="levelType">
+        <xsd:restriction base="string">
+          <xsd:enumeration value="DEBUG">
+            <xsd:annotation>
+              <xsd:documentation>
+                <xsd:tooltip>Log debug, info, warning and error messages</xsd:tooltip>
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:enumeration>
+          <xsd:enumeration value="INFO">
+            <xsd:annotation>
+              <xsd:documentation>
+                <xsd:tooltip>Log info, warning and error messages</xsd:tooltip>
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:enumeration>
+          <xsd:enumeration value="WARNING">
+            <xsd:annotation>
+              <xsd:documentation>
+                <xsd:tooltip>Log warning and error messages</xsd:tooltip>
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:enumeration>
+          <xsd:enumeration value="ERROR">
+            <xsd:annotation>
+              <xsd:documentation>
+                <xsd:tooltip>Log only error messages</xsd:tooltip>
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:enumeration>
+          <xsd:enumeration value="OFF">
+            <xsd:annotation>
+              <xsd:documentation>
+                <xsd:tooltip>Turn logging off</xsd:tooltip>
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:enumeration>
+        </xsd:restriction>
+      </xsd:simpleType>
+      <xsd:complexType name="configurationType">
+        <xsd:sequence>
+          <xsd:element type="ingestType" name="ingest"/>
+          <xsd:element type="cacheType" name="cache"/>
+          <xsd:element type="logType" name="log"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:element type="configurationType" name="configuration"/>
+    </xsd:schema>
+  </xsdSchema>
+  <configurationData>
+    <configuration>
+      <ingest>
+        <optimized_files_postfix>_proc</optimized_files_postfix>
+        <compression>LZW</compression>
+        <jpeg_quality>75</jpeg_quality>
+        <zlevel>6</zlevel>
+        <tiling>true</tiling>
+        <overviews>true</overviews>
+        <overview_resampling>NEAREST</overview_resampling>
+        <overview_levels>2,4,8,16</overview_levels>
+        <overview_minsize>256</overview_minsize>
+        <color_index>false</color_index>
+        <footprint_alpha>true</footprint_alpha>
+        <simplification_factor>2</simplification_factor>
+        <threshold>5h</threshold>
+        <strategy>merge</strategy>
+      </ingest>
+      <cache>
+        <threads>1</threads>
+      </cache>
+      <log>
+        <level>INFO</level>
+      </log>
+    </configuration>
+  </configurationData>
+</getConfigurationAndSchemaResponse>
+"""
+
+class AddBrowseLayerTestCase(ConfigurationManagementMixIn, TestCase):
+    # operating on an "empty" server.
+    fixtures = ["initial_rangetypes.json",]
+
+    expected_layers = ["TEST_SAR"]
+
+    request = """\
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<synchronizeConfiguration xmlns="http://ngeo.eo.esa.int/schema/configurationElements">
+  <startRevision>0</startRevision>
+  <endRevision>1</endRevision>
+  <removeConfiguration />
+  <addConfiguration>
+    <browseLayers>
+      <browseLayer browseLayerId="TEST_SAR">
+        <browseType>SAR</browseType>
+        <title>TEST_SAR</title>
+        <description>TEST_SAR Browse Layer</description>
+        <browseAccessPolicy>OPEN</browseAccessPolicy>
+        <hostingBrowseServerName>browse_GMV</hostingBrowseServerName>
+        <relatedDatasetIds>
+          <datasetId>ENVISAT_ASA_WS__0P</datasetId>
+        </relatedDatasetIds>
+        <containsVerticalCurtains>false</containsVerticalCurtains>
+        <rgbBands>1,2,3</rgbBands>
+        <grid>urn:ogc:def:wkss:OGC:1.0:GoogleMapsCompatible</grid>
+        <radiometricInterval>
+          <min>0</min>
+          <max>6</max>
+        </radiometricInterval>
+        <highestMapLevel>6</highestMapLevel>
+        <lowestMapLevel>0</lowestMapLevel>
+        <tileQueryLimit>100</tileQueryLimit>
+        <timeDimensionDefault>2010</timeDimensionDefault>
+      </browseLayer>
+    </browseLayers>
+  </addConfiguration>
+</synchronizeConfiguration>
+"""
+
+    expected_response = '<?xml version="1.0"?>\n<synchronizeConfigurationResponse>1</synchronizeConfigurationResponse>'
+
+
+class AddBrowseLayerDefaultTileAndTimeTestCase(ConfigurationManagementMixIn, TestCase):
+    # operating on an "empty" server.
+    fixtures = ["initial_rangetypes.json",]
+
+    expected_layers = ["TEST_SAR"]
+
+    configuration = {
+        ("mapcache", "timedimension_default"): "2015",
+        ("mapcache", "tile_query_limit_default"): "75"
+    }
+
+    request = """\
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<synchronizeConfiguration xmlns="http://ngeo.eo.esa.int/schema/configurationElements">
+  <startRevision>0</startRevision>
+  <endRevision>1</endRevision>
+  <removeConfiguration />
+  <addConfiguration>
+    <browseLayers>
+      <browseLayer browseLayerId="TEST_SAR">
+        <browseType>SAR</browseType>
+        <title>TEST_SAR</title>
+        <description>TEST_SAR Browse Layer</description>
+        <browseAccessPolicy>OPEN</browseAccessPolicy>
+        <hostingBrowseServerName>browse_GMV</hostingBrowseServerName>
+        <relatedDatasetIds>
+          <datasetId>ENVISAT_ASA_WS__0P</datasetId>
+        </relatedDatasetIds>
+        <containsVerticalCurtains>false</containsVerticalCurtains>
+        <rgbBands>1,2,3</rgbBands>
+        <grid>urn:ogc:def:wkss:OGC:1.0:GoogleMapsCompatible</grid>
+        <radiometricInterval>
+          <min>0</min>
+          <max>6</max>
+        </radiometricInterval>
+        <highestMapLevel>6</highestMapLevel>
+        <lowestMapLevel>0</lowestMapLevel>
+      </browseLayer>
+    </browseLayers>
+  </addConfiguration>
+</synchronizeConfiguration>
+"""
+
+    expected_response = '<?xml version="1.0"?>\n<synchronizeConfigurationResponse>1</synchronizeConfigurationResponse>'
+
+    def test_tile_and_time(self):
+        browse_layer_model = models.BrowseLayer.objects.get(id="TEST_SAR")
+        self.assertEqual(browse_layer_model.tile_query_limit, 75)
+        self.assertEqual(browse_layer_model.timedimension_default, "2015")
+
+
+class AddBrowseLayerDefaultTileAndTimeDefaultTestCase(ConfigurationManagementMixIn, TestCase):
+    # operating on an "empty" server.
+    fixtures = ["initial_rangetypes.json",]
+
+    expected_layers = ["TEST_SAR"]
+
+    request = """\
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<synchronizeConfiguration xmlns="http://ngeo.eo.esa.int/schema/configurationElements">
+  <startRevision>0</startRevision>
+  <endRevision>1</endRevision>
+  <removeConfiguration />
+  <addConfiguration>
+    <browseLayers>
+      <browseLayer browseLayerId="TEST_SAR">
+        <browseType>SAR</browseType>
+        <title>TEST_SAR</title>
+        <description>TEST_SAR Browse Layer</description>
+        <browseAccessPolicy>OPEN</browseAccessPolicy>
+        <hostingBrowseServerName>browse_GMV</hostingBrowseServerName>
+        <relatedDatasetIds>
+          <datasetId>ENVISAT_ASA_WS__0P</datasetId>
+        </relatedDatasetIds>
+        <containsVerticalCurtains>false</containsVerticalCurtains>
+        <rgbBands>1,2,3</rgbBands>
+        <grid>urn:ogc:def:wkss:OGC:1.0:GoogleMapsCompatible</grid>
+        <radiometricInterval>
+          <min>0</min>
+          <max>6</max>
+        </radiometricInterval>
+        <highestMapLevel>6</highestMapLevel>
+        <lowestMapLevel>0</lowestMapLevel>
+      </browseLayer>
+    </browseLayers>
+  </addConfiguration>
+</synchronizeConfiguration>
+"""
+
+    expected_response = '<?xml version="1.0"?>\n<synchronizeConfigurationResponse>1</synchronizeConfigurationResponse>'
+
+    def test_tile_and_time(self):
+        browse_layer_model = models.BrowseLayer.objects.get(id="TEST_SAR")
+        self.assertEqual(browse_layer_model.tile_query_limit, 100)
+        self.assertEqual(browse_layer_model.timedimension_default, "2014")
+
+
+class AddDefaultBrowseLayersTestCase(ConfigurationManagementMixIn, TestCase):
+    # operating on an "empty" server.
+    fixtures = ["initial_rangetypes.json",]
+
+    expected_layers = [
+        "TEST_SAR", "TEST_OPTICAL", "TEST_ASA_WSM", "TEST_MER_FRS", 
+        "TEST_MER_FRS_FULL", "TEST_MER_FRS_FULL_NO_BANDS", 
+        "TEST_GOOGLE_MERCATOR"
+    ]
+
+    request_file = "layer_management/synchronizeConfiguration_defaultLayers.xml"
+
+    expected_response = '<?xml version="1.0"?>\n<synchronizeConfigurationResponse>2</synchronizeConfigurationResponse>'
+
+
+class RemoveBrowseLayerTestCase(ConfigurationManagementMixIn, TestCase):
+    expected_removed_layers = ["TEST_SAR"]
+
+    request = """\
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<synchronizeConfiguration xmlns="http://ngeo.eo.esa.int/schema/configurationElements">
+  <startRevision>0</startRevision>
+  <endRevision>1</endRevision>
+  <addConfiguration />
+  <removeConfiguration>
+    <browseLayers>
+      <browseLayer browseLayerId="TEST_SAR">
+        <browseType>SAR</browseType>
+        <title>TEST_SAR</title>
+        <description>TEST_SAR Browse Layer</description>
+        <browseAccessPolicy>OPEN</browseAccessPolicy>
+        <hostingBrowseServerName>browse_GMV</hostingBrowseServerName>
+        <relatedDatasetIds>
+          <datasetId>ENVISAT_ASA_WS__0P</datasetId>
+        </relatedDatasetIds>
+        <containsVerticalCurtains>false</containsVerticalCurtains>
+        <rgbBands>1,2,3</rgbBands>
+        <grid>urn:ogc:def:wkss:OGC:1.0:GoogleMapsCompatible</grid>
+        <radiometricInterval>
+          <min>0</min>
+          <max>6</max>
+        </radiometricInterval>
+        <highestMapLevel>6</highestMapLevel>
+        <lowestMapLevel>0</lowestMapLevel>
+        <tileQueryLimit>100</tileQueryLimit>
+        <timeDimensionDefault>2010</timeDimensionDefault>
+      </browseLayer>
+    </browseLayers>
+  </removeConfiguration>
+</synchronizeConfiguration>
+"""
+
+    expected_response = '<?xml version="1.0"?>\n<synchronizeConfigurationResponse>1</synchronizeConfigurationResponse>'

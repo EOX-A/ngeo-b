@@ -33,8 +33,10 @@ class BrowseLayer(object):
                  browse_access_policy, contains_vertical_curtains, 
                  highest_map_level, lowest_map_level, 
                  hosting_browse_server_name, related_dataset_ids,
-                 description=None, r_band=None, g_band=None, b_band=None,
-                 radiometric_interval_min=None, radiometric_interval_max=None):
+                 description="", r_band=None, g_band=None, b_band=None,
+                 radiometric_interval_min=None, radiometric_interval_max=None,
+                 strategy=None, timedimension_default=None, 
+                 tile_query_limit=None):
         self._browse_layer_identifier = browse_layer_identifier
         self._browse_type = browse_type
         self._title = title
@@ -51,6 +53,9 @@ class BrowseLayer(object):
         self._radiometric_interval_max = radiometric_interval_max
         self._highest_map_level = highest_map_level
         self._lowest_map_level = lowest_map_level
+        self._strategy = strategy
+        self._timedimension_default = timedimension_default
+        self._tile_query_limit = tile_query_limit
     
     id = property(lambda self: self._browse_layer_identifier)
     browse_type = property(lambda self: self._browse_type)
@@ -68,10 +73,14 @@ class BrowseLayer(object):
     radiometric_interval_max = property(lambda self: self._radiometric_interval_max)
     highest_map_level = property(lambda self: self._highest_map_level)
     lowest_map_level = property(lambda self: self._lowest_map_level)
+    strategy = property(lambda self: self._strategy)
+    timedimension_default = property(lambda self: self._timedimension_default)
+    tile_query_limit = property(lambda self: self._tile_query_limit)
+
     
     def get_kwargs(self):
         return {
-            "id": self.browse_layer_identifier,
+            "id": self.id,
             "browse_type": self.browse_type,
             "title": self.title,
             "description": self.description,
@@ -84,7 +93,10 @@ class BrowseLayer(object):
             "radiometric_interval_min": self.radiometric_interval_min,
             "radiometric_interval_max": self.radiometric_interval_max,
             "highest_map_level": self.highest_map_level,
-            "lowest_map_level": self.lowest_map_level
+            "lowest_map_level": self.lowest_map_level,
+            "strategy": self.strategy,
+            "timedimension_default": self.timedimension_default,
+            "tile_query_limit": self.tile_query_limit
         }
 
     @classmethod

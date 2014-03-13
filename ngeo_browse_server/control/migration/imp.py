@@ -40,11 +40,12 @@ from ngeo_browse_server.config.browselayer.decoding import decode_browse_layers
 from ngeo_browse_server.config.models import BrowseLayer, BrowseIdentifier
 from ngeo_browse_server.config.browsereport.decoding import decode_browse_report
 from ngeo_browse_server.control.migration import package
+from ngeo_browse_server.control.ingest.exceptions import IngestionException # Dirty hack to work around circular import
 from ngeo_browse_server.control.queries import (
     get_existing_browse, create_browse_report, create_browse, remove_browse
 )
 from ngeo_browse_server.control.ingest.config import get_optimized_path
-from ngeo_browse_server.control.ingest.filetransaction import FileTransaction
+from ngeo_browse_server.filetransaction import FileTransaction
 from ngeo_browse_server.control.ingest.result import (
     IngestBrowseResult, IngestBrowseReplaceResult, IngestBrowseReportResult,
     IngestBrowseFailureResult
@@ -254,7 +255,7 @@ def import_browse(p, browse, browse_report_model, browse_layer_model, crs,
         raise ImportException("Output file '%s' already exists and is not to "
                               "be replaced." % output_filename)
     
-    with FileTransaction(output_filename, replaced_filename):
+    with FileTransaction((output_filename, replaced_filename)):
         if not exists(dirname(output_filename)):
             makedirs(dirname(output_filename))
         

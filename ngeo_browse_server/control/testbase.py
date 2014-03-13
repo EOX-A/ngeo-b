@@ -28,9 +28,9 @@
 #-------------------------------------------------------------------------------
 
 import sys
-from os import walk, remove, chmod, stat, utime
+from os import walk, remove, chmod, stat, utime, listdir, environ
 from stat import S_IEXEC
-from os.path import join, exists, dirname
+from os.path import join, exists, dirname, isfile, basename
 import tempfile
 import shutil
 from cStringIO import StringIO
@@ -44,6 +44,7 @@ import sqlite3
 from ConfigParser import ConfigParser
 import time
 from urlparse import urlparse
+from textwrap import dedent
 
 from osgeo import gdal, osr
 from django.conf import settings
@@ -141,11 +142,18 @@ class BaseTestCaseMixIn(object):
         (INGEST_SECTION, "footprint_alpha"): "true",
         (INGEST_SECTION, "delete_on_success"): "true",
         (INGEST_SECTION, "leave_original"): "false",
+        (INGEST_SECTION, "strategy"): "merge",
+        (INGEST_SECTION, "merge_threshold"): "5h"
         # storage_dir, success_dir, failure_dir, optimized_files_dir, and 
         # seed_command are set automatically in setUp_files.
     }
     
     configuration = {}
+
+    status_config = dedent("""
+        [status]
+        state=RUNNING
+    """)
     
     # check the number of DS, Browse and Time models in the database
     model_counts = {}
@@ -187,7 +195,10 @@ class BaseTestCaseMixIn(object):
         
         config = get_ngeo_config()
         section = "control.ingest"
-        
+
+        self.config_filename = tempfile.NamedTemporaryFile(delete=False).name
+        environ["NGEO_CONFIG_FILE"] = self.config_filename
+
         shutil.copytree(join(settings.PROJECT_DIR, self.storage_dir), self.temp_storage_dir)
         config.set(section, "storage_dir", self.temp_storage_dir)
         
@@ -213,6 +224,7 @@ class BaseTestCaseMixIn(object):
         self.temp_mapcache_dir = tempfile.mkdtemp() + "/"
         db_file = settings.DATABASES["mapcache"]["TEST_NAME"]
         mapcache_config_file = join(self.temp_mapcache_dir, "mapcache.xml")
+        self.mapcache_config_file = mapcache_config_file
         
         with open(mapcache_config_file, "w+") as f:
             f.write(render_to_string("test_control/mapcache.xml",
@@ -221,7 +233,7 @@ class BaseTestCaseMixIn(object):
                                       "browse_layers": models.BrowseLayer.objects.all(),
                                       "base_url": getattr(self, "live_server_url",
                                                           "http://localhost/browse")}))
-        
+
         config.set(SEED_SECTION, "config_file", mapcache_config_file)
         config.set("mapcache", "tileset_root", self.temp_mapcache_dir)
         
@@ -234,11 +246,15 @@ class BaseTestCaseMixIn(object):
         chmod(self.seed_command, st.st_mode | S_IEXEC)
         
         config.set(SEED_SECTION, "seed_command", self.seed_command)
+
+        self.temp_status_config = join(tempfile.gettempdir(), "status.conf")
     
     def setUp_config(self):
         # set up default config and specific config
         
         config = get_ngeo_config()
+        config.set(CTRL_SECTION, "status_config_path", self.temp_status_config)
+        
         for configuration in (self.default_configuration, self.configuration):
             for (section, option), value in configuration.items():
                 if not config.has_section(section):
@@ -247,6 +263,10 @@ class BaseTestCaseMixIn(object):
                     config.set(section, option, value)
                 else:
                     config.remove_option(section, option)
+
+        if self.status_config is not None:
+            with open(self.temp_status_config, "w+") as f:
+                f.write(self.status_config)
     
     def setUp_ingest(self):
         self.before_test_files = 0
@@ -272,6 +292,11 @@ class BaseTestCaseMixIn(object):
                   self.temp_mapcache_dir):
             shutil.rmtree(d)
         remove(self.seed_command)
+
+        if exists(self.temp_status_config):
+            remove(self.temp_status_config)
+        remove(self.config_filename)
+        del environ["NGEO_CONFIG_FILE"]
     
     def add_counts(self, *model_classes):
         # save the count of each model class to be checked later on.
@@ -292,7 +317,7 @@ class HttpMixIn(object):
     """ Base class for testing the HTTP interface. """
     request = None
     request_file = None
-    url = "/ingest/"
+    url = "/ingest"
     
     expected_status = 200
     expected_response = None
@@ -342,7 +367,7 @@ class HttpMultipleMixIn(object):
     """ Base class for testing the HTTP interface. """
     requests = ()
     request_files = ()
-    url = "/ingest/"
+    url = "/ingest"
     
     expected_status = 200
     expected_response = None
@@ -527,6 +552,11 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
             for path, _, filenames in walk(self.temp_optimized_files_dir):
                 for file_to_save in filenames:
                     shutil.copy(join(path, file_to_save), save_dir) 
+        
+        # normalize files i.e. remove/add UUID
+        for i in range(len(files)):
+            if self.expected_optimized_files[i] != files[i]:
+                files[i] = files[i][33:]
         
         self.assertItemsEqual(self.expected_optimized_files, files)
     
@@ -753,6 +783,8 @@ class IngestReplaceTestCaseMixIn(IngestTestCaseMixIn):
         for filename in self.expected_deleted_optimized_files:
             self.assertFalse(exists(join(self.temp_optimized_files_dir, filename)))
 
+class IngestMergeTestCaseMixIn(IngestReplaceTestCaseMixIn):
+    pass
 
 class RasterMixIn(object):
     """ Test case mix-in to test the optimized (GDAL-)raster files. """
@@ -767,6 +799,12 @@ class RasterMixIn(object):
         raster_file = raster_file or self.raster_file
         
         filename = join(dir_name, raster_file)
+
+        # check filename and adjust if necessary i.e. add UUID
+        if not isfile(filename):
+            for file in listdir(dirname(filename)):
+                if file.find(basename(raster_file)):
+                    filename = join(dirname(filename), file)
         
         if self.save_to_file:
             save_filename = join(settings.PROJECT_DIR, self.save_to_file)
@@ -1089,9 +1127,8 @@ class ControlTestCaseMixIn(BaseTestCaseMixIn):
     """
 
     controller_config = None
-    status_config = None
 
-    url = "/controllerServer/"
+    url = "/controllerServer"
     request = None
     request_file = None
     ip_address = None
@@ -1102,29 +1139,20 @@ class ControlTestCaseMixIn(BaseTestCaseMixIn):
     def setUp_files(self):
         super(ControlTestCaseMixIn, self).setUp_files()
         self.temp_controller_server_config = join(tempfile.gettempdir(), "controller.conf")
-        self.temp_status_config = join(tempfile.gettempdir(), "status.conf")
 
         if self.controller_config is not None:
             with open(self.temp_controller_server_config, "w+") as f:
                 f.write(self.controller_config)
-
-        if self.status_config is not None:
-            with open(self.temp_status_config, "w+") as f:
-                f.write(self.status_config)
 
 
     def setUp_config(self):
         super(ControlTestCaseMixIn, self).setUp_config()
         config = get_ngeo_config()
         config.set(CTRL_SECTION, "controller_config_path", self.temp_controller_server_config)
-        config.set(CTRL_SECTION, "status_config_path", self.temp_status_config)
 
     def tearDown_files(self):
         if exists(self.temp_controller_server_config):
             remove(self.temp_controller_server_config)
-
-        if exists(self.temp_status_config):
-            remove(self.temp_status_config)
 
     def execute(self, request=None, url=None):
         if not url:
@@ -1134,13 +1162,15 @@ class ControlTestCaseMixIn(BaseTestCaseMixIn):
         if self.ip_address:
             extra['REMOTE_ADDR'] = self.ip_address
 
+        request = request or self.get_request()
+
         client = Client()
         if self.method != "get":
             # Django 1.4 is not able to handle DELETE requests with payload.
             # workaround here:
             extra.update({
-                'wsgi.input': FakePayload(self.request),
-                'CONTENT_LENGTH': len(self.request),
+                'wsgi.input': FakePayload(request),
+                'CONTENT_LENGTH': len(request),
                 'CONTENT_TYPE': "text/json",
                 'PATH_INFO': client._get_path(urlparse(url)),
                 'REQUEST_METHOD': self.method.upper()
@@ -1206,7 +1236,7 @@ class UnregisterTestCaseMixIn(ControlTestCaseMixIn):
 
 class StatusTestCaseMixIn(ControlTestCaseMixIn):
     method = "get"
-    url = "/status/"
+    url = "/status"
     
     def get_request(self):
         return {}
@@ -1218,9 +1248,25 @@ class StatusTestCaseMixIn(ControlTestCaseMixIn):
         return response
 
 
+class ComponentControlTestCaseMixIn(ControlTestCaseMixIn):
+    method = "put"
+    url = "/status"
+
+    command = None
+    expected_new_status = None
+    
+    def get_request(self):
+        return '{"command": "%s"}' % self.command
+
+    def test_new_status(self):
+        # TODO: read status
+        #self.assertEqual(self.expected_new_status, )
+        pass
+
+
 class ControlLogMixIn(ControlTestCaseMixIn):
     method = "get"
-    url = "/log/"
+    url = "/log"
 
     log_files = [] # list of tuples: (filename, date, content)
 
@@ -1252,3 +1298,58 @@ class LogListMixIn(ControlLogMixIn):
 
 class LogFileMixIn(ControlLogMixIn):
     pass
+
+
+class ConfigMixIn(ControlTestCaseMixIn):
+    method = "get"
+    url = "/instanceconfig"
+
+
+class ConfigurationManagementMixIn(ControlTestCaseMixIn):
+    url = "/config"
+
+    expected_layers = []
+    expected_removed_layers = []
+
+    def test_layers(self):
+        for layer in self.expected_layers:
+            # check DatasetSeries models
+            dataset_series = System.getRegistry().getFromFactory(
+                "resources.coverages.wrappers.DatasetSeriesFactory",
+                {"obj_id": layer}
+            )
+            self.assertNotEqual(None, dataset_series)
+
+            # check BrowseLayer models
+            self.assertTrue(
+                models.BrowseLayer.objects.filter(id=layer).exists()
+            )
+
+            # check mapcache xml tileset, cache and source
+            root = etree.parse(self.mapcache_config_file)
+            self.assertEqual(len(root.xpath("cache[@name='%s']" % layer)), 1)
+            self.assertEqual(len(root.xpath("source[@name='%s']" % layer)), 1)
+            self.assertEqual(len(root.xpath("tileset[@name='%s']" % layer)), 1)
+            
+            # check tileset file
+            #self.assertTrue(exists()) # TODO: really required?
+
+    def test_removed_layers(self):
+        for layer in self.expected_removed_layers:
+            # check DatasetSeries models
+            dataset_series = System.getRegistry().getFromFactory(
+                "resources.coverages.wrappers.DatasetSeriesFactory",
+                {"obj_id": layer}
+            )
+            self.assertEqual(None, dataset_series)
+
+            # check BrowseLayer models
+            self.assertFalse(
+                models.BrowseLayer.objects.filter(id=layer).exists()
+            )
+
+            # check mapcache xml tileset, cache and source
+            root = etree.parse(self.mapcache_config_file)
+            self.assertEqual(len(root.xpath("cache[@name='%s']" % layer)), 0)
+            self.assertEqual(len(root.xpath("source[@name='%s']" % layer)), 0)
+            self.assertEqual(len(root.xpath("tileset[@name='%s']" % layer)), 0)

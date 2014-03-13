@@ -73,6 +73,8 @@ def serialize_browse_layers(browse_layers, stream=None, pretty_print=False):
         
         SubElement(bl_elem, ns_cfg("highestMapLevel")).text = str(browse_layer.highest_map_level)
         SubElement(bl_elem, ns_cfg("lowestMapLevel")).text = str(browse_layer.lowest_map_level)
+        SubElement(bl_elem, ns_cfg("timeDimensionDefault")).text = str(browse_layer.timedimension_default)
+        SubElement(bl_elem, ns_cfg("tileQueryLimit")).text = str(browse_layer.tile_query_limit)
     
     # TODO: encoding
     et = ElementTree(browse_layers_elem)

@@ -110,3 +110,36 @@ cd ..
 # Copy autotest data
 echo "**> copy autotest data..."
 cp -r $NGEOB_INSTALL_DIR/ngeo-b_autotest/data/ $NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/
+
+cat << EOF > "$MAPCACHE_DIR/$MAPCACHE_CONF"
+<?xml version="1.0" encoding="UTF-8"?>
+<mapcache>
+  <!-- format setup -->
+  <default_format>mixed</default_format>
+  <format name="mypng" type ="PNG">
+    <compression>fast</compression>
+  </format>
+  <format name="myjpeg" type ="JPEG">
+    <quality>85</quality>
+    <photometric>ycbcr</photometric>
+  </format>
+  <format name="mixed" type="MIXED">
+    <transparent>mypng</transparent>
+    <opaque>myjpeg</opaque>
+  </format>
+
+  <!-- service setup -->
+  <service type="wms" enabled="true">
+    <full_wms>assemble</full_wms>
+    <resample_mode>bilinear</resample_mode>
+    <format>mixed</format>
+    <maxsize>4096</maxsize>
+  </service>
+  <service type="wmts" enabled="true"/>
+  <service type="demo" enabled="true"/>
+
+  <!-- misc setup -->
+  <errors>report</errors>
+  <lock_dir>/tmp</lock_dir>
+</mapcache>
+EOF
