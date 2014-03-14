@@ -3299,8 +3299,10 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
               <xsd:tooltip></xsd:tooltip>
             </xsd:annotation>
           </xsd:element>
-        </xsd:complexType>
-        <xsd:complexType name="logType">
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="logType">
+        <xsd:sequence>
           <xsd:element type="levelType" name="level">
             <xsd:annotation>
               <xsd:label>Log level</xsd:label>
