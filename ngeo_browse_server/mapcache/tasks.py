@@ -187,7 +187,7 @@ def add_mapcache_layer_xml(browse_layer, config=None):
             E("read-only", "true"),
             E("timedimension",
                 E("dbfile", settings.DATABASES["mapcache"]["NAME"]),
-                E("query", "select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time&lt;=datetime(:end_timestamp,'unixepoch') and end_time&gt;=datetime(:start_timestamp,'unixepoch') and maxx&gt;=:minx and maxy&gt;=:miny and minx&lt;=:maxx and miny&lt;=:maxy order by end_time desc limit 100"),
+                E("query", "select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time<=datetime(:end_timestamp,'unixepoch') and end_time>=datetime(:start_timestamp,'unixepoch') and maxx>=:minx and maxy>=:miny and minx<=:maxx and miny<=:maxy order by end_time desc limit 100"),
                 type="sqlite", default="2010" # TODO: default year into layer definition
             ),
             name=name
