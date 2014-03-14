@@ -111,10 +111,12 @@ class Configurator(object):
     
 
     def get_schema_type(self):
-        return XSD("complexType", *[
-            parameter.get_schema_element()
-            for parameter in self.parameters
-        ], name=self.type_name)
+        return XSD("complexType", 
+            XSD("sequence", *[
+                parameter.get_schema_element()
+                for parameter in self.parameters
+            ]), name=self.type_name
+        )
 
     def get_parameter_schema_types(self):
         return [
