@@ -366,6 +366,17 @@ EOF
         cat << EOF > "$MAPCACHE_DIR/$MAPCACHE_CONF"
 <?xml version="1.0" encoding="UTF-8"?>
 <mapcache>
+    <auth_method name="cmdlineauth" type="cmd">
+        <template>request_authorization.py -b http://127.0.0.1:8000/webserver -u :user -l :tileset</template>
+        <user_header>user</user_header>
+        <auth_cache type="memcache">
+            <expires>1000</expires>
+            <server>
+                <host>localhost</host>
+                <port>11211</port>
+            </server>
+        </auth_cache>
+    </auth_method>
     <default_format>mixed</default_format>
     <format name="mypng" type ="PNG">
         <compression>fast</compression>
