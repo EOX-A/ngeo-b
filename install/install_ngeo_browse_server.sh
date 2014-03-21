@@ -161,7 +161,7 @@ ngeo_install() {
 
     echo "Performing installation step 50"
     # Install packages
-    yum install -y python-lxml mod_wsgi httpd postgresql-server python-psycopg2 pytz
+    yum install -y python-lxml mod_wsgi httpd memcached postgresql-server python-psycopg2 pytz
 
     echo "Performing installation step 60"
     # Permanently start PostgreSQL
@@ -179,6 +179,9 @@ ngeo_install() {
     service postgresql force-reload
 
     echo "Performing installation step 70"
+    # Permanently start memcached, prior to apache
+    chkconfig memcached on --levels 12345
+
     # Permanently start Apache
     chkconfig httpd on
     # Reload Apache
@@ -247,8 +250,8 @@ ngeo_install() {
 
     echo "Performing installation step 170"
     # Install packages
-    yum install -y libxml2 libxml2-python mapserver mapserver-python mapcache \
-                   ngEO_Browse_Server EOxServer
+    yum install -y libxml2 libxml2-python mapserver mapserver-python \
+                   mapcache ngEO_Browse_Server EOxServer
 
     echo "Performing installation step 180"
     # Configure PostgreSQL/PostGIS database
@@ -995,6 +998,9 @@ EOF
     fi
 
     echo "Performing installation step 250"
+    # start auth cache
+    service memcached start
+
     # Reload Apache
     service httpd graceful
 
@@ -1125,12 +1131,20 @@ EOF
         chkconfig httpd off
     fi
 
+    echo "Stop memcached"#
+    if service memcached status ; then
+        service memcached stop
+    fi
+    if [ -f /etc/init.d/memcached ] ; then
+        chkconfig memcached off
+    fi
+
     echo "Performing uninstallation step 110"
     echo "Remove packages"
     yum erase -y  python-lxml mod_wsgi httpd postgresql pytz python-psycopg2 \
                   gdal gdal-python postgis mapserver Django14 mapserver-python \
                   mapcache ngEO_Browse_Server EOxServer libxerces-c-3_1 \
-                  shibboleth mod_ssl
+                  shibboleth mod_ssl memcached
 
     echo "Finished $SUBSYSTEM uninstallation"
 

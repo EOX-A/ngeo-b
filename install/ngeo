@@ -39,6 +39,7 @@ ngeo_start() {
     echo " $SUBSYSTEM Service Start"
     echo "------------------------------------------------------------------------------"
     service postgresql start
+    service memcached start
     service httpd start
     if "$USE_SHIBBOLETH" ; then
         service shibd start
@@ -56,6 +57,7 @@ ngeo_stop() {
         service shibd stop
     fi
     service httpd stop
+    service memcached stop
     service postgresql stop
 }
 
@@ -69,6 +71,7 @@ ngeo_status() {
     if "$USE_SHIBBOLETH" ; then
         service shibd status
     fi
+    service memcached status
 }
 
 # ----------------------------------------------------------------------------
