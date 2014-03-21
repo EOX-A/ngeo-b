@@ -1,3 +1,4 @@
+#! /usr/bin/python
 #-------------------------------------------------------------------------------
 #
 # Project: ngEO Browse Server <http://ngeo.eox.at>
