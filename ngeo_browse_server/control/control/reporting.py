@@ -26,6 +26,7 @@
 #-------------------------------------------------------------------------------
 
 import re
+from os.path import join
 import logging
 import urllib2
 import time
@@ -34,7 +35,8 @@ from datetime import datetime
 from collections import namedtuple
 from lxml import etree
 from lxml.builder import E
-from eoxserver.core.util.timetools import isotime
+from django.conf import settings
+from eoxserver.core.util.timetools import isotime, getDateTime
 
 from ngeo_browse_server.config import models
 from ngeo_browse_server.config import get_ngeo_config, safe_get
@@ -95,22 +97,25 @@ class BrowseAccessReport(Report):
 class BrowseReportReport(Report):
     operation = "BROWSE_REPORT"
     def get_records(self):
-        browse_reports = models.BrowseReport.objects.all()
-        if self.begin is not None:
-            browse_reports = browse_reports.filter(
-                date_time__gte=self.begin
+        
+        try:
+            filename = settings.LOGGING["handlers"]["ngEO-ingest"]["filename"]
+        except KeyError:
+            # TODO: cannot produce record
+            logger.error(
+                "Ingest log not configured! Cannot produce ingest reports."
             )
-        if self.end is not None:
-            browse_reports = browse_reports.filter(
-                date_time__lte=self.end
-            )
+            return
 
-        for browse_report in browse_reports:
-            yield BrowseReportRecord(
-                browse_report.date_time, browse_report.browse_layer.browse_type,
-                "0", browse_report.responsible_org_name, 
-                browse_report.browse_layer.id
-            )
+        with open(filename) as f:
+            for line in f:
+                items = line[:-1].split("/\\/\\")
+                date = getDateTime(items[0])
+                if self.end and self.end < date:
+                    continue
+                elif self.begin and self.begin > date:
+                    continue
+                yield BrowseReportRecord(date, *items[1:])
 
     def get_additional_keys(self, record):
         return ()
@@ -118,13 +123,8 @@ class BrowseReportReport(Report):
     def get_data(self, record):
         return [(key, value) for key, value in record._asdict().items() if key != "date"]
 
-
-
-
 BrowseAccessRecord = namedtuple("BrowseAccessRecord", ("date", "service", "browselayers", "userid", "authorizationTime", "nTiles", "size", "processingTime", "bbox", "requestTime"))
-BrowseReportRecord = namedtuple("BrowseReportRecord", ("date", "browseType", "size", "responsibleOrgName", "browseLayers"))
-
-
+BrowseReportRecord = namedtuple("BrowseReportRecord", ("date", "responsibleOrgName", "dateTime", "browseType", "numberOfContainedBrowses", "numberOfSuccessfulBrowses", "numberOfFailedBrowses"))
 
 def get_report_xml(begin, end, types):
     # TODO: read from config
@@ -181,3 +181,11 @@ def send_report(ip_address=None, begin=None, end=None, types=(BrowseReportReport
             "Could not send report (%s): '%s'" % (type(e).__name__, str(e))
         )
         raise
+
+
+def save_report(filename, begin=None, end=None, types=(BrowseReportReport, ), config=None):
+    config = config or get_ngeo_config()
+    tree = get_report_xml(begin, end, types)
+    
+    with open(filename, "w+") as f:
+        f.write(etree.tostring(tree, pretty_print=True))

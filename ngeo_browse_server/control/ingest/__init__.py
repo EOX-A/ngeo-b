@@ -86,6 +86,7 @@ from ngeo_browse_server.control.ingest.preprocessing.preprocessor import (
 
 
 logger = logging.getLogger(__name__)
+report_logger = logging.getLogger("ngEO-ingest")
 
 #===============================================================================
 # main functions
@@ -239,6 +240,19 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
                     transaction.rollback()
                     transaction.rollback(using="mapcache")
 
+
+    # date/responsibleOrgName/dateTime/browseType/numberOfContainedBrowses/
+    # numberOfSuccessfulBrowses/numberOfFailedBrowses
+
+    report_logger.info("/\\/\\".join((
+        datetime.now().isoformat("T") + "Z",
+        parsed_browse_report.responsible_org_name, 
+        browse_report.date_time.isoformat("T"),
+        parsed_browse_report.browse_type,
+        str(report_result.to_be_replaced),
+        str(report_result.to_be_replaced - report_result.failures),
+        str(report_result.failures)
+    )))
     
     # generate browse report and save to to success/failure dir
     if len(succeded):
