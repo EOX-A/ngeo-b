@@ -31,7 +31,7 @@ import logging
 import traceback
 from lxml import etree
 import time
-from datetime import datetime, date
+import datetime as dt
 from os.path import basename
 
 from django.conf import settings
@@ -167,7 +167,7 @@ def status(request):
         # GET means "status"
         if request.method == "GET":
             return JsonResponse({
-                "timestamp": datetime.now().replace(microsecond=0).isoformat(),
+                "timestamp": dt.datetime.now().replace(microsecond=0).isoformat(),
                 "state": status.state(),
                 "softwareversion": get_version(),
                 "queues": [
@@ -240,7 +240,7 @@ def log(request, datestr, name):
     if not status.running:
         return HttpResponse("", status=400)
 
-    date = date(*time.strptime(datestr, "%Y-%m-%d")[0:3])
+    date = dt.date(*time.strptime(datestr, "%Y-%m-%d")[0:3])
     logfile = get_log_file(date, name)
     if not logfile:
         raise Http404
