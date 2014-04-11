@@ -1028,14 +1028,65 @@ EOF
 
 }
 
-
 # ------------------------------------------------------------------------------
-# Uninstall
+# Uninstall - Only remove software packages but keep instance
 # ------------------------------------------------------------------------------
 ngeo_uninstall() {
 
+    if [ -f /etc/init.d/postgresql ] ; then
+        chkconfig postgresql off
+    fi
+
+    echo "Performing uninstallation step 20"
+    echo "Stop service ngeo"
+    if [ -f /etc/init.d/ngeo ] ; then
+        service ngeo stop
+        
+        echo "Delete service ngeo"
+        rm -f /etc/init.d/ngeo
+    fi
+
+    echo "Performing uninstallation step 80"
+    echo "If any of the data locations has been changed delete all browse data there."
+
+    echo "Performing uninstallation step 90"
+    echo "Delete extra Yum repositories"
+    yum erase -y epel-release elgis-release eox-release
+
+    echo "Performing uninstallation step 100"
+    echo "Stop Apache HTTP server"#
+    if service httpd status ; then
+        service httpd stop
+    fi
+    if [ -f /etc/init.d/httpd ] ; then
+        chkconfig httpd off
+    fi
+
+    echo "Stop memcached"#
+    if service memcached status ; then
+        service memcached stop
+    fi
+    if [ -f /etc/init.d/memcached ] ; then
+        chkconfig memcached off
+    fi
+
+    echo "Performing uninstallation step 110"
+    echo "Remove packages"
+    yum erase -y  python-lxml mod_wsgi httpd pytz python-psycopg2 \
+                  gdal gdal-python postgis mapserver Django14 mapserver-python \
+                  mapcache ngEO_Browse_Server EOxServer libxerces-c-3_1 \
+                  shibboleth mod_ssl memcached
+
+    echo "Finished $SUBSYSTEM uninstallation"
+}
+
+# ------------------------------------------------------------------------------
+# Full Uninstall - Remove software and instance
+# ------------------------------------------------------------------------------
+ngeo_full_uninstall() {
+
     echo "------------------------------------------------------------------------------"
-    echo " $SUBSYSTEM Uninstall"
+    echo " $SUBSYSTEM Full Uninstall"
     echo "------------------------------------------------------------------------------"
 
     echo "Performing uninstallation step 10"
@@ -1078,18 +1129,6 @@ EOF
     else
         echo "DB not deleted because PostgreSQL server is not running"
     fi
-    if [ -f /etc/init.d/postgresql ] ; then
-        chkconfig postgresql off
-    fi
-
-    echo "Performing uninstallation step 20"
-    echo "Stop service ngeo"
-    if [ -f /etc/init.d/ngeo ] ; then
-        service ngeo stop
-        
-        echo "Delete service ngeo"
-        rm -f /etc/init.d/ngeo
-    fi
 
     echo "Performing uninstallation step 30"
     echo "Delete ngEO Browse Server instance"
@@ -1115,38 +1154,10 @@ EOF
     echo "Delete Apache HTTP server configuration"
     rm -rf "${APACHE_CONF}"
 
-    echo "Performing uninstallation step 80"
-    echo "If any of the data locations has been changed delete all browse data there."
+    # remove packages
+    ngeo_uninstall
 
-    echo "Performing uninstallation step 90"
-    echo "Delete extra Yum repositories"
-    yum erase -y epel-release elgis-release eox-release
-
-    echo "Performing uninstallation step 100"
-    echo "Stop Apache HTTP server"#
-    if service httpd status ; then
-        service httpd stop
-    fi
-    if [ -f /etc/init.d/httpd ] ; then
-        chkconfig httpd off
-    fi
-
-    echo "Stop memcached"#
-    if service memcached status ; then
-        service memcached stop
-    fi
-    if [ -f /etc/init.d/memcached ] ; then
-        chkconfig memcached off
-    fi
-
-    echo "Performing uninstallation step 110"
-    echo "Remove packages"
-    yum erase -y  python-lxml mod_wsgi httpd postgresql pytz python-psycopg2 \
-                  gdal gdal-python postgis mapserver Django14 mapserver-python \
-                  mapcache ngEO_Browse_Server EOxServer libxerces-c-3_1 \
-                  shibboleth mod_ssl memcached
-
-    echo "Finished $SUBSYSTEM uninstallation"
+    yum erase -y postgresql
 
 }
 
@@ -1185,6 +1196,9 @@ install)
 ;;
 uninstall)
     ngeo_uninstall
+;;
+full_uninstall)
+    ngeo_full_uninstall
 ;;
 status)
     ngeo_status
