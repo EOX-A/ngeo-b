@@ -3205,98 +3205,128 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
     <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
       <xsd:complexType name="ingestType">
         <xsd:sequence>
-          <xsd:element type="string" name="optimized_files_postfix">
+          <xsd:element type="xsd:string" name="optimized_files_postfix">
             <xsd:annotation>
-              <xsd:label>Browse file postfix</xsd:label>
-              <xsd:tooltip>String that is attached at the end of filenames of optimized browses.</xsd:tooltip>
+              <xsd:documentation>
+                <xsd:label>Browse file postfix</xsd:label>
+                <xsd:tooltip>String that is attached at the end of filenames of optimized browses.</xsd:tooltip>
+              </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          <xsd:element type="string" name="compression">
+          <xsd:element type="xsd:string" name="compression">
             <xsd:annotation>
-              <xsd:label>Compression method</xsd:label>
-              <xsd:tooltip>Compression method used. One of "JPEG", "LZW", "PACKBITS", "DEFLATE", "CCITTRLE", "CCITTFAX3", "CCITTFAX4", or "NONE". Default is "NONE"</xsd:tooltip>
+              <xsd:documentation>
+                <xsd:label>Compression method</xsd:label>
+                <xsd:tooltip>Compression method used. One of "JPEG", "LZW", "PACKBITS", "DEFLATE", "CCITTRLE", "CCITTFAX3", "CCITTFAX4", or "NONE". Default is "NONE"</xsd:tooltip>
+              </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          <xsd:element type="integer" name="jpeg_quality">
+          <xsd:element type="xsd:integer" name="jpeg_quality">
             <xsd:annotation>
-              <xsd:label>JPEG compression quality</xsd:label>
-              <xsd:tooltip>JPEG quality if compression is "JPEG". Integer between 1-100. </xsd:tooltip>
+              <xsd:documentation>
+                <xsd:label>JPEG compression quality</xsd:label>
+                <xsd:tooltip>JPEG quality if compression is "JPEG". Integer between 1-100. </xsd:tooltip>
+              </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          <xsd:element type="string" name="zlevel">
+          <xsd:element type="xsd:string" name="zlevel">
             <xsd:annotation>
-              <xsd:label>DEFLATE Compression level</xsd:label>
-              <xsd:tooltip>zlevel option for "DEFLATE" compression. Integer between 1-9.</xsd:tooltip>
+              <xsd:documentation>
+                <xsd:label>DEFLATE Compression level</xsd:label>
+                <xsd:tooltip>zlevel option for "DEFLATE" compression. Integer between 1-9.</xsd:tooltip>
+              </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          <xsd:element type="boolean" name="tiling">
+          <xsd:element type="xsd:boolean" name="tiling">
             <xsd:annotation>
-              <xsd:label>Internal tiling</xsd:label>
-              <xsd:tooltip>Defines whether or not the browse images shall be internally tiled.</xsd:tooltip>
+              <xsd:documentation>
+                <xsd:label>Internal tiling</xsd:label>
+                <xsd:tooltip>Defines whether or not the browse images shall be internally tiled.</xsd:tooltip>
+              </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          <xsd:element type="boolean" name="overviews">
+          <xsd:element type="xsd:boolean" name="overviews">
             <xsd:annotation>
-              <xsd:label>Generate overviews</xsd:label>
-              <xsd:tooltip>Defines whether internal browse overviews shall be generated.</xsd:tooltip>
+              <xsd:documentation>
+                <xsd:label>Generate overviews</xsd:label>
+                <xsd:tooltip>Defines whether internal browse overviews shall be generated.</xsd:tooltip>
+              </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          <xsd:element type="string" name="overview_resampling">
+          <xsd:element type="xsd:string" name="overview_resampling">
             <xsd:annotation>
-              <xsd:label>Overview resampling</xsd:label>
-              <xsd:tooltip>Defines the resampling method used to generate the overviews. One of "NEAREST", "GAUSS", "CUBIC", "AVERAGE", "MODE", "AVERAGE_MAGPHASE" or "NONE".</xsd:tooltip>
+              <xsd:documentation>
+                <xsd:label>Overview resampling</xsd:label>
+                <xsd:tooltip>Defines the resampling method used to generate the overviews. One of "NEAREST", "GAUSS", "CUBIC", "AVERAGE", "MODE", "AVERAGE_MAGPHASE" or "NONE".</xsd:tooltip>
+              </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          <xsd:element type="string" name="overview_levels">
+          <xsd:element type="xsd:string" name="overview_levels">
             <xsd:annotation>
-              <xsd:label>Overview levels</xsd:label>
-              <xsd:tooltip>A comma separated list of integer overview levels. Defaults to a automatic selection of overview levels according to the dataset size.</xsd:tooltip>
+              <xsd:documentation>
+                <xsd:label>Overview levels</xsd:label>
+                <xsd:tooltip>A comma separated list of integer overview levels. Defaults to a automatic selection of overview levels according to the dataset size.</xsd:tooltip>
+              </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          <xsd:element type="integer" name="overview_minsize">
+          <xsd:element type="xsd:integer" name="overview_minsize">
             <xsd:annotation>
-              <xsd:label>Overview minimum size</xsd:label>
-              <xsd:tooltip>A (positive) integer value declaring the lowest size the highest overview level at most shall have.</xsd:tooltip>
+              <xsd:documentation>
+                <xsd:label>Overview minimum size</xsd:label>
+                <xsd:tooltip>A (positive) integer value declaring the lowest size the highest overview level at most shall have.</xsd:tooltip>
+              </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          <xsd:element type="boolean" name="color_index">
+          <xsd:element type="xsd:boolean" name="color_index">
             <xsd:annotation>
-              <xsd:label>Color index table</xsd:label>
-              <xsd:tooltip>Defines if a color index shall be calculated.</xsd:tooltip>
+              <xsd:documentation>
+                <xsd:label>Color index table</xsd:label>
+                <xsd:tooltip>Defines if a color index shall be calculated.</xsd:tooltip>
+              </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          <xsd:element type="boolean" name="footprint_alpha">
+          <xsd:element type="xsd:boolean" name="footprint_alpha">
             <xsd:annotation>
-              <xsd:label></xsd:label>
-              <xsd:tooltip>Defines whether or not a alpha channel shall be used to display the images area of interest.</xsd:tooltip>
+              <xsd:documentation>
+                <xsd:label></xsd:label>
+                <xsd:tooltip>Defines whether or not a alpha channel shall be used to display the images area of interest.</xsd:tooltip>
+              </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          <xsd:element type="integer" name="simplification_factor">
+          <xsd:element type="xsd:integer" name="simplification_factor">
             <xsd:annotation>
-              <xsd:label></xsd:label>
-              <xsd:tooltip>Sets the factor for the simplification algorithm. See `http://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm` for details. Defaults to 2 (2 * resolution == 2 pixels) which provides reasonable results.</xsd:tooltip>
+              <xsd:documentation>
+                <xsd:label></xsd:label>
+                <xsd:tooltip>Sets the factor for the simplification algorithm. See `http://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm` for details. Defaults to 2 (2 * resolution == 2 pixels) which provides reasonable results.</xsd:tooltip>
+              </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          <xsd:element type="string" name="threshold">
+          <xsd:element type="xsd:string" name="threshold">
             <xsd:annotation>
-              <xsd:label>Merge time threshold</xsd:label>
-              <xsd:tooltip>The maximum time difference between the two browse report to allow a 'merge'. E.g: 1w 5d 3h 12m 18ms. Defaults to '5h'.</xsd:tooltip>
+              <xsd:documentation>
+                <xsd:label>Merge time threshold</xsd:label>
+                <xsd:tooltip>The maximum time difference between the two browse report to allow a 'merge'. E.g: 1w 5d 3h 12m 18ms. Defaults to '5h'.</xsd:tooltip>
+              </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          <xsd:element type="string" name="strategy">
+          <xsd:element type="xsd:string" name="strategy">
             <xsd:annotation>
-              <xsd:label>Ident browse strategy</xsd:label>
-              <xsd:tooltip>Sets the 'strategy' for when an ingested browse is equal with an existing one. The 'merge'-strategy tries to merge the two existing images to one single. This is only possible if the time difference of the two browse reports (the report of the to be ingested browse and the one of the already existing one) is lower than the threshold. Otherwise a 'replace' is done. The 'replace' strategy removes the previous browse, before ingesting the new one.</xsd:tooltip>
+              <xsd:documentation>
+                <xsd:label>Ident browse strategy</xsd:label>
+                <xsd:tooltip>Sets the 'strategy' for when an ingested browse is equal with an existing one. The 'merge'-strategy tries to merge the two existing images to one single. This is only possible if the time difference of the two browse reports (the report of the to be ingested browse and the one of the already existing one) is lower than the threshold. Otherwise a 'replace' is done. The 'replace' strategy removes the previous browse, before ingesting the new one.</xsd:tooltip>
+              </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
         </xsd:sequence>
       </xsd:complexType>
       <xsd:complexType name="cacheType">
         <xsd:sequence>
-          <xsd:element type="integer" name="threads">
+          <xsd:element type="xsd:integer" name="threads">
             <xsd:annotation>
-              <xsd:label></xsd:label>
-              <xsd:tooltip></xsd:tooltip>
+              <xsd:documentation>
+                <xsd:label></xsd:label>
+                <xsd:tooltip></xsd:tooltip>
+              </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
         </xsd:sequence>
@@ -3305,14 +3335,16 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
         <xsd:sequence>
           <xsd:element type="levelType" name="level">
             <xsd:annotation>
-              <xsd:label>Log level</xsd:label>
-              <xsd:tooltip>Log level, to determine which log types shall be logged.</xsd:tooltip>
+              <xsd:documentation>
+                <xsd:label>Log level</xsd:label>
+                <xsd:tooltip>Log level, to determine which log types shall be logged.</xsd:tooltip>
+              </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
         </xsd:sequence>
       </xsd:complexType>
       <xsd:simpleType name="levelType">
-        <xsd:restriction base="string">
+        <xsd:restriction base="xsd:string">
           <xsd:enumeration value="DEBUG">
             <xsd:annotation>
               <xsd:documentation>

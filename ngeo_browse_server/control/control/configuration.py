@@ -33,10 +33,10 @@ from ngeo_browse_server.config import (
     get_ngeo_config, write_ngeo_config, safe_get
 )
 
-
+ns_xsd_prefix = "xsd"
 ns_xsd_uri = "http://www.w3.org/2001/XMLSchema"
 ns_xsd = lambda s: ("{%s}%s" % (ns_xsd_uri, s))
-XSD = ElementMaker(namespace=ns_xsd_uri, nsmap={"xsd": ns_xsd_uri})
+XSD = ElementMaker(namespace=ns_xsd_uri, nsmap={ns_xsd_prefix: ns_xsd_uri})
 
 TYPE_MAP = {
     bool: (lambda s: s == "true")
@@ -47,9 +47,9 @@ ENCODE_MAP = {
 }
 
 SCHEMA_MAP = {
-    bool: "boolean",
-    int: "integer",
-    str: "string",
+    bool: "%s:boolean" % ns_xsd_prefix,
+    int: "%s:integer" % ns_xsd_prefix,
+    str: "%s:string" % ns_xsd_prefix,
 }
 
 class Parameter(object):
@@ -86,15 +86,17 @@ class Parameter(object):
                 XSD("restriction", *[
                         self.get_allowed_values_enumeration(value, documentation)
                         for value, documentation in self.allowed_values
-                    ], base="string"
+                    ], base="%s:string" % ns_xsd_prefix
                 ), name=self.type_name
             )
 
     def get_schema_element(self):
         return XSD("element",
             XSD("annotation", 
-                XSD("label", self.title),
-                XSD("tooltip", self.description)
+                XSD("documentation",
+                    XSD("label", self.title),
+                    XSD("tooltip", self.description)
+                )
             ),
             name=self.name, type=self.type_name
         )
