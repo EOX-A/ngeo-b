@@ -520,6 +520,11 @@ EOF
         Allow from all
         Header set Access-Control-Allow-Origin *
     </Directory>
+
+    ErrorLog "/var/log/httpd/ngeo_error.log"
+    ServerSignature Off
+    LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\" %D \"%{$MAPCACHE_USER_HEADER}i\"" ngeo
+    CustomLog "/var/log/httpd/ngeo_access.log" ngeo
 </VirtualHost>
 EOF
     else
@@ -539,6 +544,10 @@ EOF
     chkconfig --level 235 ngeo on
     chmod +x /etc/init.d/ngeo
     service ngeo start
+
+    echo "Performing installation step 270"
+    # Configure logrotate for ngeo log files
+    #TODO: Add logrotate configuration for /var/log/httpd/* and /var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/logs/ngeo_*
 
     echo "Finished $SUBSYSTEM installation"
     echo "Check successful installation by pointing your browse to the "
