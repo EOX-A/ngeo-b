@@ -70,6 +70,7 @@ DB_PASSWORD="oi4Zuush"
 # MapCache
 MAPCACHE_DIR="/var/www/cache"
 MAPCACHE_CONF="mapcache.xml"
+MAPCACHE_USER_HEADER="SP-Person-Identifier"
 
 # Apache HTTPD
 APACHE_CONF="/etc/httpd/conf.d/010_ngeo_browse_server.conf"
@@ -347,7 +348,7 @@ EOF
 <mapcache>
     <auth_method name="cmdlineauth" type="cmd">
         <template>/usr/bin/python /usr/bin/request_authorization.py -b http://127.0.0.1:8000/webserver -u :user -l :tileset</template>
-        <user_header>user</user_header>
+        <user_header>$MAPCACHE_USER_HEADER</user_header>
         <auth_cache type="memcache">
             <expires>1000</expires>
             <server>
@@ -662,13 +663,9 @@ EOF
     echo "Delete ngEO Browse Server instance"
     rm -rf "${NGEOB_INSTALL_DIR}/ngeo_browse_server_instance"
 
-    echo "Performing uninstallation step 40"
-    echo "Delete MapCache instance"
+    echo "Performing uninstallation steps 40 and 50"
+    echo "Delete MapCache instance and configuration including authorization"
     rm -rf "${MAPCACHE_DIR}"
-
-    echo "Performing uninstallation step 50"
-    echo "Delete Authorization module configuration"
-    # TODO V2
 
     echo "Performing uninstallation step 60"
     echo "Delete WebDAV"
