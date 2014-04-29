@@ -62,6 +62,14 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
             dest='end', default=None,
             help=("")
         ),
+        make_option('--access-logfile', 
+            dest="access_logfile",
+            help=("")
+        ),
+        make_option('--report-logfile', 
+            dest="report_logfile",
+            help=("")
+        ),
         make_option('--url', 
             dest="url", default=None,
             help=("")
@@ -69,17 +77,13 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         make_option('--filename', 
             dest="filename",
             help=("")
-        ),
-        make_option('--method',
-            dest="method", default="save",
-            help=("save/send the report")
         )
     )
     
     args = ("")
     help = ("")
 
-    def handle(self, begin=None, end=None, url=None, filename=None, method=None, **kwargs):
+    def handle(self, begin=None, end=None, url=None, filename=None, access_logfile=None, report_logfile=None, **kwargs):
 
         if begin:
             begin = getDateTime(begin)
@@ -87,9 +91,12 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         if end: 
             end = getDateTime(end)
 
-        if method == "save":
-            save_report(filename, begin, end)
-        elif method == "send":
-            send_report(url, begin, end)
+        if filename and url:
+            raise CommandError("Both Filename and URL specified.")
+
+        if filename:
+            save_report(filename, begin, end, access_logfile, report_logfile)
+        elif url:
+            send_report(url, begin, end, access_logfile, report_logfile)
         else:
-            raise CommandError("Invalid method '%s'" % method)
+            raise CommandError("Neither Filename nor URL specified.")

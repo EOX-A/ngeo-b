@@ -31,6 +31,7 @@ import logging
 import urllib2
 import time
 from datetime import datetime
+import urlparse
 
 from collections import namedtuple
 from lxml import etree
@@ -48,26 +49,41 @@ from ngeo_browse_server.control.control.config import (
 
 logger = logging.getLogger(__name__)
 
-
-#line = '172.16.0.3 - - [25/Sep/2002:14:04:19 +0200] "GET / HTTP/1.1" 401 - "" "Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.1) Gecko/20020827"'
 class Report(object):
     operation = None
-    def __init__(self, begin=None, end=None):
-        self.begin = end
+    def __init__(self, begin, end, filename):
+        self.begin = begin
         self.end = end
+        self.filename = filename
 
+
+#10.0.2.2 - - [28/Apr/2014:13:00:08 +0000] "GET /c/wmts/?SERVICE=WMTS&REQUEST=GetCapabilities&VERSION=1.0.0 HTTP/1.1" 200 1576 "-" "Mo..." 1927 "-"
 
 class BrowseAccessReport(Report):
     operation = "BROWSE_ACCESS"
 
     def get_records(self):
-        regex = re.compile('(.*?) ([(\d\.)]+) - - \[(.*?)\] "(.*?)" (\d+) (\d+|-)')
-        with open("/var/log/mapcache_log") as f:
-            for line in f:
+        regex = re.compile('[(\d\.)]+ - - \[(.*?)\] "GET (.*?) HTTP/1\.." (\d+) (\d+|-) ".*?" ".*?" (\d+) "(.*?)"')
 
-                # TODO: implement
-                print line
-                _, ip, raw_datetime, request, raw_status, raw_size = regex.match(line).groups()
+        with open(self.filename) as f:
+
+            bins = {}
+
+            for line in f:
+                match = regex.match(line)
+                if not match:
+                    continue
+
+                raw_dt, request, raw_status, raw_size, raw_pt, user = match.groups()
+
+                dt = datetime(
+                    *time.strptime(raw_dt, "%d/%b/%Y:%H:%M:%S +0000")[0:6]
+                )
+
+                if self.begin and dt < self.begin:
+                    continue
+                elif self.end and dt > self.end:
+                    continue
 
                 if int(raw_status) not in (200, 304):
                     continue
@@ -77,37 +93,66 @@ class BrowseAccessReport(Report):
                 except ValueError:
                     size = 0
 
-                #("date", "service", "browselayers", "userid", "authorizationTime", "nTiles", "size", "processingTime", "bbox", "requestTime")
+                size = max(size, 0)
+
+                try:
+                    processing_time = int(raw_pt)
+                except ValueError:
+                    processing_time = 0
+
+                processing_time = max(processing_time, 0)
+
+                layers = self.get_layers(request)
+                if not layers:
+                    continue
+
+                bins.setdefault((user, layers), []).append(
+                    (size, processing_time)
+                )
+
+
+            for (user, layers), items in bins.items():
+                count = len(items)
+                sizes, processing_times = zip(*items)
+                agg_size = str(sum(sizes))
+                agg_processing_time = str(sum(processing_times))
 
                 yield BrowseAccessRecord(
-                    datetime(*time.strptime(raw_datetime, "%d/%b/%Y:%H:%M:%S +0000")[0:6]),
-                    "WMTS", "layers", ip, "0", "0", str(size), "0", "0,0,0,0", "start/stop"
+                    datetime.now(), layers, user, agg_size, agg_processing_time
                 )
 
     def get_additional_keys(self, record):
-        return (
-            ("service", record.service),
-        )
+        return ()
 
     def get_data(self, record):
-        for key, value in zip(record._fields[2:], record[2:]):
+        for key, value in zip(record._fields[1:], record[1:]):
             yield key, value
+
+    def get_layers(self, request):
+        kvps = dict(
+            (key.lower(), value)
+            for key, value in urlparse.parse_qsl(request)
+        )
+
+        if request.startswith("/c/wmts"):
+            if kvps:
+                return kvps.get("layer")
+            try:
+                layer = request.split("/")[3]
+                if layer == "WMTSCapabilities.xml":
+                    return None
+                return layer
+            except IndexError:
+                return None
+        elif request.startswith("/c/wms"):
+            return kvps.get("layers")
+
 
 
 class BrowseReportReport(Report):
     operation = "BROWSE_REPORT"
     def get_records(self):
-        
-        try:
-            filename = settings.LOGGING["handlers"]["ngEO-ingest"]["filename"]
-        except KeyError:
-            # TODO: cannot produce record
-            logger.error(
-                "Ingest log not configured! Cannot produce ingest reports."
-            )
-            return
-
-        with open(filename) as f:
+        with open(self.filename) as f:
             for line in f:
                 items = line[:-1].split("/\\/\\")
                 date = getDateTime(items[0])
@@ -123,16 +168,24 @@ class BrowseReportReport(Report):
     def get_data(self, record):
         return [(key, value) for key, value in record._asdict().items() if key != "date"]
 
-BrowseAccessRecord = namedtuple("BrowseAccessRecord", ("date", "service", "browselayers", "userid", "authorizationTime", "nTiles", "size", "processingTime", "bbox", "requestTime"))
+
+BrowseAccessRecord = namedtuple("BrowseAccessRecord", ("date", "browselayers", "userid", "aggregatedSize", "aggregatedProcessingTime"))
 BrowseReportRecord = namedtuple("BrowseReportRecord", ("date", "responsibleOrgName", "dateTime", "browseType", "numberOfContainedBrowses", "numberOfSuccessfulBrowses", "numberOfFailedBrowses"))
 
-def get_report_xml(begin, end, types):
+def get_report_xml(begin, end, access_logfile=None, report_logfile=None, config=None):
+    
+    config = config or get_ngeo_config()
     # TODO: read from config
     component_name = "test"
 
+    reports = []
+    if access_logfile:
+        reports.append(BrowseAccessReport(begin, end, access_logfile))
+    if report_logfile:
+        reports.append(BrowseReportReport(begin, end, report_logfile))
+
     root = E("fetchReportDataResponse")
-    for report_type in types:
-        report = report_type(begin, end)
+    for report in reports:
         for record in report.get_records():
             root.append(
                 E("report",
@@ -153,7 +206,7 @@ def get_report_xml(begin, end, types):
     return root
 
 
-def send_report(ip_address=None, begin=None, end=None, types=(BrowseReportReport, BrowseAccessReport), config=None):
+def send_report(ip_address=None, begin=None, end=None, access_logfile=None, report_logfile=None, config=None):
     config = config or get_ngeo_config()
 
     try:
@@ -167,7 +220,7 @@ def send_report(ip_address=None, begin=None, end=None, types=(BrowseReportReport
     if not ip_address:
         raise Exception("IP address could not be determined")
 
-    tree = get_report_xml(begin, end, types)
+    tree = get_report_xml(begin, end, types, access_logfile, report_logfile)
     req = urllib2.Request(
         url="http://%s/notify" % ip_address,
         data=etree.tostring(tree, pretty_print=True),
@@ -183,9 +236,9 @@ def send_report(ip_address=None, begin=None, end=None, types=(BrowseReportReport
         raise
 
 
-def save_report(filename, begin=None, end=None, types=(BrowseReportReport, ), config=None):
+def save_report(filename, begin=None, end=None, access_logfile=None, report_logfile=None, config=None):
     config = config or get_ngeo_config()
-    tree = get_report_xml(begin, end, types)
+    tree = get_report_xml(begin, end, access_logfile, report_logfile, config)
     
     with open(filename, "w+") as f:
         f.write(etree.tostring(tree, pretty_print=True))
