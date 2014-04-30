@@ -37,6 +37,7 @@ from collections import namedtuple
 from lxml import etree
 from lxml.builder import E
 from django.conf import settings
+from django.utils.timezone import utc
 from eoxserver.core.util.timetools import isotime, getDateTime
 
 from ngeo_browse_server.config import models
@@ -77,7 +78,8 @@ class BrowseAccessReport(Report):
                 raw_dt, request, raw_status, raw_size, raw_pt, user = match.groups()
 
                 dt = datetime(
-                    *time.strptime(raw_dt, "%d/%b/%Y:%H:%M:%S +0000")[0:6]
+                    *time.strptime(raw_dt, "%d/%b/%Y:%H:%M:%S +0000")[0:6],
+                    tzinfo=utc
                 )
 
                 if self.begin and dt < self.begin:
@@ -107,18 +109,19 @@ class BrowseAccessReport(Report):
                     continue
 
                 bins.setdefault((user, layers), []).append(
-                    (size, processing_time)
+                    (size, processing_time, dt)
                 )
 
 
             for (user, layers), items in bins.items():
                 count = len(items)
-                sizes, processing_times = zip(*items)
+                sizes, processing_times, dts = zip(*items)
                 agg_size = str(sum(sizes))
                 agg_processing_time = str(sum(processing_times))
+                max_dt = max(dts)
 
                 yield BrowseAccessRecord(
-                    datetime.now(), layers, user, agg_size, agg_processing_time
+                    max_dt, layers, user, agg_size, agg_processing_time
                 )
 
     def get_additional_keys(self, record):
