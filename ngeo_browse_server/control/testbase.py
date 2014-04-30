@@ -1354,3 +1354,42 @@ class ConfigurationManagementMixIn(ControlTestCaseMixIn):
             self.assertEqual(len(root.xpath("cache[@name='%s']" % layer)), 0)
             self.assertEqual(len(root.xpath("source[@name='%s']" % layer)), 0)
             self.assertEqual(len(root.xpath("tileset[@name='%s']" % layer)), 0)
+
+
+class GenerateReportMixIn(BaseTestCaseMixIn, CliMixIn):
+    command = "ngeo_report"
+    access_logfile = None
+    report_logfile = None
+    begin = None
+    end = None
+
+    @property
+    def kwargs(self):
+        kwargs = {
+            "filename": self.output_report_filename
+        }
+
+        if self.access_logfile:
+            kwargs["access-logfile"] = self.access_logfile
+        if self.report_logfile:
+            kwargs["report-logfile"] = self.report_logfile
+        if self.begin:
+            kwargs["begin"] = self.begin
+        if self.end:
+            kwargs["end"] = self.end
+
+        return kwargs
+
+    def setUp_files(self):
+        super(GenerateReportMixIn, self).setUp_files()
+        self.output_report_filename = tempfile.NamedTemporaryFile(delete=False).name
+
+
+    def tearDown_files(self):
+        super(GenerateReportMixIn, self).tearDown_files()
+        remove(self.output_report_filename)
+
+
+    def test_report(self):
+        with open(self.output_report_filename) as f:
+            self.assertEqual(self.expected_report, f.read())

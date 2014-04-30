@@ -51,7 +51,8 @@ from ngeo_browse_server.control.testbase import (
     ImportReplaceTestCaseMixin, SeedMergeTestCaseMixIn, HttpMultipleMixIn, 
     LoggingTestCaseMixIn, RegisterTestCaseMixIn, UnregisterTestCaseMixIn, 
     StatusTestCaseMixIn, LogListMixIn, LogFileMixIn, ConfigMixIn,
-    ComponentControlTestCaseMixIn, ConfigurationManagementMixIn
+    ComponentControlTestCaseMixIn, ConfigurationManagementMixIn,
+    GenerateReportMixIn
 )
 from ngeo_browse_server.control.ingest.config import (
     INGEST_SECTION
@@ -3614,3 +3615,316 @@ class RemoveBrowseLayerTestCase(ConfigurationManagementMixIn, TestCase):
 """
 
     expected_response = '<?xml version="1.0"?>\n<synchronizeConfigurationResponse>1</synchronizeConfigurationResponse>'
+
+#===============================================================================
+# Report generation command line test cases
+#===============================================================================
+
+class ReportAccessTestCase(GenerateReportMixIn, TestCase):
+    access_logfile = join(settings.PROJECT_DIR, "data/report_logs/access.log")
+
+    expected_report = """\
+<fetchReportDataResponse>
+  <report>
+    <header>
+      <operation>BROWSE_ACCESS</operation>
+      <component>test</component>
+      <date>2014-04-07T13:00:08Z</date>
+    </header>
+    <data>
+      <value key="browselayers">layerA</value>
+      <value key="userid">-</value>
+      <value key="aggregatedSize">1576</value>
+      <value key="aggregatedProcessingTime">2500</value>
+    </data>
+  </report>
+  <report>
+    <header>
+      <operation>BROWSE_ACCESS</operation>
+      <component>test</component>
+      <date>2014-04-12T13:00:08Z</date>
+    </header>
+    <data>
+      <value key="browselayers">layerB</value>
+      <value key="userid">-</value>
+      <value key="aggregatedSize">7880</value>
+      <value key="aggregatedProcessingTime">9907</value>
+    </data>
+  </report>
+  <report>
+    <header>
+      <operation>BROWSE_ACCESS</operation>
+      <component>test</component>
+      <date>2014-04-13T13:00:08Z</date>
+    </header>
+    <data>
+      <value key="browselayers">layerA,layerB</value>
+      <value key="userid">-</value>
+      <value key="aggregatedSize">1576</value>
+      <value key="aggregatedProcessingTime">1956</value>
+    </data>
+  </report>
+</fetchReportDataResponse>
+"""
+
+
+class ReportAccessSubsetTestCase(GenerateReportMixIn, TestCase):
+    access_logfile = join(settings.PROJECT_DIR, "data/report_logs/access.log")
+    begin = "2014-04-08T15:31:15Z" 
+    end = "2014-04-10T20:30Z"
+
+    expected_report = """\
+<fetchReportDataResponse>
+  <report>
+    <header>
+      <operation>BROWSE_ACCESS</operation>
+      <component>test</component>
+      <date>2014-04-10T13:00:08Z</date>
+    </header>
+    <data>
+      <value key="browselayers">layerB</value>
+      <value key="userid">-</value>
+      <value key="aggregatedSize">3152</value>
+      <value key="aggregatedProcessingTime">2406</value>
+    </data>
+  </report>
+</fetchReportDataResponse>
+"""
+
+
+class ReportIngestTestCase(GenerateReportMixIn, TestCase):
+    report_logfile = join(settings.PROJECT_DIR, "data/report_logs/ingest.log")
+
+    expected_report = """\
+<fetchReportDataResponse>
+  <report>
+    <header>
+      <operation>BROWSE_REPORT</operation>
+      <component>test</component>
+      <date>2014-04-07T15:30:33Z</date>
+    </header>
+    <data>
+      <value key="browseType">SAR</value>
+      <value key="numberOfFailedBrowses">1</value>
+      <value key="numberOfSuccessfulBrowses">0</value>
+      <value key="dateTime">2012-10-02T09:30:00+00:00</value>
+      <value key="numberOfContainedBrowses">1</value>
+      <value key="responsibleOrgName">ESA</value>
+    </data>
+  </report>
+  <report>
+    <header>
+      <operation>BROWSE_REPORT</operation>
+      <component>test</component>
+      <date>2014-04-08T15:31:15Z</date>
+    </header>
+    <data>
+      <value key="browseType">SAR</value>
+      <value key="numberOfFailedBrowses">0</value>
+      <value key="numberOfSuccessfulBrowses">1</value>
+      <value key="dateTime">2012-10-02T09:30:00+00:00</value>
+      <value key="numberOfContainedBrowses">1</value>
+      <value key="responsibleOrgName">ESA</value>
+    </data>
+  </report>
+  <report>
+    <header>
+      <operation>BROWSE_REPORT</operation>
+      <component>test</component>
+      <date>2014-04-09T15:31:42Z</date>
+    </header>
+    <data>
+      <value key="browseType">SAR</value>
+      <value key="numberOfFailedBrowses">0</value>
+      <value key="numberOfSuccessfulBrowses">1</value>
+      <value key="dateTime">2012-10-02T09:30:00+00:00</value>
+      <value key="numberOfContainedBrowses">1</value>
+      <value key="responsibleOrgName">ESA</value>
+    </data>
+  </report>
+  <report>
+    <header>
+      <operation>BROWSE_REPORT</operation>
+      <component>test</component>
+      <date>2014-04-10T15:31:47Z</date>
+    </header>
+    <data>
+      <value key="browseType">SAR</value>
+      <value key="numberOfFailedBrowses">0</value>
+      <value key="numberOfSuccessfulBrowses">1</value>
+      <value key="dateTime">2012-10-02T10:30:00+00:00</value>
+      <value key="numberOfContainedBrowses">1</value>
+      <value key="responsibleOrgName">ESA</value>
+    </data>
+  </report>
+  <report>
+    <header>
+      <operation>BROWSE_REPORT</operation>
+      <component>test</component>
+      <date>2014-04-11T15:31:48Z</date>
+    </header>
+    <data>
+      <value key="browseType">SAR</value>
+      <value key="numberOfFailedBrowses">1</value>
+      <value key="numberOfSuccessfulBrowses">0</value>
+      <value key="dateTime">2012-11-02T09:30:00+00:00</value>
+      <value key="numberOfContainedBrowses">1</value>
+      <value key="responsibleOrgName">ESA</value>
+    </data>
+  </report>
+  <report>
+    <header>
+      <operation>BROWSE_REPORT</operation>
+      <component>test</component>
+      <date>2014-04-12T15:31:51Z</date>
+    </header>
+    <data>
+      <value key="browseType">SAR</value>
+      <value key="numberOfFailedBrowses">0</value>
+      <value key="numberOfSuccessfulBrowses">1</value>
+      <value key="dateTime">2012-10-02T09:30:00+00:00</value>
+      <value key="numberOfContainedBrowses">1</value>
+      <value key="responsibleOrgName">ESA</value>
+    </data>
+  </report>
+  <report>
+    <header>
+      <operation>BROWSE_REPORT</operation>
+      <component>test</component>
+      <date>2014-04-13T15:31:54Z</date>
+    </header>
+    <data>
+      <value key="browseType">SAR</value>
+      <value key="numberOfFailedBrowses">0</value>
+      <value key="numberOfSuccessfulBrowses">1</value>
+      <value key="dateTime">2012-10-02T09:30:00+00:00</value>
+      <value key="numberOfContainedBrowses">1</value>
+      <value key="responsibleOrgName">ESA</value>
+    </data>
+  </report>
+</fetchReportDataResponse>
+"""
+
+class ReportIngestSubsetTestCase(GenerateReportMixIn, TestCase):
+    report_logfile = join(settings.PROJECT_DIR, "data/report_logs/ingest.log")
+    begin="2014-04-08T15:31:15Z"
+    end="2014-04-10T20:30Z"
+
+    expected_report = """\
+<fetchReportDataResponse>
+  <report>
+    <header>
+      <operation>BROWSE_REPORT</operation>
+      <component>test</component>
+      <date>2014-04-08T15:31:15Z</date>
+    </header>
+    <data>
+      <value key="browseType">SAR</value>
+      <value key="numberOfFailedBrowses">0</value>
+      <value key="numberOfSuccessfulBrowses">1</value>
+      <value key="dateTime">2012-10-02T09:30:00+00:00</value>
+      <value key="numberOfContainedBrowses">1</value>
+      <value key="responsibleOrgName">ESA</value>
+    </data>
+  </report>
+  <report>
+    <header>
+      <operation>BROWSE_REPORT</operation>
+      <component>test</component>
+      <date>2014-04-09T15:31:42Z</date>
+    </header>
+    <data>
+      <value key="browseType">SAR</value>
+      <value key="numberOfFailedBrowses">0</value>
+      <value key="numberOfSuccessfulBrowses">1</value>
+      <value key="dateTime">2012-10-02T09:30:00+00:00</value>
+      <value key="numberOfContainedBrowses">1</value>
+      <value key="responsibleOrgName">ESA</value>
+    </data>
+  </report>
+  <report>
+    <header>
+      <operation>BROWSE_REPORT</operation>
+      <component>test</component>
+      <date>2014-04-10T15:31:47Z</date>
+    </header>
+    <data>
+      <value key="browseType">SAR</value>
+      <value key="numberOfFailedBrowses">0</value>
+      <value key="numberOfSuccessfulBrowses">1</value>
+      <value key="dateTime">2012-10-02T10:30:00+00:00</value>
+      <value key="numberOfContainedBrowses">1</value>
+      <value key="responsibleOrgName">ESA</value>
+    </data>
+  </report>
+</fetchReportDataResponse>
+"""
+
+class ReportBothSubsetTestCase(GenerateReportMixIn, TestCase):
+    report_logfile = join(settings.PROJECT_DIR, "data/report_logs/ingest.log")
+    access_logfile = join(settings.PROJECT_DIR, "data/report_logs/access.log")
+    begin = "2014-04-08T15:31:15Z"
+    end = "2014-04-10T20:30Z"
+
+    expected_report = """\
+<fetchReportDataResponse>
+  <report>
+    <header>
+      <operation>BROWSE_ACCESS</operation>
+      <component>test</component>
+      <date>2014-04-10T13:00:08Z</date>
+    </header>
+    <data>
+      <value key="browselayers">layerB</value>
+      <value key="userid">-</value>
+      <value key="aggregatedSize">3152</value>
+      <value key="aggregatedProcessingTime">2406</value>
+    </data>
+  </report>
+  <report>
+    <header>
+      <operation>BROWSE_REPORT</operation>
+      <component>test</component>
+      <date>2014-04-08T15:31:15Z</date>
+    </header>
+    <data>
+      <value key="browseType">SAR</value>
+      <value key="numberOfFailedBrowses">0</value>
+      <value key="numberOfSuccessfulBrowses">1</value>
+      <value key="dateTime">2012-10-02T09:30:00+00:00</value>
+      <value key="numberOfContainedBrowses">1</value>
+      <value key="responsibleOrgName">ESA</value>
+    </data>
+  </report>
+  <report>
+    <header>
+      <operation>BROWSE_REPORT</operation>
+      <component>test</component>
+      <date>2014-04-09T15:31:42Z</date>
+    </header>
+    <data>
+      <value key="browseType">SAR</value>
+      <value key="numberOfFailedBrowses">0</value>
+      <value key="numberOfSuccessfulBrowses">1</value>
+      <value key="dateTime">2012-10-02T09:30:00+00:00</value>
+      <value key="numberOfContainedBrowses">1</value>
+      <value key="responsibleOrgName">ESA</value>
+    </data>
+  </report>
+  <report>
+    <header>
+      <operation>BROWSE_REPORT</operation>
+      <component>test</component>
+      <date>2014-04-10T15:31:47Z</date>
+    </header>
+    <data>
+      <value key="browseType">SAR</value>
+      <value key="numberOfFailedBrowses">0</value>
+      <value key="numberOfSuccessfulBrowses">1</value>
+      <value key="dateTime">2012-10-02T10:30:00+00:00</value>
+      <value key="numberOfContainedBrowses">1</value>
+      <value key="responsibleOrgName">ESA</value>
+    </data>
+  </report>
+</fetchReportDataResponse>
+"""
