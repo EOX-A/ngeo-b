@@ -2,12 +2,16 @@
 from django.contrib.gis.geos import (
     GEOSGeometry, MultiPolygon, Polygon, LinearRing, 
 )
-from eoxserver.contrib import gdal
+from eoxserver.contrib import gdal, osr, ogr
 from eoxserver.processing.preprocessing import (
     WMSPreProcessor, PreProcessResult
 )
 from eoxserver.processing.preprocessing.optimization import *
-from eoxserver.processing.preprocessing.util import create_mem_copy
+from eoxserver.processing.preprocessing.util import (
+    create_mem_copy, create_mem, copy_metadata
+)
+from eoxserver.processing.gdal import reftools
+from eoxserver.processing.preprocessing.exceptions import GCPTransformException
 
 from ngeo_browse_server.control.ingest.preprocessing.merge import (
     GDALDatasetMerger, GDALGeometryMaskMergeSource
@@ -29,9 +33,16 @@ class NGEOPreProcessor(WMSPreProcessor):
         
         if not geo_reference:
             if gt == (0.0, 1.0, 0.0, 0.0, 0.0, 1.0): # TODO: maybe use a better check
-                raise ValueError("No geospatial reference for unreferenced "
-                                 "dataset given.")
-        else:
+                if ds.GetGCPCount() > 0:
+                    # apply orthorectification
+
+                    geo_reference = InternalGCPs()
+
+                else:
+                    raise ValueError("No geospatial reference for "
+                                     "unreferenced dataset given.")
+
+        if geo_reference:
             logger.debug("Applying geo reference '%s'."
                          % type(geo_reference).__name__)
             ds, footprint_wkt = geo_reference.apply(ds)
@@ -139,3 +150,91 @@ class NGEOPreProcessor(WMSPreProcessor):
         ds = None
         
         return PreProcessResult(output_filename, footprint, num_bands)
+
+
+class InternalGCPs(object):    
+    def __init__(self, srid=4326):
+        self.srid = srid
+    
+        
+    def apply(self, src_ds):
+        # setup
+        dst_sr = osr.SpatialReference()
+        dst_sr.ImportFromEPSG(self.srid)
+        
+        logger.debug("Using internal GCP Projection.")
+        num_gcps = src_ds.GetGCPCount()
+        
+        # Try to find and use the best transform method/order. 
+        # Orders are: -1 (TPS), 3, 2, and 1 (all GCP)
+        # Loop over the min and max GCP number to order map.
+        for min_gcpnum, max_gcpnum, order in [(3, None, -1), (10, None, 3), (6, None, 2), (3, None, 1)]:
+            # if the number of GCP matches
+            if num_gcps >= min_gcpnum and (max_gcpnum is None or num_gcps <= max_gcpnum):
+                try:
+                  
+                    if (order < 0) : 
+                        # let the reftools suggest the right interpolator 
+                        rt_prm = reftools.suggest_transformer(src_ds)
+                    else:
+                        # use the polynomial GCP interpolation as requested
+                        rt_prm = {
+                            "method": reftools.METHOD_GCP, "order": order
+                        }
+
+                    logger.debug("Trying order '%i' {method:%s,order:%s}" % (
+                        order, reftools.METHOD2STR[rt_prm["method"]], rt_prm["order"]
+                    ))
+
+                    # get the suggested pixel size/geotransform
+                    size_x, size_y, geotransform = reftools.suggested_warp_output(
+                        src_ds,
+                        None,
+                        dst_sr.ExportToWkt(),
+                        **rt_prm 
+                    )
+                    if size_x > 100000 or size_y > 100000:
+                        raise RuntimeError("Calculated size exceeds limit.")
+                    logger.debug("New size is '%i x %i'" % (size_x, size_y))
+                    
+                    # create the output dataset
+                    dst_ds = create_mem(size_x, size_y,
+                                        src_ds.RasterCount, 
+                                        src_ds.GetRasterBand(1).DataType)
+                    
+                    # reproject the image
+                    dst_ds.SetProjection(dst_sr.ExportToWkt())
+                    dst_ds.SetGeoTransform(geotransform)
+                    
+                    reftools.reproject_image(src_ds, "", dst_ds, "", **rt_prm)
+                    
+                    copy_metadata(src_ds, dst_ds)
+                    
+                    # retrieve the footprint from the given GCPs
+                    footprint_wkt = reftools.get_footprint_wkt(src_ds, **rt_prm)
+                    
+                except RuntimeError, e:
+                    logger.debug("Failed using order '%i'. Error was '%s'."
+                                 % (order, str(e)))
+                    # the given method was not applicable, use the next one
+                    continue
+                    
+                else:
+                    logger.debug("Successfully used order '%i'" % order)
+                    # the transform method was successful, exit the loop
+                    break
+        else:
+            # no method worked, so raise an error
+            raise GCPTransformException("Could not find a valid transform method.")
+        
+        # reproject the footprint to a lon/lat projection if necessary
+        if not dst_sr.IsGeographic():
+            out_sr = osr.SpatialReference()
+            out_sr.ImportFromEPSG(4326)
+            geom = ogr.CreateGeometryFromWkt(footprint_wkt, gcp_sr)
+            geom.TransformTo(out_sr)
+            footprint_wkt = geom.ExportToWkt()
+        
+        logger.debug("Calculated footprint: '%s'." % footprint_wkt)
+        
+        return dst_ds, footprint_wkt
