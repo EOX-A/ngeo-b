@@ -3376,6 +3376,18 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
           </xsd:element>
         </xsd:sequence>
       </xsd:complexType>
+      <xsd:complexType name="webServerType">
+        <xsd:sequence>
+          <xsd:element type="xsd:string" name="baseurl">
+            <xsd:annotation>
+              <xsd:documentation>
+                <xsd:label>Web Server base URL</xsd:label>
+                <xsd:tooltip>Base URL of the ngEO Web Server for authorization requests.</xsd:tooltip>
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:complexType>
       <xsd:simpleType name="levelType">
         <xsd:restriction base="xsd:string">
           <xsd:enumeration value="DEBUG">
@@ -3420,6 +3432,7 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
           <xsd:element type="ingestType" name="ingest"/>
           <xsd:element type="cacheType" name="cache"/>
           <xsd:element type="logType" name="log"/>
+          <xsd:element type="webServerType" name="webServer"/>
         </xsd:sequence>
       </xsd:complexType>
       <xsd:element type="configurationType" name="configuration"/>
@@ -3449,6 +3462,9 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
       <log>
         <level>INFO</level>
       </log>
+      <webServer>
+        <baseurl>http://www.example.com/</baseurl>
+      </webServer>
     </configuration>
   </configurationData>
 </getConfigurationAndSchemaResponse>

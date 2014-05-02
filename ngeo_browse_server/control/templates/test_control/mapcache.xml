@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mapcache>
+    <auth_method name="cmdlineauth" type="cmd">
+      <template>request_authorization.py --layer :tileset --user :user --baseurl http://www.example.com/</template>
+      <user_header>user</user_header>
+      <auth_cache type="memcache">
+        <expires>1000</expires>
+        <server>
+          <host>localhost</host>
+          <port>11211</port>
+       </server>
+      </auth_cache>
+    </auth_method>
     {% for layer in browse_layers %}
     <cache name="{{ layer.pk }}" type="sqlite3">
         <dbfile>{{ mapcache_dir }}{{ layer.pk }}.sqlite</dbfile>
