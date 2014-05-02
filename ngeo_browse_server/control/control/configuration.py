@@ -25,6 +25,7 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
+import re
 
 from lxml import etree
 from lxml.builder import ElementMaker, E
@@ -32,6 +33,10 @@ from lxml.builder import ElementMaker, E
 from ngeo_browse_server.config import (
     get_ngeo_config, write_ngeo_config, safe_get
 )
+from ngeo_browse_server.mapcache.tasks import (
+    lock_mapcache_config, read_mapcache_xml, write_mapcache_xml
+)
+
 
 ns_xsd_prefix = "xsd"
 ns_xsd_uri = "http://www.w3.org/2001/XMLSchema"
@@ -321,7 +326,57 @@ class LogConfigurator(ngEOConfigConfigurator):
     )
 
 
-CONFIGURATORS = [IngestConfigurator(), CacheConfigurator(), LogConfigurator()]
+class WebServerConfigurator(Configurator):
+    type_name = "webServerType"
+    element_name = "webServer"
+
+    parameters = (
+        Parameter(str, "baseurl", "Web Server base URL", 
+            "Base URL of the ngEO Web Server for authorization requests."
+        ),
+    )
+
+    cmd_line_re = re.compile(".* (--baseurl|-b) (?P<url>[\S]*)")
+
+    @lock_mapcache_config
+    def set_values(self, baseurl):
+        config = get_ngeo_config()
+        root = read_mapcache_xml(config)
+        try:
+            template_elem = root.xpath("auth_method[1]/template")[0]
+            template = template_elem.text
+        except IndexError:
+            pass # no template given?
+
+        match = self.cmd_line_re.match(template)
+        if match:
+            template = "".join((
+                match.string[:match.start("url")], 
+                baseurl, match.string[match.end("url"):]
+            ))
+        else:
+            template += " --baseurl %s" % baseurl 
+        template_elem.text = template
+
+        write_mapcache_xml(root, config)
+
+
+    @lock_mapcache_config
+    def get_values(self):
+        root = read_mapcache_xml(get_ngeo_config())
+        try:
+            template = root.xpath("auth_method[1]/template/text()")[0]
+            baseurl = self.cmd_line_re.match(template).group("url")
+        except (IndexError, AttributeError):
+            baseurl = ""
+
+        return {"baseurl": baseurl}
+
+
+CONFIGURATORS = [
+    IngestConfigurator(), CacheConfigurator(), LogConfigurator(), 
+    WebServerConfigurator()
+]
 
 
 def get_configuration():
