@@ -468,6 +468,8 @@ EOF
             sed -e "s/^127\.0\.0\.1.*$/& $HOSTNAME/" -i /etc/hosts
         fi
 
+        NGEOB_LOG_DIR="$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/logs"
+
         cat << EOF > "$APACHE_CONF"
 <VirtualHost *:80>
     ServerName $APACHE_ServerName
@@ -521,10 +523,10 @@ EOF
         Header set Access-Control-Allow-Origin *
     </Directory>
 
-    ErrorLog "/var/log/httpd/ngeo_error.log"
+    ErrorLog "$NGEOB_LOG_DIR/httpd_error.log"
     ServerSignature Off
     LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\" %D \"%{$MAPCACHE_USER_HEADER}i\"" ngeo
-    CustomLog "/var/log/httpd/ngeo_access.log" ngeo
+    CustomLog "$NGEOB_LOG_DIR/httpd_access.log" ngeo
 </VirtualHost>
 EOF
     else
@@ -547,7 +549,50 @@ EOF
 
     echo "Performing installation step 270"
     # Configure logrotate for ngeo log files
-    #TODO: Add logrotate configuration for /var/log/httpd/* and /var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/logs/ngeo_*
+    NGEO_REPORT_DIR="$NGEOB_INSTALL_DIR/store/reports"
+
+    if [ ! -d "$NGEO_REPORT_DIR" ] ; then
+        mkdir -p "$NGEO_REPORT_DIR"
+        chown -R apache:apache "$NGEO_REPORT_DIR"
+    fi
+
+    cat << EOF > /etc/logrotate.d/ngeo
+$NGEOB_LOG_DIR/httpd_access.log {
+    missingok
+    notifempty
+    delaycompress
+    postrotate
+        /sbin/service httpd reload > /dev/null 2>/dev/null || true
+        cd "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/"
+        python manage.py ngeo_report --access-logfile=\$1.1 --filename=$NGEO_REPORT_DIR/access_report_\`date --iso\`.xml
+    endscript
+}
+
+$NGEOB_LOG_DIR/httpd_error.log {
+    missingok
+    notifempty
+    delaycompress
+    postrotate
+        /sbin/service httpd reload > /dev/null 2>/dev/null || true
+    endscript
+}
+
+$NGEOB_LOG_DIR/ingest.log {
+    missingok
+    notifempty
+    delaycompress
+    postrotate
+        cd "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/"
+        python manage.py ngeo_report --report-logfile=\$1.1 --filename=$NGEO_REPORT_DIR/ingest_report_\`date --iso\`.xml
+    endscript
+}
+
+$NGEOB_LOG_DIR/eoxserver.log $NGEOB_LOG_DIR/ngeo.log {
+    missingok
+    notifempty
+    delaycompress
+}
+EOF
 
     echo "Finished $SUBSYSTEM installation"
     echo "Check successful installation by pointing your browse to the "
