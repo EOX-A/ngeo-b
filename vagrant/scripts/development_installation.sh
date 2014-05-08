@@ -8,7 +8,7 @@ python setup.py develop --disable-extended-reftools
 cd /var/mapcache
 mkdir -p build
 cd build
-cmake ..
+cmake .. -DWITH_MEMCACHE=1
 make
 make install
 if [ ! -f /etc/ld.so.conf.d/mapcache.conf ] || ! grep -Fxq "/usr/local/lib" /etc/ld.so.conf.d/mapcache.conf ; then
@@ -76,3 +76,45 @@ cp /var/ngeob_autotest/data/aiv_test_data/*.jpg /var/www/store/
 # Make the instance read- and editable by everybody
 chmod -R a+w /var/ngeob_autotest/
 chmod -R a+w /var/www/
+
+NGEOB_LOG_DIR=/var/ngeob_autotest/logs
+NGEO_REPORT_DIR=/var/www/store/reports
+mkdir -p $NGEO_REPORT_DIR
+
+cat << EOF > /etc/logrotate.d/ngeo
+$NGEOB_LOG_DIR/httpd_access.log {
+    missingok
+    notifempty
+    delaycompress
+    postrotate
+        /sbin/service httpd reload > /dev/null 2>/dev/null || true
+        cd /var/ngeob_autotest/
+        python manage.py ngeo_report --access-logfile=\$1.1 --filename=$NGEO_REPORT_DIR/access_report_\`date --iso\`.xml
+    endscript
+}
+
+$NGEOB_LOG_DIR/httpd_error.log {
+    missingok
+    notifempty
+    delaycompress
+    postrotate
+        /sbin/service httpd reload > /dev/null 2>/dev/null || true
+    endscript
+}
+
+$NGEOB_LOG_DIR/ingest.log {
+    missingok
+    notifempty
+    delaycompress
+    postrotate
+    	cd /var/ngeob_autotest/
+        python manage.py ngeo_report --report-logfile=\$1.1 --filename=$NGEO_REPORT_DIR/ingest_report_\`date --iso\`.xml
+    endscript
+}
+
+$NGEOB_LOG_DIR/eoxserver.log $NGEOB_LOG_DIR/ngeo.log {
+    missingok
+    notifempty
+    delaycompress
+}
+EOF
