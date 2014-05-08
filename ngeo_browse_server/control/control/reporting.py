@@ -114,14 +114,14 @@ class BrowseAccessReport(Report):
 
 
             for (user, layers), items in bins.items():
-                count = len(items)
+                count = str(len(items))
                 sizes, processing_times, dts = zip(*items)
                 agg_size = str(sum(sizes))
                 agg_processing_time = str(sum(processing_times))
                 max_dt = max(dts)
 
                 yield BrowseAccessRecord(
-                    max_dt, layers, user, agg_size, agg_processing_time
+                    max_dt, layers, user, count, agg_size, agg_processing_time
                 )
 
     def get_additional_keys(self, record):
@@ -172,14 +172,13 @@ class BrowseReportReport(Report):
         return [(key, value) for key, value in record._asdict().items() if key != "date"]
 
 
-BrowseAccessRecord = namedtuple("BrowseAccessRecord", ("date", "browselayers", "userid", "aggregatedSize", "aggregatedProcessingTime"))
+BrowseAccessRecord = namedtuple("BrowseAccessRecord", ("date", "browselayers", "userid", "numRequests", "aggregatedSize", "aggregatedProcessingTime"))
 BrowseReportRecord = namedtuple("BrowseReportRecord", ("date", "responsibleOrgName", "dateTime", "browseType", "numberOfContainedBrowses", "numberOfSuccessfulBrowses", "numberOfFailedBrowses"))
 
 def get_report_xml(begin, end, access_logfile=None, report_logfile=None, config=None):
     
     config = config or get_ngeo_config()
-    # TODO: read from config
-    component_name = "test"
+    component_name = config.get("control", "instance_id")
 
     reports = []
     if access_logfile:
