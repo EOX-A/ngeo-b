@@ -43,7 +43,8 @@
 #
 # Usage:
 # - Installation: sudo ./ngeo-install.sh install
-# - Uninstallation: sudo ./ngeo-install.sh uninstall
+# - Un-installation: sudo ./ngeo-install.sh uninstall
+# - Full un-installation including data: sudo ./ngeo-install.sh  full_uninstall
 # - Installation status: sudo ./ngeo-install.sh status
 ################################################################################
 
@@ -783,7 +784,7 @@ status)
     ngeo_status
 ;;
 *)
-    echo "Usage: $0 {install|uninstall|status}"
+    echo "Usage: $0 {install|uninstall|full_uninstall|status}"
 exit 1
 ;;
 esac
