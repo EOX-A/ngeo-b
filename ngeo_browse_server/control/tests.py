@@ -3676,12 +3676,13 @@ class ReportAccessTestCase(GenerateReportMixIn, TestCase):
   <report>
     <header>
       <operation>BROWSE_ACCESS</operation>
-      <component>test</component>
+      <component>instance</component>
       <date>2014-04-07T13:00:08Z</date>
     </header>
     <data>
       <value key="browselayers">layerA</value>
       <value key="userid">-</value>
+      <value key="numRequests">1</value>
       <value key="aggregatedSize">1576</value>
       <value key="aggregatedProcessingTime">2500</value>
     </data>
@@ -3689,12 +3690,13 @@ class ReportAccessTestCase(GenerateReportMixIn, TestCase):
   <report>
     <header>
       <operation>BROWSE_ACCESS</operation>
-      <component>test</component>
+      <component>instance</component>
       <date>2014-04-12T13:00:08Z</date>
     </header>
     <data>
       <value key="browselayers">layerB</value>
       <value key="userid">-</value>
+      <value key="numRequests">5</value>
       <value key="aggregatedSize">7880</value>
       <value key="aggregatedProcessingTime">9907</value>
     </data>
@@ -3702,12 +3704,13 @@ class ReportAccessTestCase(GenerateReportMixIn, TestCase):
   <report>
     <header>
       <operation>BROWSE_ACCESS</operation>
-      <component>test</component>
+      <component>instance</component>
       <date>2014-04-13T13:00:08Z</date>
     </header>
     <data>
       <value key="browselayers">layerA,layerB</value>
       <value key="userid">-</value>
+      <value key="numRequests">1</value>
       <value key="aggregatedSize">1576</value>
       <value key="aggregatedProcessingTime">1956</value>
     </data>
@@ -3726,12 +3729,13 @@ class ReportAccessSubsetTestCase(GenerateReportMixIn, TestCase):
   <report>
     <header>
       <operation>BROWSE_ACCESS</operation>
-      <component>test</component>
+      <component>instance</component>
       <date>2014-04-10T13:00:08Z</date>
     </header>
     <data>
       <value key="browselayers">layerB</value>
       <value key="userid">-</value>
+      <value key="numRequests">2</value>
       <value key="aggregatedSize">3152</value>
       <value key="aggregatedProcessingTime">2406</value>
     </data>
@@ -3748,7 +3752,7 @@ class ReportIngestTestCase(GenerateReportMixIn, TestCase):
   <report>
     <header>
       <operation>BROWSE_REPORT</operation>
-      <component>test</component>
+      <component>instance</component>
       <date>2014-04-07T15:30:33Z</date>
     </header>
     <data>
@@ -3763,7 +3767,7 @@ class ReportIngestTestCase(GenerateReportMixIn, TestCase):
   <report>
     <header>
       <operation>BROWSE_REPORT</operation>
-      <component>test</component>
+      <component>instance</component>
       <date>2014-04-08T15:31:15Z</date>
     </header>
     <data>
@@ -3778,7 +3782,7 @@ class ReportIngestTestCase(GenerateReportMixIn, TestCase):
   <report>
     <header>
       <operation>BROWSE_REPORT</operation>
-      <component>test</component>
+      <component>instance</component>
       <date>2014-04-09T15:31:42Z</date>
     </header>
     <data>
@@ -3793,7 +3797,7 @@ class ReportIngestTestCase(GenerateReportMixIn, TestCase):
   <report>
     <header>
       <operation>BROWSE_REPORT</operation>
-      <component>test</component>
+      <component>instance</component>
       <date>2014-04-10T15:31:47Z</date>
     </header>
     <data>
@@ -3808,7 +3812,7 @@ class ReportIngestTestCase(GenerateReportMixIn, TestCase):
   <report>
     <header>
       <operation>BROWSE_REPORT</operation>
-      <component>test</component>
+      <component>instance</component>
       <date>2014-04-11T15:31:48Z</date>
     </header>
     <data>
@@ -3823,7 +3827,7 @@ class ReportIngestTestCase(GenerateReportMixIn, TestCase):
   <report>
     <header>
       <operation>BROWSE_REPORT</operation>
-      <component>test</component>
+      <component>instance</component>
       <date>2014-04-12T15:31:51Z</date>
     </header>
     <data>
@@ -3838,7 +3842,7 @@ class ReportIngestTestCase(GenerateReportMixIn, TestCase):
   <report>
     <header>
       <operation>BROWSE_REPORT</operation>
-      <component>test</component>
+      <component>instance</component>
       <date>2014-04-13T15:31:54Z</date>
     </header>
     <data>
@@ -3863,7 +3867,7 @@ class ReportIngestSubsetTestCase(GenerateReportMixIn, TestCase):
   <report>
     <header>
       <operation>BROWSE_REPORT</operation>
-      <component>test</component>
+      <component>instance</component>
       <date>2014-04-08T15:31:15Z</date>
     </header>
     <data>
@@ -3878,7 +3882,7 @@ class ReportIngestSubsetTestCase(GenerateReportMixIn, TestCase):
   <report>
     <header>
       <operation>BROWSE_REPORT</operation>
-      <component>test</component>
+      <component>instance</component>
       <date>2014-04-09T15:31:42Z</date>
     </header>
     <data>
@@ -3893,7 +3897,7 @@ class ReportIngestSubsetTestCase(GenerateReportMixIn, TestCase):
   <report>
     <header>
       <operation>BROWSE_REPORT</operation>
-      <component>test</component>
+      <component>instance</component>
       <date>2014-04-10T15:31:47Z</date>
     </header>
     <data>
@@ -3919,12 +3923,13 @@ class ReportBothSubsetTestCase(GenerateReportMixIn, TestCase):
   <report>
     <header>
       <operation>BROWSE_ACCESS</operation>
-      <component>test</component>
+      <component>instance</component>
       <date>2014-04-10T13:00:08Z</date>
     </header>
     <data>
       <value key="browselayers">layerB</value>
       <value key="userid">-</value>
+      <value key="numRequests">2</value>
       <value key="aggregatedSize">3152</value>
       <value key="aggregatedProcessingTime">2406</value>
     </data>
@@ -3932,7 +3937,7 @@ class ReportBothSubsetTestCase(GenerateReportMixIn, TestCase):
   <report>
     <header>
       <operation>BROWSE_REPORT</operation>
-      <component>test</component>
+      <component>instance</component>
       <date>2014-04-08T15:31:15Z</date>
     </header>
     <data>
@@ -3947,7 +3952,7 @@ class ReportBothSubsetTestCase(GenerateReportMixIn, TestCase):
   <report>
     <header>
       <operation>BROWSE_REPORT</operation>
-      <component>test</component>
+      <component>instance</component>
       <date>2014-04-09T15:31:42Z</date>
     </header>
     <data>
@@ -3962,7 +3967,7 @@ class ReportBothSubsetTestCase(GenerateReportMixIn, TestCase):
   <report>
     <header>
       <operation>BROWSE_REPORT</operation>
-      <component>test</component>
+      <component>instance</component>
       <date>2014-04-10T15:31:47Z</date>
     </header>
     <data>
