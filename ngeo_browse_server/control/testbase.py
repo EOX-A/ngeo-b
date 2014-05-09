@@ -1263,9 +1263,9 @@ class ComponentControlTestCaseMixIn(ControlTestCaseMixIn):
         return '{"command": "%s"}' % self.command
 
     def test_new_status(self):
-        # TODO: read status
-        #self.assertEqual(self.expected_new_status, )
-        pass
+        from ngeo_browse_server.control.control.status import get_status
+        status = get_status()
+        self.assertEqual(self.expected_new_status, status.state())
 
 
 class ControlLogMixIn(ControlTestCaseMixIn):

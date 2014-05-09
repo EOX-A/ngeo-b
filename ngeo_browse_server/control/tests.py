@@ -2509,7 +2509,7 @@ class DeleteFromCommandStartEndMerge2(DeleteTestCaseMixIn, CliMixIn, SeedMergeTe
                         join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_2.xml"),
                         join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_3.xml")]
 
-    expected_remaining_browses = 2
+    expected_remaining_browses = 1
     #expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
     expected_inserted_into_series = "TEST_SAR"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
@@ -3148,31 +3148,80 @@ class StatusPaused(StatusTestCaseMixIn, TestCase):
 
 class ComponentControlPause(ComponentControlTestCaseMixIn, TestCase):
     command = "pause"
-    expected_new_status = "paused"
+    expected_new_status = "PAUSED"
+
+    expected_response = {
+        "result": "SUCCESS"
+    }
 
 
 class ComponentControlResume(ComponentControlTestCaseMixIn, TestCase):
     command = "resume"
-    expected_new_status = "running"
+    expected_new_status = "RUNNING"
 
     status_config = dedent("""
         [status]
         state=PAUSED
     """)
 
+    expected_response = {
+        "result": "SUCCESS"
+    }
+
+
 class ComponentControlShutdown(ComponentControlTestCaseMixIn, TestCase):
     command = "shutdown"
-    expected_new_status = "stopped"
+    expected_new_status = "STOPPED"
+
+    expected_response = {
+        "result": "SUCCESS"
+    }
+
+
+class ComponentControlStart(ComponentControlTestCaseMixIn, TestCase):
+    command = "start"
+    expected_new_status = "RUNNING"
+
+    status_config = dedent("""
+        [status]
+        state=STOPPED
+    """)
+
+    expected_response = {
+        "result": "SUCCESS"
+    }
+
+
+class ComponentControlRestart(ComponentControlTestCaseMixIn, TestCase):
+    command = "restart"
+    expected_new_status = "RUNNING"
+
+    status_config = dedent("""
+        [status]
+        state=STOPPED
+    """)
+
+    expected_response = {
+        "result": "SUCCESS"
+    }
 
 
 class ComponentControlPauseFailed(ComponentControlTestCaseMixIn, TestCase):
     command = "pause"
-    expected_new_status = "paused"
+    expected_new_status = "PAUSED"
 
     status_config = dedent("""
         [status]
         state=PAUSED
     """)
+
+    expected_response = {
+        'detail': {'currentState': 'PAUSED',
+                   'failedState': 'pause',
+                   'instanceId': 'instance'},
+        'faultString': "To 'pause', the server needs to be 'running'."
+    }
+
 
 #===============================================================================
 # Logging reporting tests
