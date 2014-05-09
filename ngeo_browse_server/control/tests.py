@@ -3219,7 +3219,7 @@ class ComponentControlPauseFailed(ComponentControlTestCaseMixIn, TestCase):
         'detail': {'currentState': 'PAUSED',
                    'failedState': 'pause',
                    'instanceId': 'instance'},
-        'faultString': "To 'pause', the server needs to be 'running'."
+        'faultString': "To 'pause', the server needs to be 'RUNNING'."
     }
 
 
