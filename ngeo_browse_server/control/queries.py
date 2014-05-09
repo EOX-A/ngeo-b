@@ -51,7 +51,9 @@ from ngeo_browse_server.mapcache.config import (
     get_mapcache_seed_config, get_tileset_path
 )
 from ngeo_browse_server.exceptions import NGEOException
-from ngeo_browse_server.control.ingest.config import INGEST_SECTION
+
+
+INGEST_SECTION = "control.ingest"
 
 
 logger = logging.getLogger(__name__)
