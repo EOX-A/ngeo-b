@@ -192,14 +192,14 @@ def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
     # create mapcache models
     source, _ = mapcache_models.Source.objects.get_or_create(name=browse_layer_model.id)
     
-    # search for time entries with the same time span
+    # search for time entries with an overlapping time span
     times_qs = mapcache_models.Time.objects.filter(
-        start_time__lte=browse.end_time, end_time__gte=browse.start_time,
+        start_time__lte=browse.end_time, end_time__gt=browse.start_time,
         source=source
     )
     
     if len(times_qs) > 0:
-        # If there are , merge them to one
+        # If there are overlapping time entries, merge the time entries to one
         logger.info("Merging %d Time entries." % (len(times_qs) + 1))
         for time_model in times_qs:
             minx = min(minx, time_model.minx)
@@ -298,7 +298,7 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
     
     intersecting_browses_qs = models.Browse.objects.filter(
         start_time__lte = time_model.end_time,
-        end_time__gte = time_model.start_time 
+        end_time__gt = time_model.start_time 
     )
     
     source_model = time_model.source

@@ -187,8 +187,8 @@ def add_mapcache_layer_xml(browse_layer, config=None):
             E("read-only", "true"),
             E("timedimension",
                 E("dbfile", settings.DATABASES["mapcache"]["NAME"]),
-                E("query", "select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time<=datetime(:end_timestamp,'unixepoch') and end_time>=datetime(:start_timestamp,'unixepoch') and maxx>=:minx and maxy>=:miny and minx<=:maxx and miny<=:maxy order by end_time desc limit 100"),
-                type="sqlite", default="2010" # TODO: default year into layer definition
+                E("query", "select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and start_time<=datetime(:end_timestamp,'unixepoch') and (end_time>datetime(:start_timestamp,'unixepoch') or (start_time=end_time and end_time=datetime(:start_timestamp,'unixepoch'))) and maxx>=:minx and maxy>=:miny and minx<=:maxx and miny<=:maxy order by end_time desc limit " + str(browse_layer.tile_query_limit)),
+                type="sqlite", default=str(browse_layer.timedimension_default)
             ), *([
                 E("auth_method", "cmdlineauth")] 
                 if browse_layer.browse_access_policy in ("RESTRICTED", "PRIVATE")
