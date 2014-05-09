@@ -299,7 +299,7 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
     #            - save slot for seeding afterwards
     
     intersecting_browses_qs = models.Browse.objects.filter(
-        start_time__lte = time_model.end_time,
+        start_time__lt = time_model.end_time,
         end_time__gt = time_model.start_time 
     )
     
