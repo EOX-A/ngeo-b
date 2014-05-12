@@ -355,7 +355,7 @@ def config(request):
             config.add_section("config")
 
         revision = int(safe_get(config, "config", "revision", 0))
-        config.set("config", "revision", end_revision)
+        config.set("config", "revision", int(end_revision))
 
         write_ngeo_config()
 
