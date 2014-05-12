@@ -24,9 +24,6 @@
 # Subsystem name
 SUBSYSTEM="ngEO Browse Server"
 
-# Shibboleth
-USE_SHIBBOLETH=true
-
 # ----------------------------------------------------------------------------
 # End of configuration section
 # ----------------------------------------------------------------------------
@@ -41,36 +38,27 @@ ngeo_start() {
     service postgresql start
     service memcached start
     service httpd start
-    if "$USE_SHIBBOLETH" ; then
-        service shibd start
-    fi
 }
 
 # ----------------------------------------------------------------------------
-# Start
+# Stop
 # ----------------------------------------------------------------------------
 ngeo_stop() {
     echo "------------------------------------------------------------------------------"
     echo " $SUBSYSTEM Service Stop"
     echo "------------------------------------------------------------------------------"
-    if "$USE_SHIBBOLETH" ; then
-        service shibd stop
-    fi
     service httpd stop
     service memcached stop
     service postgresql stop
 }
 
 # ----------------------------------------------------------------------------
-# Start
+# Status
 # ----------------------------------------------------------------------------
 ngeo_status() {
     echo -n "Checking for service ${MYSELF}:"
     service postgresql status
     service httpd status
-    if "$USE_SHIBBOLETH" ; then
-        service shibd status
-    fi
     service memcached status
 }
 

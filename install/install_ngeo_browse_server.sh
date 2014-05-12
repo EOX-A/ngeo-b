@@ -659,7 +659,7 @@ ngeo_uninstall() {
     yum erase -y  python-lxml mod_wsgi httpd pytz python-psycopg2 \
                   gdal gdal-python postgis mapserver Django14 mapserver-python \
                   mapcache ngEO_Browse_Server EOxServer libxerces-c-3_1 \
-                  shibboleth mod_ssl memcached
+                  mod_ssl memcached
 
     echo "Finished $SUBSYSTEM uninstallation"
 }
