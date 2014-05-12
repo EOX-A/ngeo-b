@@ -68,7 +68,6 @@ setup(
     data_files=data_files,
     include_package_data=True,
     scripts=[
-        "tools/ngeo-b_add_browse_layers.sh",
         "tools/request_authorization.py",
     ],
     
