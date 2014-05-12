@@ -418,6 +418,7 @@ def add_browse_layer(browse_layer, config=None):
     config = config or get_ngeo_config()
 
     try:
+        logger.info("Adding new browse layer '%s'." % browse_layer.id)
         # create a new browse layer model
         browse_layer_model = models.BrowseLayer(
             **browse_layer.get_kwargs()
@@ -467,9 +468,13 @@ def update_browse_layer(browse_layer, config=None):
     config = config or get_ngeo_config()
 
     try:
+        logger.info("Fetching browse layer '%s' for update." % browse_layer.id)
         browse_layer_model = models.BrowseLayer.objects.get(id=browse_layer.id)
     except models.BrowseLayer.DoesNotExist:
-        raise Exception("Could not update the previous browse layer")
+        raise Exception(
+            "Could not update browse layer '%s' as it does not exist." 
+            % browse_layer.id
+        )
 
     immutable_values = (
         "id", "browse_type", "contains_vertical_curtains", "r_band", "g_band",
@@ -509,6 +514,7 @@ def update_browse_layer(browse_layer, config=None):
     if refresh_mapcache_xml:
         remove_mapcache_layer_xml(browse_layer, config)
         add_mapcache_layer_xml(browse_layer, config)
+    logger.info("Finished updating browse layer '%s'." % browse_layer.id)
 
 
 def delete_browse_layer(browse_layer, config=None):
@@ -516,7 +522,14 @@ def delete_browse_layer(browse_layer, config=None):
 
     # remove browse layer model. This should also delete all related browses
     # and browse reports
-    models.BrowseLayer.objects.get(id=browse_layer.id).delete()
+    try:
+        logger.info("Starting deletion of browse layer '%s'." % browse_layer.id)
+        models.BrowseLayer.objects.get(id=browse_layer.id).delete()
+    except models.BrowseLayer.DoesNotExist:
+        raise Exception(
+            "Could not delete browse layer '%s' as it does not exist." 
+            % browse_layer.id
+        )
 
     dss_mgr = System.getRegistry().findAndBind(
         intf_id="resources.coverages.interfaces.Manager",
@@ -534,6 +547,9 @@ def delete_browse_layer(browse_layer, config=None):
 
     # delete browse layer cache
     try:
+        logger.info(
+            "Deleting tileset for browse layer '%s'." % browse_layer.id
+        )
         os.remove(get_tileset_path(browse_layer.browse_type))
     except OSError:
         # when no browse was ingested, the sqlite file does not exist, so just
@@ -548,9 +564,15 @@ def delete_browse_layer(browse_layer, config=None):
         config.get(INGEST_SECTION, "optimized_files_dir"), browse_layer.id
     ))
     try:
+        logger.info(
+            "Deleting optimized images for browse layer '%s'." 
+            % browse_layer.id
+        )
         shutil.rmtree(optimized_dir)
     except OSError:
         logger.error(
             "Could not remove directory for optimzed files: '%s'." 
             % optimized_dir
         )
+
+    logger.info("Finished deletion of browse layer '%s'." % browse_layer.id)

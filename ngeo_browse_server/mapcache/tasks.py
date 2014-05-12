@@ -198,6 +198,7 @@ def add_mapcache_layer_xml(browse_layer, config=None):
         )
     ])
 
+    logger.info("Adding cache, source and tileset for '%s'." % name)
     write_mapcache_xml(root, config)
 
 
@@ -213,4 +214,5 @@ def remove_mapcache_layer_xml(browse_layer, config=None):
     root.remove(root.xpath("source[@name='%s']" % name)[0])
     root.remove(root.xpath("tileset[@name='%s']" % name)[0])
 
+    logger.info("Removing cache, source and tileset for '%s'." % name)
     write_mapcache_xml(root, config)
