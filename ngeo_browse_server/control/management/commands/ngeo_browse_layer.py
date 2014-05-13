@@ -40,12 +40,17 @@ from eoxserver.core.system import System
 from eoxserver.resources.coverages.management.commands import CommandOutputMixIn
 
 from ngeo_browse_server.config.browselayer.decoding import decode_browse_layers
-from ngeo_browse_server.config import get_ngeo_config
+from ngeo_browse_server.config import (
+    get_ngeo_config, safe_get, write_ngeo_config, models
+)
 from ngeo_browse_server.control.ingest import ingest_browse_report
 from ngeo_browse_server.control.management.commands import LogToConsoleMixIn
 from ngeo_browse_server.control.queries import (
     add_browse_layer, update_browse_layer, delete_browse_layer
 )
+from ngeo_browse_server.filetransaction import FileTransaction
+from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
+from ngeo_browse_server.namespace import ns_cfg
 
 logger = logging.getLogger(__name__)
 
@@ -53,18 +58,6 @@ logger = logging.getLogger(__name__)
 class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
     
     option_list = BaseCommand.option_list + (
-        make_option('--add',
-            action="store_const", const="add", dest='mode', default="add",
-            help=("")
-        ),
-        make_option('--update',
-            action="store_const", const="update", dest='mode',
-            help=("")
-        ),
-        make_option('--remove',
-            action="store_const", const="remove", dest='mode',
-            help=("")
-        ),
         make_option('--on-error',
             dest='on_error', default="stop",
             choices=["continue", "stop"],
@@ -73,8 +66,7 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         ),
     )
     
-    args = ("--add | --update | --remove "
-            "<browse-layer-xml-file1> [<browse-layer-xml-file2> ...] ")
+    args = ("<browse-layer-xml-file1> [<browse-layer-xml-file2> ...] ")
     help = ("")
 
     def handle(self, *filenames, **kwargs):
@@ -86,7 +78,6 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         traceback = kwargs.get("traceback", False)
         self.set_up_logging(["ngeo_browse_server"], self.verbosity, traceback)
         
-        mode = kwargs["mode"]
         on_error = kwargs["on_error"]
 
         config = get_ngeo_config()
@@ -98,7 +89,7 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         for filename in filenames:
             try:
                 # handle each browse report
-                self._handle_file(filename, mode, config)
+                self._handle_file(filename, config)
             except Exception, e:
                 # handle exceptions
                 if on_error == "continue":
@@ -114,16 +105,50 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
 
     @transaction.commit_on_success
     @transaction.commit_on_success(using="mapcache")
-    def _handle_file(self, filename, mode, config):
-        browse_layers = decode_browse_layers(etree.parse(filename))
+    def _handle_file(self, filename, config):
+        root = etree.parse(filename)
 
-        for browse_layer in browse_layers:
-            if mode == "add":
-                add_browse_layer(browse_layer, config)
+        start_revision = root.findtext(ns_cfg("startRevision"))
+        end_revision = root.findtext(ns_cfg("endRevision"))
 
-            elif mode == "update":
-                update_browse_layer(browse_layer, config)
+        # TODO: check current and last revision
 
-            elif mode == "remove":
-                delete_browse_layer(browse_layer, config)
+        remove_layers_elems = root.xpath("cfg:removeConfiguration/cfg:browseLayers", namespaces={"cfg": ns_cfg.uri})
+        add_layers_elems = root.xpath("cfg:addConfiguration/cfg:browseLayers", namespaces={"cfg": ns_cfg.uri})
 
+        add_layers = []
+        for layers_elem in add_layers_elems:
+            add_layers.extend(decode_browse_layers(layers_elem))
+
+        remove_layers = []
+        for layers_elem in remove_layers_elems:
+            remove_layers.extend(decode_browse_layers(layers_elem))
+
+        # get the mapcache config xml file path to make it transaction safe
+
+        mapcache_config = get_mapcache_seed_config(config)
+        mapcache_xml_filename = mapcache_config["config_file"]
+
+        # transaction safety here
+        with FileTransaction((mapcache_xml_filename,), copy=True):
+            with transaction.commit_on_success():
+                with transaction.commit_on_success(using="mapcache"):
+                    for browse_layer in add_layers:
+                        if models.BrowseLayer.objects.filter(id=browse_layer.id).exists():
+                            update_browse_layer(browse_layer, config)
+                        else:
+                            add_browse_layer(browse_layer, config)
+
+                    for browse_layer in remove_layers:
+                        delete_browse_layer(browse_layer, config)
+
+        # set the new revision
+        config = config or get_ngeo_config()
+
+        if not config.has_section("config"):
+            config.add_section("config")
+
+        revision = int(safe_get(config, "config", "revision", 0))
+        config.set("config", "revision", int(end_revision))
+
+        write_ngeo_config()
