@@ -138,11 +138,11 @@ fi
 
 echo "Downloading from ftp://$FTP_URL$FTP_DIR to $DOWNLOAD_DIR"
 # perform download
-lftp -e "mirror -c -v $FTP_DIR $DOWNLOAD_DIR" -u $USERNAME,$PASSWORD $FTP_URL
+lftp -e "mirror -c -v $FTP_DIR $DOWNLOAD_DIR; quit" -u $USERNAME,$PASSWORD $FTP_URL
 
 # unzip 
 tmpdir=`mktemp -d`
-find $DOWNLOAD_DIR -name '*ZIP' -exec unzip {} -d $tmpdir \;
+find $DOWNLOAD_DIR -name '*ZIP' -exec unzip {} -d $tmpdir > /dev/null \;
 
 if [ -n "$BROWSE_DIR" ]; then
     echo "Creating directory '$BROWSE_DIR'"
@@ -156,8 +156,8 @@ if [ -n "$XML_DIR" ]; then
     mkdir -p "$XML_DIR/browse_reports/"
     echo "Copying browse reports to '$XML_DIR'"
     find $tmpdir -name '*\.xml' -exec mv {} "$XML_DIR/browse_reports/" \;
-    echo "Creating browse_reports.csv"
-    find $tmpdir -name '*\.xml' -exec echo {} >> "$XML_DIR/browse_reports.csv" \;
+    echo "Creating $XML_DIR/browse_reports.csv"
+    ls "$XML_DIR/browse_reports/" > "$XML_DIR/browse_reports.csv"
 fi
 
 rm -rf $tmpdir
