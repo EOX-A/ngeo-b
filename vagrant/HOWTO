@@ -129,21 +129,21 @@ git commit setup.py ngeo_browse_server/__init__.py -m "Adjusting version."
 #Development Status :: 6 - Mature
 #Development Status :: 7 - Inactive
 
-git tag -a release-2.0.7 -m "Tagging release 2.0.7."
-git archive --format=tar --prefix=ngEO_Browse_Server-2.0.7/ release-2.0.7 | gzip > ngEO_Browse_Server-2.0.7.tar.gz
-mv ngEO_Browse_Server-2.0.7.tar.gz <path-to-builder_rpm>
+git tag -a release-2.0.8 -m "Tagging release 2.0.8."
+git archive --format=tar --prefix=ngEO_Browse_Server-2.0.8/ release-2.0.8 | gzip > ngEO_Browse_Server-2.0.8.tar.gz
+mv ngEO_Browse_Server-2.0.8.tar.gz <path-to-builder_rpm>
 cd <path-to-builder_rpm>/
 vagrant ssh
 
-tar xzf ngEO_Browse_Server-2.0.7.tar.gz
-rm ngEO_Browse_Server-2.0.7.tar.gz
-cd ngEO_Browse_Server-2.0.7/
+tar xzf ngEO_Browse_Server-2.0.8.tar.gz
+rm ngEO_Browse_Server-2.0.8.tar.gz
+cd ngEO_Browse_Server-2.0.8/
 python setup.py bdist_rpm --release <NO>
 cd dist
-tar czf ../../rpmbuild/RPMS/ngEO_Browse_Server-2.0.7.tar.gz ngEO_Browse_Server-*rpm
-# scp ../../ngEO_Browse_Server-2.0.7.tar.gz -> packages@packages.eox.at:.
+tar czf ../../rpmbuild/RPMS/ngEO_Browse_Server-2.0.8.tar.gz ngEO_Browse_Server-*rpm
+# scp ../../ngEO_Browse_Server-2.0.8.tar.gz -> packages@packages.eox.at:.
 cd ../..
-rm -r ngEO_Browse_Server-2.0.7/
+rm -r ngEO_Browse_Server-2.0.8/
 exit # vagrant
 
 vi ngeo_browse_server/__init__.py
