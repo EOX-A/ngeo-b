@@ -69,6 +69,7 @@ setup(
     include_package_data=True,
     scripts=[
         "tools/request_authorization.py",
+        "tools/download-ers.sh"
     ],
     
     install_requires=[
