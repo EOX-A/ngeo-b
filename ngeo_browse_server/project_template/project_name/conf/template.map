@@ -65,6 +65,15 @@ MAP
             "wcs_fees"                          "None"
             "ows_enable_request"                "GetCapabilities GetMap"
             "wms_onlineresource"                "/c?"
+            "wms_inspire_capabilities"          "embed"
+            "wms_languages"                     "eng"
+            "wms_inspire_temporal_reference"    "<DATEOFLASTREVISION>"
+            "wms_inspire_mpoc_name"             "<CONTACTPERSON>"
+            "wms_inspire_mpoc_email"            "<CONTACTELECTRONICMAILADDRESS>"
+            "wms_inspire_metadatadate"          "<METADATADATE>"
+            "wms_inspire_keyword"               "infoMapAccessService"
+            "wms_keywordlist_ISO_items"         "infoMapAccessService"
+            "wms_keywordlist_vocabulary"        "ISO"
 #            "ows_schemas_location"             "http://localhost/schemas"
         END
     END
