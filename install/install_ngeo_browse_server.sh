@@ -228,8 +228,23 @@ ngeo_install() {
 
     echo "Performing installation step 170"
     # Install packages
-    yum install -y libxml2 libxml2-python mapserver mapserver-python \
-                   mapcache ngEO_Browse_Server EOxServer
+    yum install -y libxml2 libxml2-python mapserver mapserver-python EOxServer
+
+
+    # allow installation of local RPMs if available
+    if [ -f mapcache-*.rpm ] ; then
+        echo "Installing local mapcache RPM `ls mapcache-*.rpm`"
+        yum install -y mapcache-*.rpm
+    else
+        yum install -y mapcache
+    fi
+    if [ -f ngEO_Browse_Server-*.rpm ] ; then
+        echo "Installing local ngEO_Browse_Server RPM `ls ngEO_Browse_Server-*.rpm`"
+        yum install -y ngEO_Browse_Server-*.rpm
+    else
+        yum install -y ngEO_Browse_Server
+    fi
+
 
     echo "Performing installation step 180"
     # Configure PostgreSQL/PostGIS database
