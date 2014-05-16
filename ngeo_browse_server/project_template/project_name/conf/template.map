@@ -63,7 +63,8 @@ MAP
             "wcs_label"                         ""
             "wcs_name"                          ""
             "wcs_fees"                          "None"
-            "ows_enable_request"                "*"
+            "ows_enable_request"                "GetCapabilities GetMap"
+            "wms_onlineresource"                "/c?"
 #            "ows_schemas_location"             "http://localhost/schemas"
         END
     END
