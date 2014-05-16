@@ -130,6 +130,14 @@ cat << EOF > "$MAPCACHE_DIR/$MAPCACHE_CONF"
     <resample_mode>bilinear</resample_mode>
     <format>mixed</format>
     <maxsize>4096</maxsize>
+    <forwarding_rule name="wms13getcap">
+      <param name="SERVICE" type="values">WMS</param>
+      <param name="REQUEST" type="values">GetCapabilities</param>
+      <param name="VERSION" type="values">1.3.0</param>
+      <http>
+        <url>http://localhost/browse/ows</url>
+      </http>
+    </forwarding_rule>
   </service>
   <service type="wmts" enabled="true"/>
   <service type="demo" enabled="true"/>
