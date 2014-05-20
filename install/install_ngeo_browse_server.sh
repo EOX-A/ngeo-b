@@ -374,10 +374,10 @@ EOF
         </auth_cache>
     </auth_method>
     <default_format>mixed</default_format>
-    <format name="mypng" type ="PNG">
+    <format name="mypng" type="PNG">
         <compression>fast</compression>
     </format>
-    <format name="myjpeg" type ="JPEG">
+    <format name="myjpeg" type="JPEG">
         <quality>85</quality>
         <photometric>ycbcr</photometric>
     </format>
