@@ -3304,6 +3304,10 @@ class NotifyTestCase(TestCase):
         server.shutdown()
 
 
+#===============================================================================
+# Instance Configuration test cases
+#===============================================================================
+
 
 class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
     expected_response = """\
@@ -3543,6 +3547,97 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
   </configurationData>
 </getConfigurationAndSchemaResponse>
 """
+
+
+class ConfigurationChangeTestCase(ConfigMixIn, TestCase):
+    method = "put"
+
+    request = """\
+<updateConfiguration>
+  <configurationData>
+    <configuration>
+      <ingest>
+        <optimized_files_postfix>_proc_new</optimized_files_postfix>
+        <compression>NONE</compression>
+        <jpeg_quality>50</jpeg_quality>
+        <zlevel>8</zlevel>
+        <tiling>false</tiling>
+        <overviews>false</overviews>
+        <overview_resampling>NEAREST</overview_resampling>
+        <overview_levels>2,4,8</overview_levels>
+        <overview_minsize>512</overview_minsize>
+        <color_index>true</color_index>
+        <footprint_alpha>false</footprint_alpha>
+        <simplification_factor>3</simplification_factor>
+        <threshold>8h</threshold>
+        <strategy>replace</strategy>
+      </ingest>
+      <cache>
+        <threads>4</threads>
+      </cache>
+      <log>
+        <level>WARNING</level>
+      </log>
+      <webServer>
+        <baseurl>http://www.newexample.com/</baseurl>
+      </webServer>
+    </configuration>
+  </configurationData>
+</updateConfiguration>
+"""
+
+    expected_response = '<?xml version="1.0"?>\n<updateConfigurationResponse/>'
+
+    def test_config(self):
+
+        expected_values = {
+            (INGEST_SECTION, "optimized_files_postfix"): "_proc_new",
+            (INGEST_SECTION, "compression"): "NONE",
+            (INGEST_SECTION, "jpeg_quality"): "50",
+            (INGEST_SECTION, "zlevel"): "8",
+            (INGEST_SECTION, "tiling"): "False",
+            (INGEST_SECTION, "overviews"): "False",
+            (INGEST_SECTION, "overview_resampling"): "NEAREST",
+            (INGEST_SECTION, "overview_levels"): "2,4,8",
+            (INGEST_SECTION, "overview_minsize"): "512",
+            (INGEST_SECTION, "color_index"): "True",
+            (INGEST_SECTION, "footprint_alpha"): "False",
+            (INGEST_SECTION, "strategy"): "replace",
+            (INGEST_SECTION, "merge_threshold"): "5h",
+            #("mapcache", "threads"): "4",
+        }
+
+        from ngeo_browse_server.config import get_ngeo_config
+        config = get_ngeo_config()
+        for (section, key), expected_value in expected_values.items():
+            self.assertEqual(expected_value, config.get(section, key))
+
+
+class ConfigurationChangeInvalidConfigTestCase(ConfigMixIn, TestCase):
+    method = "put"
+
+    request = """\
+<updateConfiguration>
+  <configurationData>
+    <configuration>
+      <invalidSection>
+        <invalidKey>invalidValue</invalidKey>
+      </invalidSection>
+    </configuration>
+  </configurationData>
+</updateConfiguration>
+"""
+
+    expected_response = (
+        "<faultcode>ConfigurationError</faultcode>"
+        "<faultstring>Invalid configuration element 'invalidSection' found.</faultstring>"
+    )
+
+
+#===============================================================================
+# Layer Configuration test cases
+#===============================================================================
+
 
 class AddBrowseLayerTestCase(ConfigurationManagementMixIn, TestCase):
     # operating on an "empty" server.
