@@ -3275,7 +3275,7 @@ class LogFileRetrievalTestCase(LogFileMixIn, TestCase):
 
 
 
-class NotifyTestCase(TestCase):
+class NotifyTestCase(BaseTestCaseMixIn, TestCase):
     def test_notification(self):
         
         class POSTHandler(BaseHTTPRequestHandler):
@@ -3302,6 +3302,9 @@ class NotifyTestCase(TestCase):
         notify("Summary", "Message", "INFO", "localhost:9000")
 
         server.shutdown()
+
+    def execute(self):
+        pass
 
 
 #===============================================================================
