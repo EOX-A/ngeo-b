@@ -145,6 +145,7 @@ class BaseTestCaseMixIn(object):
         (INGEST_SECTION, "leave_original"): "false",
         (INGEST_SECTION, "strategy"): "merge",
         (INGEST_SECTION, "merge_threshold"): "5h",
+        (INGEST_SECTION, "simplification_factor"): "2",
         # storage_dir, success_dir, failure_dir, optimized_files_dir, and 
         # seed_command are set automatically in setUp_files.
 
@@ -197,11 +198,16 @@ class BaseTestCaseMixIn(object):
         # into it, and point the control.ingest.storage_dir to this location
         self.temp_storage_dir = tempfile.mktemp() # create a temp dir
         
-        config = get_ngeo_config()
-        section = "control.ingest"
-
         self.config_filename = tempfile.NamedTemporaryFile(delete=False).name
         environ["NGEO_CONFIG_FILE"] = self.config_filename
+
+        config = get_ngeo_config()
+        
+        for section in ("control", INGEST_SECTION, "mapcache", SEED_SECTION):
+            if not config.has_section(section):
+                config.add_section(section)
+
+        section = "control.ingest"
 
         shutil.copytree(join(settings.PROJECT_DIR, self.storage_dir), self.temp_storage_dir)
         config.set(section, "storage_dir", self.temp_storage_dir)

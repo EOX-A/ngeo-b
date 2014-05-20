@@ -3603,7 +3603,7 @@ class ConfigurationChangeTestCase(ConfigMixIn, TestCase):
             (INGEST_SECTION, "color_index"): "True",
             (INGEST_SECTION, "footprint_alpha"): "False",
             (INGEST_SECTION, "strategy"): "replace",
-            (INGEST_SECTION, "merge_threshold"): "5h",
+            (INGEST_SECTION, "threshold"): "8h",
             #("mapcache", "threads"): "4",
         }
 
