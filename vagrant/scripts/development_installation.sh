@@ -29,7 +29,7 @@ python manage.py syncdb --database=mapcache --noinput
 python manage.py loaddata auth_data.json initial_rangetypes.json
 
 
-python manage.py ngeo_browse_layer --add /var/ngeob_autotest/data/layer_management/defaultLayers.xml
+python manage.py ngeo_browse_layer /var/ngeob_autotest/data/layer_management/synchronizeConfiguration_defaultLayers.xml
 
 # Create admin user
 TMPFILE=`mktemp`
@@ -83,38 +83,52 @@ mkdir -p $NGEO_REPORT_DIR
 
 cat << EOF > /etc/logrotate.d/ngeo
 $NGEOB_LOG_DIR/httpd_access.log {
+    daily
+    rotate 14
+    dateext
     missingok
-    notifempty
     delaycompress
+    compress
     postrotate
         /sbin/service httpd reload > /dev/null 2>/dev/null || true
         cd /var/ngeob_autotest/
-        python manage.py ngeo_report --access-logfile=\$1.1 --filename=$NGEO_REPORT_DIR/access_report_\`date --iso\`.xml
+        python manage.py ngeo_report --access-logfile=\$1-`date +%Y%m%d` --filename=$NGEO_REPORT_DIR/access_report_\`date --iso\`.xml
     endscript
 }
 
 $NGEOB_LOG_DIR/httpd_error.log {
+    daily
+    rotate 14
+    dateext
     missingok
     notifempty
     delaycompress
+    compress
     postrotate
         /sbin/service httpd reload > /dev/null 2>/dev/null || true
     endscript
 }
 
 $NGEOB_LOG_DIR/ingest.log {
+    daily
+    rotate 14
+    dateext
     missingok
-    notifempty
     delaycompress
+    compress
     postrotate
     	cd /var/ngeob_autotest/
-        python manage.py ngeo_report --report-logfile=\$1.1 --filename=$NGEO_REPORT_DIR/ingest_report_\`date --iso\`.xml
+        python manage.py ngeo_report --report-logfile=\$1-`date +%Y%m%d` --filename=$NGEO_REPORT_DIR/ingest_report_\`date --iso\`.xml
     endscript
 }
 
 $NGEOB_LOG_DIR/eoxserver.log $NGEOB_LOG_DIR/ngeo.log {
+    daily
+    rotate 14
+    dateext
     missingok
     notifempty
     delaycompress
+    compress
 }
 EOF

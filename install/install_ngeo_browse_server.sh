@@ -582,39 +582,53 @@ EOF
 
     cat << EOF > /etc/logrotate.d/ngeo
 $NGEOB_LOG_DIR/httpd_access.log {
+    daily
+    rotate 14
+    dateext
     missingok
-    notifempty
     delaycompress
+    compress
     postrotate
         /sbin/service httpd reload > /dev/null 2>/dev/null || true
         cd "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/"
-        python manage.py ngeo_report --access-logfile=\$1.1 --filename=$NGEO_REPORT_DIR/access_report_\`date --iso\`.xml
+        python manage.py ngeo_report --access-logfile=\$1-`date +%Y%m%d` --filename=$NGEO_REPORT_DIR/access_report_\`date --iso\`.xml
     endscript
 }
 
 $NGEOB_LOG_DIR/httpd_error.log {
+    daily
+    rotate 14
+    dateext
     missingok
     notifempty
     delaycompress
+    compress
     postrotate
         /sbin/service httpd reload > /dev/null 2>/dev/null || true
     endscript
 }
 
 $NGEOB_LOG_DIR/ingest.log {
+    daily
+    rotate 14
+    dateext
     missingok
-    notifempty
     delaycompress
+    compress
     postrotate
         cd "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/"
-        python manage.py ngeo_report --report-logfile=\$1.1 --filename=$NGEO_REPORT_DIR/ingest_report_\`date --iso\`.xml
+        python manage.py ngeo_report --report-logfile=\$1-`date +%Y%m%d` --filename=$NGEO_REPORT_DIR/ingest_report_\`date --iso\`.xml
     endscript
 }
 
 $NGEOB_LOG_DIR/eoxserver.log $NGEOB_LOG_DIR/ngeo.log {
+    daily
+    rotate 14
+    dateext
     missingok
     notifempty
     delaycompress
+    compress
 }
 EOF
 
