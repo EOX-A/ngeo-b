@@ -129,6 +129,9 @@ def controller_server(request):
         if not status.running:
             raise Exception("Server is currently not running.")
 
+        if request.method not in ("POST", "DELETE"):
+            raise Exception("Invalid request method '%s'." % request.method)
+
         values = json.load(request)
 
         # POST means "register"
