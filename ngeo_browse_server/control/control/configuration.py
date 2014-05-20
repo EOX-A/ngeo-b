@@ -435,9 +435,11 @@ def get_config_revision():
 def change_configuration(tree):
     config_elem = tree.find("configurationData/configuration")
     
+    if config_elem is None:
+        raise Exception("Invalid configuration provided.")
+
     for element in config_elem:
         tag = element.tag
-        print tag
         for configurator in CONFIGURATORS:
             if configurator.element_name == tag:
                 break

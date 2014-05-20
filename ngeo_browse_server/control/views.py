@@ -275,8 +275,11 @@ def instanceconfig(request):
             raise Exception("Invalid request method '%s'." % request.method)
 
     except Exception, e:
-        #return HttpResponse(str(e), status=400)
-        raise
+        return HttpResponse(
+            "<faultcode>ConfigurationError</faultcode>"
+            "<faultstring>%s</faultstring>" % str(e),
+            status=400
+        )
 
 
 def revision(request):
