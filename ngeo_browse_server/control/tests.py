@@ -3277,11 +3277,11 @@ class LogFileRetrievalTestCase(LogFileMixIn, TestCase):
 
 class NotifyTestCase(BaseTestCaseMixIn, TestCase):
     def test_notification(self):
-        
+        post_body = {}
         class POSTHandler(BaseHTTPRequestHandler):
             def do_POST(self):
                 content_len = int(self.headers.getheader('content-length'))
-                post_body = self.rfile.read(content_len)
+                post_body["data"] = self.rfile.read(content_len)
                 self.send_response(200)
                 self.end_headers()
                 self.wfile.close()
@@ -3302,6 +3302,26 @@ class NotifyTestCase(BaseTestCaseMixIn, TestCase):
         notify("Summary", "Message", "INFO", "localhost:9000")
 
         server.shutdown()
+
+        from lxml import etree
+        tree = etree.fromstring(post_body["data"])
+        tree.find("header/timestamp").text = ""
+        result = etree.tostring(tree, pretty_print=True)
+        self.assertEqual(dedent("""\
+            <notifyControllerServer>
+              <header>
+                <timestamp></timestamp>
+                <instance>instance</instance>
+                <subsystem>BROW</subsystem>
+                <urgency>INFO</urgency>
+              </header>
+              <body>
+                <summary>Summary</summary>
+                <message>Message</message>
+              </body>
+            </notifyControllerServer>
+            """), result
+        )
 
     def execute(self):
         pass
