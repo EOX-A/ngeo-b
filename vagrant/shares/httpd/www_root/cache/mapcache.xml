@@ -1,11 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mapcache>
+  <auth_method name="cmdlineauth" type="cmd">
+    <template>/usr/bin/python /usr/bin/request_authorization.py -b http://127.0.0.1:8000/authorized -u :user -l :tileset</template>
+    <user_header>SP-Person-Identifier</user_header>
+    <auth_cache type="memcache">
+      <expires>1000</expires>
+      <server>
+        <host>localhost</host>
+        <port>11211</port>
+      </server>
+    </auth_cache>
+  </auth_method>
   <!-- format setup -->
   <default_format>mixed</default_format>
-  <format name="mypng" type ="PNG">
+  <format name="mypng" type="PNG">
     <compression>fast</compression>
   </format>
-  <format name="myjpeg" type ="JPEG">
+  <format name="myjpeg" type="JPEG">
     <quality>85</quality>
     <photometric>ycbcr</photometric>
   </format>

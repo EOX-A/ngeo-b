@@ -2,7 +2,15 @@
 # How to update model graphs                                           #
 ########################################################################
 
-cd /var/ngeob/
+# Run vagrant
+vagrant up
+vagrant ssh
 
-python manage.py graph_models --output=docs/model_config.png -e config
-python manage.py graph_models --output=docs/model_mapcache.png -e mapcache
+sudo yum install python-django-extensions graphviz-python graphviz-devel python-pip
+sudo pip install pygraphviz
+# Enable 'django_extensions' app in settings.py
+
+cd /var/ngeob_autotest/
+
+python manage.py graph_models --output=../ngeob/docs/model_config.png -e config
+python manage.py graph_models --output=../ngeob/docs/model_mapcache.png -e mapcache
