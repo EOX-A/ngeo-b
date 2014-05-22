@@ -113,5 +113,7 @@ class BrowseLayer(object):
             radiometric_interval_min=model.radiometric_interval_min,
             radiometric_interval_max=model.radiometric_interval_max,
             highest_map_level=model.highest_map_level,
-            lowest_map_level=model.lowest_map_level
+            lowest_map_level=model.lowest_map_level,
+            timedimension_default=model.timedimension_default,
+            tile_query_limit=model.tile_query_limit
         )
