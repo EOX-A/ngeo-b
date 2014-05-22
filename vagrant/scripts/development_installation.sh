@@ -92,7 +92,7 @@ $NGEOB_LOG_DIR/httpd_access.log {
     postrotate
         /sbin/service httpd reload > /dev/null 2>/dev/null || true
         cd /var/ngeob_autotest/
-        python manage.py ngeo_report --access-logfile=\$1-`date +%Y%m%d` --filename=$NGEO_REPORT_DIR/access_report_\`date --iso\`.xml
+        python manage.py ngeo_report --access-logfile=\$1-\`date +%Y%m%d\` --filename=$NGEO_REPORT_DIR/access_report_\`date --iso\`.xml
     endscript
 }
 
@@ -118,7 +118,7 @@ $NGEOB_LOG_DIR/ingest.log {
     compress
     postrotate
     	cd /var/ngeob_autotest/
-        python manage.py ngeo_report --report-logfile=\$1-`date +%Y%m%d` --filename=$NGEO_REPORT_DIR/ingest_report_\`date --iso\`.xml
+        python manage.py ngeo_report --report-logfile=\$1-\`date +%Y%m%d\` --filename=$NGEO_REPORT_DIR/ingest_report_\`date --iso\`.xml
     endscript
 }
 
