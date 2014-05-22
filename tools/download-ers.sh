@@ -138,7 +138,7 @@ fi
 
 echo "Downloading from ftp://$FTP_URL$FTP_DIR to $DOWNLOAD_DIR"
 # perform download
-lftp -e "mirror -c -v $FTP_DIR $DOWNLOAD_DIR; quit" -u $USERNAME,$PASSWORD $FTP_URL
+lftp -e "mirror -c -v $FTP_DIR --include-glob=*ZIP $DOWNLOAD_DIR; quit" -u $USERNAME,$PASSWORD $FTP_URL
 
 # unzip 
 tmpdir=`mktemp -d`
