@@ -34,7 +34,6 @@ import uuid
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models.aggregates import Count
-from eoxserver.resources.coverages.management.commands import CommandOutputMixIn
 from eoxserver.core.system import System
 from eoxserver.core.util.timetools import getDateTime, isotime
 
@@ -56,7 +55,7 @@ from ngeo_browse_server.mapcache.tileset import URN_TO_GRID
 logger = logging.getLogger(__name__)
 
 
-class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
+class Command(LogToConsoleMixIn, BaseCommand):
     
     option_list = BaseCommand.option_list + (
         make_option('--layer', '--browse-layer',
@@ -106,6 +105,7 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
             "inserted as well. The export can be refined by stating a time "
             "window.")
 
+
     def handle(self, *args, **kwargs):
         System.init()
         
@@ -113,12 +113,16 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         self.verbosity = int(kwargs.get("verbosity", 1))
         traceback = kwargs.get("traceback", False)
         self.set_up_logging(["ngeo_browse_server"], self.verbosity, traceback)
-        
+
+        logger.info("Starting browse export from command line.")
+
         browse_layer_id = kwargs.get("browse_layer_id")
         browse_type = kwargs.get("browse_type")
         if not browse_layer_id and not browse_type:
+            logger.error("No browse layer or browse type was specified.")
             raise CommandError("No browse layer or browse type was specified.")
         elif browse_layer_id and browse_type:
+            logger.error("Both browse layer and browse type were specified.")
             raise CommandError("Both browse layer and browse type were specified.")
         
         start = kwargs.get("start")
@@ -142,12 +146,16 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                 try:
                     browse_layer_model = BrowseLayer.objects.get(id=browse_layer_id)
                 except BrowseLayer.DoesNotExist:
+                    logger.error("Browse layer '%s' does not exist" 
+                                 % browse_layer_id)
                     raise CommandError("Browse layer '%s' does not exist" 
                                        % browse_layer_id)
             else:
                 try:
                     browse_layer_model = BrowseLayer.objects.get(browse_type=browse_type)
                 except BrowseLayer.DoesNotExist:
+                    logger.error("Browse layer with browse type '%s' does "
+                                 "not exist" % browse_type)
                     raise CommandError("Browse layer with browse type '%s' does "
                                        "not exist" % browse_type)
             
@@ -225,6 +233,11 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                         # exit if a merged browse is found
                         if dim != (isotime(browse_model.start_time) + "/" +
                                isotime(browse_model.end_time)):
+                            logger.error("Browse layer '%s' contains "
+                                         "merged browses and exporting "
+                                         "of cache is requested. Try "
+                                         "without exporting the cache."
+                                         % browse_layer_model.id)
                             raise CommandError("Browse layer '%s' contains "
                                                "merged browses and exporting "
                                                "of cache is requested. Try "
@@ -256,3 +269,5 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
                         uuid.uuid4().hex
                     )
                 )
+
+        logger.info("Successfully finished browse export from command line.")

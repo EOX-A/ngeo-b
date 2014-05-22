@@ -32,7 +32,6 @@ import logging
 from optparse import make_option
 
 from django.core.management.base import BaseCommand, CommandError
-from eoxserver.resources.coverages.management.commands import CommandOutputMixIn
 from eoxserver.core.system import System
 
 from ngeo_browse_server.control.management.commands import LogToConsoleMixIn
@@ -43,7 +42,7 @@ from ngeo_browse_server.control.migration.imp import import_package
 logger = logging.getLogger(__name__)
 
 
-class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
+class Command(LogToConsoleMixIn, BaseCommand):
     
     option_list = BaseCommand.option_list + (
         make_option('--ignore-cache', action="store_true",
@@ -61,6 +60,7 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
             "inserted into the according tileset, but optionally the cache is "
             "also re-seeded.")
 
+
     def handle(self, *args, **kwargs):
         System.init()
         
@@ -68,14 +68,19 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         self.verbosity = int(kwargs.get("verbosity", 1))
         traceback = kwargs.get("traceback", False)
         self.set_up_logging(["ngeo_browse_server"], self.verbosity, traceback)
-        
+
+        logger.info("Starting browse import from command line.")
+
         package_paths = args
         if not len(package_paths):
+            logger.error("No packages given.")
             raise CommandError("No packages given.")
         
         ignore_cache = kwargs["ignore_cache"]
         
         config = get_ngeo_config()
-        
+
         for package_path in package_paths:
             result = import_package(package_path, ignore_cache, config)
+
+        logger.info("Successfully finished browse import from command line.")

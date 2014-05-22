@@ -37,7 +37,6 @@ from django.core.management.base import BaseCommand, CommandError
 from django.template.loader import render_to_string
 from django.db import transaction
 from eoxserver.core.system import System
-from eoxserver.resources.coverages.management.commands import CommandOutputMixIn
 from eoxserver.core.util.timetools import getDateTime
 
 from ngeo_browse_server.config.browselayer.decoding import decode_browse_layers
@@ -51,7 +50,8 @@ from ngeo_browse_server.control.control.reporting import (
 
 logger = logging.getLogger(__name__)
 
-class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
+
+class Command(LogToConsoleMixIn, BaseCommand):
     
     option_list = BaseCommand.option_list + (
         make_option('--begin', 
@@ -83,7 +83,14 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
     args = ("")
     help = ("")
 
+
     def handle(self, begin=None, end=None, url=None, filename=None, access_logfile=None, report_logfile=None, **kwargs):
+        # parse command arguments
+        self.verbosity = int(kwargs.get("verbosity", 1))
+        traceback = kwargs.get("traceback", False)
+        self.set_up_logging(["ngeo_browse_server"], self.verbosity, traceback)
+
+        logger.info("Starting report generation from command line.")
 
         if begin:
             begin = getDateTime(begin)
@@ -92,11 +99,17 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
             end = getDateTime(end)
 
         if filename and url:
+            logger.error("Both Filename and URL specified.")
             raise CommandError("Both Filename and URL specified.")
 
         if filename:
+            logger.info("Save report to file '%s'." % filename)
             save_report(filename, begin, end, access_logfile, report_logfile)
         elif url:
+            logger.info("Send report to URL '%s'." % url)
             send_report(url, begin, end, access_logfile, report_logfile)
         else:
+            logger.error("Neither Filename nor URL specified.")
             raise CommandError("Neither Filename nor URL specified.")
+
+        logger.info("Successfully finished report generation.")

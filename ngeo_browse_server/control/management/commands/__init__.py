@@ -39,9 +39,9 @@ class LogToConsoleMixIn(object):
             verbosity = 1
         
         VERBOSITY_TO_LEVEL = {
-            0: logging.CRITICAL,
-            1: logging.WARNING,
-            2: logging.INFO,
+            0: logging.ERROR,
+            1: logging.INFO,
+            2: logging.DEBUG,
             3: logging.DEBUG
         }
         level = VERBOSITY_TO_LEVEL[verbosity]
@@ -53,9 +53,3 @@ class LogToConsoleMixIn(object):
         
         for name in loggernames:
             logging.getLogger(name).addHandler(handler)
-        
-        # TODO: don't interfere with CommandOutputMixIn   
-        #logging.getLogger(
-        #    "eoxserver.resources.coverages.management.commands"
-        #).
-        

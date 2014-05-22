@@ -66,7 +66,7 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
     start_time = start_time.replace(tzinfo=None)
     end_time = end_time.replace(tzinfo=None)
     
-    logger.info("Starting mapcaching seed with parameters: command='%s', "
+    logger.info("Starting mapcache seed with parameters: command='%s', "
                 "config_file='%s', tileset='%s', grid='%s', "
                 "extent='%s,%s,%s,%s', zoom='%s,%s', threads='%s'." 
                 % (seed_command, config_file, tileset, grid, 
@@ -97,7 +97,8 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
     out, err = process.communicate()
     for string in (out, err):
         for line in string.split("\n"):
-            logger.info(line)
+            if line != '':
+                logger.info("MapCache output: %s" % line)
     
     if process.returncode != 0:
         raise SeedException("'%s' failed. Returncode '%d'."
@@ -198,7 +199,7 @@ def add_mapcache_layer_xml(browse_layer, config=None):
         )
     ])
 
-    logger.info("Adding cache, source and tileset for '%s'." % name)
+    logger.info("Adding cache, source, and tileset for '%s'." % name)
     write_mapcache_xml(root, config)
 
 
@@ -214,5 +215,5 @@ def remove_mapcache_layer_xml(browse_layer, config=None):
     root.remove(root.xpath("source[@name='%s']" % name)[0])
     root.remove(root.xpath("tileset[@name='%s']" % name)[0])
 
-    logger.info("Removing cache, source and tileset for '%s'." % name)
+    logger.info("Removing cache, source, and tileset for '%s'." % name)
     write_mapcache_xml(root, config)

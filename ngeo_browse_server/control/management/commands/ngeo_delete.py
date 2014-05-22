@@ -35,7 +35,6 @@ from optparse import make_option
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction 
-from eoxserver.resources.coverages.management.commands import CommandOutputMixIn
 from eoxserver.core.system import System
 from eoxserver.core.util.timetools import getDateTime
 
@@ -45,11 +44,10 @@ from ngeo_browse_server.mapcache.tasks import seed_mapcache
 from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
 
 
-
 logger = logging.getLogger(__name__)
 
 
-class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
+class Command(LogToConsoleMixIn, BaseCommand):
     
     option_list = BaseCommand.option_list + (
         make_option('--layer', '--browse-layer',
@@ -76,6 +74,8 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
             "its browse type and optionally start and or end time."
             "Only browses that are completely contained in the time interval"
             "are actually deleted.")
+
+
     def handle(self, *args, **kwargs):
         System.init()
         
@@ -83,17 +83,20 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         self.verbosity = int(kwargs.get("verbosity", 1))
         traceback = kwargs.get("traceback", False)
         self.set_up_logging(["ngeo_browse_server"], self.verbosity, traceback)
-        
+
+        logger.info("Starting browse deletion from command line.")
+
         browse_layer_id = kwargs.get("browse_layer_id")
         browse_type = kwargs.get("browse_type")
         if not browse_layer_id and not browse_type:
+            logger.error("No browse layer or browse type was specified.")
             raise CommandError("No browse layer or browse type was specified.")
         elif browse_layer_id and browse_type:
+            logger.error("Both browse layer and browse type were specified.")
             raise CommandError("Both browse layer and browse type were specified.")
         
         start = kwargs.get("start")
         end = kwargs.get("end")
-        
         
         # parse start/end if given
         if start: 
@@ -103,9 +106,10 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         
         
         self._handle(start, end, browse_layer_id, browse_type)
-            
-    
-    
+
+        logger.info("Successfully finished browse deletion from command line.")
+
+
     def _handle(self, start, end, browse_layer_id, browse_type):
         from ngeo_browse_server.control.queries import remove_browse
         
@@ -114,13 +118,16 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
             try:
                 browse_layer_model = BrowseLayer.objects.get(id=browse_layer_id)
             except BrowseLayer.DoesNotExist:
+                logger.error("Browse layer '%s' does not exist" % browse_layer_id)
                 raise CommandError("Browse layer '%s' does not exist" % browse_layer_id)
         else:
             try:
                 browse_layer_model = BrowseLayer.objects.get(browse_type=browse_type)
             except BrowseLayer.DoesNotExist:
+                logger.error("Browse layer with browse type'%s' does "
+                             "not exist" % browse_type)
                 raise CommandError("Browse layer with browse type'%s' does "
-                                       "not exist" % browse_type)
+                                   "not exist" % browse_type)
         
         
         # get all browses of browse layer
@@ -140,6 +147,9 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         
         with transaction.commit_on_success():
             with transaction.commit_on_success(using="mapcache"):
+                logger.info("Deleting '%d' browse%s from database." 
+                            % (browses_qs.count(),
+                               "s" if browses_qs.count() > 1 else ""))
                 # go through all browses to be deleted
                 for browse_model in browses_qs:
                     

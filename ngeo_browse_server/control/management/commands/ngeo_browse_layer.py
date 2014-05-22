@@ -37,7 +37,6 @@ from django.core.management.base import BaseCommand, CommandError
 from django.template.loader import render_to_string
 from django.db import transaction
 from eoxserver.core.system import System
-from eoxserver.resources.coverages.management.commands import CommandOutputMixIn
 
 from ngeo_browse_server.config.browselayer.decoding import decode_browse_layers
 from ngeo_browse_server.config import (
@@ -52,10 +51,11 @@ from ngeo_browse_server.filetransaction import FileTransaction
 from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
 from ngeo_browse_server.namespace import ns_cfg
 
+
 logger = logging.getLogger(__name__)
 
 
-class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
+class Command(LogToConsoleMixIn, BaseCommand):
     
     option_list = BaseCommand.option_list + (
         make_option('--on-error',
@@ -69,8 +69,8 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
     args = ("<browse-layer-xml-file1> [<browse-layer-xml-file2> ...] ")
     help = ("")
 
-    def handle(self, *filenames, **kwargs):
 
+    def handle(self, *filenames, **kwargs):
         System.init()
 
         # parse command arguments
@@ -78,29 +78,37 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         traceback = kwargs.get("traceback", False)
         self.set_up_logging(["ngeo_browse_server"], self.verbosity, traceback)
         
-        on_error = kwargs["on_error"]
-
-        config = get_ngeo_config()
+        logger.info("Starting browse layer configuration from command line.")
 
         if not filenames:
             raise CommandError("No input files provided.")
 
+        on_error = kwargs["on_error"]
+
+        config = get_ngeo_config()
+
+        no_files_handled_success = 0
+        no_files_handled_error = 0
         # handle each file separately
         for filename in filenames:
             try:
                 # handle each browse report
                 self._handle_file(filename, config)
+                no_files_handled_success += 1
             except Exception, e:
                 # handle exceptions
+                no_files_handled_error += 1
+                logger.error("%s: %s" % (type(e).__name__, str(e)))
                 if on_error == "continue":
-                    # just print the traceback and continue
-                    self.print_msg("%s: %s" % (type(e).__name__, str(e)),
-                                   1, error=True)
+                    # continue the execution with the next file
                     continue
-                
                 elif on_error == "stop":
                     # re-raise the exception to stop the execution
-                    raise
+                    raise CommandError(e)
+
+        logger.info("Finished browse layer configuration, %d successfully "
+                    "handled and %d failed."
+                    % (no_files_handled_success, no_files_handled_error))
 
 
     @transaction.commit_on_success
@@ -110,8 +118,6 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
 
         start_revision = root.findtext(ns_cfg("startRevision"))
         end_revision = root.findtext(ns_cfg("endRevision"))
-
-        # TODO: check current and last revision
 
         remove_layers_elems = root.xpath("cfg:removeConfiguration/cfg:browseLayers", namespaces={"cfg": ns_cfg.uri})
         add_layers_elems = root.xpath("cfg:addConfiguration/cfg:browseLayers", namespaces={"cfg": ns_cfg.uri})
@@ -125,7 +131,6 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
             remove_layers.extend(decode_browse_layers(layers_elem))
 
         # get the mapcache config xml file path to make it transaction safe
-
         mapcache_config = get_mapcache_seed_config(config)
         mapcache_xml_filename = mapcache_config["config_file"]
 

@@ -35,7 +35,6 @@ from optparse import make_option
 
 from django.core.management.base import BaseCommand, CommandError
 from django.template.loader import render_to_string
-from eoxserver.resources.coverages.management.commands import CommandOutputMixIn
 
 from ngeo_browse_server.config.browsereport.decoding import decode_browse_report
 from ngeo_browse_server.config import get_ngeo_config
@@ -46,7 +45,7 @@ from ngeo_browse_server.control.management.commands import LogToConsoleMixIn
 logger = logging.getLogger(__name__)
 
 
-class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
+class Command(LogToConsoleMixIn, BaseCommand):
     
     option_list = BaseCommand.option_list + (
         make_option('--on-error',
@@ -95,12 +94,15 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
             "specified in the 'ngeo.conf'. Optionally deletes the original "
             "browse raster files if they were successfully ingested.")
 
+
     def handle(self, *filenames, **kwargs):
         # parse command arguments
         self.verbosity = int(kwargs.get("verbosity", 1))
         traceback = kwargs.get("traceback", False)
         self.set_up_logging(["ngeo_browse_server"], self.verbosity, traceback)
-        
+
+        logger.info("Starting browse ingestion from command line.")
+
         on_error = kwargs["on_error"]
         delete_on_success = kwargs["delete_on_success"]
         storage_dir = kwargs.get("storage_dir")
@@ -110,6 +112,7 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         
         # check consistency
         if not len(filenames):
+            logger.error("No input files given.")
             raise CommandError("No input files given.")
         
         # set config values
@@ -121,34 +124,39 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         if storage_dir is not None:
             storage_dir = os.path.abspath(storage_dir)
             config.set(section, "storage_dir", storage_dir)
-            self.print_msg("Using storage directory '%s'." % storage_dir, 2)
+            logger.info("Using storage directory '%s'." % storage_dir)
             
         if optimized_dir is not None:
             optimized_dir = os.path.abspath(optimized_dir)
             config.set(section, "optimized_files_dir", optimized_dir)
-            self.print_msg("Using optimized files directory '%s'."
-                           % optimized_dir, 2)
+            logger.info("Using optimized files directory '%s'."
+                           % optimized_dir)
         
         config.set(section, "delete_on_success", delete_on_success)
         config.set(section, "leave_original", leave_original)
         
+        no_reports_handled_success = 0
+        no_reports_handled_error = 0
         # handle each file separately
         for filename in filenames:
             try:
                 # handle each browse report
                 self._handle_file(filename, create_result, config)
+                no_reports_handled_success += 1
             except Exception, e:
                 # handle exceptions
+                no_reports_handled_error += 1
+                logger.error("%s: %s" % (type(e).__name__, str(e)))
                 if on_error == "continue":
-                    # just print the traceback and continue
-                    self.print_msg("%s: %s" % (type(e).__name__, str(e)),
-                                   1, error=True)
+                    # continue the execution with the next file
                     continue
-                
                 elif on_error == "stop":
                     # re-raise the exception to stop the execution
                     raise
-                
+
+        logger.info("Finished browse report ingestion, %d successfully "
+                    "handled and %d failed."
+                   % (no_reports_handled_success, no_reports_handled_error))
 
 
     def _handle_file(self, filename, create_result, config):
@@ -156,12 +164,12 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
         
         # parse the xml file and obtain its data structures as a 
         # parsed browse report.
-        self.print_msg("Parsing XML file '%s'." % filename, 1)
+        logger.info("Parsing XML file '%s'." % filename)
         document = etree.parse(filename)
         parsed_browse_report = decode_browse_report(document.getroot())
         
         # ingest the parsed browse report
-        self.print_msg("Ingesting browse report with %d browse%s."
+        logger.info("Ingesting browse report with %d browse%s."
                        % (len(parsed_browse_report), 
                           "s" if len(parsed_browse_report) > 1 else ""))
         
@@ -172,7 +180,10 @@ class Command(LogToConsoleMixIn, CommandOutputMixIn, BaseCommand):
             print(render_to_string("control/ingest_response.xml",
                                    {"results": results}))
         
-        self.print_msg("%d browses have been handled whereof %d have been "
-                        "successfully replaced and %d successfully inserted."
-                        % (results.to_be_replaced, results.actually_replaced,
-                            results.actually_inserted))
+        logger.info("%d browse%s handled, %d successfully replaced "
+                    "and %d successfully inserted."
+                        % (results.to_be_replaced,
+                           "s have been" if results.to_be_replaced > 1 
+                           else " has been",
+                           results.actually_replaced,
+                           results.actually_inserted))
