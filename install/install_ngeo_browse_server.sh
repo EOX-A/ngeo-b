@@ -128,6 +128,13 @@ ngeo_install() {
     # OS installation
     #-----------------
 
+    echo "Setting timezone to UTC"
+    rm -f /etc/localtime
+    cp /usr/share/zoneinfo/UTC /etc/localtime
+    cat << EOF > /etc/sysconfig/clock
+ZONE="UTC"
+EOF
+
     echo "Performing installation step 40"
     # Disable SELinux
     if ! [ `getenforce` == "Disabled" ] ; then
