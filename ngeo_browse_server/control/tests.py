@@ -2640,7 +2640,7 @@ class ExportMergedFailure(CliFailureMixIn, SeedTestCaseMixIn, LiveServerTestCase
         return ("--export-cache", )
     
     expect_failure = True
-    expected_failure_msg = "Error: Browse layer 'TEST_SAR' contains merged browses and exporting of cache is requested. Try without exporting the cache.\n"
+    expected_failure_msg = "INFO: Starting browse export from command line.\nERROR: Browse layer 'TEST_SAR' contains merged browses and exporting of cache is requested. Try without exporting the cache.\nError: Browse layer 'TEST_SAR' contains merged browses and exporting of cache is requested. Try without exporting the cache.\n"
 
 
 #===============================================================================
@@ -2718,7 +2718,7 @@ class DebugLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCase
     
     expected_logs = {
         logging.DEBUG: 3,
-        logging.INFO: 16,
+        logging.INFO: 14,
         logging.WARN: 0,
         logging.ERROR: 0,
         logging.CRITICAL: 0
@@ -2775,7 +2775,7 @@ class InfoLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCaseM
     
     expected_logs = {
         logging.DEBUG: 0,
-        logging.INFO: 16,
+        logging.INFO: 14,
         logging.WARN: 0,
         logging.ERROR: 0,
         logging.CRITICAL: 0
