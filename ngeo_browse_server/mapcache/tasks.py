@@ -68,9 +68,10 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
     
     logger.info("Starting mapcache seed with parameters: command='%s', "
                 "config_file='%s', tileset='%s', grid='%s', "
-                "extent='%s,%s,%s,%s', zoom='%s,%s', threads='%s'." 
+                "extent='%s,%s,%s,%s', zoom='%s,%s', threads='%s', mode='%s'."
                 % (seed_command, config_file, tileset, grid, 
-                  minx, miny, maxx, maxy, minzoom, maxzoom, threads))
+                  minx, miny, maxx, maxy, minzoom, maxzoom, threads,
+                  "seed" if not delete else "delete"))
     
     args = [
         seed_command,
