@@ -972,7 +972,7 @@ class SeedMerge1(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
 class SeedMerge2(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
     """ Merging 2 time windows with a third. """
     
-    request_files = ("merge_test_data/br_merge_1.xml", 
+    request_files = ("merge_test_data/br_merge_1.xml",
                      "merge_test_data/br_merge_3.xml",
                      "merge_test_data/br_merge_2.xml",
                      )
@@ -980,12 +980,34 @@ class SeedMerge2(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
     storage_dir = "data/merge_test_data"
     
     expected_inserted_into_series = "TEST_SAR"
-    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
+    expected_tiles = {0: 4, 1: 16, 2: 64, 3: 192, 4: 192}
     expected_seeded_areas = [
         (parse_datetime("2010-07-22T21:38:40Z"),
+         parse_datetime("2010-07-22T21:40:38Z")),
+        (parse_datetime("2010-07-22T21:40:38Z"),
          parse_datetime("2010-07-22T21:42:38Z"))
     ]
+
+
+class SeedMerge2_2(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
+    """ Merging 2 time windows with a third. """
     
+    request_files = ("merge_test_data/br_merge_1.xml",
+                     "merge_test_data/br_merge_2.xml",
+                     "merge_test_data/br_merge_3.xml",
+                     )
+
+    storage_dir = "data/merge_test_data"
+
+    expected_inserted_into_series = "TEST_SAR"
+    expected_tiles = {0: 4, 1: 16, 2: 64, 3: 192, 4: 192}
+    expected_seeded_areas = [
+        (parse_datetime("2010-07-22T21:38:40Z"),
+         parse_datetime("2010-07-22T21:40:38Z")),
+        (parse_datetime("2010-07-22T21:40:38Z"),
+         parse_datetime("2010-07-22T21:42:38Z"))
+    ]
+
 
 class SeedMerge3(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
     """ Splitting consquent time window in seperate. """

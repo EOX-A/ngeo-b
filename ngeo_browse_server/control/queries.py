@@ -196,7 +196,7 @@ def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
     
     # search for time entries with an overlapping time span
     times_qs = mapcache_models.Time.objects.filter(
-        start_time__lte=browse.end_time, end_time__gt=browse.start_time,
+        start_time__lt=browse.end_time, end_time__gt=browse.start_time,
         source=source
     )
     
