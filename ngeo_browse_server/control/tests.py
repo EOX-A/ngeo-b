@@ -929,7 +929,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
             <bsi:status>failure</bsi:status>
             <bsi:error>
                 <bsi:exceptionCode>ValidationError</bsi:exceptionCode>
-                <bsi:exceptionMessage>Browse Identifier &#39;7_FAILURE&#39; not valid: &#39;This field must contain a valid Name i.e. beginning with a letter, an underscore, or a colon, and continuing with letters, digits, hyphens, underscores, colons, or full stops.&#39;.</bsi:exceptionMessage>
+                <bsi:exceptionMessage>Browse Identifier &#39;7_FAILURE&#39; not valid: &#39;This field&#39;s must begin with a letter, an underscore, a colon, or a hash and continuing with letters, digits, hyphens, underscores, colons, full stops, or hashes.&#39;.</bsi:exceptionMessage>
             </bsi:error>
         </bsi:briefRecord>
         <bsi:briefRecord>
@@ -1294,7 +1294,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
             <bsi:status>failure</bsi:status>
             <bsi:error>
                 <bsi:exceptionCode>ValidationError</bsi:exceptionCode>
-                <bsi:exceptionMessage>Browse Identifier &#39;11_id_starts_with_number&#39; not valid: &#39;This field must contain a valid Name i.e. beginning with a letter, an underscore, or a colon, and continuing with letters, digits, hyphens, underscores, colons, or full stops.&#39;.</bsi:exceptionMessage>
+                <bsi:exceptionMessage>Browse Identifier &#39;11_id_starts_with_number&#39; not valid: &#39;This field&#39;s must begin with a letter, an underscore, a colon, or a hash and continuing with letters, digits, hyphens, underscores, colons, full stops, or hashes.&#39;.</bsi:exceptionMessage>
             </bsi:error>
         </bsi:briefRecord>
     </bsi:ingestionResult>
