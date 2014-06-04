@@ -539,7 +539,7 @@ class SeedBrowseNoID(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
 class IngestBrowseSpecialID(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606_specialid.xml"
     
-    expected_ingested_browse_ids = ("some:special:id",)
+    expected_ingested_browse_ids = ("#some:#special:id",)
     expected_ingested_coverage_ids = ("TEST_OPTICAL_20100722101606000000_20100722101722000000",)
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['ATS_TOA_1P_20100722_101606_proc.tif']
@@ -557,7 +557,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
     </bsi:ingestionSummary>
     <bsi:ingestionResult>
         <bsi:briefRecord>
-            <bsi:identifier>some:special:id</bsi:identifier>
+            <bsi:identifier>#some:#special:id</bsi:identifier>
             <bsi:status>success</bsi:status>
         </bsi:briefRecord>
     </bsi:ingestionResult>

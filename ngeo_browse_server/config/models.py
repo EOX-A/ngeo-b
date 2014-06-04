@@ -49,6 +49,10 @@ NameValidator = RegexValidator(
     re.compile(r'^[a-zA-Z_:][a-zA-Z0-9.\-_:]*$'),
     message="This field must contain a valid Name i.e. beginning with a letter, an underscore, or a colon, and continuing with letters, digits, hyphens, underscores, colons, or full stops."
 )
+HashNameValidator = RegexValidator(
+    re.compile(r'^[a-zA-Z_:#][a-zA-Z0-9.\-_:#]*$'),
+    message="This field's must begin with a letter, an underscore, a colon, or a hash and continuing with letters, digits, hyphens, underscores, colons, full stops, or hashes."
+)
 FileNameValidator = RegexValidator(
     re.compile('^[a-zA-Z0-9-_:/.]+$'),
     message="Filenames must only contain letters, digits, hyphens, underscores, colons, slashes, or full stops."
@@ -204,7 +208,7 @@ class BrowseIdentifier(models.Model):
     used later to update the browse data.
     
     """
-    value = models.CharField("Browse Identifier", max_length=1024, validators=[NameValidator])
+    value = models.CharField("Browse Identifier", max_length=1024, validators=[HashNameValidator])
     browse = models.OneToOneField(Browse, related_name="browse_identifier")
     browse_layer = models.ForeignKey(BrowseLayer, verbose_name="Browse Layer")
     

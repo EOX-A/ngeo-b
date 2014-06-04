@@ -144,7 +144,7 @@ def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
     # if the browse contains an identifier, create the according model
     if browse.browse_identifier is not None:
         try:
-            models.NameValidator(browse.browse_identifier)
+            models.HashNameValidator(browse.browse_identifier)
         except ValidationError, e:
             raise NGEOException("Browse Identifier '%s' not valid: '%s'." % 
                                 (browse.browse_identifier, str(e.messages[0])),
@@ -287,7 +287,7 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
                       **get_mapcache_seed_config(config))
     
     except Exception, e:
-        logger.warn("Un-seeding failed: %s" % str(e))
+        logger.warning("Un-seeding failed: %s" % str(e))
     
     
     # approach
