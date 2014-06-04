@@ -42,7 +42,10 @@ from ngeo_browse_server.control.control.config import (
 )
 
 
+logger = logging.getLogger(__name__)
+
 def notify(summary, message, urgency=None, ip_address=None, config=None):
+    logger.info("Sending notification to CTRL.")
     config = config or get_ngeo_config()
 
     urgency = urgency or "INFO"
@@ -58,6 +61,7 @@ def notify(summary, message, urgency=None, ip_address=None, config=None):
         pass
 
     if not ip_address:
+        logger.warning("Could not send notification to CTRL.")
         return
 
     tree = E("notifyControllerServer",
@@ -82,6 +86,7 @@ def notify(summary, message, urgency=None, ip_address=None, config=None):
         urllib2.urlopen(req, timeout=1)
     except (urllib2.HTTPError, urllib2.URLError):
         # could not send notification. Out of options
+        logger.warning("Could not send notification to CTRL.")
         pass
 
 
