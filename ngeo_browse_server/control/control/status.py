@@ -139,8 +139,8 @@ class Status(object):
 
     @locked()
     def restart(self):
-        if self._get_status() != "STOPPED":
-            raise StatusError("To 'restart', the server needs to be 'STOPPED'.")
+        if self._get_status() != "RUNNING":
+            raise StatusError("To 'restart', the server needs to be 'RUNNING'.")
         self._set_status("RUNNING")
 
     @locked(timeout=1.)
