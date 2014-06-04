@@ -380,6 +380,7 @@ EOF
             </server>
         </auth_cache>
     </auth_method>
+
     <default_format>mixed</default_format>
     <format name="mypng" type="PNG">
         <compression>fast</compression>
@@ -408,6 +409,30 @@ EOF
         </forwarding_rule>
     </service>
     <service type="wmts" enabled="true"/>
+
+    <metadata>
+        <title>ngEO Browse Server instance developed by EOX</title>
+        <abstract>ngEO Browse Server instance developed by EOX</abstract>
+        <keyword>KEYWORDLIST</keyword>
+        <accessconstraints>UNKNOWN</accessconstraints>
+        <fees>UNKNOWN</fees>
+        <contactname>CONTACTPERSON</contactname>
+        <contactphone>CONTACTVOICETELEPHONE</contactphone>
+        <contactfacsimile>CONTACTFACSIMILETELEPHONE</contactfacsimile>
+        <contactorganization>CONTACTORGANIZATION</contactorganization>
+        <contactcity>CITY</contactcity>
+        <contactstateorprovince>STATEORPROVINCE</contactstateorprovince>
+        <contactpostcode>POSTCODE</contactpostcode>
+        <contactcountry>COUNTRY</contactcountry>
+        <contactelectronicmailaddress>CONTACTELECTRONICMAILADDRESS</contactelectronicmailaddress>
+        <contactposition>CONTACTPOSITION</contactposition>
+        <providername>CONTACTPERSON</providername>
+        <providerurl>http://ngeo.eox.at</providerurl>
+        <inspire_profile>true</inspire_profile>
+        <inspire_metadataurl>METADATADATE</inspire_metadataurl>
+        <defaultlanguage>eng</defaultlanguage>
+        <language>eng</language>
+    </metadata>
 
     <errors>empty_img</errors>
     <lock_dir>/tmp</lock_dir>

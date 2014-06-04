@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <mapcache>
   <auth_method name="cmdlineauth" type="cmd">
     <template>/usr/bin/python /usr/bin/request_authorization.py -b http://127.0.0.1:8000/authorized -u :user -l :tileset</template>
@@ -11,7 +10,6 @@
       </server>
     </auth_cache>
   </auth_method>
-  <!-- format setup -->
   <default_format>mixed</default_format>
   <format name="mypng" type="PNG">
     <compression>fast</compression>
@@ -24,8 +22,6 @@
     <transparent>mypng</transparent>
     <opaque>myjpeg</opaque>
   </format>
-
-  <!-- service setup -->
   <service type="wms" enabled="true">
     <full_wms>assemble</full_wms>
     <resample_mode>bilinear</resample_mode>
@@ -42,8 +38,29 @@
   </service>
   <service type="wmts" enabled="true"/>
   <service type="demo" enabled="true"/>
-
-  <!-- misc setup -->
+  <metadata>
+    <title>ngEO Browse Server instance developed by EOX</title>
+    <abstract>ngEO Browse Server instance developed by EOX</abstract>
+    <keyword>KEYWORDLIST</keyword>
+    <accessconstraints>UNKNOWN</accessconstraints>
+    <fees>UNKNOWN</fees>
+    <contactname>CONTACTPERSON</contactname>
+    <contactphone>CONTACTVOICETELEPHONE</contactphone>
+    <contactfacsimile>CONTACTFACSIMILETELEPHONE</contactfacsimile>
+    <contactorganization>CONTACTORGANIZATION</contactorganization>
+    <contactcity>CITY</contactcity>
+    <contactstateorprovince>STATEORPROVINCE</contactstateorprovince>
+    <contactpostcode>POSTCODE</contactpostcode>
+    <contactcountry>COUNTRY</contactcountry>
+    <contactelectronicmailaddress>CONTACTELECTRONICMAILADDRESS</contactelectronicmailaddress>
+    <contactposition>CONTACTPOSITION</contactposition>
+    <providername>CONTACTPERSON</providername>
+    <providerurl>http://ngeo.eox.at</providerurl>
+    <inspire_profile>true</inspire_profile>
+    <inspire_metadataurl>METADATADATE</inspire_metadataurl>
+    <defaultlanguage>eng</defaultlanguage>
+    <language>eng</language>
+  </metadata>
   <errors>report</errors>
   <lock_dir>/tmp</lock_dir>
 </mapcache>
