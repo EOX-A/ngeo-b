@@ -3220,7 +3220,7 @@ class ComponentControlRestart(ComponentControlTestCaseMixIn, TestCase):
 
     status_config = dedent("""
         [status]
-        state=STOPPED
+        state=RUNNING
     """)
 
     expected_response = {
