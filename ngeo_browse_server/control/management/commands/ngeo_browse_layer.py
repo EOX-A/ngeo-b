@@ -92,7 +92,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
         # handle each file separately
         for filename in filenames:
             try:
-                # handle each browse report
+                # handle each browse layer xml
                 self._handle_file(filename, config)
                 no_files_handled_success += 1
             except Exception, e:
