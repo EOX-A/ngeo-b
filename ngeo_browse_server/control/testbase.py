@@ -1344,7 +1344,7 @@ class ConfigurationManagementMixIn(ControlTestCaseMixIn):
             # check tileset file
             #self.assertTrue(exists()) # TODO: really required?
 
-    def test_removed_layers(self):
+    def test_disabled_layers(self):
         for layer in self.expected_removed_layers:
             # check DatasetSeries models
             dataset_series = System.getRegistry().getFromFactory(
@@ -1354,7 +1354,7 @@ class ConfigurationManagementMixIn(ControlTestCaseMixIn):
             self.assertEqual(None, dataset_series)
 
             # check BrowseLayer models
-            self.assertFalse(
+            self.assertTrue(
                 models.BrowseLayer.objects.filter(id=layer).exists()
             )
 
