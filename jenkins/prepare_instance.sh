@@ -87,7 +87,7 @@ if [ `psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'"` ]
 fi
 createdb -O $DB_USER -T template_postgis $DB_NAME
 # Drop the test database if present
-if [ `psql postgis -tAc "SELECT 1 FROM pg_database WHERE datname='test_$DB_NAME'"` ] ; then
+if [ `psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='test_$DB_NAME'"` ] ; then
     echo "Dropping ngEO Browse Server test database."
     dropdb test_$DB_NAME
 fi
