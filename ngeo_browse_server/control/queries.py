@@ -450,7 +450,7 @@ def add_browse_layer(browse_layer, config=None):
         )
     )
 
-    # remove source from mapcache sqlite
+    # add source to mapcache sqlite
     mapcache_models.Source.objects.create(name=browse_layer.id)
 
     # add an XML section to the mapcache config xml

@@ -175,6 +175,14 @@ def add_mapcache_layer_xml(browse_layer, config=None):
             name=name, type="wms"
         ),
         E("tileset",
+            E("metadata",
+                E("title", str(browse_layer.title)),
+                *([
+                    E("abstract", str(browse_layer.description))] 
+                    if browse_layer.description
+                    else []
+                )
+            ),
             E("source", name),
             E("cache", name),
             E("grid", 
@@ -190,8 +198,8 @@ def add_mapcache_layer_xml(browse_layer, config=None):
             E("timedimension",
                 E("dbfile", settings.DATABASES["mapcache"]["NAME"]),
                 E("query", "select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and (start_time<datetime(:end_timestamp,'unixepoch') and (end_time>datetime(:start_timestamp,'unixepoch')) or (start_time=end_time and start_time<=datetime(:end_timestamp,'unixepoch') and end_time>=datetime(:start_timestamp,'unixepoch'))) and maxx>=:minx and maxy>=:miny and minx<=:maxx and miny<=:maxy order by end_time desc limit " + str(browse_layer.tile_query_limit)),
-                type="sqlite", default=str(browse_layer.timedimension_default)
-            ), *([
+                type="sqlite", default=str(browse_layer.timedimension_default)),
+            *([
                 E("auth_method", "cmdlineauth")] 
                 if browse_layer.browse_access_policy in ("RESTRICTED", "PRIVATE")
                 else []
@@ -212,9 +220,14 @@ def remove_mapcache_layer_xml(browse_layer, config=None):
 
     root = read_mapcache_xml(config)
 
-    root.remove(root.xpath("cache[@name='%s']" % name)[0])
-    root.remove(root.xpath("source[@name='%s']" % name)[0])
-    root.remove(root.xpath("tileset[@name='%s']" % name)[0])
-
     logger.info("Removing cache, source, and tileset for '%s'." % name)
+    try:
+        root.remove(root.xpath("cache[@name='%s']" % name)[0])
+        root.remove(root.xpath("source[@name='%s']" % name)[0])
+        root.remove(root.xpath("tileset[@name='%s']" % name)[0])
+    except IndexError:
+        raise Exception(
+            "Failed to remove browse layer from mapcache config, because a "
+            "layer with the name '%s' could not be found." % name
+        )
     write_mapcache_xml(root, config)
