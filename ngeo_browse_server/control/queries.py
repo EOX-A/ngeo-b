@@ -39,6 +39,7 @@ from django.contrib.gis.geos import Polygon, MultiPolygon
 from eoxserver.core.system import System
 from eoxserver.resources.coverages.crss import fromShortCode
 from eoxserver.resources.coverages.metadata import EOMetadata
+from eoxserver.resources.coverages.models import LayerMetadataRecord
 from eoxserver.core.util.timetools import isotime
 from ngeo_browse_server.config import (
     models, get_ngeo_config, get_project_relative_path
@@ -449,6 +450,18 @@ def add_browse_layer(browse_layer, config=None):
             MultiPolygon(Polygon.from_bbox((0, 0, 1, 1)))
         )
     )
+    # create EOxServer layer metadata
+    if browse_layer.title or browse_layer.description:
+        dss = System.getRegistry().getFromFactory(
+            "resources.coverages.wrappers.DatasetSeriesFactory",
+            {"obj_id": browse_layer.id}
+        )
+        if browse_layer.title:
+            md_title = LayerMetadataRecord.objects.get_or_create(key="ows_title", value=str(browse_layer.title))[0]
+            dss._DatasetSeriesWrapper__model.layer_metadata.add(md_title)
+        if browse_layer.description:
+            md_abstract = LayerMetadataRecord.objects.get_or_create(key="ows_abstract", value=str(browse_layer.description))[0]
+            dss._DatasetSeriesWrapper__model.layer_metadata.add(md_abstract)
 
     # add source to mapcache sqlite
     mapcache_models.Source.objects.create(name=browse_layer.id)
@@ -491,10 +504,13 @@ def update_browse_layer(browse_layer, config=None):
     ]
 
     refresh_mapcache_xml = False
+    refresh_metadata = False
     for key in mutable_values:
         setattr(browse_layer_model, key, getattr(browse_layer, key))
         if key in ("timedimension_default", "tile_query_limit"):
             refresh_mapcache_xml = True
+        if key in ("title", "description"):
+            refresh_metadata = True
 
     for related_dataset_id in browse_layer.related_dataset_ids:
         models.RelatedDataset.objects.get_or_create(
@@ -510,6 +526,20 @@ def update_browse_layer(browse_layer, config=None):
 
     browse_layer_model.full_clean()
     browse_layer_model.save()
+
+    # update EOxServer layer metadata
+    if refresh_metadata:
+        dss = System.getRegistry().getFromFactory(
+            "resources.coverages.wrappers.DatasetSeriesFactory",
+            {"obj_id": browse_layer.id}
+        )
+        dss._DatasetSeriesWrapper__model.layer_metadata.all().delete()
+        if browse_layer.title:
+            md_title = LayerMetadataRecord.objects.get_or_create(key="ows_title", value=str(browse_layer.title))[0]
+            dss._DatasetSeriesWrapper__model.layer_metadata.add(md_title)
+        if browse_layer.description:
+            md_abstract = LayerMetadataRecord.objects.get_or_create(key="ows_abstract", value=str(browse_layer.description))[0]
+            dss._DatasetSeriesWrapper__model.layer_metadata.add(md_abstract)
 
     if refresh_mapcache_xml:
         remove_mapcache_layer_xml(browse_layer, config)
@@ -531,6 +561,13 @@ def delete_browse_layer(browse_layer, config=None):
             % browse_layer.id
         )
 
+    # delete EOxServer layer metadata
+    dss = System.getRegistry().getFromFactory(
+        "resources.coverages.wrappers.DatasetSeriesFactory",
+        {"obj_id": browse_layer.id}
+    )
+    dss._DatasetSeriesWrapper__model.layer_metadata.all().delete()
+    # delete EOxServer dataset series
     dss_mgr = System.getRegistry().findAndBind(
         intf_id="resources.coverages.interfaces.Manager",
         params={
