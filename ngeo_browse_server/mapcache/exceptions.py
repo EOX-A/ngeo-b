@@ -34,3 +34,6 @@ class MapCacheException(Exception):
     
 class SeedException(MapCacheException):
     """ Error when something went wrong in the mapcache_seed utility. """
+
+class LayerException(MapCacheException):
+    """ Error when something went wrong during MapCache layer handling. """

@@ -40,7 +40,9 @@ from ngeo_browse_server.config import (
     get_ngeo_config, get_project_relative_path
 )
 from ngeo_browse_server.lock import FileLock
-from ngeo_browse_server.mapcache.exceptions import SeedException
+from ngeo_browse_server.mapcache.exceptions import (
+    SeedException, LayerException
+)
 from ngeo_browse_server.mapcache.tileset import URN_TO_GRID
 from ngeo_browse_server.mapcache.config import (
     get_mapcache_seed_config, get_tileset_path
@@ -149,7 +151,7 @@ def add_mapcache_layer_xml(browse_layer, config=None):
     root = read_mapcache_xml(config)
 
     if len(root.xpath("cache[@name='%s']|source[@name='%s']|tileset[@name='%s']" % (name, name, name))):
-        raise Exception(
+        raise LayerException(
             "Cannot add browse layer to mapcache config, because a layer with "
             "the name '%s' is already inserted." % name
         )
@@ -226,7 +228,7 @@ def remove_mapcache_layer_xml(browse_layer, config=None):
         root.remove(root.xpath("source[@name='%s']" % name)[0])
         root.remove(root.xpath("tileset[@name='%s']" % name)[0])
     except IndexError:
-        raise Exception(
+        raise LayerException(
             "Failed to remove browse layer from mapcache config, because a "
             "layer with the name '%s' could not be found." % name
         )

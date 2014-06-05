@@ -51,6 +51,7 @@ from ngeo_browse_server.mapcache.tasks import (
 from ngeo_browse_server.mapcache.config import (
     get_mapcache_seed_config, get_tileset_path
 )
+from ngeo_browse_server.mapcache.exceptions import LayerException
 from ngeo_browse_server.exceptions import NGEOException
 
 
@@ -527,6 +528,23 @@ def update_browse_layer(browse_layer, config=None):
     browse_layer_model.full_clean()
     browse_layer_model.save()
 
+    # create EOxServer dataset series if not existent
+    dss_mgr = System.getRegistry().findAndBind(
+        intf_id="resources.coverages.interfaces.Manager",
+        params={
+            "resources.coverages.interfaces.res_type": "eo.dataset_series"
+        }
+    )
+    if not dss_mgr.check_id(browse_layer.id):
+        logger.info("Adding EOxServer models. Layer disabled?")
+        dss_mgr.create(browse_layer.id,
+            eo_metadata=EOMetadata(
+                browse_layer.id,
+                datetime.now(), datetime.now(),
+                MultiPolygon(Polygon.from_bbox((0, 0, 1, 1)))
+            )
+        )
+
     # update EOxServer layer metadata
     if refresh_metadata:
         dss = System.getRegistry().getFromFactory(
@@ -542,7 +560,10 @@ def update_browse_layer(browse_layer, config=None):
             dss._DatasetSeriesWrapper__model.layer_metadata.add(md_abstract)
 
     if refresh_mapcache_xml:
-        remove_mapcache_layer_xml(browse_layer, config)
+        try:
+            remove_mapcache_layer_xml(browse_layer, config)
+        except LayerException:
+            logger.info("Nothing to be removed. Layer disabled?")
         add_mapcache_layer_xml(browse_layer, config)
     logger.info("Finished updating browse layer '%s'." % browse_layer.id)
 
@@ -550,14 +571,13 @@ def update_browse_layer(browse_layer, config=None):
 def delete_browse_layer(browse_layer, config=None):
     config = config or get_ngeo_config()
 
-    # remove browse layer model. This should also delete all related browses
-    # and browse reports
-    try:
-        logger.info("Starting deletion of browse layer '%s'." % browse_layer.id)
-        models.BrowseLayer.objects.get(id=browse_layer.id).delete()
-    except models.BrowseLayer.DoesNotExist:
+    # only remove MapCache and EOxServer configurationS in order to allow
+    # a rollback without data loss
+    if models.BrowseLayer.objects.filter(id=browse_layer.id).exists():
+        logger.info("Starting disabling of browse layer '%s'." % browse_layer.id)
+    else:
         raise Exception(
-            "Could not delete browse layer '%s' as it does not exist." 
+            "Could not disable browse layer '%s' as it does not exist."
             % browse_layer.id
         )
 
@@ -576,40 +596,7 @@ def delete_browse_layer(browse_layer, config=None):
     )
     dss_mgr.delete(browse_layer.id)
 
-    # remove source from mapcache sqlite
-    mapcache_models.Source.objects.get(name=browse_layer.id).delete()
-
     # remove browse layer from mapcache XML
     remove_mapcache_layer_xml(browse_layer, config)
 
-    # delete browse layer cache
-    try:
-        logger.info(
-            "Deleting tileset for browse layer '%s'." % browse_layer.id
-        )
-        os.remove(get_tileset_path(browse_layer.browse_type))
-    except OSError:
-        # when no browse was ingested, the sqlite file does not exist, so just
-        # issue a warning
-        logger.warning(
-            "Could not remove tileset '%s'." 
-            % get_tileset_path(browse_layer.browse_type)
-        )
-
-    # delete all optimzed files by deleting the whole directory of the layer
-    optimized_dir = get_project_relative_path(join(
-        config.get(INGEST_SECTION, "optimized_files_dir"), browse_layer.id
-    ))
-    try:
-        logger.info(
-            "Deleting optimized images for browse layer '%s'." 
-            % browse_layer.id
-        )
-        shutil.rmtree(optimized_dir)
-    except OSError:
-        logger.error(
-            "Could not remove directory for optimzed files: '%s'." 
-            % optimized_dir
-        )
-
-    logger.info("Finished deletion of browse layer '%s'." % browse_layer.id)
+    logger.info("Finished disabling of browse layer '%s'." % browse_layer.id)
