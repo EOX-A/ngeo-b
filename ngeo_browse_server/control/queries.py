@@ -530,23 +530,6 @@ def update_browse_layer(browse_layer, config=None):
     browse_layer_model.full_clean()
     browse_layer_model.save()
 
-    # create EOxServer dataset series if not existent
-    dss_mgr = System.getRegistry().findAndBind(
-        intf_id="resources.coverages.interfaces.Manager",
-        params={
-            "resources.coverages.interfaces.res_type": "eo.dataset_series"
-        }
-    )
-    if not dss_mgr.check_id(browse_layer.id):
-        logger.info("Adding EOxServer models. Layer disabled?")
-        dss_mgr.create(browse_layer.id,
-            eo_metadata=EOMetadata(
-                browse_layer.id,
-                datetime.now(), datetime.now(),
-                MultiPolygon(Polygon.from_bbox((0, 0, 1, 1)))
-            )
-        )
-
     # update EOxServer layer metadata
     if refresh_metadata:
         dss = System.getRegistry().getFromFactory(
@@ -573,8 +556,8 @@ def update_browse_layer(browse_layer, config=None):
 def delete_browse_layer(browse_layer, config=None):
     config = config or get_ngeo_config()
 
-    # only remove MapCache and EOxServer configurationS in order to allow
-    # a rollback without data loss
+    # only remove MapCache configuration in order to allow a roll-back
+    # without data loss
     if models.BrowseLayer.objects.filter(id=browse_layer.id).exists():
         logger.info("Starting disabling of browse layer '%s'." % browse_layer.id)
     else:
@@ -583,22 +566,7 @@ def delete_browse_layer(browse_layer, config=None):
             % browse_layer.id
         )
 
-    # delete EOxServer layer metadata
-    dss = System.getRegistry().getFromFactory(
-        "resources.coverages.wrappers.DatasetSeriesFactory",
-        {"obj_id": browse_layer.id}
-    )
-    dss._DatasetSeriesWrapper__model.layer_metadata.all().delete()
-    # delete EOxServer dataset series
-    dss_mgr = System.getRegistry().findAndBind(
-        intf_id="resources.coverages.interfaces.Manager",
-        params={
-            "resources.coverages.interfaces.res_type": "eo.dataset_series"
-        }
-    )
-    dss_mgr.delete(browse_layer.id)
-
-    # remove browse layer from mapcache XML
+    # remove browse layer from MapCache XML
     remove_mapcache_layer_xml(browse_layer, config)
 
     logger.info("Finished disabling of browse layer '%s'." % browse_layer.id)
