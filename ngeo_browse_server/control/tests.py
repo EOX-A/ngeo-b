@@ -3246,7 +3246,7 @@ class ComponentControlPauseFailed(ComponentControlTestCaseMixIn, TestCase):
 
 
 #===============================================================================
-# Logging reporting tests
+# Log file retrieval test cases
 #===============================================================================
 
 
@@ -3295,6 +3295,9 @@ class LogFileRetrievalTestCase(LogFileMixIn, TestCase):
     expected_response = "content-1"
 
 
+#===============================================================================
+# Notification test cases
+#===============================================================================
 
 
 class NotifyTestCase(BaseTestCaseMixIn, TestCase):

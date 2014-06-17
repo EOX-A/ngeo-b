@@ -80,7 +80,7 @@ def notify(summary, message, urgency=None, ip_address=None, config=None):
     req = urllib2.Request(
         url="http://%s/notify" % ip_address,
         data=etree.tostring(tree, pretty_print=True),
-        headers={'Content-Type': 'text/xml'}
+        headers={'Content-Type': 'application/xml'}
     )
     try:
         urllib2.urlopen(req, timeout=1)
