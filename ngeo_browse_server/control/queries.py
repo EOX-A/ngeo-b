@@ -429,10 +429,11 @@ def add_browse_layer(browse_layer, config=None):
         browse_layer_model.full_clean()
         browse_layer_model.save()
 
-        for related_dataset_id in browse_layer.related_dataset_ids:
-            models.RelatedDataset.objects.get_or_create(
-                dataset_id=related_dataset_id, browse_layer=browse_layer_model
-            )
+        # relatedDatasets are ignored (see NGEO-1508)
+        # for related_dataset_id in browse_layer.related_dataset_ids:
+        #     models.RelatedDataset.objects.get_or_create(
+        #         dataset_id=related_dataset_id, browse_layer=browse_layer_model
+        #     )
 
     except Exception:
         raise
@@ -513,17 +514,18 @@ def update_browse_layer(browse_layer, config=None):
         if key in ("title", "description"):
             refresh_metadata = True
 
-    for related_dataset_id in browse_layer.related_dataset_ids:
-        models.RelatedDataset.objects.get_or_create(
-            dataset_id=related_dataset_id, browse_layer=browse_layer_model
-        )
+    # relatedDatasets are ignored (see NGEO-1508)
+    # for related_dataset_id in browse_layer.related_dataset_ids:
+    #     models.RelatedDataset.objects.get_or_create(
+    #         dataset_id=related_dataset_id, browse_layer=browse_layer_model
+    #     )
 
-    # remove all related datasets that are not referenced anymore
-    models.RelatedDataset.objects.filter(
-        browse_layer=browse_layer_model
-    ).exclude(
-        dataset_id__in=browse_layer.related_dataset_ids
-    ).delete()
+    # # remove all related datasets that are not referenced any more
+    # models.RelatedDataset.objects.filter(
+    #     browse_layer=browse_layer_model
+    # ).exclude(
+    #     dataset_id__in=browse_layer.related_dataset_ids
+    # ).delete()
 
     browse_layer_model.full_clean()
     browse_layer_model.save()
