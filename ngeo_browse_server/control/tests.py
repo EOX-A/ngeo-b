@@ -3839,8 +3839,8 @@ class AddDefaultBrowseLayersTestCase(ConfigurationManagementMixIn, TestCase):
     expected_response = '<?xml version="1.0"?>\n<synchronizeConfigurationResponse>2</synchronizeConfigurationResponse>'
 
 
-class RemoveBrowseLayerTestCase(ConfigurationManagementMixIn, TestCase):
-    expected_removed_layers = ["TEST_SAR"]
+class DisableBrowseLayerTestCase(ConfigurationManagementMixIn, TestCase):
+    expected_disabled_layers = ["TEST_SAR"]
 
     request = """\
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>

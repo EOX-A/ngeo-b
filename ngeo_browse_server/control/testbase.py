@@ -1319,7 +1319,7 @@ class ConfigurationManagementMixIn(ControlTestCaseMixIn):
     url = "/config"
 
     expected_layers = []
-    expected_removed_layers = []
+    expected_disabled_layers = []
 
     def test_layers(self):
         for layer in self.expected_layers:
@@ -1345,13 +1345,13 @@ class ConfigurationManagementMixIn(ControlTestCaseMixIn):
             #self.assertTrue(exists()) # TODO: really required?
 
     def test_disabled_layers(self):
-        for layer in self.expected_removed_layers:
+        for layer in self.expected_disabled_layers:
             # check DatasetSeries models
             dataset_series = System.getRegistry().getFromFactory(
                 "resources.coverages.wrappers.DatasetSeriesFactory",
                 {"obj_id": layer}
             )
-            self.assertEqual(None, dataset_series)
+            self.assertEqual(layer, dataset_series.getId())
 
             # check BrowseLayer models
             self.assertTrue(
