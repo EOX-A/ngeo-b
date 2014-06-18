@@ -170,11 +170,11 @@ Check Jenkins build is passing.
     git pull
 
     # If starting a new release branch:
-    git checkout -b branch-1-1
+    git checkout -b branch-2-0
     vi ngeo_browse_server/__init__.py
     # Adjust version to future one
     git commit ngeo_browse_server/__init__.py -m "Adjusting version."
-    git push origin branch-1-1
+    git push origin branch-2.0
 
     vi ngeo_browse_server/__init__.py
     # Adjust version
@@ -190,21 +190,21 @@ Check Jenkins build is passing.
     #Development Status :: 6 - Mature
     #Development Status :: 7 - Inactive
 
-    git tag -a release-2.0.8 -m "Tagging release 2.0.8."
-    git archive --format=tar --prefix=ngEO_Browse_Server-2.0.8/ release-2.0.8 | gzip > ngEO_Browse_Server-2.0.8.tar.gz
-    mv ngEO_Browse_Server-2.0.8.tar.gz <path-to-builder_rpm>
+    git tag -a release-2.0.11 -m "Tagging release 2.0.11."
+    git archive --format=tar --prefix=ngEO_Browse_Server-2.0.11/ release-2.0.11 | gzip > ngEO_Browse_Server-2.0.11.tar.gz
+    mv ngEO_Browse_Server-2.0.11.tar.gz <path-to-builder_rpm>
     cd <path-to-builder_rpm>/
     vagrant ssh
 
-    tar xzf ngEO_Browse_Server-2.0.8.tar.gz
-    rm ngEO_Browse_Server-2.0.8.tar.gz
-    cd ngEO_Browse_Server-2.0.8/
+    tar xzf ngEO_Browse_Server-2.0.11.tar.gz
+    rm ngEO_Browse_Server-2.0.11.tar.gz
+    cd ngEO_Browse_Server-2.0.11/
     python setup.py bdist_rpm --release <NO>
     cd dist
-    tar czf ../../rpmbuild/RPMS/ngEO_Browse_Server-2.0.8.tar.gz ngEO_Browse_Server-*rpm
-    # scp ../../ngEO_Browse_Server-2.0.8.tar.gz -> packages@packages.eox.at:.
+    tar czf ../../rpmbuild/RPMS/ngEO_Browse_Server-2.0.11.tar.gz ngEO_Browse_Server-*rpm
+    # scp ../../ngEO_Browse_Server-2.0.11.tar.gz -> packages@packages.eox.at:.
     cd ../..
-    rm -r ngEO_Browse_Server-2.0.8/
+    rm -r ngEO_Browse_Server-2.0.11/
     exit # vagrant
 
     vi ngeo_browse_server/__init__.py
