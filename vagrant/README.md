@@ -234,11 +234,11 @@ See https://github.com/EOxServer/eoxserver/tree/master/vagrant#how-to-build-eoxs
     cd mapcache_git
     git pull
     git archive --format=tar --prefix=mapcache-1.2.1/ rel-1-2-1 | gzip > mapcache-1.2.1.tar.gz
-    mv mapcache-1.2.1.tar.gz <path-to-builder_rpm>
+    mv mapcache-1.2.1.tar.gz <path-to-builder_rpm>/build/SOURCES/
+    g diff -p branch-1-2 auth -- > authz.patch
+    mv authz.patch <path-to-builder_rpm>/build/SOURCES/
     cd <path-to-builder_rpm>/
     vagrant ssh
-
-    g diff -p branch-1-2 auth -- > patch_auth
 
     cd rpmbuild/SPECS/
     rpmdev-bumpspec --comment="<COMMENT>" --userstring="<NAME> <<MAIL>>" mapcache.spec
