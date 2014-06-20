@@ -67,17 +67,21 @@ def get_existing_browse(browse, browse_layer_id):
     try:
         if browse.browse_identifier:
             try:
-                return models.Browse.objects.get(
+                model = models.Browse.objects.get(
                     browse_identifier__value=browse.browse_identifier,
                     browse_layer__id=browse_layer_id
                 )
+                logger.debug("Existing browse found by ID.")
+                return model
             except models.Browse.DoesNotExist:
                 pass
-        return models.Browse.objects.get(
+        model = models.Browse.objects.get(
             start_time=browse.start_time,
             end_time=browse.end_time,
             browse_layer__id=browse_layer_id
         )
+        logger.debug("Existing browse found by time interval.")
+        return model
     except models.Browse.DoesNotExist:
         return None
 
