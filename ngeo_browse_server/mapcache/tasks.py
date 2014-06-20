@@ -37,7 +37,7 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 
 from ngeo_browse_server.config import (
-    get_ngeo_config, get_project_relative_path
+    get_ngeo_config, get_project_relative_path, safe_get
 )
 from ngeo_browse_server.lock import FileLock
 from ngeo_browse_server.mapcache.exceptions import (
@@ -94,14 +94,26 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
     logger.debug("mapcache seeding command: '%s'. raw: '%s'."
                  % (" ".join(args), args))
     
-    process = subprocess.Popen(args, stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE)
+    try:
+        config = get_ngeo_config()
+        timeout = safe_get(config, "mapcache.seed", "timeout")
+        timeout = float(timeout) if timeout is not None else None
+    except:
+        timeout = None
+
+    lock = FileLock(
+        get_project_relative_path("mapcache.xml.lck"), timeout=timeout
+    )
+
+    with lock:
+        process = subprocess.Popen(args, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
     
-    out, err = process.communicate()
-    for string in (out, err):
-        for line in string.split("\n"):
-            if line != '':
-                logger.info("MapCache output: %s" % line)
+        out, err = process.communicate()
+        for string in (out, err):
+            for line in string.split("\n"):
+                if line != '':
+                    logger.info("MapCache output: %s" % line)
     
     if process.returncode != 0:
         raise SeedException("'%s' failed. Returncode '%d'."
