@@ -54,7 +54,6 @@ def register(instance_id, instance_type, cs_id, cs_ip, config=None):
             if not exists(controller_config_path):
                 create_controller_config(controller_config_path, cs_id, cs_ip)
             else:
-                # TODO: controller server ID was removed?
                 controller_config = get_controller_config(controller_config_path)
 
                 assert_controller_id(cs_id, controller_config, "ALREADY_OTHER")
@@ -80,7 +79,6 @@ def unregister(instance_id, cs_id, cs_ip, config=None):
                     reason="UNBOUND"
                 )
 
-            # TODO: controller server ID was removed?
             controller_config = get_controller_config(controller_config_path)
             assert_controller_id(cs_id, controller_config, "CONTROLLER_OTHER")
             assert_controller_ip(cs_ip, controller_config)
