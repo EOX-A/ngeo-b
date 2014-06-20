@@ -97,9 +97,9 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
     try:
         config = get_ngeo_config()
         timeout = safe_get(config, "mapcache.seed", "timeout")
-        timeout = float(timeout) if timeout is not None else None
+        timeout = float(timeout) if timeout is not None else 60.0
     except:
-        timeout = None
+        timeout = 60.0
 
     lock = FileLock(
         get_project_relative_path("mapcache.xml.lck"), timeout=timeout
