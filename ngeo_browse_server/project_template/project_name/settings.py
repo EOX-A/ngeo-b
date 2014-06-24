@@ -224,7 +224,7 @@ LOGGING = {
             'filters': [],
         },
         'controller_server_notification': {
-            'level': 'ERROR',
+            'level': 'WARNING',
             'class': 'ngeo_browse_server.control.control.notification.NotifyControllerServerHandler',
         },
         'ngEO-ingest': {
