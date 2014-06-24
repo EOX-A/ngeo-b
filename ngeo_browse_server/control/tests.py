@@ -31,10 +31,9 @@ from os.path import join
 from textwrap import dedent
 import logging
 from datetime import date
-from SocketServer import TCPServer, ThreadingMixIn
-from BaseHTTPServer import BaseHTTPRequestHandler
-import threading
+from time import sleep
 
+from lxml import etree
 from django.conf import settings
 from django.test import TestCase, TransactionTestCase, LiveServerTestCase
 from django.utils.dateparse import parse_datetime
@@ -52,7 +51,7 @@ from ngeo_browse_server.control.testbase import (
     LoggingTestCaseMixIn, RegisterTestCaseMixIn, UnregisterTestCaseMixIn, 
     StatusTestCaseMixIn, LogListMixIn, LogFileMixIn, ConfigMixIn,
     ComponentControlTestCaseMixIn, ConfigurationManagementMixIn,
-    GenerateReportMixIn
+    GenerateReportMixIn, NotifyMixIn
 )
 from ngeo_browse_server.control.ingest.config import (
     INGEST_SECTION
@@ -3300,38 +3299,12 @@ class LogFileRetrievalTestCase(LogFileMixIn, TestCase):
 #===============================================================================
 
 
-class NotifyTestCase(BaseTestCaseMixIn, TestCase):
+class NotifyDirectTestCase(NotifyMixIn, TestCase):
     def test_notification(self):
-        post_body = {}
-        class POSTHandler(BaseHTTPRequestHandler):
-            def do_POST(self):
-                content_len = int(self.headers.getheader('content-length'))
-                post_body["data"] = self.rfile.read(content_len)
-                self.send_response(200)
-                self.end_headers()
-                self.wfile.close()
-            
-            def log_request(self, *args, **kwargs):
-                pass
-
-        class ThreadedTCPServer(ThreadingMixIn, TCPServer):
-            pass
-
-        server = ThreadedTCPServer(("localhost", 9000), POSTHandler)
-        server_thread = threading.Thread(target=server.serve_forever)
-
-        # Exit the server thread when the main thread terminates
-        server_thread.daemon = True
-        server_thread.start()
-
         notify("Summary", "Message", "INFO", "localhost:9000")
+        self.shutdown()
 
-        server.shutdown()
-
-        from lxml import etree
-        tree = etree.fromstring(post_body["data"])
-        tree.find("header/timestamp").text = ""
-        result = etree.tostring(tree, pretty_print=True)
+        result = self.get_message(0)
         self.assertEqual(dedent("""\
             <notifyControllerServer>
               <header>
@@ -3343,6 +3316,78 @@ class NotifyTestCase(BaseTestCaseMixIn, TestCase):
               <body>
                 <summary>Summary</summary>
                 <message>Message</message>
+              </body>
+            </notifyControllerServer>
+            """), result
+        )
+
+    def execute(self):
+        pass
+
+class NotifyLogHandlerTestCase(NotifyMixIn, TestCase):
+    controller_config = dedent("""
+        [controller_server]
+        identifier=cs1-id
+        address=localhost:9000
+    """)
+
+    def test_notification(self):
+        logger = logging.getLogger("ngeo_browse_server.test")
+        logger.warn("Test INFO.")
+        sleep(0.1) # Ugly, but need to send all the data
+        logger.error("Test CRITICAL.")
+        sleep(0.1) # Ugly, but need to send all the data
+        logger.critical("Test BLOCK.")
+        sleep(0.1) # Ugly, but need to send all the data
+
+        self.shutdown()
+
+        result = self.get_message(0)
+        self.assertEqual(dedent("""\
+            <notifyControllerServer>
+              <header>
+                <timestamp></timestamp>
+                <instance>instance</instance>
+                <subsystem>BROW</subsystem>
+                <urgency>INFO</urgency>
+              </header>
+              <body>
+                <summary>Test INFO.</summary>
+                <message>Test INFO.</message>
+              </body>
+            </notifyControllerServer>
+            """), result
+        )
+
+        result = self.get_message(1)
+        self.assertEqual(dedent("""\
+            <notifyControllerServer>
+              <header>
+                <timestamp></timestamp>
+                <instance>instance</instance>
+                <subsystem>BROW</subsystem>
+                <urgency>CRITICAL</urgency>
+              </header>
+              <body>
+                <summary>Test CRITICAL.</summary>
+                <message>Test CRITICAL.</message>
+              </body>
+            </notifyControllerServer>
+            """), result
+        )
+
+        result = self.get_message(2)
+        self.assertEqual(dedent("""\
+            <notifyControllerServer>
+              <header>
+                <timestamp></timestamp>
+                <instance>instance</instance>
+                <subsystem>BROW</subsystem>
+                <urgency>BLOCK</urgency>
+              </header>
+              <body>
+                <summary>Test BLOCK.</summary>
+                <message>Test BLOCK.</message>
               </body>
             </notifyControllerServer>
             """), result

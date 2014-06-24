@@ -45,6 +45,9 @@ from ConfigParser import ConfigParser
 import time
 from urlparse import urlparse
 from textwrap import dedent
+from SocketServer import TCPServer, ThreadingMixIn
+from BaseHTTPServer import BaseHTTPRequestHandler
+import threading
 
 from osgeo import gdal, osr
 from django.conf import settings
@@ -1402,3 +1405,68 @@ class GenerateReportMixIn(BaseTestCaseMixIn, CliMixIn):
     def test_report(self):
         with open(self.output_report_filename) as f:
             self.assertEqual(self.expected_report, f.read())
+
+
+
+
+class NotifyMixIn(BaseTestCaseMixIn):
+    controller_config = None
+
+    def setUp(self):
+        super(NotifyMixIn, self).setUp()
+
+        self.temp_controller_server_config = join(tempfile.gettempdir(), "controller.conf")
+
+        if self.controller_config is not None:
+            with open(self.temp_controller_server_config, "w+") as f:
+                f.write(self.controller_config)
+
+            config = get_ngeo_config()
+            config.set(CTRL_SECTION, "controller_config_path", self.temp_controller_server_config)
+
+        messages = []
+        self.messages = messages
+
+        class POSTHandler(BaseHTTPRequestHandler):
+            def do_POST(self):
+                content_len = int(self.headers.getheader('content-length'))
+                messages.append(self.rfile.read(content_len))
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.close()
+            
+            def log_request(self, *args, **kwargs):
+                pass
+
+        class ThreadedTCPServer(ThreadingMixIn, TCPServer):
+            pass
+
+
+        self.server = ThreadedTCPServer(("localhost", 9000), POSTHandler)
+        self.server_thread = threading.Thread(target=self.server.serve_forever)
+
+        # Exit the server thread when the main thread terminates
+        self.server_thread.daemon = True
+        self.server_thread.start()
+
+    def get_message(self, index, mangle=True):
+        result = self.messages[index]
+        if mangle:
+            tree = etree.fromstring(result)
+            tree.find("header/timestamp").text = ""
+            result = etree.tostring(tree, pretty_print=True)
+        return result
+        
+
+    def shutdown(self):
+        if self.server:
+            self.server.shutdown()
+            self.server = None
+
+    def tearDown(self):
+        super(NotifyMixIn, self).tearDown()
+        self.shutdown()
+        if exists(self.temp_controller_server_config):
+            remove(self.temp_controller_server_config)
+
+
