@@ -399,10 +399,8 @@ EOF
         <resample_mode>bilinear</resample_mode>
         <format>mixed</format>
         <maxsize>4096</maxsize>
-        <forwarding_rule name="wms13getcap">
+        <forwarding_rule name="wms">
             <param name="SERVICE" type="values">WMS</param>
-            <param name="REQUEST" type="values">GetCapabilities</param>
-            <param name="VERSION" type="values">1.3.0</param>
             <http>
                 <url>http://localhost/browse/ows</url>
             </http>
@@ -436,19 +434,8 @@ EOF
 
     <errors>empty_img</errors>
     <lock_dir>/tmp</lock_dir>
-EOF
-
-        if "$TESTING" ; then
-            cat << EOF >> "$MAPCACHE_DIR/$MAPCACHE_CONF"
-
-    <service type="demo" enabled="true"/>
 </mapcache>
 EOF
-        else
-            cat << EOF >> "$MAPCACHE_DIR/$MAPCACHE_CONF"
-</mapcache>
-EOF
-        fi
 
         # Make the cache read- and editable by apache
         chown -R apache:apache .
