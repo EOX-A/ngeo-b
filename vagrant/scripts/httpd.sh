@@ -11,6 +11,10 @@ sed -e 's/^#ServerName www.example.com:80$/ServerName ngeob-vagrant/' -i /etc/ht
 sed -e 's/^User apache$/User vagrant/' -i /etc/httpd/conf/httpd.conf
 sed -e 's/^Group apache$/Group vagrant/' -i /etc/httpd/conf/httpd.conf
 
+# Turn off some caching to resolve issues with files from shares
+sed -e 's/^#EnableMMAP off$/EnableMMAP off/' -i /etc/httpd/conf/httpd.conf
+sed -e 's/^#EnableSendfile off$/EnableSendfile off/' -i /etc/httpd/conf/httpd.conf
+
 # Permanently start memcached, prior to apache
 chkconfig memcached on
 service memcached start
