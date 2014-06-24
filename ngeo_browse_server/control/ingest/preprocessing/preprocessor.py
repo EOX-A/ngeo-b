@@ -137,7 +137,7 @@ class NGEOPreProcessor(WMSPreProcessor):
             non_normalized_space = Polygon.from_bbox((180, -90, 360, 90))
             
             footprint = GEOSGeometry(footprint_wkt)
-            #.intersection(normalized_space)
+            
             outer = non_normalized_space.intersection(footprint)
             
             if len(outer):
@@ -153,21 +153,13 @@ class NGEOPreProcessor(WMSPreProcessor):
             else:
                 if isinstance(footprint, Polygon):
                     footprint = MultiPolygon(footprint)
-                
             
+            if original_footprint:
+                logger.info("Merging footprint.")
+                footprint = footprint.union(GEOSGeometry(original_footprint))
             
             logger.info("Calculated Footprint: '%s'" % footprint.wkt)
             
-            
-            
-            # use the provided footprint
-            #geom = OGRGeometry(footprint_wkt)
-            #exterior = []
-            #for x, y in geom.exterior_ring.tuple:
-            #    exterior.append(y); exterior.append(x)
-            
-            #polygon = [exterior]
-        
         num_bands = ds.RasterCount
         
         # close the dataset and write it to the disc
