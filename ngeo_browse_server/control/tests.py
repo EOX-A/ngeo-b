@@ -3324,12 +3324,8 @@ class NotifyDirectTestCase(NotifyMixIn, TestCase):
     def execute(self):
         pass
 
+
 class NotifyLogHandlerTestCase(NotifyMixIn, TestCase):
-    controller_config = dedent("""
-        [controller_server]
-        identifier=cs1-id
-        address=localhost:9000
-    """)
 
     def test_notification(self):
         logger = logging.getLogger("ngeo_browse_server.test")
@@ -3395,6 +3391,52 @@ class NotifyLogHandlerTestCase(NotifyMixIn, TestCase):
 
     def execute(self):
         pass
+
+
+class NotifyIngestFailureTestCase(NotifyMixIn, IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    expect_exception = True
+    
+    request = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.1">
+    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
+    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
+    <rep:browseType>DOESNOTEXIST</rep:browseType>
+    <rep:browse>
+        <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
+        <rep:fileName>NGEO-FEED-VTC-0040.jpg</rep:fileName>
+        <rep:imageType>PNG</rep:imageType>
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:footprint nodeNumber="7">
+            <rep:colRowList>0 0 7 0 0 0</rep:colRowList>
+            <rep:coordList>48.46 16.1001 48.48 16.1 48.46 16.1001</rep:coordList>
+        </rep:footprint>
+        <rep:startTime>2012-10-02T09:20:00Z</rep:startTime>
+        <rep:endTime>2012-10-02T09:20:00Z</rep:endTime>
+    </rep:browse>
+</rep:browseReport>
+"""
+
+    def test_notification(self):
+        self.shutdown()
+
+        result = self.get_message(0)
+        self.assertEqual(dedent("""\
+            <notifyControllerServer>
+              <header>
+                <timestamp></timestamp>
+                <instance>instance</instance>
+                <subsystem>BROW</subsystem>
+                <urgency>INFO</urgency>
+              </header>
+              <body>
+                <summary>Browse layer with browse type 'DOESNOTEXIST' does not exist.</summary>
+                <message>Browse layer with browse type 'DOESNOTEXIST' does not exist.</message>
+              </body>
+            </notifyControllerServer>
+            """), result
+        )
+
 
 
 #===============================================================================

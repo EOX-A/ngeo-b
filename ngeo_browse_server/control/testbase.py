@@ -1410,20 +1410,13 @@ class GenerateReportMixIn(BaseTestCaseMixIn, CliMixIn):
 
 
 class NotifyMixIn(BaseTestCaseMixIn):
-    controller_config = None
+    controller_config = dedent("""
+        [controller_server]
+        identifier=cs1-id
+        address=localhost:9000
+    """)
 
     def setUp(self):
-        super(NotifyMixIn, self).setUp()
-
-        self.temp_controller_server_config = join(tempfile.gettempdir(), "controller.conf")
-
-        if self.controller_config is not None:
-            with open(self.temp_controller_server_config, "w+") as f:
-                f.write(self.controller_config)
-
-            config = get_ngeo_config()
-            config.set(CTRL_SECTION, "controller_config_path", self.temp_controller_server_config)
-
         messages = []
         self.messages = messages
 
@@ -1439,15 +1432,36 @@ class NotifyMixIn(BaseTestCaseMixIn):
                 pass
 
         class ThreadedTCPServer(ThreadingMixIn, TCPServer):
-            pass
+            allow_reuse_address = True
 
+        logger.info("Starting Server")
 
         self.server = ThreadedTCPServer(("localhost", 9000), POSTHandler)
+        self.server.allow_reuse_address = True
         self.server_thread = threading.Thread(target=self.server.serve_forever)
 
         # Exit the server thread when the main thread terminates
         self.server_thread.daemon = True
         self.server_thread.start()
+
+        logger.info("Server Started")
+
+        super(NotifyMixIn, self).setUp()
+
+
+    def setUp_files(self):
+        super(NotifyMixIn, self).setUp_files()
+        self.temp_controller_server_config = join(tempfile.gettempdir(), "controller.conf")
+        if self.controller_config is not None:
+            with open(self.temp_controller_server_config, "w+") as f:
+                f.write(self.controller_config)
+
+
+    def setUp_config(self):
+        super(NotifyMixIn, self).setUp_config()
+        config = get_ngeo_config()
+        config.set(CTRL_SECTION, "controller_config_path", self.temp_controller_server_config)
+
 
     def get_message(self, index, mangle=True):
         result = self.messages[index]
@@ -1460,6 +1474,7 @@ class NotifyMixIn(BaseTestCaseMixIn):
 
     def shutdown(self):
         if self.server:
+            logger.info("Shutting Down Server")
             self.server.shutdown()
             self.server = None
 
