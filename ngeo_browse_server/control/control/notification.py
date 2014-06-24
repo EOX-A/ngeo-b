@@ -29,6 +29,7 @@
 import logging
 import threading
 import urllib2
+import traceback
 
 from lxml import etree
 from lxml.builder import E
@@ -45,7 +46,6 @@ from ngeo_browse_server.control.control.config import (
 logger = logging.getLogger(__name__)
 
 def notify(summary, message, urgency=None, ip_address=None, config=None):
-    logger.info("Sending notification to CTRL.")
     config = config or get_ngeo_config()
 
     urgency = urgency or "INFO"
@@ -56,12 +56,14 @@ def notify(summary, message, urgency=None, ip_address=None, config=None):
         if not ip_address:
             ctrl_config = get_controller_config(get_controller_config_path(config))
             ip_address = safe_get(ctrl_config, CONTROLLER_SERVER_SECTION, "address")
+            logger.info("Sending notification to CTRL at IP '%s'." % ip_address)
     except IOError:
         # probably no config file present, so IP cannot be determined.
         pass
 
     if not ip_address:
         # cannot log this error as we would run into an endless loop
+        logger.info("Cannot send notification to CTRL.")
         return
 
     tree = E("notifyControllerServer",
@@ -84,10 +86,9 @@ def notify(summary, message, urgency=None, ip_address=None, config=None):
     )
     try:
         urllib2.urlopen(req, timeout=1)
-    except (urllib2.HTTPError, urllib2.URLError):
-        # could not send notification. Out of options
-        # cannot log this error as we would run into an endless loop
-        pass
+    except (urllib2.HTTPError, urllib2.URLError), e:
+        logger.info("Error sending notification: %s" % e)
+        logger.debug(traceback.format_exc() + "\n")
 
 
 class NotifyControllerServerHandler(logging.Handler):
