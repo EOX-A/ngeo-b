@@ -3417,6 +3417,15 @@ class NotifyIngestFailureTestCase(NotifyMixIn, IngestFailureTestCaseMixIn, HttpT
 </rep:browseReport>
 """
 
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestException xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:exceptionCode>IngestionException</bsi:exceptionCode>
+    <bsi:exceptionMessage>Browse layer with browse type &#39;DOESNOTEXIST&#39; does not exist.</bsi:exceptionMessage>
+</bsi:ingestException>
+"""
+
     def test_notification(self):
         self.shutdown()
 
