@@ -105,6 +105,8 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
         browse_type = parsed_browse_report.browse_type
         browse_layer = models.BrowseLayer.objects.get(browse_type=browse_type)
     except models.BrowseLayer.DoesNotExist:
+        logger.warn("Browse layer with browse type '%s' does not "
+                    "exist." % parsed_browse_report.browse_type)
         raise IngestionException("Browse layer with browse type '%s' does not "
                                  "exist." % parsed_browse_report.browse_type)
     
