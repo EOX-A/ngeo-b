@@ -193,6 +193,7 @@ class Browse(models.Model):
     class Meta:
         verbose_name = "Browse image"
         verbose_name_plural = "Browse images"
+        unique_together = (("start_time", "end_time", "browse_layer"),)
     
     def clean(self):
         # custom model validation
