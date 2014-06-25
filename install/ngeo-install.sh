@@ -60,6 +60,7 @@ SUBSYSTEM="ngEO Browse Server"
 TESTING=false
 
 # ngEO Browse Server
+NGEOB_INSTANCE_ID="autotest"
 NGEOB_INSTALL_DIR="/var/www/ngeo"
 NGEOB_URL="http://ngeo.eox.at"
 NGEOB_LOG_DIR="$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/logs"
@@ -330,6 +331,7 @@ EOF
         sed -e "s/^tileset_root=$/tileset_root=$MAPCACHE_DIR_ESCAPED\//" -i ngeo_browse_server_instance/conf/ngeo.conf
         sed -e "s/^config_file=$/config_file=$MAPCACHE_DIR_ESCAPED\/$MAPCACHE_CONF/" -i ngeo_browse_server_instance/conf/ngeo.conf
         sed -e "s/^storage_dir=data\/storage$/storage_dir=$NGEOB_INSTALL_DIR_ESCAPED\/store/" -i ngeo_browse_server_instance/conf/ngeo.conf
+        sed -e "s/^instance_id = $/instance_id = $NGEOB_INSTANCE_ID/" -i ngeo_browse_server_instance/conf/ngeo.conf
 
         # Configure logging
         if "$TESTING" ; then
