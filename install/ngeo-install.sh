@@ -62,6 +62,8 @@ TESTING=false
 # ngEO Browse Server
 NGEOB_INSTALL_DIR="/var/www/ngeo"
 NGEOB_URL="http://ngeo.eox.at"
+NGEOB_LOG_DIR="$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/logs"
+NGEO_REPORT_DIR="$NGEOB_INSTALL_DIR/store/reports"
 
 # PostgreSQL/PostGIS database
 DB_NAME="ngeo_browse_server_db"
@@ -352,10 +354,10 @@ EOF
         # Make the instance read- and editable by apache
         chown -R apache:apache .
 
-        cd -
     else
         echo "Skipped installation steps 190 and 200"
     fi
+    cd -
 
     echo "Performing installation step 210"
     # MapCache
@@ -511,19 +513,18 @@ EOF
             sed -e "s/^127\.0\.0\.1.*$/& $HOSTNAME/" -i /etc/hosts
         fi
 
-        NGEOB_LOG_DIR="$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/logs"
-
-        cat << EOF > "$APACHE_CONF"
+        if [ ! -f "$APACHE_CONF.DISABLED" ] ; then
+            cat << EOF > "$APACHE_CONF"
 <VirtualHost *:80>
     ServerName $APACHE_ServerName
     ServerAdmin $APACHE_ServerAdmin
 
     DocumentRoot $NGEOB_INSTALL_DIR
     <Directory "$NGEOB_INSTALL_DIR">
-        Options Indexes FollowSymLinks
+        Options -Indexes +FollowSymLinks
         AllowOverride None
-        Order Deny,Allow
-        Deny from all
+        Order Allow,Deny
+        Allow from all
     </Directory>
 
     Alias /static "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/static"
@@ -532,7 +533,7 @@ EOF
     WSGIDaemonProcess ngeob processes=10 threads=1
     <Directory "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance">
         AllowOverride None
-        Options +ExecCGI -MultiViews +SymLinksIfOwnerMatch
+        Options -Indexes +ExecCGI -MultiViews +SymLinksIfOwnerMatch
         AddHandler wsgi-script .py
         WSGIProcessGroup ngeob
         Order Allow,Deny
@@ -561,6 +562,7 @@ EOF
 
     MapCacheAlias $APACHE_NGEO_CACHE_ALIAS "$MAPCACHE_DIR/$MAPCACHE_CONF"
     <Directory $MAPCACHE_DIR>
+        Options -Indexes
         Order Allow,Deny
         Allow from all
         Header set Access-Control-Allow-Origin *
@@ -572,6 +574,34 @@ EOF
     CustomLog "$NGEOB_LOG_DIR/httpd_access.log" ngeo
 </VirtualHost>
 EOF
+        else
+            echo "Found disabled Apache configuration -> enabling"
+            mv "$APACHE_CONF.DISABLED" "$APACHE_CONF"
+        fi
+
+        if [ ! -f "$NGEOB_INSTALL_DIR/index.html" ] ; then
+            # Add index.html to replace Apache HTTP server test page
+            cat << EOF > "$NGEOB_INSTALL_DIR/index.html"
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html>
+    <head>
+        <title>ngEO Browse Server</title>
+    </head>
+
+    <body>
+        <h1>ngEO Browse Server Test Page<br><font size="-1"><strong>powered by</font> <a href="http://eox.at">EOX</a></strong></h1>
+
+        <p>This page is used to test the proper operation of the ngEO Browse Server after it has been installed. If you can read this page it means that the ngEO Browse Server installed at this site is working properly.</p>
+
+        <p>Links to services:</p>
+        <ul>
+            <li>External <a href="/c/wmts/1.0.0/WMTSCapabilities.xml">WMTS</a> and <a href="/c?service=wms&request=GetCapabilities">WMS</a> interfaces</li>
+            <li><a href="/browse">ngEO internal interfaces</a></li>
+        </ul>
+    </body>
+</html>
+EOF
+        fi
     else
         echo "Skipped installation step 240"
     fi
@@ -592,8 +622,6 @@ EOF
 
     echo "Performing installation step 270"
     # Configure logrotate for ngeo log files
-    NGEO_REPORT_DIR="$NGEOB_INSTALL_DIR/store/reports"
-
     if [ ! -d "$NGEO_REPORT_DIR" ] ; then
         mkdir -p "$NGEO_REPORT_DIR"
         chown -R apache:apache "$NGEO_REPORT_DIR"
@@ -694,12 +722,16 @@ ngeo_uninstall() {
     yum erase -y epel-release elgis-release eox-release
 
     echo "Performing uninstallation step 100"
-    echo "Stop Apache HTTP server"#
+    echo "Stop Apache HTTP server"
     if service httpd status ; then
         service httpd stop
     fi
     if [ -f /etc/init.d/httpd ] ; then
         chkconfig httpd off
+    fi
+    if [ -f "$APACHE_CONF" ] ; then
+        echo "Disabling Apache VirtualHost configuration"
+        mv "$APACHE_CONF" "$APACHE_CONF.DISABLED"
     fi
 
     echo "Stop memcached"#
@@ -772,7 +804,7 @@ EOF
 
     echo "Performing uninstallation step 30"
     echo "Delete ngEO Browse Server instance"
-    rm -rf "${NGEOB_INSTALL_DIR}/ngeo_browse_server_instance"
+    rm -rf "${NGEOB_INSTALL_DIR}/ngeo_browse_server_instance" "${NGEOB_INSTALL_DIR}/index.html"
 
     echo "Performing uninstallation steps 40 and 50"
     echo "Delete MapCache instance and configuration including authorization"
@@ -788,7 +820,7 @@ EOF
 
     echo "Performing uninstallation step 70"
     echo "Delete Apache HTTP server configuration"
-    rm -rf "${APACHE_CONF}"
+    rm -rf "${APACHE_CONF}" "${APACHE_CONF}.DISABLED"
 
     # remove packages
     ngeo_uninstall
