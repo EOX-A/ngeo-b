@@ -1,6 +1,9 @@
 ngEO Browse Server
 ==================
 
+.. image:: https://jenkins.eox.at/buildStatus/icon?job=ngEO_BrowseServer_branch-2-0
+   :target: https://jenkins.eox.at/job/ngEO_BrowseServer_branch-2-0/
+
 ngEO Browse Server is a server providing access to browse images via `OGC's 
 <http://www.opengeospatial.org/>`_ `WMTS 
 <http://www.opengeospatial.org/standards/wmts>`_ and `WMS 
