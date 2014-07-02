@@ -3446,6 +3446,36 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
             """), result
         )
 
+class NotifyUseConfiguredURLTestCase(NotifyMixIn, TestCase):
+    server_port = 9001
+
+    configuration = {
+        ("control", "notification_url"): "http://localhost:9001/test"
+    }
+
+    def test_notification(self):
+        notify("Summary", "Message", "INFO")
+        self.shutdown()
+
+        result = self.get_message(0)
+        self.assertEqual(dedent("""\
+            <notifyControllerServer>
+              <header>
+                <timestamp></timestamp>
+                <instance>instance</instance>
+                <subsystem>BROW</subsystem>
+                <urgency>INFO</urgency>
+              </header>
+              <body>
+                <summary>Summary</summary>
+                <message>Message</message>
+              </body>
+            </notifyControllerServer>
+            """), result
+        )
+
+    def execute(self):
+        pass
 
 
 #===============================================================================
@@ -3610,6 +3640,18 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
           </xsd:element>
         </xsd:sequence>
       </xsd:complexType>
+      <xsd:complexType name="notificationType">
+        <xsd:sequence>
+          <xsd:element type="xsd:string" name="notification_url">
+            <xsd:annotation>
+              <xsd:documentation>
+                <xsd:label>Notification URL</xsd:label>
+                <xsd:tooltip>URL to send the notification to.</xsd:tooltip>
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:complexType>
       <xsd:simpleType name="levelType">
         <xsd:restriction base="xsd:string">
           <xsd:enumeration value="DEBUG">
@@ -3655,6 +3697,7 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
           <xsd:element type="cacheType" name="cache"/>
           <xsd:element type="logType" name="log"/>
           <xsd:element type="webServerType" name="webServer"/>
+          <xsd:element type="notificationType" name="notification"/>
         </xsd:sequence>
       </xsd:complexType>
       <xsd:element type="configurationType" name="configuration"/>
@@ -3687,6 +3730,9 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
       <webServer>
         <baseurl>http://www.example.com/</baseurl>
       </webServer>
+      <notification>
+        <notification_url></notification_url>
+      </notification>
     </configuration>
   </configurationData>
 </getConfigurationAndSchemaResponse>
@@ -3725,6 +3771,9 @@ class ConfigurationChangeTestCase(ConfigMixIn, TestCase):
       <webServer>
         <baseurl>http://www.newexample.com/</baseurl>
       </webServer>
+      <notification>
+        <notification_url>http://192.168.100.3:8082/ngeo-ctrl-server/notify</notification_url>
+      </notification>
     </configuration>
   </configurationData>
 </updateConfiguration>
@@ -3735,6 +3784,7 @@ class ConfigurationChangeTestCase(ConfigMixIn, TestCase):
     def test_config(self):
 
         expected_values = {
+            ("control", "notification_url"): "http://192.168.100.3:8082/ngeo-ctrl-server/notify",
             (INGEST_SECTION, "optimized_files_postfix"): "_proc_new",
             (INGEST_SECTION, "compression"): "NONE",
             (INGEST_SECTION, "jpeg_quality"): "50",

@@ -133,6 +133,7 @@ class BaseTestCaseMixIn(object):
     default_configuration = {
         (CTRL_SECTION, "instance_id"): "instance",
         (CTRL_SECTION, "controller_config_path"): "conf/controller.conf",
+        (CTRL_SECTION, "notification_url"): "",
         (INGEST_SECTION, "optimized_files_postfix"): "_proc",
         (INGEST_SECTION, "compression"): "LZW",
         (INGEST_SECTION, "jpeg_quality"): "75",
@@ -1416,6 +1417,8 @@ class NotifyMixIn(BaseTestCaseMixIn):
         address=localhost:9000
     """)
 
+    server_port = 9000
+
     def setUp(self):
         messages = []
         self.messages = messages
@@ -1436,7 +1439,7 @@ class NotifyMixIn(BaseTestCaseMixIn):
 
         logger.info("Starting Server")
 
-        self.server = ThreadedTCPServer(("localhost", 9000), POSTHandler)
+        self.server = ThreadedTCPServer(("localhost", self.server_port), POSTHandler)
         self.server.allow_reuse_address = True
         self.server_thread = threading.Thread(target=self.server.serve_forever)
 
