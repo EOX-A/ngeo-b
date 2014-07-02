@@ -53,10 +53,26 @@ def notify(summary, message, urgency=None, ip_address=None, config=None):
         raise ValueError("Invalid urgency value '%s'." % urgency)
 
     try:
-        if not ip_address:
-            ctrl_config = get_controller_config(get_controller_config_path(config))
-            ip_address = safe_get(ctrl_config, CONTROLLER_SERVER_SECTION, "address")
-            logger.info("Sending notification to CTRL at IP '%s'." % ip_address)
+        if not ip_address:            
+            # get the value for "notification_url" and fall back to 
+            # "address"
+            ip_address = safe_get(
+                config, "control", "notification_url"
+            )
+
+            if not ip_address:
+                ctrl_config = get_controller_config(
+                    get_controller_config_path(config)
+                )
+
+                logger.debug(
+                    "No 'notification_url' present. Trying to fall back to "
+                    "registered IP address."
+                )
+                ip_address = safe_get(
+                    ctrl_config, CONTROLLER_SERVER_SECTION, "address"
+                )
+            
     except IOError:
         # probably no config file present, so IP cannot be determined.
         pass
@@ -79,8 +95,18 @@ def notify(summary, message, urgency=None, ip_address=None, config=None):
         )
     )
 
+    if ip_address.startswith("http://") or ip_address.startswith("https://"):
+        pass
+    else:
+        ip_address = "http://%s" % ip_address
+
+    if not ip_address.endswith("/notify"):
+        ip_address += "/notify"
+
+    logger.info("Sending notification to CTRL at IP '%s'." % ip_address)
+
     req = urllib2.Request(
-        url="http://%s/notify" % ip_address,
+        url=ip_address,
         data=etree.tostring(tree, pretty_print=True),
         headers={'Content-Type': 'application/xml'}
     )
