@@ -384,8 +384,11 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
 
             # get strategy and merge threshold
             ingest_config = get_ingest_config(config)
-            strategy = ingest_config["strategy"]
             threshold = ingest_config["merge_threshold"]
+            if browse_layer.strategy != "inherit":
+                strategy = browse_layer.strategy
+            else:
+                strategy = ingest_config["strategy"]
 
             if strategy == "merge" and timedelta < threshold:
 

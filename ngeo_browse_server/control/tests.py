@@ -3719,7 +3719,7 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
         <footprint_alpha>true</footprint_alpha>
         <simplification_factor>2</simplification_factor>
         <threshold>5h</threshold>
-        <strategy>merge</strategy>
+        <strategy>replace</strategy>
       </ingest>
       <cache>
         <threads>1</threads>

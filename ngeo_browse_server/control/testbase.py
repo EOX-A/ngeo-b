@@ -147,7 +147,7 @@ class BaseTestCaseMixIn(object):
         (INGEST_SECTION, "footprint_alpha"): "true",
         (INGEST_SECTION, "delete_on_success"): "true",
         (INGEST_SECTION, "leave_original"): "false",
-        (INGEST_SECTION, "strategy"): "merge",
+        (INGEST_SECTION, "strategy"): "replace",
         (INGEST_SECTION, "merge_threshold"): "5h",
         (INGEST_SECTION, "simplification_factor"): "2",
         # storage_dir, success_dir, failure_dir, optimized_files_dir, and 
