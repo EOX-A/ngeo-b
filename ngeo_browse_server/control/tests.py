@@ -2673,7 +2673,7 @@ class ImportIgnoreCache(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveSe
     
     expected_ingested_browse_ids = ("b_id_1",)
     expected_inserted_into_series = "TEST_SAR"
-    expected_optimized_files = ("b_id_1_proc.tif",)
+    expected_optimized_files = ("TEST_SAR_b_id_1_proc.tif",)
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
 
 class ImportWithCache(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
@@ -2681,7 +2681,7 @@ class ImportWithCache(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServ
     
     expected_ingested_browse_ids = ("b_id_1",)
     expected_inserted_into_series = "TEST_SAR"
-    expected_optimized_files = ("b_id_1_proc.tif",)
+    expected_optimized_files = ("TEST_SAR_b_id_1_proc.tif",)
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
 
 class ImportReplaceIgnoreCache(ImportReplaceTestCaseMixin, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
@@ -2694,7 +2694,7 @@ class ImportReplaceIgnoreCache(ImportReplaceTestCaseMixin, CliMixIn, SeedTestCas
     expected_inserted_into_series = "TEST_SAR"
     expected_deleted_optimized_files = ("ASA_IM__0P_20100722_213840.tif",)
     expected_num_replaced = 1
-    expected_optimized_files = ("b_id_1_proc.tif",)
+    expected_optimized_files = ("TEST_SAR_b_id_1_proc.tif",)
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
 
 class ImportReplaceWithCache(ImportReplaceTestCaseMixin, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
@@ -2707,7 +2707,7 @@ class ImportReplaceWithCache(ImportReplaceTestCaseMixin, CliMixIn, SeedTestCaseM
     expected_inserted_into_series = "TEST_SAR"
     expected_deleted_optimized_files = ("ASA_IM__0P_20100722_213840.tif",)
     expected_num_replaced = 1
-    expected_optimized_files = ("b_id_1_proc.tif",)
+    expected_optimized_files = ("TEST_SAR_b_id_1_proc.tif",)
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
 
 class ImportRegularGrid(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
@@ -2715,7 +2715,7 @@ class ImportRegularGrid(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveSe
     
     expected_ingested_browse_ids = ("ASAR",)
     expected_inserted_into_series = "TEST_ASA_WSM"
-    expected_optimized_files = ("ASAR_proc.tif",)
+    expected_optimized_files = ("TEST_ASA_WSM_ASAR_proc.tif",)
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64}
 
 

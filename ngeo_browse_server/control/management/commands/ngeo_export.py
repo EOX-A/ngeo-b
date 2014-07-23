@@ -246,7 +246,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
                         
                         # get path to sqlite tileset and open it
                         ts = tileset.open(
-                            get_tileset_path(browse_layer.id)
+                            get_tileset_path(browse_layer.browse_type)
                         )
                         
                         for tile_desc in ts.get_tiles(

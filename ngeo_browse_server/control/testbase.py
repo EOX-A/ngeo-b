@@ -558,7 +558,7 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
     def test_expected_optimized_files(self):
         """ Check that the expected optimized files are created. """
         
-        # check that all optimized files are beeing created
+        # check that all optimized files are being created
         files = self.get_file_list(self.temp_optimized_files_dir)
         
         if self.save_optimized_files:
