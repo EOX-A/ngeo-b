@@ -505,7 +505,7 @@ class IngestBrowseNoID(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606_noid.xml"
     
     expected_ingested_browse_ids = (None,)
-    expected_ingested_coverage_ids = ("TEST_OPTICAL_20100722101606000000_20100722101722000000",)
+    expected_ingested_coverage_ids = ("20100722101606000000_20100722101722000000",)
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['ATS_TOA_1P_20100722_101606_proc.tif']
     expected_deleted_files = ['ATS_TOA_1P_20100722_101606.jpg']
@@ -539,7 +539,7 @@ class IngestBrowseSpecialID(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606_specialid.xml"
     
     expected_ingested_browse_ids = ("#some:#special:id",)
-    expected_ingested_coverage_ids = ("TEST_OPTICAL_20100722101606000000_20100722101722000000",)
+    expected_ingested_coverage_ids = ("20100722101606000000_20100722101722000000",)
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['ATS_TOA_1P_20100722_101606_proc.tif']
     expected_deleted_files = ['ATS_TOA_1P_20100722_101606.jpg']
@@ -2217,7 +2217,7 @@ class IngestModelInGeoTiffWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixI
     wms_request = ("/ows?service=WMS&request=GetMap&version=1.3.0&"
                    "layers=%(layers)s&crs=EPSG:4326&bbox=%(bbox)s&"
                    "width=%(width)d&height=%(height)d&format=image/png" % {
-                       "layers": "MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced",
+                       "layers": "TEST_MER_FRS_MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced",
                        "bbox": ",".join(map(str, (
                             32.1902500,
                             8.4784500,  
@@ -2244,7 +2244,7 @@ class IngestRectifiedWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
     wms_request = ("/ows?service=WMS&request=GetMap&version=1.3.0&"
                    "layers=%(layers)s&crs=EPSG:4326&bbox=%(bbox)s&"
                    "width=%(width)d&height=%(height)d&format=image/png" % {
-                       "layers": "MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced",
+                       "layers": "TEST_MER_FRS_MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced",
                        "bbox": ",".join(map(str, (
                             32.1902500,
                             8.4784500,  
@@ -2271,7 +2271,7 @@ class IngestRectifiedFlippedWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMi
     wms_request = ("/ows?service=WMS&request=GetMap&version=1.3.0&"
                    "layers=%(layers)s&crs=EPSG:4326&bbox=%(bbox)s&"
                    "width=%(width)d&height=%(height)d&format=image/png" % {
-                       "layers": "MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced",
+                       "layers": "TEST_MER_FRS_MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced",
                        "bbox": ",".join(map(str, (
                             32.1902500,
                             8.4784500,
@@ -2298,7 +2298,7 @@ class IngestFootprintWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
     wms_request = ("/ows?service=WMS&request=GetMap&version=1.3.0&"
                    "layers=%(layers)s&crs=EPSG:4326&bbox=%(bbox)s&"
                    "width=%(width)d&height=%(height)d&format=image/png" % {
-                       "layers": "b_id_1",
+                       "layers": "TEST_SAR_b_id_1",
                        "bbox": ",".join(map(str, (
                             49.461072913649971,
                             -2.7625000000000002,  
@@ -2331,7 +2331,7 @@ class IngestRegularGridWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, 
     wms_request = ("/ows?service=WMS&request=GetMap&version=1.3.0&"
                    "layers=%(layers)s&crs=EPSG:4326&bbox=%(bbox)s&"
                    "width=%(width)d&height=%(height)d&format=image/png" % {
-                       "layers": "ASAR",
+                       "layers": "TEST_ASA_WSM_ASAR",
                        "bbox": ",".join(map(str, 
                            (-36.259107, 16.727605000000001, -31.984922000000001, 22.301753999999999))),
                        "width": 100,
@@ -2578,7 +2578,7 @@ class ExportGroupFull(ExportTestCaseMixIn, CliMixIn, TestCase):
         "layer" : "TEST_SAR"
     }
     
-    expected_exported_browses = ("b_id_6", "b_id_7", "b_id_8")
+    expected_exported_browses = ("TEST_SAR_b_id_6", "TEST_SAR_b_id_7", "TEST_SAR_b_id_8")
 
 class ExportGroupFullCache(ExportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
     args_before_test = ["manage.py", "ngeo_ingest_browse_report",
@@ -2593,7 +2593,7 @@ class ExportGroupFullCache(ExportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, Liv
     
     expected_inserted_into_series = "TEST_SAR"
     expected_tiles = {0: 6, 1: 24, 2: 96, 3: 384, 4: 384}
-    expected_exported_browses = ("b_id_6", "b_id_7", "b_id_8")
+    expected_exported_browses = ("TEST_SAR_b_id_6", "TEST_SAR_b_id_7", "TEST_SAR_b_id_8")
     expected_cache_tiles = 894
 
 class ExportGroupStart(ExportTestCaseMixIn, CliMixIn, TestCase):
@@ -2605,7 +2605,7 @@ class ExportGroupStart(ExportTestCaseMixIn, CliMixIn, TestCase):
         "start": "2010-07-22T10:16:01Z"
     }
     
-    expected_exported_browses = ("b_id_7", "b_id_8")
+    expected_exported_browses = ("TEST_SAR_b_id_7", "TEST_SAR_b_id_8")
 
 class ExportGroupEnd(ExportTestCaseMixIn, CliMixIn, TestCase):
     args_before_test = ["manage.py", "ngeo_ingest_browse_report",
@@ -2616,7 +2616,7 @@ class ExportGroupEnd(ExportTestCaseMixIn, CliMixIn, TestCase):
         "end": "2010-07-22T10:17:02Z"
     }
     
-    expected_exported_browses = ("b_id_6", "b_id_7")
+    expected_exported_browses = ("TEST_SAR_b_id_6", "TEST_SAR_b_id_7")
 
 class ExportGroupStartEnd(ExportTestCaseMixIn, CliMixIn, TestCase):
     args_before_test = ["manage.py", "ngeo_ingest_browse_report",
@@ -2628,7 +2628,7 @@ class ExportGroupStartEnd(ExportTestCaseMixIn, CliMixIn, TestCase):
         "end": "2010-07-22T10:17:02Z"
     }
     
-    expected_exported_browses = ("b_id_7",)
+    expected_exported_browses = ("TEST_SAR_b_id_7",)
 
 class ExportRegularGrid(ExportTestCaseMixIn, CliMixIn, TestCase):
     storage_dir = "data/test_data"
@@ -2639,7 +2639,7 @@ class ExportRegularGrid(ExportTestCaseMixIn, CliMixIn, TestCase):
         "browse-type" : "ASA_WSM"
     }
     
-    expected_exported_browses = ("ASAR",)
+    expected_exported_browses = ("TEST_ASA_WSM_ASAR",)
 
 
 class ExportMergedFailure(CliFailureMixIn, SeedTestCaseMixIn, LiveServerTestCase):
