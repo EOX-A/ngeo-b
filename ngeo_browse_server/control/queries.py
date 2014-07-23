@@ -306,7 +306,8 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
     
     intersecting_browses_qs = models.Browse.objects.filter(
         start_time__lt = time_model.end_time,
-        end_time__gt = time_model.start_time 
+        end_time__gt = time_model.start_time,
+        browse_layer__id=browse_layer_model.id
     )
     
     source_model = time_model.source
