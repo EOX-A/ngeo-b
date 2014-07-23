@@ -703,7 +703,7 @@ class SeedTestCaseMixIn(BaseTestCaseMixIn):
         """ Check that the seeding is done correctly. """
         
         db_filename = join(self.temp_mapcache_dir, 
-                           self.expected_inserted_into_series + ".sqlite")
+                           self.expected_browse_type + ".sqlite")
         
         # check that the file exists
         self.assertTrue(exists(db_filename))
