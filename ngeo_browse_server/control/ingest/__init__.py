@@ -328,6 +328,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         logger.info("No browse identifier given, generating coverage ID '%s'."
                     % coverage_id)
     else:
+        coverage_id = browse_layer.id + "_" + coverage_id
         try:
             NCNameValidator(coverage_id)
         except ValidationError:

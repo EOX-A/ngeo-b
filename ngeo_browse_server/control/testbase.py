@@ -522,14 +522,14 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
             elif coverage_id is not None:
                 self.assertTrue(
                     models.Browse.objects.filter(
-                        coverage_id=coverage_id
+                        coverage_id=self.expected_inserted_into_series + "_" + coverage_id
                     ).exists()
                 )
             
             # test if the EOxServer rectified dataset was created
             coverage_wrapper = System.getRegistry().getFromFactory(
                 "resources.coverages.wrappers.EOCoverageFactory",
-                {"obj_id": coverage_id}
+                {"obj_id": self.expected_inserted_into_series + "_" + coverage_id}
             )
             self.assertTrue(coverage_wrapper is not None)
         
@@ -549,6 +549,7 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
         self.assertTrue(dataset_series is not None)
         
         expected_coverage_ids = self.expected_ingested_coverage_ids or self.expected_ingested_browse_ids
+        expected_coverage_ids = set([self.expected_inserted_into_series + "_" + e for e in expected_coverage_ids])
         actual_ids = set([c.getCoverageId() for c in dataset_series.getEOCoverages()])
         
         self.assertItemsEqual(expected_coverage_ids, actual_ids)
