@@ -410,8 +410,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                     existing_browse_model, browse_layer, coverage_id, 
                     seed_areas, config
                 )
-                replaced = True
-
+                replaced = False
                 logger.debug("Existing browse found, merging it.")
             else: 
                 # perform replacement
