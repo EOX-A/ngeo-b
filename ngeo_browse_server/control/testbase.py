@@ -756,7 +756,7 @@ class SeedMergeTestCaseMixIn(SeedTestCaseMixIn):
         self.assertItemsEqual(self.expected_seeded_areas, times)
     
         db_filename = join(self.temp_mapcache_dir, 
-                       self.expected_inserted_into_series + ".sqlite")
+                       self.expected_browse_type + ".sqlite")
         
         expected_timespans = ["%s/%s" % (isotime(area[-2]), isotime(area[-1]))
                               for area in self.expected_seeded_areas]

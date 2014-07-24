@@ -960,7 +960,7 @@ class SeedMerge1(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
     
     storage_dir = "data/merge_test_data"
     
-    expected_inserted_into_series = "TEST_SAR"
+    expected_browse_type = "SAR"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
     expected_seeded_areas = [
         (parse_datetime("2010-07-22T21:38:40Z"),
@@ -978,7 +978,7 @@ class SeedMerge2(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
     
     storage_dir = "data/merge_test_data"
     
-    expected_inserted_into_series = "TEST_SAR"
+    expected_browse_type = "SAR"
     expected_tiles = {0: 4, 1: 16, 2: 64, 3: 192, 4: 192}
     expected_seeded_areas = [
         (parse_datetime("2010-07-22T21:38:40Z"),
@@ -998,7 +998,7 @@ class SeedMerge2_2(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase
 
     storage_dir = "data/merge_test_data"
 
-    expected_inserted_into_series = "TEST_SAR"
+    expected_browse_type = "SAR"
     expected_tiles = {0: 4, 1: 16, 2: 64, 3: 192, 4: 192}
     expected_seeded_areas = [
         (parse_datetime("2010-07-22T21:38:40Z"),
@@ -1019,7 +1019,7 @@ class SeedMerge3(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
     
     storage_dir = "data/merge_test_data"
     
-    expected_inserted_into_series = "TEST_SAR"
+    expected_browse_type = "SAR"
     expected_tiles = {0: 4, 1: 16, 2: 64, 3: 192, 4: 192}
     expected_seeded_areas = [
         (parse_datetime("2010-07-22T21:38:40Z"),
@@ -1040,7 +1040,7 @@ class SeedMerge4(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
     
     storage_dir = "data/merge_test_data"
     
-    expected_inserted_into_series = "TEST_SAR"
+    expected_browse_type = "SAR"
     expected_tiles = {0: 4, 1: 16, 2: 64, 3: 192, 4: 192}
     expected_seeded_areas = [
         (parse_datetime("2010-07-22T21:39:00Z"),
@@ -1061,7 +1061,7 @@ class SeedMerge5(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
     
     storage_dir = "data/merge_test_data"
     
-    expected_inserted_into_series = "TEST_SAR"
+    expected_browse_type = "SAR"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
     expected_seeded_areas = [
         (parse_datetime("2010-07-22T21:36:40Z"),
@@ -2505,7 +2505,7 @@ class DeleteFromCommandStartEndMerge1(DeleteTestCaseMixIn, CliMixIn, SeedMergeTe
     
     expected_remaining_browses = 2
     #expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
-    expected_inserted_into_series = "TEST_SAR"
+    expected_browse_type = "SAR"
     expected_tiles = {0: 4, 1: 16, 2: 64, 3: 192, 4: 192}
     
     expected_seeded_areas = [
@@ -2532,7 +2532,7 @@ class DeleteFromCommandStartEndMerge2(DeleteTestCaseMixIn, CliMixIn, SeedMergeTe
 
     expected_remaining_browses = 1
     #expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
-    expected_inserted_into_series = "TEST_SAR"
+    expected_browse_type = "SAR"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
 
     expected_seeded_areas = [
@@ -2557,7 +2557,7 @@ class DeleteFromCommandStartEndMerge3(DeleteTestCaseMixIn, CliMixIn, SeedMergeTe
 
     expected_remaining_browses = 2
     #expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
-    expected_inserted_into_series = "TEST_SAR"
+    expected_browse_type = "SAR"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
 
     expected_seeded_areas = [
