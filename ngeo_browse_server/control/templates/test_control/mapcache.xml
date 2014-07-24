@@ -13,7 +13,7 @@
     </auth_method>
     {% for layer in browse_layers %}
     <cache name="{{ layer.pk }}" type="sqlite3">
-        <dbfile>{{ mapcache_dir }}{{ layer.pk }}.sqlite</dbfile>
+        <dbfile>{{ mapcache_dir }}{{ layer.browse_type }}.sqlite</dbfile>
     </cache>
 
     <source name="{{ layer.pk }}" type="wms">

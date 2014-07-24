@@ -133,6 +133,7 @@ class BaseTestCaseMixIn(object):
     default_configuration = {
         (CTRL_SECTION, "instance_id"): "instance",
         (CTRL_SECTION, "controller_config_path"): "conf/controller.conf",
+        (CTRL_SECTION, "notification_url"): "",
         (INGEST_SECTION, "optimized_files_postfix"): "_proc",
         (INGEST_SECTION, "compression"): "LZW",
         (INGEST_SECTION, "jpeg_quality"): "75",
@@ -146,7 +147,7 @@ class BaseTestCaseMixIn(object):
         (INGEST_SECTION, "footprint_alpha"): "true",
         (INGEST_SECTION, "delete_on_success"): "true",
         (INGEST_SECTION, "leave_original"): "false",
-        (INGEST_SECTION, "strategy"): "merge",
+        (INGEST_SECTION, "strategy"): "replace",
         (INGEST_SECTION, "merge_threshold"): "5h",
         (INGEST_SECTION, "simplification_factor"): "2",
         # storage_dir, success_dir, failure_dir, optimized_files_dir, and 
@@ -521,14 +522,14 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
             elif coverage_id is not None:
                 self.assertTrue(
                     models.Browse.objects.filter(
-                        coverage_id=coverage_id
+                        coverage_id=self.expected_inserted_into_series + "_" + coverage_id
                     ).exists()
                 )
             
             # test if the EOxServer rectified dataset was created
             coverage_wrapper = System.getRegistry().getFromFactory(
                 "resources.coverages.wrappers.EOCoverageFactory",
-                {"obj_id": coverage_id}
+                {"obj_id": self.expected_inserted_into_series + "_" + coverage_id}
             )
             self.assertTrue(coverage_wrapper is not None)
         
@@ -548,6 +549,7 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
         self.assertTrue(dataset_series is not None)
         
         expected_coverage_ids = self.expected_ingested_coverage_ids or self.expected_ingested_browse_ids
+        expected_coverage_ids = set([self.expected_inserted_into_series + "_" + e for e in expected_coverage_ids])
         actual_ids = set([c.getCoverageId() for c in dataset_series.getEOCoverages()])
         
         self.assertItemsEqual(expected_coverage_ids, actual_ids)
@@ -556,7 +558,7 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
     def test_expected_optimized_files(self):
         """ Check that the expected optimized files are created. """
         
-        # check that all optimized files are beeing created
+        # check that all optimized files are being created
         files = self.get_file_list(self.temp_optimized_files_dir)
         
         if self.save_optimized_files:
@@ -701,7 +703,7 @@ class SeedTestCaseMixIn(BaseTestCaseMixIn):
         """ Check that the seeding is done correctly. """
         
         db_filename = join(self.temp_mapcache_dir, 
-                           self.expected_inserted_into_series + ".sqlite")
+                           self.expected_browse_type + ".sqlite")
         
         # check that the file exists
         self.assertTrue(exists(db_filename))
@@ -754,7 +756,7 @@ class SeedMergeTestCaseMixIn(SeedTestCaseMixIn):
         self.assertItemsEqual(self.expected_seeded_areas, times)
     
         db_filename = join(self.temp_mapcache_dir, 
-                       self.expected_inserted_into_series + ".sqlite")
+                       self.expected_browse_type + ".sqlite")
         
         expected_timespans = ["%s/%s" % (isotime(area[-2]), isotime(area[-1]))
                               for area in self.expected_seeded_areas]
@@ -1416,6 +1418,8 @@ class NotifyMixIn(BaseTestCaseMixIn):
         address=localhost:9000
     """)
 
+    server_port = 9000
+
     def setUp(self):
         messages = []
         self.messages = messages
@@ -1436,7 +1440,7 @@ class NotifyMixIn(BaseTestCaseMixIn):
 
         logger.info("Starting Server")
 
-        self.server = ThreadedTCPServer(("localhost", 9000), POSTHandler)
+        self.server = ThreadedTCPServer(("localhost", self.server_port), POSTHandler)
         self.server.allow_reuse_address = True
         self.server_thread = threading.Thread(target=self.server.serve_forever)
 

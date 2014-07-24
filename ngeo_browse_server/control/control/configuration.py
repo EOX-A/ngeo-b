@@ -325,6 +325,19 @@ class LogConfigurator(ngEOConfigConfigurator):
         ),
     )
 
+class NotificationConfigurator(ngEOConfigConfigurator):
+    section = "control"
+
+    type_name = "notificationType"
+    element_name = "notification"
+
+    parameters = (
+        Parameter(
+            str, "notification_url", "Notification URL", "URL to send the notification to.",
+            ""
+        ),
+    )
+
 
 class WebServerConfigurator(Configurator):
     type_name = "webServerType"
@@ -375,7 +388,7 @@ class WebServerConfigurator(Configurator):
 
 CONFIGURATORS = [
     IngestConfigurator(), CacheConfigurator(), LogConfigurator(), 
-    WebServerConfigurator()
+    WebServerConfigurator(), NotificationConfigurator()
 ]
 
 

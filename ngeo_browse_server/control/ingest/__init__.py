@@ -328,6 +328,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         logger.info("No browse identifier given, generating coverage ID '%s'."
                     % coverage_id)
     else:
+        coverage_id = browse_layer.id + "_" + coverage_id
         try:
             NCNameValidator(coverage_id)
         except ValidationError:
@@ -384,8 +385,11 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
 
             # get strategy and merge threshold
             ingest_config = get_ingest_config(config)
-            strategy = ingest_config["strategy"]
             threshold = ingest_config["merge_threshold"]
+            if browse_layer.strategy != "inherit":
+                strategy = browse_layer.strategy
+            else:
+                strategy = ingest_config["strategy"]
 
             if strategy == "merge" and timedelta < threshold:
 
@@ -407,8 +411,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                     existing_browse_model, browse_layer, coverage_id, 
                     seed_areas, config
                 )
-                replaced = True
-
+                replaced = False
                 logger.debug("Existing browse found, merging it.")
             else: 
                 # perform replacement

@@ -173,7 +173,7 @@ def import_browse_report(p, browse_report_file, browse_layer_model, crs,
         
         tileset_name = browse_layer_model.id
         dim = isotime(browse.start_time) + "/" + isotime(browse.end_time)
-        ts = tileset.open(get_tileset_path(tileset_name, config), mode="w")
+        ts = tileset.open(get_tileset_path(browse_layer_model.browse_type, config), mode="w")
         
         grid = URN_TO_GRID[browse_layer_model.grid]
         tile_num = 0
