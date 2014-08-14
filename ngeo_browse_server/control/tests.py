@@ -4109,7 +4109,7 @@ class ReportAccessTestCase(GenerateReportMixIn, TestCase):
 
 class ReportAccessSubsetTestCase(GenerateReportMixIn, TestCase):
     access_logfile = join(settings.PROJECT_DIR, "data/report_logs/access.log")
-    begin = "2014-04-08T15:31:15Z" 
+    begin = "2014-04-08T15:31:15Z"
     end = "2014-04-10T20:30Z"
 
     expected_report = """\
@@ -4133,6 +4133,10 @@ class ReportAccessSubsetTestCase(GenerateReportMixIn, TestCase):
 
 
 class ReportIngestTestCase(GenerateReportMixIn, TestCase):
+    # override log file creation location
+    config = {
+        ("control", "report_store_dir"): join(settings.PROJECT_DIR, "data/report_logs/")
+    }
     report_logfile = join(settings.PROJECT_DIR, "data/report_logs/ingest.log")
 
     expected_report = """\

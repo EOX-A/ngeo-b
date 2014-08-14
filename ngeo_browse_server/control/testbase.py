@@ -1381,7 +1381,7 @@ class GenerateReportMixIn(BaseTestCaseMixIn, CliMixIn):
     @property
     def kwargs(self):
         kwargs = {
-            "filename": self.output_report_filename
+            "filename": basename(self.output_report_filename)
         }
 
         if self.access_logfile:
@@ -1398,6 +1398,9 @@ class GenerateReportMixIn(BaseTestCaseMixIn, CliMixIn):
     def setUp_files(self):
         super(GenerateReportMixIn, self).setUp_files()
         self.output_report_filename = tempfile.NamedTemporaryFile(delete=False).name
+        self.configuration = {
+            ("control", "report_store_dir"): dirname(self.output_report_filename)
+        }
 
 
     def tearDown_files(self):
