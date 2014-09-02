@@ -28,13 +28,11 @@
 
 import os
 from os.path import exists
-from ConfigParser import ConfigParser
 
 from ngeo_browse_server.config import get_ngeo_config
 from ngeo_browse_server.lock import FileLock, LockException
 from ngeo_browse_server.control.control.config import (
-    get_instance_id, get_controller_config_path, 
-    get_controller_config_lockfile_path, 
+    get_controller_config_path, get_controller_config_lockfile_path,
     get_controller_config, create_controller_config
 )
 from ngeo_browse_server.control.control.assertion import (
@@ -54,10 +52,19 @@ def register(instance_id, instance_type, cs_id, cs_ip, config=None):
             if not exists(controller_config_path):
                 create_controller_config(controller_config_path, cs_id, cs_ip)
             else:
-                controller_config = get_controller_config(controller_config_path)
+                controller_config = get_controller_config(
+                    controller_config_path
+                )
 
                 assert_controller_id(cs_id, controller_config, "ALREADY_OTHER")
                 assert_controller_ip(cs_ip, controller_config)
+
+                # this is the last option: the controller server was already
+                # registered.
+                raise ControllerAssertionError(
+                    "This browse server is already registered on this "
+                    "controller server.", reason="ALREADY_SAME"
+                )
 
     except LockException:
         raise ControllerAssertionError(
@@ -82,7 +89,7 @@ def unregister(instance_id, cs_id, cs_ip, config=None):
             controller_config = get_controller_config(controller_config_path)
             assert_controller_id(cs_id, controller_config, "CONTROLLER_OTHER")
             assert_controller_ip(cs_ip, controller_config)
-            
+
             # remove the controller configuration to complete unregistration
             os.remove(controller_config_path)
 

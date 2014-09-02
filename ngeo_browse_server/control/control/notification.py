@@ -30,6 +30,7 @@ import logging
 import threading
 import urllib2
 import traceback
+from ConfigParser import NoSectionError
 
 from lxml import etree
 from lxml.builder import E
@@ -45,6 +46,7 @@ from ngeo_browse_server.control.control.config import (
 
 logger = logging.getLogger(__name__)
 
+
 def notify(summary, message, urgency=None, ip_address=None, config=None):
     config = config or get_ngeo_config()
 
@@ -53,8 +55,8 @@ def notify(summary, message, urgency=None, ip_address=None, config=None):
         raise ValueError("Invalid urgency value '%s'." % urgency)
 
     try:
-        if not ip_address:            
-            # get the value for "notification_url" and fall back to 
+        if not ip_address:
+            # get the value for "notification_url" and fall back to
             # "address"
             ip_address = safe_get(
                 config, "control", "notification_url"
@@ -72,8 +74,8 @@ def notify(summary, message, urgency=None, ip_address=None, config=None):
                 ip_address = safe_get(
                     ctrl_config, CONTROLLER_SERVER_SECTION, "address"
                 )
-            
-    except IOError:
+
+    except (IOError, NoSectionError):
         # probably no config file present, so IP cannot be determined.
         pass
 
