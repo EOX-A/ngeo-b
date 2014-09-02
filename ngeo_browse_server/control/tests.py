@@ -2930,6 +2930,31 @@ class RegisterFailWrongControllerID(RegisterTestCaseMixIn, TestCase):
     test_controller_config = None
 
 
+class RegisterFailAlreadySameControllerID(RegisterTestCaseMixIn, TestCase):
+    ip_address = "127.0.0.1"
+    request = """
+    {
+        "controllerServerId": "cs1-id",
+        "instanceId": "instance",
+        "instanceType": "BrowseServer"
+    }
+    """
+
+    controller_config = dedent("""
+        [controller_server]
+        identifier=cs1-id
+        address=127.0.0.1
+    """)
+
+    expected_response = {
+        "instanceId": "instance",
+        "reason": "ALREADY_SAME",
+        "faultString": "This browse server is already registered on this controller server."
+    }
+
+    test_controller_config = None
+
+
 class RegisterFailLock(RegisterTestCaseMixIn, TestCase):
     ip_address = "127.0.0.1"
     request = """
