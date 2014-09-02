@@ -1,3 +1,3 @@
 
-source .venv/bin/activate
+cd "$WORKSPACE"
 python setup.py bdist_rpm
