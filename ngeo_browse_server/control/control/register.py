@@ -59,8 +59,8 @@ def register(instance_id, instance_type, cs_id, cs_ip, config=None):
                 assert_controller_id(cs_id, controller_config, "ALREADY_OTHER")
                 assert_controller_ip(cs_ip, controller_config)
 
-                # this is the last option: the controller server was already
-                # registered.
+                # IP address and ID are the same, so raise the "ALREADY_SAME"
+                # error.
                 raise ControllerAssertionError(
                     "This browse server is already registered on this "
                     "controller server.", reason="ALREADY_SAME"
