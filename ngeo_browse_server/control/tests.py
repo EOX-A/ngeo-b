@@ -2743,7 +2743,7 @@ class DebugLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCase
     test_expected_inserted_browses = None
     
     expected_logs = {
-        logging.DEBUG: 3,
+        logging.DEBUG: 4,
         logging.INFO: 14,
         logging.WARN: 0,
         logging.ERROR: 0,
