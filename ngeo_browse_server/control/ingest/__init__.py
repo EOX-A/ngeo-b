@@ -441,41 +441,41 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         
         # wrap all file operations with IngestionTransaction
         with FileTransaction((output_filename, replaced_filename)):
-        
-            # initialize a GeoReference for the preprocessor
-            geo_reference = _georef_from_parsed(parsed_browse)
-            
-            # assert that the input file exists
-            if not exists(input_filename):
-                raise IngestionException("Input file '%s' does not exist."
-                                         % input_filename)
-            
-            # check that the output directory exists
-            safe_makedirs(dirname(output_filename))
-            
-            # start the preprocessor
-            logger.info("Starting preprocessing on file '%s' to create '%s'."
-                        % (input_filename, output_filename))
-            
-            try:
-                result = preprocessor.process(
-                    input_filename, output_filename, geo_reference, 
-                    True, merge_with, merge_footprint
+            with FileTransaction((merge_with,), True):
+                # initialize a GeoReference for the preprocessor
+                geo_reference = _georef_from_parsed(parsed_browse)
+                
+                # assert that the input file exists
+                if not exists(input_filename):
+                    raise IngestionException("Input file '%s' does not exist."
+                                             % input_filename)
+                
+                # check that the output directory exists
+                safe_makedirs(dirname(output_filename))
+                
+                # start the preprocessor
+                logger.info("Starting preprocessing on file '%s' to create '%s'."
+                            % (input_filename, output_filename))
+                
+                try:
+                    result = preprocessor.process(
+                        input_filename, output_filename, geo_reference, 
+                        True, merge_with, merge_footprint
+                    )
+                except (RuntimeError, GCPTransformException), e:
+                    raise IngestionException(str(e))
+                
+                # validate preprocess result
+                if result.num_bands not in (1, 3, 4): # color index, RGB, RGBA
+                    raise IngestionException("Processed browse image has %d bands."
+                                             % result.num_bands)
+                
+                logger.info("Creating database models.")
+                extent, time_interval = create_browse(
+                    parsed_browse, browse_report, browse_layer, coverage_id, 
+                    crs, replaced, result.footprint_geom, result.num_bands, 
+                    output_filename, seed_areas, config=config
                 )
-            except (RuntimeError, GCPTransformException), e:
-                raise IngestionException(str(e))
-            
-            # validate preprocess result
-            if result.num_bands not in (1, 3, 4): # color index, RGB, RGBA
-                raise IngestionException("Processed browse image has %d bands."
-                                         % result.num_bands)
-            
-            logger.info("Creating database models.")
-            extent, time_interval = create_browse(
-                parsed_browse, browse_report, browse_layer, coverage_id, 
-                crs, replaced, result.footprint_geom, result.num_bands, 
-                output_filename, seed_areas, config=config
-            )
             
         
     except:
