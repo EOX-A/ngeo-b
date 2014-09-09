@@ -344,13 +344,13 @@ class GDALMergeTarget(GDALDatasetWrapper):
             res_y = min(res_y, new_res_y)
 
         # create output dataset
-        size_x = int((bbox[2] - bbox[0]) / res_x)
-        size_y = int((bbox[3] - bbox[1]) / res_y)
+        size_x = int((bbox[2] - bbox[0]) / res_x + .5)
+        size_y = int((bbox[3] - bbox[1]) / res_y + .5)
         gt = bbox[0], res_x, 0.0, bbox[3], 0.0, -res_y
 
         return cls(
-            filename, size_x, size_y, gt, first.dataset.RasterCount, 
-            first.dataset.GetRasterBand(1).DataType, 
+            filename, size_x, size_y, gt, first.dataset.RasterCount,
+            first.dataset.GetRasterBand(1).DataType,
             first.dataset.GetProjection(), driver, creation_options
         )
 
@@ -377,7 +377,7 @@ class GDALDatasetMerger(object):
         target = self.target or GDALMergeTarget.from_sources(
             out_filename, self.sources, out_driver, creation_options
         )
-        
+
         whole_bbox = target.bbox
 
         for source in self.sources:

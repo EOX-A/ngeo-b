@@ -2743,7 +2743,7 @@ class DebugLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCase
     test_expected_inserted_browses = None
     
     expected_logs = {
-        logging.DEBUG: 3,
+        logging.DEBUG: 12,
         logging.INFO: 14,
         logging.WARN: 0,
         logging.ERROR: 0,
@@ -2925,6 +2925,31 @@ class RegisterFailWrongControllerID(RegisterTestCaseMixIn, TestCase):
         "instanceId": "instance",
         "reason": "ALREADY_OTHER",
         "faultString": "This browse server instance is registered on the controller server with ID 'cs1-id'."
+    }
+
+    test_controller_config = None
+
+
+class RegisterFailAlreadySameControllerID(RegisterTestCaseMixIn, TestCase):
+    ip_address = "127.0.0.1"
+    request = """
+    {
+        "controllerServerId": "cs1-id",
+        "instanceId": "instance",
+        "instanceType": "BrowseServer"
+    }
+    """
+
+    controller_config = dedent("""
+        [controller_server]
+        identifier=cs1-id
+        address=127.0.0.1
+    """)
+
+    expected_response = {
+        "instanceId": "instance",
+        "reason": "ALREADY_SAME",
+        "faultString": "This browse server is already registered on this controller server."
     }
 
     test_controller_config = None
@@ -3633,6 +3658,18 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
           </xsd:element>
         </xsd:sequence>
       </xsd:complexType>
+      <xsd:complexType name="reportsType">
+        <xsd:sequence>
+          <xsd:element type="xsd:string" name="report_store_dir">
+            <xsd:annotation>
+              <xsd:documentation>
+                <xsd:label>Storage Directory</xsd:label>
+                <xsd:tooltip>Storage directory where automatically generated reports are stored.</xsd:tooltip>
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:complexType>
       <xsd:complexType name="webServerType">
         <xsd:sequence>
           <xsd:element type="xsd:string" name="baseurl">
@@ -3701,6 +3738,7 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
           <xsd:element type="ingestType" name="ingest"/>
           <xsd:element type="cacheType" name="cache"/>
           <xsd:element type="logType" name="log"/>
+          <xsd:element type="reportsType" name="reports"/>
           <xsd:element type="webServerType" name="webServer"/>
           <xsd:element type="notificationType" name="notification"/>
         </xsd:sequence>
@@ -3732,6 +3770,9 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
       <log>
         <level>INFO</level>
       </log>
+      <reports>
+        <report_store_dir>/var/www/ngeo/store/reports/</report_store_dir>
+      </reports>
       <webServer>
         <baseurl>http://www.example.com/</baseurl>
       </webServer>
@@ -3773,6 +3814,9 @@ class ConfigurationChangeTestCase(ConfigMixIn, TestCase):
       <log>
         <level>WARNING</level>
       </log>
+      <reports>
+        <report_store_dir>/some/other/dir</report_store_dir>
+      </reports>
       <webServer>
         <baseurl>http://www.newexample.com/</baseurl>
       </webServer>
@@ -3790,6 +3834,7 @@ class ConfigurationChangeTestCase(ConfigMixIn, TestCase):
 
         expected_values = {
             ("control", "notification_url"): "http://192.168.100.3:8082/ngeo-ctrl-server/notify",
+            ("control", "report_store_dir"): "/some/other/dir",
             (INGEST_SECTION, "optimized_files_postfix"): "_proc_new",
             (INGEST_SECTION, "compression"): "NONE",
             (INGEST_SECTION, "jpeg_quality"): "50",
@@ -4089,7 +4134,7 @@ class ReportAccessTestCase(GenerateReportMixIn, TestCase):
 
 class ReportAccessSubsetTestCase(GenerateReportMixIn, TestCase):
     access_logfile = join(settings.PROJECT_DIR, "data/report_logs/access.log")
-    begin = "2014-04-08T15:31:15Z" 
+    begin = "2014-04-08T15:31:15Z"
     end = "2014-04-10T20:30Z"
 
     expected_report = """\
@@ -4113,6 +4158,10 @@ class ReportAccessSubsetTestCase(GenerateReportMixIn, TestCase):
 
 
 class ReportIngestTestCase(GenerateReportMixIn, TestCase):
+    # override log file creation location
+    config = {
+        ("control", "report_store_dir"): join(settings.PROJECT_DIR, "data/report_logs/")
+    }
     report_logfile = join(settings.PROJECT_DIR, "data/report_logs/ingest.log")
 
     expected_report = """\

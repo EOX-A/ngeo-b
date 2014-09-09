@@ -134,6 +134,7 @@ class BaseTestCaseMixIn(object):
         (CTRL_SECTION, "instance_id"): "instance",
         (CTRL_SECTION, "controller_config_path"): "conf/controller.conf",
         (CTRL_SECTION, "notification_url"): "",
+        (CTRL_SECTION, "report_store_dir"): "/var/www/ngeo/store/reports/",
         (INGEST_SECTION, "optimized_files_postfix"): "_proc",
         (INGEST_SECTION, "compression"): "LZW",
         (INGEST_SECTION, "jpeg_quality"): "75",
@@ -1380,7 +1381,7 @@ class GenerateReportMixIn(BaseTestCaseMixIn, CliMixIn):
     @property
     def kwargs(self):
         kwargs = {
-            "filename": self.output_report_filename
+            "filename": basename(self.output_report_filename)
         }
 
         if self.access_logfile:
@@ -1397,6 +1398,9 @@ class GenerateReportMixIn(BaseTestCaseMixIn, CliMixIn):
     def setUp_files(self):
         super(GenerateReportMixIn, self).setUp_files()
         self.output_report_filename = tempfile.NamedTemporaryFile(delete=False).name
+        self.configuration = {
+            ("control", "report_store_dir"): dirname(self.output_report_filename)
+        }
 
 
     def tearDown_files(self):

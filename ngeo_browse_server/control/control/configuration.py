@@ -305,7 +305,6 @@ class CacheConfigurator(ngEOConfigConfigurator):
     )
 
 
-
 class LogConfigurator(ngEOConfigConfigurator):
     section = "control"
 
@@ -325,6 +324,22 @@ class LogConfigurator(ngEOConfigConfigurator):
         ),
     )
 
+
+class ReportConfigurator(ngEOConfigConfigurator):
+    section = "control"
+
+    type_name = "reportsType"
+    element_name = "reports"
+
+    parameters = (
+        Parameter(
+            str, "report_store_dir", "Storage Directory",
+            "Storage directory where automatically generated reports are "
+            "stored.", "/var/www/ngeo/store/reports/"
+        ),
+    )
+
+
 class NotificationConfigurator(ngEOConfigConfigurator):
     section = "control"
 
@@ -333,8 +348,8 @@ class NotificationConfigurator(ngEOConfigConfigurator):
 
     parameters = (
         Parameter(
-            str, "notification_url", "Notification URL", "URL to send the notification to.",
-            ""
+            str, "notification_url", "Notification URL",
+            "URL to send the notification to.", ""
         ),
     )
 
@@ -344,7 +359,7 @@ class WebServerConfigurator(Configurator):
     element_name = "webServer"
 
     parameters = (
-        Parameter(str, "baseurl", "Web Server base URL", 
+        Parameter(str, "baseurl", "Web Server base URL",
             "Base URL of the ngEO Web Server for authorization requests."
         ),
     )
@@ -359,20 +374,19 @@ class WebServerConfigurator(Configurator):
             template_elem = root.xpath("auth_method[1]/template")[0]
             template = template_elem.text
         except IndexError:
-            pass # no template given?
+            pass  # no template given?
 
         match = self.cmd_line_re.match(template)
         if match:
             template = "".join((
-                match.string[:match.start("url")], 
+                match.string[:match.start("url")],
                 baseurl, match.string[match.end("url"):]
             ))
         else:
-            template += " --baseurl %s" % baseurl 
+            template += " --baseurl %s" % baseurl
         template_elem.text = template
 
         write_mapcache_xml(root, config)
-
 
     @lock_mapcache_config
     def get_values(self):
@@ -387,8 +401,8 @@ class WebServerConfigurator(Configurator):
 
 
 CONFIGURATORS = [
-    IngestConfigurator(), CacheConfigurator(), LogConfigurator(), 
-    WebServerConfigurator(), NotificationConfigurator()
+    IngestConfigurator(), CacheConfigurator(), LogConfigurator(),
+    ReportConfigurator(), WebServerConfigurator(), NotificationConfigurator()
 ]
 
 
@@ -397,6 +411,7 @@ def get_configuration():
         configurator.encode()
         for configurator in CONFIGURATORS
     ])
+
 
 def get_schema():
     configurator_schema_types = [
@@ -427,6 +442,7 @@ def get_schema():
         )
     )
 
+
 def get_schema_and_configuration():
     return E("getConfigurationAndSchemaResponse",
         E("xsdSchema",
@@ -447,7 +463,7 @@ def get_config_revision():
 
 def change_configuration(tree):
     config_elem = tree.find("configurationData/configuration")
-    
+
     if config_elem is None:
         raise Exception("Invalid configuration provided.")
 

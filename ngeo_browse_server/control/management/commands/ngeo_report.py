@@ -28,20 +28,14 @@
 #-------------------------------------------------------------------------------
 
 
-import os
+from os.path import join, basename
 import logging
-from lxml import etree
 from optparse import make_option
 
 from django.core.management.base import BaseCommand, CommandError
-from django.template.loader import render_to_string
-from django.db import transaction
-from eoxserver.core.system import System
 from eoxserver.core.util.timetools import getDateTime
 
-from ngeo_browse_server.config.browselayer.decoding import decode_browse_layers
-from ngeo_browse_server.config import get_ngeo_config
-from ngeo_browse_server.control.ingest import ingest_browse_report
+from ngeo_browse_server.config import get_ngeo_config, safe_get
 from ngeo_browse_server.control.management.commands import LogToConsoleMixIn
 from ngeo_browse_server.control.control.reporting import (
     send_report, save_report
@@ -52,50 +46,58 @@ logger = logging.getLogger(__name__)
 
 
 class Command(LogToConsoleMixIn, BaseCommand):
-    
+
     option_list = BaseCommand.option_list + (
-        make_option('--begin', 
+        make_option('--begin',
             dest='begin', default=None,
             help=("")
         ),
-        make_option('--end', 
+        make_option('--end',
             dest='end', default=None,
             help=("")
         ),
-        make_option('--access-logfile', 
+        make_option('--access-logfile',
             dest="access_logfile",
             help=("")
         ),
-        make_option('--report-logfile', 
+        make_option('--report-logfile',
             dest="report_logfile",
             help=("")
         ),
-        make_option('--url', 
+        make_option('--url',
             dest="url", default=None,
             help=("")
         ),
-        make_option('--filename', 
+        make_option('--filename',
             dest="filename",
             help=("")
         )
     )
-    
+
     args = ("")
     help = ("")
 
-
-    def handle(self, begin=None, end=None, url=None, filename=None, access_logfile=None, report_logfile=None, **kwargs):
+    def handle(self, begin=None, end=None, url=None, filename=None,
+               access_logfile=None, report_logfile=None, **kwargs):
         # parse command arguments
         self.verbosity = int(kwargs.get("verbosity", 1))
         traceback = kwargs.get("traceback", False)
         self.set_up_logging(["ngeo_browse_server"], self.verbosity, traceback)
+
+        conf = get_ngeo_config()
+
+        report_store_dir = safe_get(
+            conf, "control", "report_store_dir", "/var/www/ngeo/store/reports/"
+        )
+
+        filename = join(report_store_dir, basename(filename))
 
         logger.info("Starting report generation from command line.")
 
         if begin:
             begin = getDateTime(begin)
 
-        if end: 
+        if end:
             end = getDateTime(end)
 
         if filename and url:
