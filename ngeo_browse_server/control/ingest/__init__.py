@@ -41,7 +41,7 @@ import string
 import uuid
 
 from django.conf import settings
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.db import transaction
 from django.template.loader import render_to_string
 from eoxserver.core.system import System
@@ -368,7 +368,10 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         # check if a browse already exists and delete it in order to replace it
         existing_browse_model = get_existing_browse(parsed_browse, browse_layer.id)
         if existing_browse_model:
-            identifier = existing_browse_model.browse_identifier
+            try:
+                identifier = existing_browse_model.browse_identifier
+            except ObjectDoesNotExist:
+                identifier = None
 
             # if the to be ingested browse is equal to an already stored one
             # then raise an exception if the identifiers don't match
@@ -376,8 +379,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                 and  identifier.value != parsed_browse.browse_identifier):
                 raise IngestionException("Existing browse with same start and end "
                                          "time does not have the same browse ID "
-                                         "as the one to ingest.") 
-            
+                                         "as the one to ingest.")
 
             previous_time = existing_browse_model.browse_report.date_time
             current_time = browse_report.date_time
