@@ -18,5 +18,20 @@
         "pk": "TEST_MER_FRS", 
         "model": "mapcache.source", 
         "fields": {}
+    },
+    {
+        "pk": "TEST_MER_FRS_FULL", 
+        "model": "mapcache.source", 
+        "fields": {}
+    },
+    {
+        "pk": "TEST_MER_FRS_FULL_NO_BANDS", 
+        "model": "mapcache.source", 
+        "fields": {}
+    },
+    {
+        "pk": "TEST_GOOGLE_MERCATOR", 
+        "model": "mapcache.source", 
+        "fields": {}
     }
 ]
