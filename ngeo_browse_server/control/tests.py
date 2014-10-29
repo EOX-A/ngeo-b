@@ -11,8 +11,8 @@
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
-# copies of the Software, and to permit persons to whom the Software is 
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
 # The above copyright notice and this permission notice shall be included in all
@@ -42,13 +42,13 @@ from ngeo_browse_server import get_version
 from ngeo_browse_server.config import models
 from ngeo_browse_server.control.testbase import (
     BaseTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, CliMixIn, CliFailureMixIn,
-    IngestTestCaseMixIn, SeedTestCaseMixIn, IngestReplaceTestCaseMixIn, 
-    IngestMergeTestCaseMixIn, OverviewMixIn, CompressionMixIn, BandCountMixIn, 
-    HasColorTableMixIn, ExtentMixIn, SizeMixIn, ProjectionMixIn, 
-    StatisticsMixIn, WMSRasterMixIn, IngestFailureTestCaseMixIn, 
-    DeleteTestCaseMixIn, ExportTestCaseMixIn, ImportTestCaseMixIn, 
-    ImportReplaceTestCaseMixin, SeedMergeTestCaseMixIn, HttpMultipleMixIn, 
-    LoggingTestCaseMixIn, RegisterTestCaseMixIn, UnregisterTestCaseMixIn, 
+    IngestTestCaseMixIn, SeedTestCaseMixIn, IngestReplaceTestCaseMixIn,
+    IngestMergeTestCaseMixIn, OverviewMixIn, CompressionMixIn, BandCountMixIn,
+    HasColorTableMixIn, ExtentMixIn, SizeMixIn, ProjectionMixIn,
+    StatisticsMixIn, WMSRasterMixIn, IngestFailureTestCaseMixIn,
+    DeleteTestCaseMixIn, ExportTestCaseMixIn, ImportTestCaseMixIn,
+    ImportReplaceTestCaseMixin, SeedMergeTestCaseMixIn, HttpMultipleMixIn,
+    LoggingTestCaseMixIn, RegisterTestCaseMixIn, UnregisterTestCaseMixIn,
     StatusTestCaseMixIn, LogListMixIn, LogFileMixIn, ConfigMixIn,
     ComponentControlTestCaseMixIn, ConfigurationManagementMixIn,
     GenerateReportMixIn, NotifyMixIn
@@ -66,13 +66,13 @@ from ngeo_browse_server.control.control.notification import notify
 class IngestModelInGeotiffBrowse(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     storage_dir = "data/test_data"
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.xml"
-    
+
     expected_ingested_browse_ids = ("MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced",)
     expected_inserted_into_series = "TEST_MER_FRS"
     expected_optimized_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_proc.tif']
     expected_deleted_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.tif']
     save_optimized_files = True
-    
+
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
@@ -95,7 +95,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 class SeedModelInGeotiffBrowse(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     storage_dir = "data/test_data"
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.xml"
-    
+
     expected_browse_type = "MER_FRS"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 128, 6: 256}
 
@@ -103,12 +103,12 @@ class SeedModelInGeotiffBrowse(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase)
 class IngestModelInGeotiffBrowseGoogleMercator(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     storage_dir = "data/test_data"
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_GOOGLE_MERCATOR.xml"
-    
+
     expected_ingested_browse_ids = ("MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_MERCATOR",)
     expected_inserted_into_series = "TEST_GOOGLE_MERCATOR"
     expected_optimized_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_proc.tif']
     expected_deleted_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.tif']
-    
+
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
@@ -131,7 +131,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 class SeedModelInGeotiffBrowseGoogleMercator(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     storage_dir = "data/test_data"
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_GOOGLE_MERCATOR.xml"
-    
+
     expected_browse_type = "GOOGLE_MERCATOR"
     expected_tiles = {0: 1, 1: 4, 2: 16, 3: 64, 4: 64, 5: 64, 6: 128}
 
@@ -143,13 +143,13 @@ class SeedModelInGeotiffBrowseGoogleMercator(SeedTestCaseMixIn, HttpMixIn, LiveS
 class IngestRectifiedBrowse(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     storage_dir = "data/test_data/"
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_nogeo.xml"
-    
+
     expected_ingested_browse_ids = ("MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced",)
     expected_inserted_into_series = "TEST_MER_FRS"
     expected_optimized_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_nogeo_proc.tif']
     expected_deleted_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_nogeo.tif']
     save_optimized_files = True
-    
+
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
@@ -172,7 +172,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 class SeedRectifiedBrowse(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     storage_dir = "data/test_data/"
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_nogeo.xml"
-    
+
     expected_browse_type = "MER_FRS"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 128, 6: 256}
 
@@ -184,7 +184,7 @@ class SeedRectifiedBrowse(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
 class IngestRegularGridBrowse(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     storage_dir = "data/test_data"
     request_file = "test_data/ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775.xml"
-    
+
     expected_ingested_browse_ids = ("ASAR",)
     expected_inserted_into_series = "TEST_ASA_WSM"
     expected_optimized_files = ['ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775_proc.tif']
@@ -213,14 +213,14 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 class SeedRegularGridBrowse(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     storage_dir = "data/test_data"
     request_file = "test_data/ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775.xml"
-    
+
     expected_browse_type = "ASA_WSM"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64}
 
 class IngestRegularGridBrowse2(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     storage_dir = "data/feed_test_data"
     request_file = "feed_test_data/BrowseReport.xml"
-    
+
     expected_ingested_browse_ids = ("a20120101T043724405923",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['quick-look_proc.tif']
@@ -248,7 +248,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 class SeedRegularGridBrowse2(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     storage_dir = "data/feed_test_data"
     request_file = "feed_test_data/BrowseReport.xml"
-    
+
     expected_browse_type = "SAR"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64}
 
@@ -256,10 +256,10 @@ class SeedRegularGridBrowse2(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
 #===============================================================================
 # Ingest Footprint browse test cases
 #===============================================================================
-    
+
 class IngestFootprintBrowse(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
-    
+
     expected_ingested_browse_ids = ("b_id_1",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['ASA_IM__0P_20100722_213840_proc.tif']
@@ -287,18 +287,18 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class SeedFootprintBrowse(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
-    
+
     expected_browse_type = "SAR"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
 
 class IngestFootprintBrowse2(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100731_103315.xml"
-    
+
     expected_ingested_browse_ids = ("b_id_2",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['ASA_IM__0P_20100731_103315_proc.tif']
     expected_deleted_files = ['ASA_IM__0P_20100731_103315.jpg']
-    
+
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
@@ -320,18 +320,18 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class SeedFootprintBrowse2(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100731_103315.xml"
-    
+
     expected_browse_type = "SAR"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
 
 class IngestFootprintBrowse3(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100813_102453.xml"
-    
+
     expected_ingested_browse_ids = ("b_id_5",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['ASA_IM__0P_20100813_102453_proc.tif']
     expected_deleted_files = ['ASA_IM__0P_20100813_102453.jpg']
-    
+
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
@@ -353,19 +353,19 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class SeedFootprintBrowse3(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100813_102453.xml"
-    
+
     expected_browse_type = "SAR"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
 
 class IngestFootprintBrowse7(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     storage_dir = "data/aiv_test_data"
     request_file = "aiv_test_data/BrowseReport.xml"
-    
+
     expected_ingested_browse_ids = ("NGEO-FEED-VTC-0040",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['NGEO-FEED-VTC-0040_proc.tif']
     expected_deleted_files = ['NGEO-FEED-VTC-0040.jpg']
-    
+
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
@@ -388,7 +388,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 class SeedFootprintBrowse7(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     storage_dir = "data/aiv_test_data"
     request_file = "aiv_test_data/BrowseReport.xml"
-    
+
     expected_browse_type = "SAR"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64}
 
@@ -399,12 +399,12 @@ class SeedFootprintBrowse7(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
 
 class IngestFootprintBrowse4(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100719_105257.xml"
-    
+
     expected_ingested_browse_ids = ("b_id_9",)
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['ATS_TOA_1P_20100719_105257_proc.tif']
     expected_deleted_files = ['ATS_TOA_1P_20100719_105257.jpg']
-    
+
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
@@ -426,18 +426,18 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class SeedFootprintBrowse4(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100719_105257.xml"
-    
+
     expected_browse_type = "OPTICAL"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
 
 class IngestFootprintBrowse5(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100719_213253.xml"
-    
+
     expected_ingested_browse_ids = ("b_id_10",)
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['ATS_TOA_1P_20100719_213253_proc.tif']
     expected_deleted_files = ['ATS_TOA_1P_20100719_213253.jpg']
-    
+
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
@@ -459,18 +459,18 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class SeedFootprintBrowse5(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100719_213253.xml"
-    
+
     expected_browse_type = "OPTICAL"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
 
 class IngestFootprintBrowse6(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606.xml"
-    
+
     expected_ingested_browse_ids = ("b_id_11",)
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['ATS_TOA_1P_20100722_101606_proc.tif']
     expected_deleted_files = ['ATS_TOA_1P_20100722_101606.jpg']
-    
+
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
@@ -492,7 +492,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class SeedFootprintBrowse6(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606.xml"
-    
+
     expected_browse_type = "OPTICAL"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64}
 
@@ -503,13 +503,13 @@ class SeedFootprintBrowse6(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
 
 class IngestBrowseNoID(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606_noid.xml"
-    
+
     expected_ingested_browse_ids = (None,)
     expected_ingested_coverage_ids = ("20100722101606000000_20100722101722000000",)
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['ATS_TOA_1P_20100722_101606_proc.tif']
     expected_deleted_files = ['ATS_TOA_1P_20100722_101606.jpg']
-    
+
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
@@ -531,19 +531,19 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class SeedBrowseNoID(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606_noid.xml"
-    
+
     expected_browse_type = "OPTICAL"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64}
 
 class IngestBrowseSpecialID(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606_specialid.xml"
-    
+
     expected_ingested_browse_ids = ("#some:#special:id",)
     expected_ingested_coverage_ids = ("20100722101606000000_20100722101722000000",)
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['ATS_TOA_1P_20100722_101606_proc.tif']
     expected_deleted_files = ['ATS_TOA_1P_20100722_101606.jpg']
-    
+
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
@@ -565,20 +565,20 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class SeedBrowseSpecialID(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606_specialid.xml"
-    
+
     expected_browse_type = "OPTICAL"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64}
 
 
 class IngestBrowseFilenameStartsWithNumber(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     storage_dir = "data/test_data"
-    
+
     expected_ingested_browse_ids = ("identifier",)
     expected_ingested_coverage_ids = ("identifier",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['20120101T091526510-20120101T091714560_D_T-XI0B_proc.tif']
     expected_deleted_files = ['20120101T091526510-20120101T091714560_D_T-XI0B.jpg']
-    
+
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" version="1.1">
@@ -599,7 +599,7 @@ class IngestBrowseFilenameStartsWithNumber(IngestTestCaseMixIn, HttpTestCaseMixi
   </rep:browse>
 </rep:browseReport>
 """
-    
+
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
@@ -621,7 +621,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class IngestBrowseSubfolderFilename(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     storage_dir = "data/test_data"
-    
+
     expected_ingested_browse_ids = ("identifier",)
     expected_ingested_coverage_ids = ("identifier",)
     expected_inserted_into_series = "TEST_SAR"
@@ -671,7 +671,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 class IngestModelInGeotiffBrowseCompicatedFootprint(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     """See issue #59"""
     storage_dir = "data/test_data"
-    
+
     expected_ingested_browse_ids = ("DWH_MG2_SIRI_ADD_010a_40",)
     expected_ingested_coverage_ids = ("DWH_MG2_SIRI_ADD_010a_40",)
     expected_inserted_into_series = "TEST_SAR"
@@ -718,13 +718,13 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 class IngestBrowseCrossesDateline(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "test_data/BrowseReport_crosses_dateline.xml"
     storage_dir = "data/test_data"
-    
+
     expected_ingested_browse_ids = ("_20120101T022322540-20120101T030036350_D_T-AA0B",)
     expected_ingested_coverage_ids = ("_20120101T022322540-20120101T030036350_D_T-AA0B",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['_20120101T022322540-20120101T030036350_D_T-AA0B_proc.tif']
     expected_deleted_files = ['_20120101T022322540-20120101T030036350_D_T-AA0B.jpg']
-    
+
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
@@ -751,13 +751,13 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 class IngestBrowseInternalGCPs(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "gcps/1396863968337_BrowseServerIngest_1396863968062_input.xml"
     storage_dir = "data/gcps"
-    
+
     expected_ingested_browse_ids = ("ID_DODWH_MG2_CORE_09DM010001_1",)
     expected_ingested_coverage_ids = ("ID_DODWH_MG2_CORE_09DM010001_1",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['ID_DEIMOS01-v2_DE0028bfp_L3R_proc.tif']
     expected_deleted_files = ['ID_DEIMOS01-v2_DE0028bfp_L3R.tif']
-    
+
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
@@ -783,7 +783,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class IngestFootprintBrowseGroup(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"
-    
+
     expected_ingested_browse_ids = ("b_id_6", "b_id_7", "b_id_8")
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['ASA_WS__0P_20100719_101023_proc.tif',
@@ -822,7 +822,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class SeedFootprintBrowseGroup(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"
-    
+
     expected_browse_type = "SAR"
     expected_tiles = {0: 6, 1: 24, 2: 96, 3: 384, 4: 384}
 
@@ -833,15 +833,15 @@ class SeedFootprintBrowseGroup(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase)
 class IngestFootprintBrowseReplace(IngestReplaceTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_before_test_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327.xml"
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_new.xml"
-    
+
     expected_num_replaced = 1
-    
+
     expected_ingested_browse_ids = ("b_id_3",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['ASA_IM__0P_20100807_101327_new_proc.tif']
     expected_deleted_files = ['ASA_IM__0P_20100807_101327_new.jpg']
     expected_deleted_optimized_files = ['ASA_IM__0P_20100807_101327.tif']
-    
+
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
@@ -865,15 +865,15 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 class IngestFootprintBrowseMerge(IngestMergeTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_before_test_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327.xml"
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_new_merge.xml"
-    
+
     expected_num_replaced = 0
-    
+
     expected_ingested_browse_ids = ("b_id_3",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['ASA_IM__0P_20100807_101327_new_proc.tif']
     expected_deleted_files = ['ASA_IM__0P_20100807_101327_new.jpg']
     expected_deleted_optimized_files = ['ASA_IM__0P_20100807_101327.tif']
-    
+
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
@@ -900,7 +900,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class IngestFootprintBrowseGroupPartial(IngestTestCaseMixIn, HttpTestCaseMixin, TransactionTestCase):
     request_file = "reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group_partial.xml"
-    
+
     expected_ingested_browse_ids = ("b_id_6", "b_id_8")
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['ASA_WS__0P_20100719_101023_proc.tif',
@@ -941,7 +941,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class SeedFootprintBrowseGroupPartial(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     request_file = "reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group_partial.xml"
-    
+
     expected_browse_type = "SAR"
     expected_tiles = {0: 4, 1: 16, 2: 64, 3: 256, 4: 256}
 
@@ -953,31 +953,31 @@ class SeedFootprintBrowseGroupPartial(SeedTestCaseMixIn, HttpMixIn, LiveServerTe
 
 class SeedMerge1(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
     """ Simple merging of two time windows. """
-    
-    request_files = ("merge_test_data/br_merge_1.xml", 
+
+    request_files = ("merge_test_data/br_merge_1.xml",
                      "merge_test_data/br_merge_2.xml"
                      )
-    
+
     storage_dir = "data/merge_test_data"
-    
+
     expected_browse_type = "SAR"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
     expected_seeded_areas = [
         (parse_datetime("2010-07-22T21:38:40Z"),
          parse_datetime("2010-07-22T21:40:38Z"))
     ]
-    
-    
+
+
 class SeedMerge2(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
     """ Merging 2 time windows with a third. """
-    
+
     request_files = ("merge_test_data/br_merge_1.xml",
                      "merge_test_data/br_merge_3.xml",
                      "merge_test_data/br_merge_2.xml",
                      )
-    
+
     storage_dir = "data/merge_test_data"
-    
+
     expected_browse_type = "SAR"
     expected_tiles = {0: 4, 1: 16, 2: 64, 3: 192, 4: 192}
     expected_seeded_areas = [
@@ -990,7 +990,7 @@ class SeedMerge2(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
 
 class SeedMerge2_2(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
     """ Merging 2 time windows with a third. """
-    
+
     request_files = ("merge_test_data/br_merge_1.xml",
                      "merge_test_data/br_merge_2.xml",
                      "merge_test_data/br_merge_3.xml",
@@ -1010,15 +1010,15 @@ class SeedMerge2_2(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase
 
 class SeedMerge3(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
     """ Splitting consquent time window in seperate. """
-    
-    request_files = ("merge_test_data/br_merge_1.xml", 
+
+    request_files = ("merge_test_data/br_merge_1.xml",
                      "merge_test_data/br_merge_2.xml",
                      "merge_test_data/br_merge_3.xml",
                      "merge_test_data/br_merge_3_replace.xml",
                      )
-    
+
     storage_dir = "data/merge_test_data"
-    
+
     expected_browse_type = "SAR"
     expected_tiles = {0: 4, 1: 16, 2: 64, 3: 192, 4: 192}
     expected_seeded_areas = [
@@ -1032,14 +1032,14 @@ class SeedMerge3(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
 class SeedMerge4(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
     """ Splitting consquent time window in two seperate but with slight overlap.
     """
-    
+
     request_files = ("merge_test_data/br_merge_2.xml",
                      "merge_test_data/br_merge_3.xml",
                      "merge_test_data/br_merge_3_replace_2.xml",
                      )
-    
+
     storage_dir = "data/merge_test_data"
-    
+
     expected_browse_type = "SAR"
     expected_tiles = {0: 4, 1: 16, 2: 64, 3: 192, 4: 192}
     expected_seeded_areas = [
@@ -1053,14 +1053,14 @@ class SeedMerge4(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
 class SeedMerge5(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
     """ Merging two time windows with a replacement.
     """
-    
+
     request_files = ("merge_test_data/br_merge_1.xml",
                      "merge_test_data/br_merge_3.xml",
                      "merge_test_data/br_merge_3_replace_3.xml",
                      )
-    
+
     storage_dir = "data/merge_test_data"
-    
+
     expected_browse_type = "SAR"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
     expected_seeded_areas = [
@@ -1076,8 +1076,8 @@ class IngestFailureNoInputFile(IngestFailureTestCaseMixIn, HttpTestCaseMixin, Te
     expected_failed_browse_ids = ("FAILURE",)
     expected_generated_failure_browse_report = "SAR_EOX_20121002093000000000_(.*).xml"
 
-    request_file = "test_data/BrowseReport_FAILURE.xml" 
-    
+    request_file = "test_data/BrowseReport_FAILURE.xml"
+
     @property
     def expected_response(self):
         return """\
@@ -1111,7 +1111,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class IngestFailureInvalidXML(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     expect_exception = True
-    
+
     request = ""
 
     expected_response = """\
@@ -1125,7 +1125,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class IngestFailureInvalidRootTag(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     expect_exception = True
-    
+
     request = "<someRoot></someRoot>"
 
     expected_response = """\
@@ -1140,7 +1140,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class IngestFailureMissingElement(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     expect_exception = True
-    
+
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
@@ -1161,7 +1161,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class IngestFailureUnexpectedNumber(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     expect_exception = True
-    
+
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
@@ -1184,7 +1184,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class IngestFailureExpectedAtMost(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     expect_exception = True
-    
+
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
@@ -1196,7 +1196,7 @@ class IngestFailureExpectedAtMost(IngestFailureTestCaseMixIn, HttpTestCaseMixin,
         <rep:browseIdentifier>YYY</rep:browseIdentifier>
         <rep:fileName>MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_nogeo.tif</rep:fileName>
         <rep:imageType>TIFF</rep:imageType>
-        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier>
         <rep:rectifiedBrowse>
             <rep:coordList>32.1902500 8.4784500 46.2686450 25.4101500</rep:coordList>
         </rep:rectifiedBrowse>
@@ -1218,7 +1218,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class IngestFailureMissingGeospatialReference(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     expect_exception = True
-    
+
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
@@ -1255,7 +1255,7 @@ class IngestFailureIDStartsWithNumber(IngestFailureTestCaseMixIn, HttpTestCaseMi
     expected_failed_browse_ids = ("11_id_starts_with_number",)
     expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
     expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
-    
+
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
@@ -1266,7 +1266,7 @@ class IngestFailureIDStartsWithNumber(IngestFailureTestCaseMixIn, HttpTestCaseMi
         <rep:browseIdentifier>11_id_starts_with_number</rep:browseIdentifier>
         <rep:fileName>ATS_TOA_1P_20100722_101606.jpg</rep:fileName>
         <rep:imageType>Jpeg</rep:imageType>
-        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier>
         <rep:footprint nodeNumber="5">
             <rep:colRowList>0 0 128 0 128 129 0 129 0 0</rep:colRowList>
             <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
@@ -1305,7 +1305,7 @@ class IngestFailureEndBeforeStart(IngestFailureTestCaseMixIn, HttpTestCaseMixin,
     expected_failed_browse_ids = ("FAILURE",)
     expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
     expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
-    
+
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
@@ -1316,7 +1316,7 @@ class IngestFailureEndBeforeStart(IngestFailureTestCaseMixIn, HttpTestCaseMixin,
         <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
         <rep:fileName>ATS_TOA_1P_20100722_101606.jpg</rep:fileName>
         <rep:imageType>Jpeg</rep:imageType>
-        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier>
         <rep:footprint nodeNumber="5">
             <rep:colRowList>0 0 128 0 128 129 0 129 0 0 </rep:colRowList>
             <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
@@ -1365,7 +1365,7 @@ class IngestFailureInvalidFilename(IngestFailureTestCaseMixIn, HttpTestCaseMixin
         <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
         <rep:fileName>#?.jpg</rep:fileName>
         <rep:imageType>Jpeg</rep:imageType>
-        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier>
         <rep:footprint nodeNumber="5">
             <rep:colRowList>0 0 128 0 128 129 0 129 0 0</rep:colRowList>
             <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
@@ -1406,7 +1406,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class IngestFailureBrowseTypeDoesNotExist(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     expect_exception = True
-    
+
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.1">
@@ -1417,7 +1417,7 @@ class IngestFailureBrowseTypeDoesNotExist(IngestFailureTestCaseMixIn, HttpTestCa
         <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
         <rep:fileName>NGEO-FEED-VTC-0040.jpg</rep:fileName>
         <rep:imageType>PNG</rep:imageType>
-        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier>
         <rep:footprint nodeNumber="7">
             <rep:colRowList>0 0 7 0 0 0</rep:colRowList>
             <rep:coordList>48.46 16.1001 48.48 16.1 48.46 16.1001</rep:coordList>
@@ -1442,7 +1442,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 class IngestFailureWrongRelativeFilename(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TransactionTestCase):
     expected_failed_browse_ids = ("identifier",)
     expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
-    
+
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
@@ -1453,7 +1453,7 @@ class IngestFailureWrongRelativeFilename(IngestFailureTestCaseMixIn, HttpTestCas
         <rep:browseIdentifier>identifier</rep:browseIdentifier>
         <rep:fileName>../input_filename.jpg</rep:fileName>
         <rep:imageType>Jpeg</rep:imageType>
-        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier>
         <rep:footprint nodeNumber="5">
             <rep:colRowList>0 0 128 0 128 129 0 129 0 0</rep:colRowList>
             <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
@@ -1491,7 +1491,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 class IngestFailureWrongAbsoluteFilename(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TransactionTestCase):
     expected_failed_browse_ids = ("identifier",)
     expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
-    
+
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
@@ -1502,7 +1502,7 @@ class IngestFailureWrongAbsoluteFilename(IngestFailureTestCaseMixIn, HttpTestCas
         <rep:browseIdentifier>identifier</rep:browseIdentifier>
         <rep:fileName>/etc/absolute_filename.jpg</rep:fileName>
         <rep:imageType>Jpeg</rep:imageType>
-        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier>
         <rep:footprint nodeNumber="5">
             <rep:colRowList>0 0 128 0 128 129 0 129 0 0</rep:colRowList>
             <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
@@ -1541,7 +1541,7 @@ class IngestFailureFootprintNoCircle(IngestFailureTestCaseMixIn, HttpTestCaseMix
     expected_failed_browse_ids = ("FAILURE",)
     expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
     expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
-    
+
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
@@ -1552,7 +1552,7 @@ class IngestFailureFootprintNoCircle(IngestFailureTestCaseMixIn, HttpTestCaseMix
         <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
         <rep:fileName>ATS_TOA_1P_20100722_101606.jpg</rep:fileName>
         <rep:imageType>Jpeg</rep:imageType>
-        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier>
         <rep:footprint nodeNumber="5">
             <rep:colRowList>0 0 128 0 128 129 0 129</rep:colRowList>
             <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82</rep:coordList>
@@ -1601,7 +1601,7 @@ class IngestFailureInvalidReferenceSystem(IngestFailureTestCaseMixIn, HttpTestCa
         <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
         <rep:fileName>ATS_TOA_1P_20100722_101606.jpg</rep:fileName>
         <rep:imageType>Jpeg</rep:imageType>
-        <rep:referenceSystemIdentifier>INVALID</rep:referenceSystemIdentifier> 
+        <rep:referenceSystemIdentifier>INVALID</rep:referenceSystemIdentifier>
         <rep:footprint nodeNumber="5">
             <rep:colRowList>0 0 128 0 128 129 0 129 0 0</rep:colRowList>
             <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
@@ -1640,7 +1640,7 @@ class IngestFailureUnknownReferenceSystem(IngestFailureTestCaseMixIn, HttpTestCa
     expected_failed_browse_ids = ("FAILURE",)
     expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
     expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
-    
+
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
@@ -1651,7 +1651,7 @@ class IngestFailureUnknownReferenceSystem(IngestFailureTestCaseMixIn, HttpTestCa
         <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
         <rep:fileName>ATS_TOA_1P_20100722_101606.jpg</rep:fileName>
         <rep:imageType>Jpeg</rep:imageType>
-        <rep:referenceSystemIdentifier>EPSG:999999</rep:referenceSystemIdentifier> 
+        <rep:referenceSystemIdentifier>EPSG:999999</rep:referenceSystemIdentifier>
         <rep:footprint nodeNumber="5">
             <rep:colRowList>0 0 128 0 128 129 0 129 0 0</rep:colRowList>
             <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
@@ -1689,7 +1689,7 @@ class IngestFailureRAWReferenceSystem(IngestFailureTestCaseMixIn, HttpTestCaseMi
     expected_failed_browse_ids = ("FAILURE",)
     expected_failed_files = ["ATS_TOA_1P_20100722_101606.jpg"]
     expected_generated_failure_browse_report = "OPTICAL_ESA_20121002093000000000_(.*).xml"
-    
+
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
@@ -1700,7 +1700,7 @@ class IngestFailureRAWReferenceSystem(IngestFailureTestCaseMixIn, HttpTestCaseMi
         <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
         <rep:fileName>ATS_TOA_1P_20100722_101606.jpg</rep:fileName>
         <rep:imageType>Jpeg</rep:imageType>
-        <rep:referenceSystemIdentifier>RAW</rep:referenceSystemIdentifier> 
+        <rep:referenceSystemIdentifier>RAW</rep:referenceSystemIdentifier>
         <rep:footprint nodeNumber="5">
             <rep:colRowList>0 0 128 0 128 129 0 129 0 0</rep:colRowList>
             <rep:coordList>52.94 3.45 51.65 10.65 47.28 8.41 48.51 1.82 52.94 3.45</rep:coordList>
@@ -1736,21 +1736,21 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class IngestFailureContradictingIDs(IngestFailureTestCaseMixIn, IngestReplaceTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_before_test_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327.xml"
-    
+
     expected_num_replaced = 0
     expected_failed_browse_ids = ("FAILURE",)
     expected_failed_files = ["ASA_IM__0P_20100807_101327_new.jpg"]
-    expected_generated_failure_browse_report = "SAR_ESA_20121002093000000000_(.*).xml"    
-    
+    expected_generated_failure_browse_report = "SAR_ESA_20121002093000000000_(.*).xml"
+
     expected_ingested_browse_ids = ()
     expected_optimized_files = ['ASA_IM__0P_20100807_101327_proc.tif']
     expected_deleted_files = ['ASA_IM__0P_20100807_101327_new.jpg']
     expected_deleted_optimized_files = []
-    
+
     # disable those tests as they are not valid for exception tests
     test_expected_inserted_browses = None
     test_expected_inserted_into_series = None
-    
+
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
@@ -1761,7 +1761,7 @@ class IngestFailureContradictingIDs(IngestFailureTestCaseMixIn, IngestReplaceTes
         <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
         <rep:fileName>ASA_IM__0P_20100807_101327_new.jpg</rep:fileName>
         <rep:imageType>Jpeg</rep:imageType>
-        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier>
         <rep:footprint nodeNumber="5">
             <rep:colRowList>0 0 494 0 494 861 0 861 0 0</rep:colRowList>
             <rep:coordList>51.8 2.45 51.58 3.99 49.89 3.36 50.1 1.87 51.8 2.45</rep:coordList>
@@ -1771,7 +1771,7 @@ class IngestFailureContradictingIDs(IngestFailureTestCaseMixIn, IngestReplaceTes
     </rep:browse>
 </rep:browseReport>
 """
-    
+
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
@@ -1798,11 +1798,11 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class IngestFailureNoValidTransformException(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     storage_dir = "data/aiv_test_data"
-    
+
     expected_failed_browse_ids = ("FAILURE",)
     expected_failed_files = ["NGEO-FEED-VTC-0040.jpg"]
     expected_generated_failure_browse_report = "SAR_ESA_20121002093000000000_(.*).xml"
-    
+
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.1">
@@ -1813,7 +1813,7 @@ class IngestFailureNoValidTransformException(IngestFailureTestCaseMixIn, HttpTes
         <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
         <rep:fileName>NGEO-FEED-VTC-0040.jpg</rep:fileName>
         <rep:imageType>PNG</rep:imageType>
-        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier>
         <rep:footprint nodeNumber="7">
             <rep:colRowList>0 0 7 0 0 0</rep:colRowList>
             <rep:coordList>48.46 16.1001 48.48 16.1 48.46 16.1001</rep:coordList>
@@ -1850,11 +1850,11 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class IngestFailureInvalidRegularGrid1(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     storage_dir = "data/test_data"
-    
+
     expected_failed_browse_ids = ("FAILURE",)
     expected_failed_files = ["ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775.tif"]
     expected_generated_failure_browse_report = "ASA_WSM_EOX_20121002093000000000_(.*).xml"
-    
+
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
@@ -1865,7 +1865,7 @@ class IngestFailureInvalidRegularGrid1(IngestFailureTestCaseMixIn, HttpTestCaseM
         <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
         <rep:fileName>ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775.tif</rep:fileName>
         <rep:imageType>TIFF</rep:imageType>
-        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier>
         <rep:regularGrid>
             <rep:colNodeNumber>10</rep:colNodeNumber>
             <rep:rowNodeNumber>11</rep:rowNodeNumber>
@@ -1913,11 +1913,11 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class IngestFailureInvalidRegularGrid2(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     storage_dir = "data/test_data"
-    
+
     expected_failed_browse_ids = ("FAILURE",)
     expected_failed_files = ["ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775.tif"]
     expected_generated_failure_browse_report = "ASA_WSM_EOX_20121002093000000000_(.*).xml"
-    
+
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
@@ -1928,7 +1928,7 @@ class IngestFailureInvalidRegularGrid2(IngestFailureTestCaseMixIn, HttpTestCaseM
         <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
         <rep:fileName>ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775.tif</rep:fileName>
         <rep:imageType>TIFF</rep:imageType>
-        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier>
         <rep:regularGrid>
             <rep:colNodeNumber>10</rep:colNodeNumber>
             <rep:rowNodeNumber>11</rep:rowNodeNumber>
@@ -1976,11 +1976,11 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 class IngestFailureUnsupportedFormat(IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     storage_dir = "data/test_data"
-    
+
     expected_failed_browse_ids = ("FAILURE",)
     expected_failed_files = ["empty.tif"]
     expected_generated_failure_browse_report = "ASA_WSM_EOX_20121002093000000000_(.*).xml"
-    
+
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
@@ -1991,13 +1991,13 @@ class IngestFailureUnsupportedFormat(IngestFailureTestCaseMixIn, HttpTestCaseMix
         <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
         <rep:fileName>empty.tif</rep:fileName>
         <rep:imageType>TIFF</rep:imageType>
-        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier>
         <rep:modelInGeotiff>true</rep:modelInGeotiff>
         <rep:startTime>2012-10-02T09:20:00Z</rep:startTime>
         <rep:endTime>2012-10-02T09:20:00Z</rep:endTime>
     </rep:browse>
 </rep:browseReport>"""
- 
+
     @property
     def expected_response(self):
         return """\
@@ -2029,90 +2029,90 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 # Raster test cases
 #===============================================================================
 
-    
+
 class IngestRasterOverviewsAutomatic(BaseTestCaseMixIn, HttpMixIn, OverviewMixIn, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "2010", "ASA_IM__0P_20100722_213840_proc.tif"))
-    
+
     configuration = {
         (INGEST_SECTION, "overviews"): "true",
         (INGEST_SECTION, "overview_minsize"): "100"
     }
-    
+
     expected_overview_count = 4
-    
+
 
 class IngestRasterOverviewsFixed(BaseTestCaseMixIn, HttpMixIn, OverviewMixIn, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "2010", "ASA_IM__0P_20100722_213840_proc.tif"))
-    
+
     configuration = {
         (INGEST_SECTION, "overviews"): "true",
         (INGEST_SECTION, "overview_levels"): "2,4"
     }
-    
+
     expected_overview_count = 2
 
 
 class IngestRasterNoOverviews(BaseTestCaseMixIn, HttpMixIn, OverviewMixIn, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "2010", "ASA_IM__0P_20100722_213840_proc.tif"))
-    
+
     configuration = {
         (INGEST_SECTION, "overviews"): "false"
     }
-    
+
     expected_overview_count = 0
 
-        
+
 class IngestRasterCompression(BaseTestCaseMixIn, HttpMixIn, CompressionMixIn, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "2010", "ASA_IM__0P_20100722_213840_proc.tif"))
-    
+
     configuration = {
         (INGEST_SECTION, "compression"): "DEFLATE"
     }
-    
+
     expected_compression = "DEFLATE"
 
 
 class IngestRasterNoCompression(BaseTestCaseMixIn, HttpMixIn, CompressionMixIn, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "2010", "ASA_IM__0P_20100722_213840_proc.tif"))
-    
+
     configuration = {
         (INGEST_SECTION, "compression"): "NONE"
     }
-    
+
     expected_compression = None
 
 
 class IngestRasterFootprintAlpha(BaseTestCaseMixIn, HttpMixIn, BandCountMixIn, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "2010", "ASA_IM__0P_20100722_213840_proc.tif"))
-    
+
     configuration = {
         (INGEST_SECTION, "footprint_alpha"): "true"
     }
-    
+
     expected_band_count = 4
 
 
 class IngestRasterNoFootprintAlpha(BaseTestCaseMixIn, HttpMixIn, BandCountMixIn, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "2010", "ASA_IM__0P_20100722_213840_proc.tif"))
-    
+
     configuration = {
         (INGEST_SECTION, "footprint_alpha"): None
     }
-    
+
     expected_band_count = 3
 
 
 class IngestRasterColorIndex(BaseTestCaseMixIn, HttpMixIn, HasColorTableMixIn, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "2010", "ASA_IM__0P_20100722_213840_proc.tif"))
-    
+
     configuration = {
         (INGEST_SECTION, "color_index"): "true",
         (INGEST_SECTION, "footprint_alpha"): "false",
@@ -2122,33 +2122,33 @@ class IngestRasterColorIndex(BaseTestCaseMixIn, HttpMixIn, HasColorTableMixIn, T
 class IngestRasterExtent(BaseTestCaseMixIn, HttpMixIn, ExtentMixIn, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "2010", "ASA_IM__0P_20100722_213840_proc.tif"))
-    
-    expected_extent = (-2.7900000000000005, 
-                       49.461072913650007, 
-                       -0.029483356685718665, 
+
+    expected_extent = (-2.7900000000000005,
+                       49.461072913650007,
+                       -0.029483356685718665,
                        53.079999999999998)
 
 
 class IngestRasterSize(BaseTestCaseMixIn, HttpMixIn, SizeMixIn, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "2010", "ASA_IM__0P_20100722_213840_proc.tif"))
-    
+
     expected_size = (1177, 1543)
 
 
 class IngestRasterProjectionEPSG4326(BaseTestCaseMixIn, HttpMixIn, ProjectionMixIn, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "2010", "ASA_IM__0P_20100722_213840_proc.tif"))
-    
+
     expected_projection_srid = 4326
 
 
 class IngestRasterStatistics(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "2010", "ASA_IM__0P_20100722_213840_proc.tif"))
-    
+
     save_to_file = "results/raster/IngestRasterStatistics.tif"
-    
+
     expected_statistics = [{
         "min": 0.0,
         "max": 255.0,
@@ -2184,30 +2184,30 @@ class IngestRasterStatistics(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, Test
 class IngestRasterStatisticsMultipleBands(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, TestCase):
     storage_dir = "data/test_data"
     request_file = "test_data/MER_FRS_1PNPDE20060816_090929_000001972050_00222_23322_0058_uint16_reduced_compressed.xml"
-    
+
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_MER_FRS_FULL", "2012", "MER_FRS_1PNPDE20060816_090929_000001972050_00222_23322_0058_uint16_reduced_compressed_proc.tif"))
-    
+
     expected_statistics = [
         {'max': 255.0, 'checksum': 30191, 'mean': 15.659451199310894, 'stddev': 22.103667727281124, 'min': 0.0},
         {'max': 255.0, 'checksum': 35428, 'mean': 13.540062615955472, 'stddev': 21.258531872828733, 'min': 0.0},
         {'max': 255.0, 'checksum': 16276, 'mean': 13.158705771269547, 'stddev': 21.48301977479764, 'min': 0.0},
-        {'max': 255.0, 'checksum': 20036, 'mean': 165.27394480519482, 'stddev': 121.7759380742111, 'min': 0.0} 
+        {'max': 255.0, 'checksum': 20036, 'mean': 165.27394480519482, 'stddev': 121.7759380742111, 'min': 0.0}
     ]
 
 
 class IngestRasterStatisticsMultipleBandsNoDefinition(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, TestCase):
     storage_dir = "data/test_data"
     request_file = "test_data/MER_FRS_1PNPDE20060816_090929_000001972050_00222_23322_0058_uint16_reduced_compressed_NO_BANDS.xml"
-    
+
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_MER_FRS_FULL_NO_BANDS", "2012", "MER_FRS_1PNPDE20060816_090929_000001972050_00222_23322_0058_uint16_reduced_compressed_proc.tif"))
-    
+
     expected_statistics = [
         {'max': 255.0, 'checksum': 33522, 'mean': 17.049554399681952, 'stddev': 22.625493105759691, 'min': 0.0},
         {'max': 255.0, 'checksum': 30191, 'mean': 15.659451199310894, 'stddev': 22.103667727281124, 'min': 0.0},
         {'max': 255.0, 'checksum': 6918, 'mean': 14.176099092234296, 'stddev': 21.602771443516307, 'min': 0.0},
-        {'max': 255.0, 'checksum': 20027, 'mean': 165.27394480519482, 'stddev': 121.7759380742111, 'min': 0.0} 
+        {'max': 255.0, 'checksum': 20027, 'mean': 165.27394480519482, 'stddev': 121.7759380742111, 'min': 0.0}
     ]
-    
+
 
 #===============================================================================
 # WMS Raster test cases
@@ -2220,19 +2220,19 @@ class IngestModelInGeoTiffWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixI
                        "layers": "TEST_MER_FRS_MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced",
                        "bbox": ",".join(map(str, (
                             32.1902500,
-                            8.4784500,  
-                            46.2686450, 
+                            8.4784500,
+                            46.2686450,
                             25.4101500))),
                        "width": 100,
                        "height": 100,
                     }
                    )
-    
+
     storage_dir = "data/test_data"
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.xml"
-    
+
     save_to_file = "results/wms/IngestModelInGeoTiffWMSRaster.png"
-    
+
     expected_statistics = [
         {'max': 255.0, 'checksum': 10021, 'mean': 40.744900000000001, 'stddev': 41.571134504485194, 'min': 0.0},
         {'max': 255.0, 'checksum': 9487, 'mean': 39.966999999999999, 'stddev': 40.339262648194257, 'min': 0.0},
@@ -2247,8 +2247,8 @@ class IngestRectifiedWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
                        "layers": "TEST_MER_FRS_MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced",
                        "bbox": ",".join(map(str, (
                             32.1902500,
-                            8.4784500,  
-                            46.2686450, 
+                            8.4784500,
+                            46.2686450,
                             25.4101500))),
                        "width": 100,
                        "height": 100,
@@ -2257,9 +2257,9 @@ class IngestRectifiedWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
 
     storage_dir = "data/test_data/"
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_nogeo.xml"
-    
+
     save_to_file = "results/wms/IngestRectifiedWMSRaster.png"
-    
+
     expected_statistics = [
         {'max': 255.0, 'checksum': 10021, 'mean': 40.744900000000001, 'stddev': 41.571134504485194, 'min': 0.0},
         {'max': 255.0, 'checksum': 9487, 'mean': 39.966999999999999, 'stddev': 40.339262648194257, 'min': 0.0},
@@ -2301,18 +2301,18 @@ class IngestFootprintWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
                        "layers": "TEST_SAR_b_id_1",
                        "bbox": ",".join(map(str, (
                             49.461072913649971,
-                            -2.7625000000000002,  
-                            53.079999999999998, 
+                            -2.7625000000000002,
+                            53.079999999999998,
                             -0.001983356685690385))),
                        "width": 100,
                        "height": 100,
                     }
                    )
-    
+
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
-    
+
     save_to_file = "results/wms/IngestFootprintWMSRaster.png"
-    
+
     expected_statistics = [{
         "min": 0.0,
         "max": 255.0,
@@ -2325,20 +2325,20 @@ class IngestFootprintWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
 class IngestRegularGridWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
     storage_dir = "data/test_data"
     request_file = "test_data/ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775.xml"
-    
+
     save_to_file = "results/wms/IngestRegularGridWMSRaster.png"
 
     wms_request = ("/ows?service=WMS&request=GetMap&version=1.3.0&"
                    "layers=%(layers)s&crs=EPSG:4326&bbox=%(bbox)s&"
                    "width=%(width)d&height=%(height)d&format=image/png" % {
                        "layers": "TEST_ASA_WSM_ASAR",
-                       "bbox": ",".join(map(str, 
+                       "bbox": ",".join(map(str,
                            (-36.259107, 16.727605000000001, -31.984922000000001, 22.301753999999999))),
                        "width": 100,
                        "height": 100,
                     }
                    )
-    
+
     expected_statistics = [
         {'max': 251.0, 'checksum': 10783, 'mean': 29.288, 'stddev': 33.909860748755662, 'min': 0.0}
     ] * 3
@@ -2348,9 +2348,9 @@ class IngestFootprintCrossesDatelineRaster(BaseTestCaseMixIn, HttpMixIn, Statist
     """ Test the region until the dateline border. """
     storage_dir = "data/test_data"
     request_file = "test_data/BrowseReport_crosses_dateline.xml"
-    
+
     save_to_file = "results/wms/IngestFootprintCrossesDatelineRaster.png"
-    
+
     wms_request = ("/ows?service=WMS&request=GetMap&version=1.3.0&"
                    "layers=%(layers)s&crs=EPSG:4326&bbox=%(bbox)s&"
                    "width=%(width)d&height=%(height)d&format=image/png" % {
@@ -2360,21 +2360,21 @@ class IngestFootprintCrossesDatelineRaster(BaseTestCaseMixIn, HttpMixIn, Statist
                        "height": 100,
                     }
                    )
-    
+
     expected_statistics = [
         {'checksum': 22981, 'max': 250.0, 'mean': 149.01589999999999, 'min': 0.0, 'stddev': 116.91123405041111},
         {'checksum': 17526, 'max': 249.0, 'mean': 147.9785, 'min': 0.0, 'stddev': 116.12415441134544},
         {'checksum': 1612, 'max': 242.0, 'mean': 140.79480000000001, 'min': 0.0, 'stddev': 110.58494785891973}
     ]
-    
+
 class IngestFootprintCrossesDatelineRasterSecond(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
     """ Test the region that overlaps the dateline boundary """
-    
+
     storage_dir = "data/test_data"
     request_file = "test_data/BrowseReport_crosses_dateline.xml"
-    
+
     save_to_file = "results/wms/IngestFootprintCrossesDatelineRasterSecond.png"
-    
+
     wms_request = ("/ows?service=WMS&request=GetMap&version=1.3.0&"
                    "layers=%(layers)s&crs=EPSG:4326&bbox=%(bbox)s&"
                    "width=%(width)d&height=%(height)d&format=image/png" % {
@@ -2384,21 +2384,21 @@ class IngestFootprintCrossesDatelineRasterSecond(BaseTestCaseMixIn, HttpMixIn, S
                        "height": 100,
                     }
                    )
-    
+
     expected_statistics = [
         {'checksum': 22981, 'max': 250.0, 'mean': 149.01589999999999, 'min': 0.0, 'stddev': 116.91123405041111},
         {'checksum': 17526, 'max': 249.0, 'mean': 147.9785, 'min': 0.0, 'stddev': 116.12415441134544},
         {'checksum': 1612, 'max': 242.0, 'mean': 140.79480000000001, 'min': 0.0, 'stddev': 110.58494785891973}
     ]
-    
+
 class IngestFootprintCrossesDatelineRasterThird(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
     """ Test the region that overlaps the dateline boundary """
-    
+
     storage_dir = "data/test_data"
     request_file = "test_data/BrowseReport_crosses_dateline.xml"
-    
+
     save_to_file = "results/wms/IngestFootprintCrossesDatelineRasterThird.png"
-    
+
     wms_request = ("/ows?service=WMS&request=GetMap&version=1.3.0&"
                    "layers=%(layers)s&crs=EPSG:4326&bbox=%(bbox)s&"
                    "width=%(width)d&height=%(height)d&format=image/png" % {
@@ -2408,7 +2408,7 @@ class IngestFootprintCrossesDatelineRasterThird(BaseTestCaseMixIn, HttpMixIn, St
                        "height": 1000,
                     }
                    )
-    
+
     expected_statistics = [
         {'checksum': 18991, 'max': 255.0, 'mean': 2.361958, 'min': 0.0, 'stddev': 22.611632015540938},
         {'checksum': 46269, 'max': 255.0, 'mean': 2.4702989999999998, 'min': 0.0, 'stddev': 22.501223318979772},
@@ -2422,7 +2422,7 @@ class IngestFootprintCrossesDatelineRasterThird(BaseTestCaseMixIn, HttpMixIn, St
 
 class IngestFromCommand(IngestTestCaseMixIn, CliMixIn, TestCase):
     args = (join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_IM__0P_20100807_101327.xml"),)
-    
+
     expected_ingested_browse_ids = ("b_id_3",)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ("ASA_IM__0P_20100807_101327_proc.tif",)
@@ -2437,10 +2437,10 @@ class DeleteFromCommand(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveSe
     kwargs = {
         "layer" : "TEST_SAR"
     }
-    
-    args_before_test = ["manage.py", "ngeo_ingest_browse_report", 
+
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
                         join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
-    
+
     expected_remaining_browses = 0
     expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100719_101023_proc.tif',
                               'TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif',
@@ -2453,10 +2453,10 @@ class DeleteFromCommandStart(DeleteTestCaseMixIn, CliMixIn, TestCase):
         "layer" : "TEST_SAR",
         "start": "2010-07-25T10:22Z"
     }
-    
-    args_before_test = ["manage.py", "ngeo_ingest_browse_report", 
+
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
                         join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
-    
+
     expected_remaining_browses = 2
     expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100725_102231_proc.tif']
 
@@ -2465,10 +2465,10 @@ class DeleteFromCommandEnd(DeleteTestCaseMixIn, CliMixIn, TestCase):
         "layer" : "TEST_SAR",
         "end": "2010-07-25T10:22Z"
     }
-    
-    args_before_test = ["manage.py", "ngeo_ingest_browse_report", 
+
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
                         join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
-    
+
     expected_remaining_browses = 1
     expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100719_101023_proc.tif',
                               'TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
@@ -2479,10 +2479,10 @@ class DeleteFromCommandStartEnd(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn
         "start": "2010-07-22T10:15Z",
         "end": "2010-07-22T10:18Z"
     }
-    
-    args_before_test = ["manage.py", "ngeo_ingest_browse_report", 
+
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
                         join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
-    
+
     expected_remaining_browses = 2
     expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
     expected_browse_type = "SAR"
@@ -2495,19 +2495,19 @@ class DeleteFromCommandStartEndMerge1(DeleteTestCaseMixIn, CliMixIn, SeedMergeTe
         "start": "2010-07-22T21:39:00Z",
         "end": "2010-07-22T21:40:38Z"
     }
-    
+
     storage_dir = "data/merge_test_data"
-    
-    args_before_test = ["manage.py", "ngeo_ingest_browse_report", 
+
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
                         join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_1.xml"),
                         join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_2.xml"),
                         join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_3.xml")]
-    
+
     expected_remaining_browses = 2
     #expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
     expected_browse_type = "SAR"
     expected_tiles = {0: 4, 1: 16, 2: 64, 3: 192, 4: 192}
-    
+
     expected_seeded_areas = [
         (parse_datetime("2010-07-22T21:38:40Z"),
          parse_datetime("2010-07-22T21:39:38Z")),
@@ -2573,24 +2573,24 @@ class DeleteFromCommandStartEndMerge3(DeleteTestCaseMixIn, CliMixIn, SeedMergeTe
 class ExportGroupFull(ExportTestCaseMixIn, CliMixIn, TestCase):
     args_before_test = ["manage.py", "ngeo_ingest_browse_report",
                         join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
-    
+
     kwargs = {
         "layer" : "TEST_SAR"
     }
-    
+
     expected_exported_browses = ("TEST_SAR_b_id_6", "TEST_SAR_b_id_7", "TEST_SAR_b_id_8")
 
 class ExportGroupFullCache(ExportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
     args_before_test = ["manage.py", "ngeo_ingest_browse_report",
                         join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
-    
+
     kwargs = {
         "layer" : "TEST_SAR"
     }
     @property
     def args(self):
         return ("--output", self.temp_export_file, "--export-cache")
-    
+
     expected_browse_type = "SAR"
     expected_tiles = {0: 6, 1: 24, 2: 96, 3: 384, 4: 384}
     expected_exported_browses = ("TEST_SAR_b_id_6", "TEST_SAR_b_id_7", "TEST_SAR_b_id_8")
@@ -2599,67 +2599,67 @@ class ExportGroupFullCache(ExportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, Liv
 class ExportGroupStart(ExportTestCaseMixIn, CliMixIn, TestCase):
     args_before_test = ["manage.py", "ngeo_ingest_browse_report",
                         join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
-    
+
     kwargs = {
         "layer" : "TEST_SAR",
         "start": "2010-07-22T10:16:01Z"
     }
-    
+
     expected_exported_browses = ("TEST_SAR_b_id_7", "TEST_SAR_b_id_8")
 
 class ExportGroupEnd(ExportTestCaseMixIn, CliMixIn, TestCase):
     args_before_test = ["manage.py", "ngeo_ingest_browse_report",
                         join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
-    
+
     kwargs = {
         "layer" : "TEST_SAR",
         "end": "2010-07-22T10:17:02Z"
     }
-    
+
     expected_exported_browses = ("TEST_SAR_b_id_6", "TEST_SAR_b_id_7")
 
 class ExportGroupStartEnd(ExportTestCaseMixIn, CliMixIn, TestCase):
     args_before_test = ["manage.py", "ngeo_ingest_browse_report",
                         join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
-    
+
     kwargs = {
         "layer" : "TEST_SAR",
         "start": "2010-07-22T10:16:01Z",
         "end": "2010-07-22T10:17:02Z"
     }
-    
+
     expected_exported_browses = ("TEST_SAR_b_id_7",)
 
 class ExportRegularGrid(ExportTestCaseMixIn, CliMixIn, TestCase):
     storage_dir = "data/test_data"
     args_before_test = ["manage.py", "ngeo_ingest_browse_report",
                         join(settings.PROJECT_DIR, "data/test_data/ASA_WSM_1PNDPA20050331_075939_000000552036_00035_16121_0775.xml"),]
-    
+
     kwargs = {
         "browse-type" : "ASA_WSM"
     }
-    
+
     expected_exported_browses = ("TEST_ASA_WSM_ASAR",)
 
 
 class ExportMergedFailure(CliFailureMixIn, SeedTestCaseMixIn, LiveServerTestCase):
     storage_dir = "data/merge_test_data"
-    args_before_test = ["manage.py", "ngeo_ingest_browse_report", 
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
                         join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_1.xml"),
                         join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_2.xml"),
                         join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_3.xml")]
-    
+
     command = "ngeo_export"
     kwargs = {
         "layer" : "TEST_SAR"
     }
 
     test_seed = None # turn off unused test
-    
+
     @property
     def args(self):
         return ("--export-cache", )
-    
+
     expect_failure = True
     expected_failure_msg = "INFO: Starting browse export from command line.\nERROR: Browse layer 'TEST_SAR' contains merged browses and exporting of cache is requested. Try without exporting the cache.\nINFO: Cannot send notification to CTRL.\nError: Browse layer 'TEST_SAR' contains merged browses and exporting of cache is requested. Try without exporting the cache.\n"
 
@@ -2670,7 +2670,7 @@ class ExportMergedFailure(CliFailureMixIn, SeedTestCaseMixIn, LiveServerTestCase
 
 class ImportIgnoreCache(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
     args = (join(settings.PROJECT_DIR, "data/export/export_SAR.tar.gz"), "--ignore-cache")
-    
+
     expected_ingested_browse_ids = ("b_id_1",)
     expected_inserted_into_series = "TEST_SAR"
     expected_browse_type = "SAR"
@@ -2679,7 +2679,7 @@ class ImportIgnoreCache(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveSe
 
 class ImportWithCache(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
     args = (join(settings.PROJECT_DIR, "data/export/export_SAR.tar.gz"),)
-    
+
     expected_ingested_browse_ids = ("b_id_1",)
     expected_inserted_into_series = "TEST_SAR"
     expected_browse_type = "SAR"
@@ -2689,9 +2689,9 @@ class ImportWithCache(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServ
 class ImportReplaceIgnoreCache(ImportReplaceTestCaseMixin, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
     args_before_test = ["manage.py", "ngeo_ingest_browse_report",
                         join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"),]
-    
+
     args = (join(settings.PROJECT_DIR, "data/export/export_SAR.tar.gz"), "--ignore-cache")
-    
+
     expected_ingested_browse_ids = ("b_id_1",)
     expected_inserted_into_series = "TEST_SAR"
     expected_browse_type = "SAR"
@@ -2703,9 +2703,9 @@ class ImportReplaceIgnoreCache(ImportReplaceTestCaseMixin, CliMixIn, SeedTestCas
 class ImportReplaceWithCache(ImportReplaceTestCaseMixin, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
     args_before_test = ["manage.py", "ngeo_ingest_browse_report",
                         join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"),]
-    
+
     args = (join(settings.PROJECT_DIR, "data/export/export_SAR.tar.gz"),)
-    
+
     expected_ingested_browse_ids = ("b_id_1",)
     expected_inserted_into_series = "TEST_SAR"
     expected_browse_type = "SAR"
@@ -2716,7 +2716,7 @@ class ImportReplaceWithCache(ImportReplaceTestCaseMixin, CliMixIn, SeedTestCaseM
 
 class ImportRegularGrid(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
     args = (join(settings.PROJECT_DIR, "data/export/export_ASA_WSM.tar.gz"),)
-    
+
     expected_ingested_browse_ids = ("ASAR",)
     expected_inserted_into_series = "TEST_ASA_WSM"
     expected_browse_type = "ASA_WSM"
@@ -2731,7 +2731,7 @@ class ImportRegularGrid(ImportTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveSe
 class DebugLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCaseMixIn, TestCase):
     storage_dir = "data/test_data"
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.xml"
-    
+
     # Turn off ingest tests
     test_expected_response = None
     test_expected_status = None
@@ -2741,7 +2741,7 @@ class DebugLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCase
     test_model_counts = None
     test_deleted_storage_files = None
     test_expected_inserted_browses = None
-    
+
     expected_logs = {
         logging.DEBUG: 12,
         logging.INFO: 14,
@@ -2749,7 +2749,7 @@ class DebugLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCase
         logging.ERROR: 0,
         logging.CRITICAL: 0
     }
-    
+
     logging_config = {
         'version': 1,
         'disable_existing_loggers': True,
@@ -2788,7 +2788,7 @@ class DebugLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCase
 class InfoLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCaseMixIn, TestCase):
     storage_dir = "data/test_data"
     request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.xml"
-    
+
     # Turn off ingest tests
     test_expected_response = None
     test_expected_status = None
@@ -2798,7 +2798,7 @@ class InfoLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCaseM
     test_model_counts = None
     test_deleted_storage_files = None
     test_expected_inserted_browses = None
-    
+
     expected_logs = {
         logging.DEBUG: 0,
         logging.INFO: 14,
@@ -2806,7 +2806,7 @@ class InfoLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCaseM
         logging.ERROR: 0,
         logging.CRITICAL: 0
     }
-    
+
     logging_config = {
         'version': 1,
         'disable_existing_loggers': True,
@@ -3425,7 +3425,7 @@ class NotifyLogHandlerTestCase(NotifyMixIn, TestCase):
 
 class NotifyIngestFailureTestCase(NotifyMixIn, IngestFailureTestCaseMixIn, HttpTestCaseMixin, TestCase):
     expect_exception = True
-    
+
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.1">
@@ -3436,7 +3436,7 @@ class NotifyIngestFailureTestCase(NotifyMixIn, IngestFailureTestCaseMixIn, HttpT
         <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
         <rep:fileName>NGEO-FEED-VTC-0040.jpg</rep:fileName>
         <rep:imageType>PNG</rep:imageType>
-        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier> 
+        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier>
         <rep:footprint nodeNumber="7">
             <rep:colRowList>0 0 7 0 0 0</rep:colRowList>
             <rep:coordList>48.46 16.1001 48.48 16.1 48.46 16.1001</rep:coordList>
@@ -4028,8 +4028,8 @@ class AddDefaultBrowseLayersTestCase(ConfigurationManagementMixIn, TestCase):
     fixtures = ["initial_rangetypes.json",]
 
     expected_layers = [
-        "TEST_SAR", "TEST_OPTICAL", "TEST_ASA_WSM", "TEST_MER_FRS", 
-        "TEST_MER_FRS_FULL", "TEST_MER_FRS_FULL_NO_BANDS", 
+        "TEST_SAR", "TEST_OPTICAL", "TEST_ASA_WSM", "TEST_MER_FRS",
+        "TEST_MER_FRS_FULL", "TEST_MER_FRS_FULL_NO_BANDS",
         "TEST_GOOGLE_MERCATOR"
     ]
 
