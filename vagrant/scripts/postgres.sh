@@ -46,10 +46,12 @@ if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'")" 
     echo "Creating ngEO database user."
     psql postgres -tAc "CREATE USER $DB_USER NOSUPERUSER CREATEDB NOCREATEROLE ENCRYPTED PASSWORD '$DB_PASSWORD'"
 fi
-if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'")" != 1 ] ; then
-    echo "Creating ngEO Browse Server database."
-    createdb -O $DB_USER -T template_postgis $DB_NAME
+if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'")" == 1 ] ; then
+    echo "Deleting ngEO Browse Server  database"
+    dropdb $DB_NAME
 fi
+echo "Creating ngEO Browse Server  database."
+createdb -O $DB_USER -T template_postgis $DB_NAME
 EOF
 ## End of database configuration script
 

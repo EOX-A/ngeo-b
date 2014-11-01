@@ -185,10 +185,13 @@ EOF
     # Install needed yum repositories
     echo "Performing installation step 90"
     # EPEL
-    rpm -Uvh --replacepkgs http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+    yum install -y epel-release
+    rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-6
+
     echo "Performing installation step 100"
     # ELGIS
     rpm -Uvh --replacepkgs http://elgis.argeo.org/repos/6/elgis-release-6-6_0.noarch.rpm
+    rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-ELGIS
 
     echo "Performing installation step 110"
     # Apply available upgrades
@@ -196,7 +199,7 @@ EOF
 
     echo "Performing installation step 120"
     # Install packages
-    yum install -y gdal gdal-python postgis Django14 proj-epsg
+    yum install -y postgis Django14 proj-epsg
 
 
     #------------------------
@@ -209,14 +212,15 @@ EOF
     echo "Performing installation step 140"
     # EOX
     rpm -Uvh --replacepkgs http://yum.packages.eox.at/el/eox-release-6-2.noarch.rpm
+    rpm --import /etc/pki/rpm-gpg/eox-package-maintainers.gpg
     if "$TESTING" ; then
         sed -e 's/^enabled=0/enabled=1/' -i /etc/yum.repos.d/eox-testing.repo
     fi
 
     echo "Performing installation step 150"
     # Set includepkgs in EOX Stable
-    if ! grep -Fxq "includepkgs=EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python libxerces-c-3_1" /etc/yum.repos.d/eox.repo ; then
-        sed -e 's/^\[eox\]$/&\nincludepkgs=EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python libxerces-c-3_1/' -i /etc/yum.repos.d/eox.repo
+    if ! grep -Fxq "includepkgs=gdal gdal-python gdal-libs EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python libxerces-c-3_1" /etc/yum.repos.d/eox.repo ; then
+        sed -e 's/^\[eox\]$/&\nincludepkgs=gdal gdal-python gdal-libs EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python libxerces-c-3_1/' -i /etc/yum.repos.d/eox.repo
     fi
     if ! grep -Fxq "includepkgs=ngEO_Browse_Server" /etc/yum.repos.d/eox.repo ; then
         sed -e 's/^\[eox-noarch\]$/&\nincludepkgs=ngEO_Browse_Server/' -i /etc/yum.repos.d/eox.repo
@@ -231,14 +235,14 @@ EOF
 
     echo "Performing installation step 160"
     # Set exclude in CentOS-Base
-    if ! grep -Fxq "exclude=libxml2 libxml2-python" /etc/yum.repos.d/CentOS-Base.repo ; then
+    if ! grep -Fxq "exclude=libxml2 libxml2-python libxerces-c-3_1" /etc/yum.repos.d/CentOS-Base.repo ; then
         sed -e 's/^\[base\]$/&\nexclude=libxml2 libxml2-python libxerces-c-3_1/' -i /etc/yum.repos.d/CentOS-Base.repo
         sed -e 's/^\[updates\]$/&\nexclude=libxml2 libxml2-python libxerces-c-3_1/' -i /etc/yum.repos.d/CentOS-Base.repo
     fi
 
     echo "Performing installation step 170"
     # Install packages
-    yum install -y libxml2 libxml2-python mapserver mapserver-python EOxServer
+    yum install -y gdal gdal-python libxml2 libxml2-python mapserver mapserver-python EOxServer
 
 
     # allow installation of local RPMs if available
