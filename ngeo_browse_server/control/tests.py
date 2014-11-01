@@ -393,6 +393,36 @@ class SeedFootprintBrowse7(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64}
 
 
+# Testing the "The datasets's extent does not surround its footprint." issue:
+class IngestFootprintBrowse8(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    storage_dir = "data/ers"
+    request_file = "ers/ERS-2-11040113360703-1507.SAR_IM0_0P.BP.xml"
+
+    expected_ingested_browse_ids = ("ERS-2-11040113360703-1507.SAR_IM0_0P.BP",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['ERS-2-11040113360703-1507.SAR_IM0_0P.BP_proc.tif']
+    expected_deleted_files = ['ERS-2-11040113360703-1507.SAR_IM0_0P.BP.jpg']
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>ERS-2-11040113360703-1507.SAR_IM0_0P.BP</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+
 #===============================================================================
 # Ingest into layer OPTICAL
 #===============================================================================

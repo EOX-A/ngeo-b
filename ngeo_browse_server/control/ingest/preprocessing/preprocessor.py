@@ -41,6 +41,7 @@ from eoxserver.processing.preprocessing.util import (
 )
 from eoxserver.processing.gdal import reftools
 from eoxserver.processing.preprocessing.exceptions import GCPTransformException
+from eoxserver.resources.coverages.geo import getExtentFromRectifiedDS
 
 from ngeo_browse_server.control.ingest.preprocessing.merge import (
     GDALDatasetMerger, GDALGeometryMaskMergeSource
@@ -88,6 +89,15 @@ class NGEOPreProcessor(WMSPreProcessor):
         if not footprint_wkt:
             logger.debug("Generating footprint.")
             footprint_wkt = self._generate_footprint_wkt(ds)
+        # check that footprint is inside of extent of generated image
+        # regenerate otherwise
+        else:
+            tmp_extent = getExtentFromRectifiedDS(ds)
+            tmp_bbox = Polygon.from_bbox((tmp_extent[0], tmp_extent[2],
+                                          tmp_extent[1], tmp_extent[3]))
+            tmp_footprint = GEOSGeometry(footprint_wkt)
+            if not tmp_bbox.contains(tmp_footprint):
+                footprint_wkt = self._generate_footprint_wkt(ds)
 
         if self.footprint_alpha:
             logger.debug("Applying optimization 'AlphaBandOptimization'.")
@@ -192,8 +202,8 @@ class InternalGCPs(object):
             if num_gcps >= min_gcpnum and (max_gcpnum is None or num_gcps <= max_gcpnum):
                 try:
 
-                    if (order < 0) : 
-                        # let the reftools suggest the right interpolator 
+                    if (order < 0) :
+                        # let the reftools suggest the right interpolator
                         rt_prm = reftools.suggest_transformer(src_ds)
                     else:
                         # use the polynomial GCP interpolation as requested
