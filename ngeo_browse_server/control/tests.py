@@ -2228,9 +2228,9 @@ class IngestRasterStatistics(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, Test
     }, {
         "min": 0.0,
         "max": 255.0,
-        "mean": 138.47198216408577,
-        "stddev": 127.02702707452059,
-        "checksum": 44673
+        "mean": 134.66659251554557,
+        "stddev": 127.29842870874772,
+        "checksum": 39876
     }]
 
 
@@ -2374,9 +2374,9 @@ class IngestFootprintWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
     expected_statistics = [{
         "min": 0.0,
         "max": 255.0,
-        "mean": 64.406300000000002,
-        "stddev": 76.223977987966478,
-        "checksum": 57259
+        "mean": 64.380099999999999,
+        "stddev": 76.204094535595658,
+        "checksum": 57249
     }] * 3
 
 
