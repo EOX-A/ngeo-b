@@ -93,8 +93,8 @@ class NGEOPreProcessor(WMSPreProcessor):
         # regenerate otherwise
         else:
             tmp_extent = getExtentFromRectifiedDS(ds)
-            tmp_bbox = Polygon.from_bbox((tmp_extent[0], tmp_extent[2],
-                                          tmp_extent[1], tmp_extent[3]))
+            tmp_bbox = Polygon.from_bbox((tmp_extent[0], tmp_extent[1],
+                                          tmp_extent[2], tmp_extent[3]))
             tmp_footprint = GEOSGeometry(footprint_wkt)
             if not tmp_bbox.contains(tmp_footprint):
                 footprint_wkt = self._generate_footprint_wkt(ds)
