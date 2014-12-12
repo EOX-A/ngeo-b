@@ -122,7 +122,7 @@ Use the following steps:
 7. Save and close Vagrantfile
 8. Open an Administrator Console (right click on the command prompt icon and select "Run as administrator")
 9. Enter secpol.msc (and hit enter). Navigate to Local Policies, User Rights Assignment and check "Create symbolic links". Make sure that the Administrator account is added. Close it.
-10. Still in the admin console enter: fsutil behavior set SymlinkEvaluation L2L:1 R2R:1 L2R:1 R2L:1 (and hit enter. This step isn't necessary on all systems. Only if you use net shares. But it does not hurt 
+10. Still in the admin console enter: fsutil behavior set SymlinkEvaluation L2L:1 R2R:1 L2R:1 R2L:1 (and hit enter. This step isn't necessary on all systems. Only if you use net shares. But it does not hurt
 11. Open the Administrative Tools Panel from the Control Panel. Open Component Services.
 12. Select Computers, My Computer, Select DCOM Config.
 13. Right click on "Virtual Box Application". Select Security. At "Launch and Activation Permissions" select Customize. Hit Edit.
@@ -163,7 +163,7 @@ Use the following steps:
 
 ## How to build ngEO Browse Server
 
-Check Jenkins build is passing.
+Check that [Jenkins build is passing](https://jenkins.eox.at/job/ngEO_BrowseServer_branch-2-0/).
 
 ```sh
     cd git/ngeo-b/
@@ -174,7 +174,7 @@ Check Jenkins build is passing.
     vi ngeo_browse_server/__init__.py
     # Adjust version to future one
     git commit ngeo_browse_server/__init__.py -m "Adjusting version."
-    git push origin branch-2.0
+    git push -u origin branch-2.0
 
     vi ngeo_browse_server/__init__.py
     # Adjust version
@@ -189,23 +189,17 @@ Check Jenkins build is passing.
     #Development Status :: 5 - Production/Stable
     #Development Status :: 6 - Mature
     #Development Status :: 7 - Inactive
+    git push
 
-    git tag -a release-2.0.11 -m "Tagging release 2.0.11."
-    git archive --format=tar --prefix=ngEO_Browse_Server-2.0.11/ release-2.0.11 | gzip > ngEO_Browse_Server-2.0.11.tar.gz
-    mv ngEO_Browse_Server-2.0.11.tar.gz <path-to-builder_rpm>
-    cd <path-to-builder_rpm>/
-    vagrant ssh
+    # Wait for jenkins build to finish and collect built packages
+    wget "https://jenkins.eox.at/job/ngEO_BrowseServer_branch-2-0/lastSuccessfulBuild/artifact/dist/*zip*/dist.zip"
 
-    tar xzf ngEO_Browse_Server-2.0.11.tar.gz
-    rm ngEO_Browse_Server-2.0.11.tar.gz
-    cd ngEO_Browse_Server-2.0.11/
-    python setup.py bdist_rpm --release <NO>
-    cd dist
-    tar czf ../../rpmbuild/RPMS/ngEO_Browse_Server-2.0.11.tar.gz ngEO_Browse_Server-*rpm
-    # scp ../../ngEO_Browse_Server-2.0.11.tar.gz -> packages@packages.eox.at:.
-    cd ../..
-    rm -r ngEO_Browse_Server-2.0.11/
-    exit # vagrant
+    # Upload packages to yum repository
+    scp dist.zip packages@packages.eox.at:
+    # ...
+
+    git tag -a release-2.0.17 -m "Tagging release 2.0.17."
+    git push --tags
 
     vi ngeo_browse_server/__init__.py
     # Adjust version to dev
@@ -213,14 +207,11 @@ Check Jenkins build is passing.
     # Adjust Development Status if necessary
     git commit setup.py ngeo_browse_server/__init__.py -m "Adjusting version."
 
-    git push
-    git push --tags
 ```
 
-* Edit release at https://github.com/EOX-A/ngeo-b/releases
-* Edit milestones at https://github.com/EOX-A/ngeo-b/issues/milestones
-* Mail to dev & users
-* Tweet
+* [Edit release](https://github.com/EOX-A/ngeo-b/releases)
+* [Edit milestones]https://github.com/EOX-A/ngeo-b/issues/milestones)
+* Inform via mail
 
 
 ## How to build EOxServer
