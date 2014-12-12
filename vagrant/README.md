@@ -210,7 +210,7 @@ Check that [Jenkins build is passing](https://jenkins.eox.at/job/ngEO_BrowseServ
 ```
 
 * [Edit release](https://github.com/EOX-A/ngeo-b/releases)
-* [Edit milestones](https://github.com/EOX-A/ngeo-b/issues/milestones)
+* [Edit milestones](https://github.com/EOX-A/ngeo-b/milestones)
 * Inform via mail
 
 
