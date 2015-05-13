@@ -71,10 +71,14 @@ class FileLock(object):
                 elif e.errno == errno.EEXIST:
                     # delete lockfile if process with saved ID does not exist
                     tmpfd = os.open(self.lockfile, os.O_CREAT|os.O_RDWR)
-                    pid = os.read(tmpfd,64)
+                    pid = int(os.read(tmpfd,64))
                     os.close(tmpfd)
-                    if os.getpid() in [int(x) for x in os.listdir(b'/proc') if x.isdigit()]:
-                        os.unlink(self.lockfile)
+                    try:
+                        os.kill(pid, 0)
+                    except OSError as err:
+                        if err.errno == errno.ESRCH:
+                            # ESRCH == No such process
+                            os.unlink(self.lockfile)
                 if not self.timeout or (time.time() - begin) >= self.timeout:
                     raise LockException("Could not acquire lock for file '%s' "
                                         "within timeout." % self.lockfile)
