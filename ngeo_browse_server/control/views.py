@@ -11,8 +11,8 @@
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
-# copies of the Software, and to permit persons to whom the Software is 
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
 # The above copyright notice and this permission notice shall be included in all
@@ -40,9 +40,9 @@ from django.utils import simplejson as json
 from django.utils import timezone
 from django.http import HttpResponse, Http404
 from django.db import transaction
-from osgeo import gdalnumeric   # This prevents issues in parallel setups. Do 
+from osgeo import gdalnumeric   # This prevents issues in parallel setups. Do
                                 # not remove this line.
-from eoxserver.processing.preprocessing.exceptions import PreprocessingException 
+from eoxserver.processing.preprocessing.exceptions import PreprocessingException
 
 from ngeo_browse_server import get_version
 from ngeo_browse_server.config import (
@@ -79,7 +79,7 @@ def ingest(request):
     """ View to ingest a browse report delivered via HTTP-POST. The XML file is
         expected to be included within the POST data.
     """
-    
+
     try:
         status = get_status()
         if not status.running:
@@ -91,10 +91,10 @@ def ingest(request):
             raise IngestionException("Method '%s' is not allowed, use 'POST' "
                                      "only." % request.method.upper(),
                                      "MethodNotAllowed")
-        
+
         try:
             document = etree.parse(request)
-        except etree.XMLSyntaxError, e: 
+        except etree.XMLSyntaxError, e:
             raise IngestionException("Could not parse request XML. Error was: "
                                      "'%s'." % str(e),
                                      "InvalidRequest")
@@ -107,14 +107,14 @@ def ingest(request):
             raise IngestionException(str(e), "InvalidRequest")
 
         except PreprocessingException, e:
-            raise IngestionException(str(e))            
+            raise IngestionException(str(e))
 
-        
-        return render_to_response("control/ingest_response.xml", 
-                              {"results": results}, 
+
+        return render_to_response("control/ingest_response.xml",
+                              {"results": results},
                               mimetype="text/xml")
     except Exception, e:
-        logger.debug(traceback.format_exc())
+        logger.error(traceback.format_exc())
         return render_to_response("control/ingest_exception.xml",
                                   {"code": getattr(e, "code", None)
                                            or type(e).__name__,
@@ -149,11 +149,12 @@ def controller_server(request):
             )
 
     except Exception as e:
-        logger.error(traceback.format_exc())
+        logger.debug(traceback.format_exc())
+        logger.warning(str(e))
         instance_id = get_instance_id(config)
         values = {
             "faultString": str(e),
-            "instanceId": instance_id, 
+            "instanceId": instance_id,
             "reason": getattr(e, "reason", "NO_CODE")
         }
         if settings.DEBUG:
