@@ -62,10 +62,19 @@ class FileLock(object):
         while True:
             try:
                 self.fd = os.open(self.lockfile, os.O_CREAT|os.O_EXCL|os.O_RDWR)
+                # store process ID in lockfile
+                os.write(self.fd, str(os.getpid()))
                 break
             except OSError as e:
                 if e.errno != errno.EEXIST:
                     raise
+                elif e.errno == errno.EEXIST:
+                    # delete lockfile if process with saved ID does not exist
+                    tmpfd = os.open(self.lockfile, os.O_CREAT|os.O_RDWR)
+                    pid = os.read(tmpfd,64)
+                    os.close(tmpfd)
+                    if os.getpid() in [int(x) for x in os.listdir(b'/proc') if x.isdigit()]:
+                        os.unlink(self.lockfile)
                 if not self.timeout or (time.time() - begin) >= self.timeout:
                     raise LockException("Could not acquire lock for file '%s' "
                                         "within timeout." % self.lockfile)
