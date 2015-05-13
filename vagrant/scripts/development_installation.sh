@@ -126,6 +126,7 @@ python manage.py ngeo_browse_layer data/layer_management/synchronizeConfiguratio
 #curl -d @data/layer_management/synchronizeConfiguration_defaultLayers.xml http://localhost/browse/config
 
 # Make MapCache reread the configuration
+service memcached restart
 service httpd restart
 
 NGEOB_LOG_DIR=/var/ngeob_autotest/logs
