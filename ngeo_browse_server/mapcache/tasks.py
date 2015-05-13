@@ -39,7 +39,7 @@ from django.core.urlresolvers import reverse
 from ngeo_browse_server.config import (
     get_ngeo_config, get_project_relative_path, safe_get
 )
-from ngeo_browse_server.lock import FileLock
+from ngeo_browse_server.lock import (FileLock, LockException)
 from ngeo_browse_server.mapcache.exceptions import (
     SeedException, LayerException
 )
@@ -102,23 +102,27 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
         timeout = 60.0
 
 
-    lock = FileLock(
-        get_project_relative_path("mapcache.xml.lck"), timeout=timeout
-    )
+    try:
+        lock = FileLock(
+            get_project_relative_path("mapcache_seed.lck"), timeout=timeout
+        )
 
-    with lock:
-        process = subprocess.Popen(args, stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE)
+        with lock:
+            process = subprocess.Popen(args, stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE)
 
-        out, err = process.communicate()
-        for string in (out, err):
-            for line in string.split("\n"):
-                if line != '':
-                    logger.info("MapCache output: %s" % line)
+            out, err = process.communicate()
+            for string in (out, err):
+                for line in string.split("\n"):
+                    if line != '':
+                        logger.info("MapCache output: %s" % line)
 
-    if process.returncode != 0:
-        raise SeedException("'%s' failed. Returncode '%d'."
-                            % (seed_command, process.returncode))
+        if process.returncode != 0:
+            raise SeedException("'%s' failed. Returncode '%d'."
+                                % (seed_command, process.returncode))
+
+    except LockException, e:
+        raise SeedException("Seeding failed: %s" % str(e))
 
     logger.info("Seeding finished with returncode '%d'." % process.returncode)
 
