@@ -11,8 +11,8 @@
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
-# copies of the Software, and to permit persons to whom the Software is 
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
 # The above copyright notice and this permission notice shall be included in all
@@ -39,7 +39,7 @@ from django.core.urlresolvers import reverse
 from ngeo_browse_server.config import (
     get_ngeo_config, get_project_relative_path, safe_get
 )
-from ngeo_browse_server.lock import FileLock
+from ngeo_browse_server.lock import (FileLock, LockException)
 from ngeo_browse_server.mapcache.exceptions import (
     SeedException, LayerException
 )
@@ -51,7 +51,7 @@ from ngeo_browse_server.mapcache.config import (
 
 logger = logging.getLogger(__name__)
 
-def seed_mapcache(seed_command, config_file, tileset, grid, 
+def seed_mapcache(seed_command, config_file, tileset, grid,
                   minx, miny, maxx, maxy, minzoom, maxzoom,
                   start_time, end_time, threads, delete):
 
@@ -60,21 +60,21 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
         grid = URN_TO_GRID[grid]
     except KeyError:
         raise SeedException("Invalid grid '%s'." % grid)
-    
+
     if minzoom is None: minzoom = 0
     if maxzoom is None: maxzoom = 10
-    
-    # start- and end-time are expected to be UTC Zulu 
+
+    # start- and end-time are expected to be UTC Zulu
     start_time = start_time.replace(tzinfo=None)
     end_time = end_time.replace(tzinfo=None)
-    
+
     logger.info("Starting mapcache seed with parameters: command='%s', "
                 "config_file='%s', tileset='%s', grid='%s', "
                 "extent='%s,%s,%s,%s', zoom='%s,%s', threads='%s', mode='%s'."
-                % (seed_command, config_file, tileset, grid, 
+                % (seed_command, config_file, tileset, grid,
                   minx, miny, maxx, maxy, minzoom, maxzoom, threads,
                   "seed" if not delete else "delete"))
-    
+
     args = [
         seed_command,
         "-c", config_file,
@@ -90,10 +90,10 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
     ]
     if not delete:
         args.append("-f")
-    
+
     logger.debug("mapcache seeding command: '%s'. raw: '%s'."
                  % (" ".join(args), args))
-    
+
     try:
         config = get_ngeo_config()
         timeout = safe_get(config, "mapcache.seed", "timeout")
@@ -101,32 +101,36 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
     except:
         timeout = 60.0
 
-    lock = FileLock(
-        get_project_relative_path("mapcache.xml.lck"), timeout=timeout
-    )
 
-    with lock:
-        process = subprocess.Popen(args, stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE)
-    
-        out, err = process.communicate()
-        for string in (out, err):
-            for line in string.split("\n"):
-                if line != '':
-                    logger.info("MapCache output: %s" % line)
-    
-    if process.returncode != 0:
-        raise SeedException("'%s' failed. Returncode '%d'."
-                            % (seed_command, process.returncode))
-    
+    try:
+        lock = FileLock(
+            get_project_relative_path("mapcache_seed.lck"), timeout=timeout
+        )
+
+        with lock:
+            process = subprocess.Popen(args, stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE)
+
+            out, err = process.communicate()
+            for string in (out, err):
+                for line in string.split("\n"):
+                    if line != '':
+                        logger.info("MapCache output: %s" % line)
+
+        if process.returncode != 0:
+            raise SeedException("'%s' failed. Returncode '%d'."
+                                % (seed_command, process.returncode))
+
+    except LockException, e:
+        raise SeedException("Seeding failed: %s" % str(e))
+
     logger.info("Seeding finished with returncode '%d'." % process.returncode)
-    
+
     return process.returncode
 
 
-
 def lock_mapcache_config(func):
-    """ Decorator for functions involving the mapcache configuration to lock 
+    """ Decorator for functions involving the mapcache configuration to lock
         the mapcache configuration.
     """
 
@@ -171,19 +175,19 @@ def add_mapcache_layer_xml(browse_layer, config=None):
     tileset_path = get_tileset_path(browse_layer.browse_type)
 
     root.extend([
-        E("cache", 
+        E("cache",
             E("dbfile", tileset_path),
             E("detect_blank", "true"),
             name=name, type="sqlite3"
         ),
         E("source",
-            E("getmap", 
+            E("getmap",
                 E("params",
                     E("LAYERS", name),
                     E("TRANSPARENT", "true")
                 )
             ),
-            E("http", 
+            E("http",
                 E("url", "http://localhost/browse/ows?")
             ),
             name=name, type="wms"
@@ -192,14 +196,14 @@ def add_mapcache_layer_xml(browse_layer, config=None):
             E("metadata",
                 E("title", str(browse_layer.title)),
                 *([
-                    E("abstract", str(browse_layer.description))] 
+                    E("abstract", str(browse_layer.description))]
                     if browse_layer.description
                     else []
                 )
             ),
             E("source", name),
             E("cache", name),
-            E("grid", 
+            E("grid",
                 URN_TO_GRID[browse_layer.grid], **{
                     "max-cached-zoom": str(browse_layer.highest_map_level),
                     "out-of-zoom-strategy": "reassemble"
@@ -214,7 +218,7 @@ def add_mapcache_layer_xml(browse_layer, config=None):
                 E("query", "select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and (start_time<datetime(:end_timestamp,'unixepoch') and (end_time>datetime(:start_timestamp,'unixepoch')) or (start_time=end_time and start_time<=datetime(:end_timestamp,'unixepoch') and end_time>=datetime(:start_timestamp,'unixepoch'))) and maxx>=:minx and maxy>=:miny and minx<=:maxx and miny<=:maxy order by end_time asc limit " + str(browse_layer.tile_query_limit)),
                 type="sqlite", default=str(browse_layer.timedimension_default)),
             *([
-                E("auth_method", "cmdlineauth")] 
+                E("auth_method", "cmdlineauth")]
                 if browse_layer.browse_access_policy in ("RESTRICTED", "PRIVATE")
                 else []
             ),

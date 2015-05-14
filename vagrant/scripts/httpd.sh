@@ -17,7 +17,7 @@ sed -e 's/^#EnableSendfile off$/EnableSendfile off/' -i /etc/httpd/conf/httpd.co
 
 # Permanently start memcached, prior to apache
 chkconfig memcached on
-service memcached start
+service memcached restart
 
 # Permanently start Apache
 chkconfig httpd on

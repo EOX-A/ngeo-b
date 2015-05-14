@@ -63,18 +63,31 @@ ngeo_status() {
 }
 
 # ----------------------------------------------------------------------------
+# Clean locks
+# ----------------------------------------------------------------------------
+ngeo_cleanlocks() {
+    rm -f /var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/conf/status.conf.lck
+    rm -f /var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/conf/controller.conf.lck
+    rm -f /var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/mapcache.xml.lck
+    rm -f /var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/mapcache_seed.lck
+}
+
+# ----------------------------------------------------------------------------
 # Main
 # ----------------------------------------------------------------------------
 case "$1" in
 start)
+    ngeo_cleanlocks
     ngeo_start
     ngeo_status
 ;;
 stop)
     ngeo_stop
+    ngeo_cleanlocks
 ;;
 restart)
     ngeo_stop
+    ngeo_cleanlocks
     ngeo_start
     ngeo_status
 ;;

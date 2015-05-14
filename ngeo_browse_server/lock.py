@@ -9,8 +9,8 @@
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
-# copies of the Software, and to permit persons to whom the Software is 
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
 # The above copyright notice and this permission notice shall be included in all
@@ -36,17 +36,17 @@ class LockException(Exception):
 
 
 class FileLock(object):
-    """ Generic lock using an exclusive file in the file system for 
-        synchronization. 
+    """ Generic lock using an exclusive file in the file system for
+        synchronization.
     """
-    
+
     def __init__(self, lockfile=None, timeout=None, delay=.05):
         self.lockfile = lockfile
         self.fd = None
 
         self.timeout = timeout
         self.delay = delay
-    
+
     @property
     def is_locked(self):
         """ See if we are currently locking the lock file. """
@@ -62,12 +62,26 @@ class FileLock(object):
         while True:
             try:
                 self.fd = os.open(self.lockfile, os.O_CREAT|os.O_EXCL|os.O_RDWR)
+                # store process ID in lockfile
+                os.write(self.fd, str(os.getpid()))
                 break
             except OSError as e:
                 if e.errno != errno.EEXIST:
-                    raise 
+                    raise
+                elif e.errno == errno.EEXIST:
+                    # delete lockfile if process with saved ID does not exist
+                    tmpfd = os.open(self.lockfile, os.O_CREAT|os.O_RDWR)
+                    pid = int(os.read(tmpfd,64))
+                    os.close(tmpfd)
+                    try:
+                        os.kill(pid, 0)
+                    except OSError as err:
+                        if err.errno == errno.ESRCH:
+                            # ESRCH == No such process
+                            os.unlink(self.lockfile)
                 if not self.timeout or (time.time() - begin) >= self.timeout:
-                    raise LockException("File is locked.")
+                    raise LockException("Could not acquire lock for file '%s' "
+                                        "within timeout." % self.lockfile)
                 time.sleep(self.delay)
 
     def release(self):
