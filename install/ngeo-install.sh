@@ -770,6 +770,11 @@ ngeo_full_uninstall() {
     echo "Performing uninstallation step 10"
     echo "Delete DB for ngEO Browse Server"
 
+    echo "Stop Apache HTTP server"
+    if service httpd status ; then
+        service httpd stop
+    fi
+
     if service postgresql status ; then
         ## Write database deletion script
         TMPFILE=`mktemp`
