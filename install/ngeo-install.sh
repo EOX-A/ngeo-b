@@ -149,7 +149,7 @@ EOF
 
     echo "Performing installation step 50"
     # Install packages
-    yum install -y python-lxml mod_wsgi httpd memcached postgresql-server python-psycopg2 pytz
+    yum install -y python-lxml mod_wsgi httpd memcached postgresql-server python-psycopg2 pytz lftp unzip
 
     echo "Performing installation step 60"
     # Permanently start PostgreSQL
@@ -241,6 +241,8 @@ EOF
     fi
 
     echo "Performing installation step 170"
+    # Re-install libxml2 from eox repository
+    rpm -e --justdb --nodeps libxml2
     # Install packages
     yum install -y gdal gdal-python libxml2 libxml2-python mapserver mapserver-python EOxServer
 
