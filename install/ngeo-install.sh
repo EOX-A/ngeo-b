@@ -149,7 +149,7 @@ EOF
 
     echo "Performing installation step 50"
     # Install packages
-    yum install -y python-lxml mod_wsgi httpd memcached postgresql-server python-psycopg2 pytz
+    yum install -y python-lxml mod_wsgi httpd memcached postgresql-server python-psycopg2 pytz lftp unzip
 
     echo "Performing installation step 60"
     # Permanently start PostgreSQL
@@ -241,6 +241,8 @@ EOF
     fi
 
     echo "Performing installation step 170"
+    # Re-install libxml2 from eox repository
+    rpm -e --justdb --nodeps libxml2
     # Install packages
     yum install -y gdal gdal-python libxml2 libxml2-python mapserver mapserver-python EOxServer
 
@@ -644,7 +646,7 @@ $NGEOB_LOG_DIR/httpd_access.log {
     postrotate
         /sbin/service httpd reload > /dev/null 2>/dev/null || true
         cd "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/"
-        python manage.py ngeo_report --access-logfile=\$1-\`date +%Y%m%d\` --filename=access_report_\`date --iso\`.xml
+        python manage.py ngeo_report --access-logfile=\$1-\`date +%Y%m%d\` --filename=$NGEO_REPORT_DIR/access_report_\`date --iso\`.xml
     endscript
 }
 
@@ -670,7 +672,7 @@ $NGEOB_LOG_DIR/ingest.log {
     compress
     postrotate
         cd "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/"
-        python manage.py ngeo_report --report-logfile=\$1-\`date +%Y%m%d\` --filename=ingest_report_\`date --iso\`.xml
+        python manage.py ngeo_report --report-logfile=\$1-\`date +%Y%m%d\` --filename=$NGEO_REPORT_DIR/ingest_report_\`date --iso\`.xml
     endscript
 }
 
@@ -769,6 +771,11 @@ ngeo_full_uninstall() {
 
     echo "Performing uninstallation step 10"
     echo "Delete DB for ngEO Browse Server"
+
+    echo "Stop Apache HTTP server"
+    if service httpd status ; then
+        service httpd stop
+    fi
 
     if service postgresql status ; then
         ## Write database deletion script
