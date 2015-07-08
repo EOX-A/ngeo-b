@@ -12,8 +12,8 @@
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
-# copies of the Software, and to permit persons to whom the Software is 
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
 # The above copyright notice and this permission notice shall be included in all
@@ -59,7 +59,7 @@ def main(args):
     parser.add_argument("--num-concurrent", dest="num_concurrent", default=4,
                         help="Number of simultaneous downloads. Default is 4.")
     parser.add_argument("--skip-existing", dest="skip_existing",
-                        action="store_true", default=False, 
+                        action="store_true", default=False,
                         help="Triggers if already existing browse images shall \
                               be skipped or downloaded again (default).")
     parser.add_argument("--browse-report", dest="browse_report", default=None,
@@ -89,7 +89,7 @@ def main(args):
                               the generated Browse Reports shall be relative \
                               to the location of the Browse Report or just the \
                               filename itself (default).")
-    parser.add_argument("input_filename", metavar="infile", nargs=1, 
+    parser.add_argument("input_filename", metavar="infile", nargs=1,
                          help="Name of the file to be processed holding the \
                                CSV formatted search result as saved by \
                                EOLI-SA.")
@@ -98,7 +98,7 @@ def main(args):
                                be downloaded to.")
 
     args = parser.parse_args(args)
-    
+
     browse_report = args.browse_report
     input_filename = args.input_filename[0]
     output_dir = args.output_directory[0]
@@ -157,13 +157,13 @@ def chunks(l, n):
 def parse_browse_csv(input_filename):
     """ returns a list of tuples in the form (collection, start, stop,
     footprint, url, filename) """
-    
+
     result = []
     with open(input_filename, "rb") as csvfile:
         reader = csv.reader(csvfile, delimiter=',', quotechar='"')
         first = True
         dt_frmt = "%Y-%m-%d %H:%M:%S.%f"
-        
+
         for line in reader:
             # skip first line, as it is only a header
             if first:
@@ -171,14 +171,14 @@ def parse_browse_csv(input_filename):
                 continue
 
             footprint = pairwise(map(lambda c: float(c), line[16].split(" ")))
-            
+
             if line[18] is not None and line[18] != "":
                 result.append((datetime.strptime(line[6], dt_frmt),     # start
                                datetime.strptime(line[7], dt_frmt),     # stop
                                footprint,                               # footprint
                                line[18],                                # url
                                "_" + basename(urlparse(line[18]).path), # filename
-                               line[14]                                 #pass direction 
+                               line[14]                                 #pass direction
                               ))
             else:
                 print "Browse image with result ID '%s' not added because of an empty URL." % line[0]
@@ -212,7 +212,7 @@ class DownloadThread(threading.Thread):
         super(DownloadThread, self).__init__()
         self.queue = queue
         self.skip_existing = skip_existing
-          
+
     def run(self):
         while True:
             #grabs url from queue
@@ -222,18 +222,18 @@ class DownloadThread(threading.Thread):
                 # skip if requested
                 self.queue.task_done()
                 continue
-            
+
             try:
                 urllib.urlretrieve(url, path)
             except IOError:
                 print "Error downloading url '%s'." % url
-        
+
             #signals to queue job is done
             self.queue.task_done()
 
 
 
-def write_browse_report(browse_filename, datasets, browse_type, pretty_print, 
+def write_browse_report(browse_filename, datasets, browse_type, pretty_print,
                         rel_path):
     """"""
     ext_to_image_type = {
@@ -245,18 +245,18 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print,
         ".png": "PNG",
         ".bmp": "BMP"
     }
-    
+
     def ns_rep(tag):
-        return "{http://ngeo.eo.esa.int/schema/browseReport}" + tag
-    nsmap = {"rep": "http://ngeo.eo.esa.int/schema/browseReport"}
-    
+        return "{http://ngeo.eo.esa.int/ngEO/browseReport/1.0}" + tag
+    nsmap = {"rep": "http://ngeo.eo.esa.int/ngEO/browseReport/1.0"}
+
     root = etree.Element(ns_rep("browseReport"), nsmap=nsmap)
-    root.attrib["version"] = "1.1"
+    root.attrib["version"] = "1.3"
     etree.SubElement(root, ns_rep("responsibleOrgName")).text = "EOX"
     etree.SubElement(root, ns_rep("dateTime")).text = datetime.now().isoformat()
     if browse_type:
         etree.SubElement(root, ns_rep("browseType")).text = browse_type
-    
+
     for start, stop, footprint, filename, pass_dir in datasets:
         # open the browse image and retrieve width and height
         try:
@@ -276,7 +276,7 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print,
 
         assert(len(right) == len(left))
 
-        
+
         if pass_dir == "A":
             pixel_coords = [sizex, sizey]
 
@@ -287,7 +287,7 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print,
                 pixel_coords.extend(
                     calc_pixel_coords(ll_start, ll_end, point, (0, 0), (0, sizey))
                 )
-            
+
             ll_start = right[0]
             ll_end = right[-1]
 
@@ -295,7 +295,7 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print,
                 pixel_coords.extend(
                     calc_pixel_coords(ll_start, ll_end, point, (sizex, sizex), (0, sizey))
                 )
-            
+
 
         elif pass_dir == "D":
             pixel_coords = [0, 0]
@@ -303,7 +303,7 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print,
             ll_start = right[0]
             ll_end = right[-1]
 
-            
+
             for point in right:
                 pixel_coords.extend(
                     calc_pixel_coords(ll_start, ll_end, point, (sizex, sizex), (sizey, 0))
@@ -316,7 +316,7 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print,
                 pixel_coords.extend(
                     calc_pixel_coords(ll_start, ll_end, point, (0, 0), (sizey, 0))
                 )
-        
+
         ll_coords = [coord for pair in right for coord in pair] + \
                     [coord for pair in left for coord in pair]
         ll_coords.insert(0, ll_coords[-2])
@@ -325,15 +325,15 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print,
         # convert to string
         pixel_coords = map(str, map(int, pixel_coords))
         ll_coords = map(str, ll_coords)
-        
+
         if rel_path:
             filename = relpath(filename, dirname(browse_filename))
         else:
             filename = basename(filename)
-        
+
         base, ext = splitext(filename)
         base = basename(base)
-        
+
         browse = etree.SubElement(root, ns_rep("browse"))
         etree.SubElement(browse, ns_rep("browseIdentifier")).text = base
         etree.SubElement(browse, ns_rep("fileName")).text = filename
@@ -343,10 +343,10 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print,
         footprint.attrib["nodeNumber"] = str(len(ll_coords) / 2)
         etree.SubElement(footprint, ns_rep("colRowList")).text = " ".join(pixel_coords)
         etree.SubElement(footprint, ns_rep("coordList")).text = " ".join(ll_coords)
-        
+
         etree.SubElement(browse, ns_rep("startTime")).text = start.isoformat()
         etree.SubElement(browse, ns_rep("endTime")).text = stop.isoformat()
-    
+
 
     with open(browse_filename, "wb") as f:
         f.write(etree.tostring(root, pretty_print=pretty_print))
@@ -355,12 +355,12 @@ def write_browse_report(browse_filename, datasets, browse_type, pretty_print,
 def calc_pixel_coords(ll_start, ll_end, ll_point, x_range, y_range, swap_axes=True):
     xidx = 1 if swap_axes else 0
     yidx = 0 if swap_axes else 1
-    
+
     minx = min(ll_start[xidx], ll_end[xidx])
     miny = min(ll_start[yidx], ll_end[yidx])
     maxx = max(ll_start[xidx], ll_end[xidx])
     maxy = max(ll_start[yidx], ll_end[yidx])
-    
+
     if (maxx == minx):
         lerp_x = 0
     else:
@@ -369,7 +369,7 @@ def calc_pixel_coords(ll_start, ll_end, ll_point, x_range, y_range, swap_axes=Tr
         lerp_y = 0
     else:
         lerp_y = (ll_point[yidx] - miny) / (maxy - miny)
-    
+
     return (
         x_range[0] + (x_range[1] - x_range[0]) * lerp_x,
         y_range[0] + (y_range[1] - y_range[0]) * lerp_y
