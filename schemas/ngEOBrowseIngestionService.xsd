@@ -1,5 +1,5 @@
-<xs:schema xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" targetNamespace="http://ngeo.eo.esa.int/schema/browse/ingestion" elementFormDefault="qualified" attributeFormDefault="unqualified">
-	<xs:import namespace="http://ngeo.eo.esa.int/schema/browseReport" schemaLocation="IF-ngEO-BrowseReport-1.1.xsd"/>
+<xs:schema xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" targetNamespace="http://ngeo.eo.esa.int/schema/browse/ingestion" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:import namespace="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" schemaLocation="IF-ngEO-BrowseReport.xsd"/>
 	<xs:element name="ingestBrowse" type="rep:browseReportType"/>
 	<xs:element name="ingestBrowseResponse" type="bsi:IngestBrowseResponseType"/>
 	<xs:complexType name="BaseResponseType">
