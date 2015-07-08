@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- edited with XMLSpy v2006 sp2 U (http://www.altova.com) by Magellium (MAGELLIUM) -->
-<xs:schema xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:gml="http://www.opengis.net/gml/3.2" xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="http://ngeo.eo.esa.int/schema/browseReport" elementFormDefault="qualified" attributeFormDefault="unqualified" version="1.2">
-    <xs:import namespace="http://www.opengis.net/gml/3.2" schemaLocation="http://schemas.opengis.net/gml/3.2.1/gml.xsd"/>
+<xs:schema xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" targetNamespace="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" elementFormDefault="qualified" attributeFormDefault="unqualified" version="1.3" xsi:schemaLocation="http://ngeo.eo.esa.int/ngEO/browseReport/1.0 IF-ngEO-BrowseReport.xsd">
     <!--======================================-->
     <!--==== ngEO Root Elements ===============-->
     <!--======================================-->
@@ -33,9 +31,9 @@
                 </xs:annotation>
             </xs:element>
         </xs:sequence>
-        <xs:attribute name="version" type="xs:string" use="required" fixed="1.1">
+        <xs:attribute name="version" type="xs:string" use="required" fixed="1.3">
             <xs:annotation>
-                <xs:documentation>Schema version. Fixed 1.1. value</xs:documentation>
+                <xs:documentation>Schema version. Fixed 1.3. value</xs:documentation>
             </xs:annotation>
         </xs:attribute>
     </xs:complexType>
