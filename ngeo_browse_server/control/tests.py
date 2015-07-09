@@ -639,7 +639,7 @@ class IngestBrowseFilenameStartsWithNumber(IngestTestCaseMixIn, HttpTestCaseMixi
 
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" version="1.1">
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" version="1.3">
   <rep:responsibleOrgName>EOX</rep:responsibleOrgName>
   <rep:dateTime>2013-01-29T16:41:12.630821</rep:dateTime>
   <rep:browseType>SAR</rep:browseType>
@@ -688,7 +688,7 @@ class IngestBrowseSubfolderFilename(IngestTestCaseMixIn, HttpTestCaseMixin, Test
 
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" version="1.1">
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" version="1.3">
   <rep:responsibleOrgName>EOX</rep:responsibleOrgName>
   <rep:dateTime>2013-01-29T16:41:12.630821</rep:dateTime>
   <rep:browseType>SAR</rep:browseType>
@@ -738,7 +738,7 @@ class IngestModelInGeotiffBrowseCompicatedFootprint(IngestTestCaseMixIn, HttpTes
 
     request = """\
 <?xml version="1.0" encoding="utf-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" version="1.1">
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" version="1.3">
   <rep:responsibleOrgName>RapidEye</rep:responsibleOrgName>
   <rep:dateTime>2012-09-18T15:30:44+00:00</rep:dateTime>
   <rep:browseType>SAR</rep:browseType>
@@ -1191,7 +1191,7 @@ class IngestFailureInvalidRootTag(IngestFailureTestCaseMixIn, HttpTestCaseMixin,
 <bsi:ingestException xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
 xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <bsi:exceptionCode>InvalidRequest</bsi:exceptionCode>
-    <bsi:exceptionMessage>Invalid root tag &#39;someRoot&#39;. Expected one of &#39;(&#39;{http://ngeo.eo.esa.int/schema/browse/ingestion}ingestBrowse&#39;, &#39;{http://ngeo.eo.esa.int/schema/browseReport}browseReport&#39;)&#39;.</bsi:exceptionMessage>
+    <bsi:exceptionMessage>Invalid root tag &#39;someRoot&#39;. Expected one of &#39;(&#39;{http://ngeo.eo.esa.int/schema/browse/ingestion}ingestBrowse&#39;, &#39;{http://ngeo.eo.esa.int/ngEO/browseReport/1.0}browseReport&#39;, &#39;{http://ngeo.eo.esa.int/schema/browseReport}browseReport&#39;)&#39;.</bsi:exceptionMessage>
 </bsi:ingestException>
 """
 
@@ -1201,7 +1201,7 @@ class IngestFailureMissingElement(IngestFailureTestCaseMixIn, HttpTestCaseMixin,
 
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/ngEO/browseReport/1.0 IF-ngEO-BrowseReport.xsd" version="1.3">
     <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
     <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
 </rep:browseReport>
@@ -1222,7 +1222,7 @@ class IngestFailureUnexpectedNumber(IngestFailureTestCaseMixIn, HttpTestCaseMixi
 
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/ngEO/browseReport/1.0 IF-ngEO-BrowseReport.xsd" version="1.3">
     <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
     <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
     <rep:browseType>XXX</rep:browseType>
@@ -1245,7 +1245,7 @@ class IngestFailureExpectedAtMost(IngestFailureTestCaseMixIn, HttpTestCaseMixin,
 
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/ngEO/browseReport/1.0 IF-ngEO-BrowseReport.xsd" version="1.3">
     <rep:responsibleOrgName>EOX</rep:responsibleOrgName>
     <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
     <rep:browseType>MER_FRS</rep:browseType>
@@ -1279,7 +1279,7 @@ class IngestFailureMissingGeospatialReference(IngestFailureTestCaseMixIn, HttpTe
 
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/ngEO/browseReport/1.0 IF-ngEO-BrowseReport.xsd" version="1.3">
     <rep:responsibleOrgName>EOX</rep:responsibleOrgName>
     <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
     <rep:browseType>MER_FRS</rep:browseType>
@@ -1316,7 +1316,7 @@ class IngestFailureIDStartsWithNumber(IngestFailureTestCaseMixIn, HttpTestCaseMi
 
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/ngEO/browseReport/1.0 IF-ngEO-BrowseReport.xsd" version="1.3">
     <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
     <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
     <rep:browseType>OPTICAL</rep:browseType>
@@ -1366,7 +1366,7 @@ class IngestFailureEndBeforeStart(IngestFailureTestCaseMixIn, HttpTestCaseMixin,
 
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/ngEO/browseReport/1.0 IF-ngEO-BrowseReport.xsd" version="1.3">
     <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
     <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
     <rep:browseType>OPTICAL</rep:browseType>
@@ -1415,7 +1415,7 @@ class IngestFailureInvalidFilename(IngestFailureTestCaseMixIn, HttpTestCaseMixin
 
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/ngEO/browseReport/1.0 IF-ngEO-BrowseReport.xsd" version="1.3">
     <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
     <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
     <rep:browseType>OPTICAL</rep:browseType>
@@ -1467,7 +1467,7 @@ class IngestFailureBrowseTypeDoesNotExist(IngestFailureTestCaseMixIn, HttpTestCa
 
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.1">
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.3">
     <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
     <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
     <rep:browseType>DOESNOTEXIST</rep:browseType>
@@ -1503,7 +1503,7 @@ class IngestFailureWrongRelativeFilename(IngestFailureTestCaseMixIn, HttpTestCas
 
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/ngEO/browseReport/1.0 IF-ngEO-BrowseReport.xsd" version="1.3">
     <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
     <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
     <rep:browseType>OPTICAL</rep:browseType>
@@ -1552,7 +1552,7 @@ class IngestFailureWrongAbsoluteFilename(IngestFailureTestCaseMixIn, HttpTestCas
 
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/ngEO/browseReport/1.0 IF-ngEO-BrowseReport.xsd" version="1.3">
     <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
     <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
     <rep:browseType>OPTICAL</rep:browseType>
@@ -1602,7 +1602,7 @@ class IngestFailureFootprintNoCircle(IngestFailureTestCaseMixIn, HttpTestCaseMix
 
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/ngEO/browseReport/1.0 IF-ngEO-BrowseReport.xsd" version="1.3">
     <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
     <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
     <rep:browseType>OPTICAL</rep:browseType>
@@ -1651,7 +1651,7 @@ class IngestFailureInvalidReferenceSystem(IngestFailureTestCaseMixIn, HttpTestCa
 
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/ngEO/browseReport/1.0 IF-ngEO-BrowseReport.xsd" version="1.3">
     <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
     <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
     <rep:browseType>OPTICAL</rep:browseType>
@@ -1701,7 +1701,7 @@ class IngestFailureUnknownReferenceSystem(IngestFailureTestCaseMixIn, HttpTestCa
 
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/ngEO/browseReport/1.0 IF-ngEO-BrowseReport.xsd" version="1.3">
     <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
     <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
     <rep:browseType>OPTICAL</rep:browseType>
@@ -1750,7 +1750,7 @@ class IngestFailureRAWReferenceSystem(IngestFailureTestCaseMixIn, HttpTestCaseMi
 
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/ngEO/browseReport/1.0 IF-ngEO-BrowseReport.xsd" version="1.3">
     <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
     <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
     <rep:browseType>OPTICAL</rep:browseType>
@@ -1811,7 +1811,7 @@ class IngestFailureContradictingIDs(IngestFailureTestCaseMixIn, IngestReplaceTes
 
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/ngEO/browseReport/1.0 IF-ngEO-BrowseReport.xsd" version="1.3">
     <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
     <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
     <rep:browseType>SAR</rep:browseType>
@@ -1863,7 +1863,7 @@ class IngestFailureNoValidTransformException(IngestFailureTestCaseMixIn, HttpTes
 
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.1">
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.3">
     <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
     <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
     <rep:browseType>SAR</rep:browseType>
@@ -1915,7 +1915,7 @@ class IngestFailureInvalidRegularGrid1(IngestFailureTestCaseMixIn, HttpTestCaseM
 
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/ngEO/browseReport/1.0 IF-ngEO-BrowseReport.xsd" version="1.3">
     <rep:responsibleOrgName>EOX</rep:responsibleOrgName>
     <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
     <rep:browseType>ASA_WSM</rep:browseType>
@@ -1978,7 +1978,7 @@ class IngestFailureInvalidRegularGrid2(IngestFailureTestCaseMixIn, HttpTestCaseM
 
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/ngEO/browseReport/1.0 IF-ngEO-BrowseReport.xsd" version="1.3">
     <rep:responsibleOrgName>EOX</rep:responsibleOrgName>
     <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
     <rep:browseType>ASA_WSM</rep:browseType>
@@ -2041,7 +2041,7 @@ class IngestFailureUnsupportedFormat(IngestFailureTestCaseMixIn, HttpTestCaseMix
 
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/ngEO/browseReport/1.0 IF-ngEO-BrowseReport.xsd" version="1.3">
     <rep:responsibleOrgName>EOX</rep:responsibleOrgName>
     <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
     <rep:browseType>ASA_WSM</rep:browseType>
@@ -3485,7 +3485,7 @@ class NotifyIngestFailureTestCase(NotifyMixIn, IngestFailureTestCaseMixIn, HttpT
 
     request = """\
 <?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.1">
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.3">
     <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
     <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
     <rep:browseType>DOESNOTEXIST</rep:browseType>

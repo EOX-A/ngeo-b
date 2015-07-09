@@ -11,8 +11,8 @@
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
-# copies of the Software, and to permit persons to whom the Software is 
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
 # The above copyright notice and this permission notice shall be included in all
@@ -38,24 +38,24 @@ from ngeo_browse_server.namespace import ns_rep
 def serialize_browse_report(browse_report, stream=None, pretty_print=False):
     if not stream:
         stream = StringIO()
-    
-    browse_report_elem = Element(ns_rep("browseReport"), 
+
+    browse_report_elem = Element(ns_rep("browseReport"),
                                  nsmap={"rep": ns_rep.uri},
-                                 attrib={"version": "1.1"})
-    
+                                 attrib={"version": "1.3"})
+
     SubElement(browse_report_elem, ns_rep("responsibleOrgName")).text = browse_report.responsible_org_name
     SubElement(browse_report_elem, ns_rep("dateTime")).text = browse_report.date_time.isoformat("T")
     SubElement(browse_report_elem, ns_rep("browseType")).text = browse_report.browse_type
-    
+
     for browse in browse_report:
         browse_report_elem.append(_serialize_browse(browse))
-    
+
     et = ElementTree(browse_report_elem)
-    et.write(stream, pretty_print=pretty_print, encoding="utf-8", 
+    et.write(stream, pretty_print=pretty_print, encoding="utf-8",
              xml_declaration=True)
-    
+
     return stream
-    
+
 
 def _serialize_browse(browse):
     browse_elem = Element(ns_rep("browse"))
@@ -64,9 +64,9 @@ def _serialize_browse(browse):
     SubElement(browse_elem, ns_rep("fileName")).text = browse.file_name
     SubElement(browse_elem, ns_rep("imageType")).text = browse.image_type
     SubElement(browse_elem, ns_rep("referenceSystemIdentifier")).text = browse.reference_system_identifier
-    
+
     browse_elem.append(GEO_TYPE_TO_XML[browse.geo_type](browse))
-    
+
     SubElement(browse_elem, ns_rep("startTime")).text = browse.start_time.isoformat("T")
     SubElement(browse_elem, ns_rep("endTime")).text = browse.end_time.isoformat("T")
     return browse_elem

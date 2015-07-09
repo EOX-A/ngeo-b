@@ -11,8 +11,8 @@
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
-# copies of the Software, and to permit persons to whom the Software is 
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
 # The above copyright notice and this permission notice shall be included in all
@@ -36,11 +36,12 @@ class NameSpace(object):
     @property
     def uri(self):
         return self._uri
-    
+
     def __call__(self, tag):
         return self._lxml_uri + tag
 
 
-ns_rep = NameSpace("http://ngeo.eo.esa.int/schema/browseReport")
+ns_rep = NameSpace("http://ngeo.eo.esa.int/ngEO/browseReport/1.0")
+ns_rep_old = NameSpace("http://ngeo.eo.esa.int/schema/browseReport")
 ns_bsi = NameSpace("http://ngeo.eo.esa.int/schema/browse/ingestion")
 ns_cfg = NameSpace("http://ngeo.eo.esa.int/schema/configurationElements")

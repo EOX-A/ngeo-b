@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/schema/browseReport" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browseReport http://ngeo.eo.esa.int/schema/browseReport/browseReport.xsd" version="1.1">
+<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/ngEO/browseReport/1.0 IF-ngEO-BrowseReport.xsd" version="1.3">
     <rep:responsibleOrgName>{{ browse_report.responsible_org_name }}</rep:responsibleOrgName>
     <rep:dateTime>{{ browse_report.date_time.isoformat }}</rep:dateTime>
     <rep:browseType>{{ browse_report.browse_type }}</rep:browseType>{% for browse in browse_report %}
