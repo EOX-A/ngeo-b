@@ -112,6 +112,7 @@ python manage.py collectstatic --noinput
 cp /var/ngeob_autotest/data/reference_test_data/*.jpg /var/www/store/
 cp /var/ngeob_autotest/data/test_data/*.tif /var/www/store/
 cp /var/ngeob_autotest/data/test_data/*.jpg /var/www/store/
+cp /var/ngeob_autotest/data/test_data/*.png /var/www/store/
 cp /var/ngeob_autotest/data/feed_test_data/*.png /var/www/store/
 cp /var/ngeob_autotest/data/aiv_test_data/*.jpg /var/www/store/
 cp /var/ngeob_autotest/data/input_merge_test_data/*.jpg /var/www/store/
