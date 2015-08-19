@@ -3769,6 +3769,14 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
+          <xsd:element type="xsd:boolean" name="regular_grid_clipping">
+            <xsd:annotation>
+              <xsd:documentation>
+                <xsd:label>Regular Grid clipping</xsd:label>
+                <xsd:tooltip>Clip the regular grid tie points pixel coordinates to be inside of the image bounds. Necessary for Sentinel-1 image data.</xsd:tooltip>
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
           <xsd:element type="xsd:string" name="threshold">
             <xsd:annotation>
               <xsd:documentation>
@@ -3914,6 +3922,7 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
         <color_index>false</color_index>
         <footprint_alpha>true</footprint_alpha>
         <simplification_factor>2</simplification_factor>
+        <regular_grid_clipping>false</regular_grid_clipping>
         <threshold>5h</threshold>
         <strategy>replace</strategy>
       </ingest>
@@ -3958,6 +3967,7 @@ class ConfigurationChangeTestCase(ConfigMixIn, TestCase):
         <color_index>true</color_index>
         <footprint_alpha>false</footprint_alpha>
         <simplification_factor>3</simplification_factor>
+        <regular_grid_clipping>true</regular_grid_clipping>
         <threshold>8h</threshold>
         <strategy>replace</strategy>
       </ingest>
@@ -4001,6 +4011,7 @@ class ConfigurationChangeTestCase(ConfigMixIn, TestCase):
             (INGEST_SECTION, "footprint_alpha"): "False",
             (INGEST_SECTION, "strategy"): "replace",
             (INGEST_SECTION, "threshold"): "8h",
+            (INGEST_SECTION, "regular_grid_clipping"): "True",
             #("mapcache", "threads"): "4",
         }
 
