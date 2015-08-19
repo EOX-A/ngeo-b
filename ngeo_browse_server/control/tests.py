@@ -252,6 +252,72 @@ class SeedRegularGridBrowse2(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     expected_browse_type = "SAR"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64}
 
+class IngestRegularGridClippedBrowse1(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    storage_dir = "data/regular_grid_clipping"
+    request_file = "regular_grid_clipping/1434370912775_BrowseServerIngest_1434370912587_input.xml"
+
+    expected_ingested_browse_ids = ("ID_20150415T131237823934",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['ID_quick-look_1_proc.tif']
+    expected_deleted_files = ['ID_quick-look_1.png']
+    save_optimized_files = True
+
+    configuration = {
+        (INGEST_SECTION, "regular_grid_clipping"): "true",
+    }
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>ID_20150415T131237823934</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+class IngestRegularGridClippedBrowse2(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    storage_dir = "data/regular_grid_clipping"
+    request_file = "regular_grid_clipping/1434370922099_BrowseServerIngest_1434370922061_input.xml"
+
+    expected_ingested_browse_ids = ("ID_20150415T131212823970",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['ID_quick-look_2_proc.tif']
+    expected_deleted_files = ['ID_quick-look_2.png']
+    save_optimized_files = True
+
+    configuration = {
+        (INGEST_SECTION, "regular_grid_clipping"): "true",
+    }
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>ID_20150415T131212823970</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
 
 #===============================================================================
 # Ingest Footprint browse test cases
