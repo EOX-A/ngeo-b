@@ -868,6 +868,36 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 </bsi:ingestBrowseResponse>
 """
 
+class IngestBrowseCrossesDateline2(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    request_file = "test_data/BrowseReport_crosses_dateline2.xml"
+    storage_dir = "data/test_data"
+
+    expected_ingested_browse_ids = ("ID_20150714T042236437048",)
+    expected_ingested_coverage_ids = ("ID_20150714T042236437048",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['BrowseReport_crosses_dateline2_proc.tif']
+    expected_deleted_files = ['BrowseReport_crosses_dateline2.png']
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>ID_20150714T042236437048</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+
 #===============================================================================
 # Ingest a browse with internal GCPs
 #===============================================================================
