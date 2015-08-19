@@ -151,6 +151,7 @@ class BaseTestCaseMixIn(object):
         (INGEST_SECTION, "strategy"): "replace",
         (INGEST_SECTION, "merge_threshold"): "5h",
         (INGEST_SECTION, "simplification_factor"): "2",
+        (INGEST_SECTION, "regular_grid_clipping"): "false",
         # storage_dir, success_dir, failure_dir, optimized_files_dir, and
         # seed_command are set automatically in setUp_files.
 
