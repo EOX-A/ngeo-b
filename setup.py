@@ -11,8 +11,8 @@
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
-# copies of the Software, and to permit persons to whom the Software is 
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
 # The above copyright notice and this permission notice shall be included in all
@@ -52,41 +52,38 @@ def fullsplit(path, result=None):
         return result
     return fullsplit(head, [tail] + result)
 
-packages, data_files = [], []
+packages = []
 for dirpath, dirnames, filenames in os.walk('ngeo_browse_server'):
     for i, dirname in enumerate(dirnames):
         if dirname.startswith('.'): del dirnames[i]
     if '__init__.py' in filenames or 'initial_data.json' in filenames:
         packages.append('.'.join(fullsplit(dirpath)))
-    elif filenames:
-        data_files.append([dirpath, [os.path.join(dirpath, f) for f in filenames]])
 
 setup(
     name='ngEO_Browse_Server',
     version=version.replace(' ', '-'),
     packages=packages,
-    data_files=data_files,
     include_package_data=True,
     scripts=[
         "tools/request_authorization.py",
         "tools/download-ers.sh"
     ],
-    
+
     install_requires=[
         'django>=1.4.1',
         'eoxserver>=0.3.2',
         'pytz',
     ],
-    
+
     # Metadata
     author="EOX IT Services GmbH",
     author_email="office@eox.at",
     maintainer="EOX IT Services GmbH",
     maintainer_email="packages@eox.at",
-    
+
     description="ngEO Browse Server providing access to browse images via WMS",
     long_description=read("README.rst"),
-    
+
     classifiers=[
           'Development Status :: 5 - Production/Stable',
           'Environment :: Console',
@@ -112,7 +109,7 @@ setup(
           'Topic :: Scientific/Engineering :: Information Analysis',
           'Topic :: Scientific/Engineering :: Visualization',
     ],
-    
+
     license="MIT License",
     keywords="ngEO, Browse, OGC, WMS",
     url="http://ngeo.eox.at/"
