@@ -61,8 +61,16 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
     except KeyError:
         raise SeedException("Invalid grid '%s'." % grid)
 
+    dateline_crossed = False
+    if maxx>180:
+        dateline_crossed = True
+    # extent is always within [-180,360] and only maxx can be >180
+    if minx<-180 or minx>180 or maxx<-180 or maxx>360:
+        raise SeedException("Invalid extent '%s,%s,%s,%s'."
+                            % (minx, miny, maxx, maxy))
+
     if minzoom is None: minzoom = 0
-    if maxzoom is None: maxzoom = 10
+    if maxzoom is None: maxzoom = 6
 
     # start- and end-time are expected to be UTC Zulu
     start_time = start_time.replace(tzinfo=None)
@@ -75,12 +83,12 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
                   minx, miny, maxx, maxy, minzoom, maxzoom, threads,
                   "seed" if not delete else "delete"))
 
-    args = [
+    seed_args = [
         seed_command,
         "-c", config_file,
         "-t", tileset,
         "-g", grid,
-        "-e", "%f,%f,%f,%f" % (minx, miny, maxx, maxy),
+        "-e", "%f,%f,%f,%f" % (minx, miny, 180 if dateline_crossed else maxx, maxy),
         "-n", str(threads),
         "-z", "%d,%d" % (minzoom, maxzoom),
         "-D", "TIME=%sZ/%sZ" % (start_time.isoformat(), end_time.isoformat()),
@@ -89,10 +97,8 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
         "-M", "8,8",
     ]
     if not delete:
-        args.append("-f")
+        seed_args.append("-f")
 
-    logger.debug("mapcache seeding command: '%s'. raw: '%s'."
-                 % (" ".join(args), args))
 
     try:
         config = get_ngeo_config()
@@ -108,7 +114,9 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
         )
 
         with lock:
-            process = subprocess.Popen(args, stdout=subprocess.PIPE,
+            logger.debug("mapcache seeding command: '%s'. raw: '%s'."
+                         % (" ".join(seed_args), seed_args))
+            process = subprocess.Popen(seed_args, stdout=subprocess.PIPE,
                                        stderr=subprocess.PIPE)
 
             out, err = process.communicate()
@@ -120,6 +128,26 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
         if process.returncode != 0:
             raise SeedException("'%s' failed. Returncode '%d'."
                                 % (seed_command, process.returncode))
+
+        # seed second extent if dateline is crossed
+        if dateline_crossed:
+            with lock:
+                index = seed_args.index("%f,%f,%f,%f" % (minx, miny, 180, maxy))
+                seed_args[index] = "%f,%f,%f,%f" % (-180, miny, maxx-360, maxy)
+                logger.debug("mapcache seeding command: '%s'. raw: '%s'."
+                             % (" ".join(seed_args), seed_args))
+                process = subprocess.Popen(seed_args, stdout=subprocess.PIPE,
+                                           stderr=subprocess.PIPE)
+
+                out, err = process.communicate()
+                for string in (out, err):
+                    for line in string.split("\n"):
+                        if line != '':
+                            logger.info("MapCache output: %s" % line)
+
+            if process.returncode != 0:
+                raise SeedException("'%s' failed. Returncode '%d'."
+                                    % (seed_command, process.returncode))
 
     except LockException, e:
         raise SeedException("Seeding failed: %s" % str(e))
@@ -215,7 +243,7 @@ def add_mapcache_layer_xml(browse_layer, config=None):
             E("read-only", "true"),
             E("timedimension",
                 E("dbfile", settings.DATABASES["mapcache"]["NAME"]),
-                E("query", "select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and (start_time<datetime(:end_timestamp,'unixepoch') and (end_time>datetime(:start_timestamp,'unixepoch')) or (start_time=end_time and start_time<=datetime(:end_timestamp,'unixepoch') and end_time>=datetime(:start_timestamp,'unixepoch'))) and maxx>=:minx and maxy>=:miny and minx<=:maxx and miny<=:maxy order by end_time asc limit " + str(browse_layer.tile_query_limit)),
+                E("query", "select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and (start_time<datetime(:end_timestamp,'unixepoch') and (end_time>datetime(:start_timestamp,'unixepoch')) or (start_time=end_time and start_time<=datetime(:end_timestamp,'unixepoch') and end_time>=datetime(:start_timestamp,'unixepoch'))) and ((maxx>=:minx and minx<=:maxx) or (maxx>180 and (maxx-360)>=:minx and (minx-360)<=:maxx)) and maxy>=:miny and miny<=:maxy order by end_time asc limit  " + str(browse_layer.tile_query_limit)),
                 type="sqlite", default=str(browse_layer.timedimension_default)),
             *([
                 E("auth_method", "cmdlineauth")]
