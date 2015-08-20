@@ -51,6 +51,7 @@ from eoxserver.processing.preprocessing.georeference import Extent, GCPList
 from eoxserver.resources.coverages.crss import fromShortCode, hasSwappedAxes
 from eoxserver.resources.coverages.models import NCNameValidator
 from eoxserver.processing.preprocessing.exceptions import GCPTransformException
+from osgeo import gdal
 
 from ngeo_browse_server.config import get_ngeo_config, safe_get
 from ngeo_browse_server.config import models
@@ -365,6 +366,8 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
     output_filename = preprocessor.generate_filename(output_filename)
 
     try:
+        ingest_config = get_ingest_config(config)
+
         # check if a browse already exists and delete it in order to replace it
         existing_browse_model = get_existing_browse(parsed_browse, browse_layer.id)
         if existing_browse_model:
@@ -386,7 +389,6 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
             timedelta = current_time - previous_time
 
             # get strategy and merge threshold
-            ingest_config = get_ingest_config(config)
             threshold = ingest_config["merge_threshold"]
             if browse_layer.strategy != "inherit":
                 strategy = browse_layer.strategy
@@ -444,13 +446,19 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         # wrap all file operations with IngestionTransaction
         with FileTransaction((output_filename, replaced_filename)):
             with FileTransaction((merge_with,), True):
-                # initialize a GeoReference for the preprocessor
-                geo_reference = _georef_from_parsed(parsed_browse)
-
                 # assert that the input file exists
                 if not exists(input_filename):
                     raise IngestionException("Input file '%s' does not exist."
                                              % input_filename)
+
+                clipping = None
+                if parsed_browse.geo_type == "regularGridBrowse" and \
+                        ingest_config["regular_grid_clipping"]:
+                        #TODO: get clipping
+                    clipping = _get_clipping(input_filename)
+
+                # initialize a GeoReference for the preprocessor
+                geo_reference = _georef_from_parsed(parsed_browse, clipping)
 
                 # check that the output directory exists
                 safe_makedirs(dirname(output_filename))
@@ -551,7 +559,12 @@ def safe_makedirs(path):
         makedirs(path)
 
 
-def _georef_from_parsed(parsed_browse):
+def _get_clipping(path):
+    ds = gdal.Open(path)
+    return ds.RasterXSize, ds.RasterYSize
+
+
+def _georef_from_parsed(parsed_browse, clipping=None):
     srid = fromShortCode(parsed_browse.reference_system_identifier)
 
     if (parsed_browse.reference_system_identifier == "RAW" and
@@ -596,7 +609,6 @@ def _georef_from_parsed(parsed_browse):
 
         return GCPList(gcps, srid)
 
-
     elif parsed_browse.geo_type == "regularGridBrowse":
         # calculate a list of pixel coordinates according to the values of the
         # parsed browse report (col_node_number * row_node_number)
@@ -610,20 +622,31 @@ def _georef_from_parsed(parsed_browse):
         )
         pixels = [(x, y) for x in range_x for y in range_y]
 
-        # get the lat-lon coordinates as tuple-lists
-        # TODO: normalize if dateline is crossed
+        # apply clipping
+        if clipping:
+            clip_x, clip_y = clipping
+            pixels[:] = [
+                (min(clip_x, x), min(clip_y, y)) for x, y in pixels
+            ]
 
+        # decode coordinate lists and check if any crosses the dateline
         coord_lists = []
+        crosses_dateline = False
         for coord_list in parsed_browse.coord_lists:
             coord_list = decode_coord_list(coord_list, swap_axes)
 
-            # TODO: iterate over every coord pair. if a dateline cross occurred
-            # move all the negative values to the positive space
-            if _coord_list_crosses_dateline(coord_list, CRS_BOUNDS[srid]):
-                logger.info("Regular grid crosses the dateline. Normalizing it.")
-                coord_list = _unwrap_coord_list(coord_list, CRS_BOUNDS[srid])
-
+            crosses_dateline = crosses_dateline or \
+                _coord_list_crosses_dateline(coord_list, CRS_BOUNDS[srid])
             coord_lists.append(coord_list)
+
+        # if any coordinate list was crossing the dateline, unwrap all
+        # coordinate lists
+        if crosses_dateline:
+            logger.info("Regular grid crosses the dateline. Normalizing it.")
+            coord_lists = [
+                _unwrap_coord_list(coord_list, CRS_BOUNDS[srid])
+                for coord_list in coord_lists
+            ]
 
         coords = []
         for coord_list in coord_lists:
@@ -638,7 +661,6 @@ def _georef_from_parsed(parsed_browse):
         elif len(coords) / len(parsed_browse.coord_lists) != parsed_browse.col_node_number:
             raise IngestionException("Invalid regularGrid: number of coordinates "
                                      "does not fit given columns number.")
-
 
         gcps = [(x, y, pixel, line)
                 for (x, y), (pixel, line) in zip(coords, pixels)]
@@ -682,6 +704,8 @@ def _save_result_browse_report(browse_report, path):
 
 
 FILENAME_CHARS = "/_-." + string.ascii_letters + string.digits
+
+
 def _valid_path(filename):
     return ''.join(c for c in filename if c in FILENAME_CHARS)
 
@@ -714,4 +738,3 @@ def _unwrap_coord_list(coord_list, bounds):
     # start/stop in the normalized negative
     return map(lambda c: (c[0] + full if c[0] < 0 else c[0], c[1]),
                coord_list)
-

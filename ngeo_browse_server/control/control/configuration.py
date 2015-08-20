@@ -9,8 +9,8 @@
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
-# copies of the Software, and to permit persons to whom the Software is 
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
 # The above copyright notice and this permission notice shall be included in all
@@ -27,7 +27,6 @@
 
 import re
 
-from lxml import etree
 from lxml.builder import ElementMaker, E
 
 from ngeo_browse_server.config import (
@@ -57,6 +56,7 @@ SCHEMA_MAP = {
     str: "%s:string" % ns_xsd_prefix,
 }
 
+
 class Parameter(object):
     def __init__(self, type, name, title, description, default=None,
                  allowed_values=None):
@@ -67,7 +67,6 @@ class Parameter(object):
         self.default = default
         self.allowed_values = allowed_values
 
-
     @property
     def type_name(self):
         if not self.allowed_values:
@@ -77,7 +76,7 @@ class Parameter(object):
     def get_allowed_values_enumeration(self, value, documentation):
         return XSD("enumeration",
             XSD("annotation",
-                XSD("documentation", 
+                XSD("documentation",
                     XSD("tooltip", documentation)
                 )
             ), value=value
@@ -97,7 +96,7 @@ class Parameter(object):
 
     def get_schema_element(self):
         return XSD("element",
-            XSD("annotation", 
+            XSD("annotation",
                 XSD("documentation",
                     XSD("label", self.title),
                     XSD("tooltip", self.description)
@@ -141,10 +140,9 @@ class Configurator(object):
             parameter.encode(values[parameter.name])
             for parameter in self.parameters
         ])
-    
 
     def get_schema_type(self):
-        return XSD("complexType", 
+        return XSD("complexType",
             XSD("sequence", *[
                 parameter.get_schema_element()
                 for parameter in self.parameters
@@ -158,7 +156,6 @@ class Configurator(object):
             if parameter.get_schema_type() is not None
         ]
 
-
     def get_schema_element(self):
         return XSD("element", name=self.element_name, type=self.type_name)
 
@@ -171,7 +168,6 @@ class Configurator(object):
 
     def get_values(self):
         raise NotImplementedError()
-
 
 
 class ngEOConfigConfigurator(Configurator):
@@ -210,7 +206,7 @@ class IngestConfigurator(ngEOConfigConfigurator):
 
     parameters = (
         Parameter(
-            str, "optimized_files_postfix", "Browse file postfix", 
+            str, "optimized_files_postfix", "Browse file postfix",
             "String that is attached at the end of filenames of optimized "
             "browses.", "_proc"
         ),
@@ -221,27 +217,27 @@ class IngestConfigurator(ngEOConfigConfigurator):
             'Default is "NONE"', "NONE"
         ),
         Parameter(
-            int, "jpeg_quality", "JPEG compression quality", 
+            int, "jpeg_quality", "JPEG compression quality",
             'JPEG quality if compression is "JPEG". Integer between 1-100. ',
             "75"
         ),
         Parameter(
-            str, "zlevel", "DEFLATE Compression level", 
+            str, "zlevel", "DEFLATE Compression level",
             'zlevel option for "DEFLATE" compression. Integer between 1-9.',
             "6"
         ),
         Parameter(
-            bool, "tiling", "Internal tiling", 
+            bool, "tiling", "Internal tiling",
             "Defines whether or not the browse images shall be internally "
             "tiled.", "true"
         ),
         Parameter(
-            bool, "overviews", "Generate overviews", 
+            bool, "overviews", "Generate overviews",
             "Defines whether internal browse overviews shall be generated.",
             "true"
         ),
         Parameter(
-            str, "overview_resampling", "Overview resampling", 
+            str, "overview_resampling", "Overview resampling",
             'Defines the resampling method used to generate the overviews. '
             'One of "NEAREST", "GAUSS", "CUBIC", "AVERAGE", "MODE", '
             '"AVERAGE_MAGPHASE" or "NONE".', "NEAREST"
@@ -253,33 +249,38 @@ class IngestConfigurator(ngEOConfigConfigurator):
             'dataset size.', "2,4,8,16"
         ),
         Parameter(
-            int, "overview_minsize", "Overview minimum size", 
+            int, "overview_minsize", "Overview minimum size",
             "A (positive) integer value declaring the lowest size the highest "
             "overview level at most shall have.", "256"
         ),
         Parameter(
-            bool, "color_index", "Color index table", 
+            bool, "color_index", "Color index table",
             "Defines if a color index shall be calculated.", "false"
         ),
         Parameter(
-            bool, "footprint_alpha", "", 
+            bool, "footprint_alpha", "",
             "Defines whether or not a alpha channel shall be used to display "
             "the images area of interest.", "false"
         ),
         Parameter(
-            int, "simplification_factor", "", 
+            int, "simplification_factor", "",
             "Sets the factor for the simplification algorithm. See "
             "`http://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm` "
             "for details. Defaults to 2 (2 * resolution == 2 pixels) which "
             "provides reasonable results.", "2"
         ),
         Parameter(
-            str, "threshold", "Merge time threshold", 
+            bool, "regular_grid_clipping", "Regular Grid clipping",
+            "Clip the regular grid tie points pixel coordinates to be inside of "
+            "the image bounds. Necessary for Sentinel-1 image data.", "false"
+        ),
+        Parameter(
+            str, "threshold", "Merge time threshold",
             "The maximum time difference between the two browse report to "
             "allow a 'merge'. E.g: 1w 5d 3h 12m 18ms. Defaults to '5h'.", "5h"
         ),
         Parameter(
-            str, "strategy", "Ident browse strategy", 
+            str, "strategy", "Ident browse strategy",
             "Sets the 'strategy' for when an ingested browse is equal with an "
             "existing one. The 'merge'-strategy tries to merge the two "
             "existing images to one single. This is only possible if the time "
@@ -435,12 +436,11 @@ def get_schema():
     ]
 
     return XSD("schema", *(
-            configurator_schema_types 
-            + parameter_schema_types 
-            + configuration_type
-            + [XSD("element", name="configuration", type="configurationType")]
-        )
-    )
+        configurator_schema_types
+        + parameter_schema_types
+        + configuration_type
+        + [XSD("element", name="configuration", type="configurationType")]
+    ))
 
 
 def get_schema_and_configuration():

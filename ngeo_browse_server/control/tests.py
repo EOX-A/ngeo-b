@@ -252,6 +252,72 @@ class SeedRegularGridBrowse2(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     expected_browse_type = "SAR"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64}
 
+class IngestRegularGridClippedBrowse1(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    storage_dir = "data/regular_grid_clipping"
+    request_file = "regular_grid_clipping/1434370912775_BrowseServerIngest_1434370912587_input.xml"
+
+    expected_ingested_browse_ids = ("ID_20150415T131237823934",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['ID_quick-look_1_proc.tif']
+    expected_deleted_files = ['ID_quick-look_1.png']
+    save_optimized_files = True
+
+    configuration = {
+        (INGEST_SECTION, "regular_grid_clipping"): "true",
+    }
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>ID_20150415T131237823934</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+class IngestRegularGridClippedBrowse2(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    storage_dir = "data/regular_grid_clipping"
+    request_file = "regular_grid_clipping/1434370922099_BrowseServerIngest_1434370922061_input.xml"
+
+    expected_ingested_browse_ids = ("ID_20150415T131212823970",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['ID_quick-look_2_proc.tif']
+    expected_deleted_files = ['ID_quick-look_2.png']
+    save_optimized_files = True
+
+    configuration = {
+        (INGEST_SECTION, "regular_grid_clipping"): "true",
+    }
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>ID_20150415T131212823970</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
 
 #===============================================================================
 # Ingest Footprint browse test cases
@@ -801,6 +867,36 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
     </bsi:ingestionResult>
 </bsi:ingestBrowseResponse>
 """
+
+class IngestBrowseCrossesDateline2(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    request_file = "test_data/BrowseReport_crosses_dateline2.xml"
+    storage_dir = "data/test_data"
+
+    expected_ingested_browse_ids = ("ID_20150714T042236437048",)
+    expected_ingested_coverage_ids = ("ID_20150714T042236437048",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['BrowseReport_crosses_dateline2_proc.tif']
+    expected_deleted_files = ['BrowseReport_crosses_dateline2.png']
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>ID_20150714T042236437048</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
 
 #===============================================================================
 # Ingest a browse with internal GCPs
@@ -3673,6 +3769,14 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
+          <xsd:element type="xsd:boolean" name="regular_grid_clipping">
+            <xsd:annotation>
+              <xsd:documentation>
+                <xsd:label>Regular Grid clipping</xsd:label>
+                <xsd:tooltip>Clip the regular grid tie points pixel coordinates to be inside of the image bounds. Necessary for Sentinel-1 image data.</xsd:tooltip>
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
           <xsd:element type="xsd:string" name="threshold">
             <xsd:annotation>
               <xsd:documentation>
@@ -3818,6 +3922,7 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
         <color_index>false</color_index>
         <footprint_alpha>true</footprint_alpha>
         <simplification_factor>2</simplification_factor>
+        <regular_grid_clipping>false</regular_grid_clipping>
         <threshold>5h</threshold>
         <strategy>replace</strategy>
       </ingest>
@@ -3862,6 +3967,7 @@ class ConfigurationChangeTestCase(ConfigMixIn, TestCase):
         <color_index>true</color_index>
         <footprint_alpha>false</footprint_alpha>
         <simplification_factor>3</simplification_factor>
+        <regular_grid_clipping>true</regular_grid_clipping>
         <threshold>8h</threshold>
         <strategy>replace</strategy>
       </ingest>
@@ -3905,6 +4011,7 @@ class ConfigurationChangeTestCase(ConfigMixIn, TestCase):
             (INGEST_SECTION, "footprint_alpha"): "False",
             (INGEST_SECTION, "strategy"): "replace",
             (INGEST_SECTION, "threshold"): "8h",
+            (INGEST_SECTION, "regular_grid_clipping"): "True",
             #("mapcache", "threads"): "4",
         }
 
