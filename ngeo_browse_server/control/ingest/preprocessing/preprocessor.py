@@ -97,7 +97,7 @@ class NGEOPreProcessor(WMSPreProcessor):
                                           tmp_extent[2], tmp_extent[3]))
             tmp_footprint = GEOSGeometry(footprint_wkt)
             if not tmp_bbox.contains(tmp_footprint):
-                footprint_wkt = self._generate_footprint_wkt(ds)
+                footprint_wkt = tmp_footprint.intersection(tmp_bbox).wkt
 
         if self.footprint_alpha:
             logger.debug("Applying optimization 'AlphaBandOptimization'.")
