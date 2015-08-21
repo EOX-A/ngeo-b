@@ -72,8 +72,8 @@ python manage.py loaddata auth_data.json initial_rangetypes.json
 # Reset ngEO Browse Server
 rm -rf /var/ngeob_autotest/data/optimized/ /var/ngeob_autotest/data/success/ /var/ngeob_autotest/data/failure/ /var/www/store/
 mkdir -p /var/ngeob_autotest/data/optimized/ /var/ngeob_autotest/data/success/ /var/ngeob_autotest/data/failure/ /var/www/store/
-rm -f /var/ngeob_autotest/logs/eoxserver.log /var/ngeob_autotest/logs/ngeo.log
-touch /var/ngeob_autotest/logs/eoxserver.log /var/ngeob_autotest/logs/ngeo.log
+rm -f /var/ngeob_autotest/logs/eoxserver.log /var/ngeob_autotest/logs/ngeo.log /var/ngeob_autotest/logs/ingest.log /var/ngeob_autotest/logs/httpd_access.log /var/ngeob_autotest/logs/httpd_error.log
+touch /var/ngeob_autotest/logs/eoxserver.log /var/ngeob_autotest/logs/ngeo.log /var/ngeob_autotest/logs/ingest.log /var/ngeob_autotest/logs/httpd_access.log /var/ngeob_autotest/logs/httpd_error.log
 
 # Reset MapCache
 rm -f /var/www/cache/SAR.sqlite /var/www/cache/OPTICAL.sqlite /var/www/cache/ASA_WSM.sqlite /var/www/cache/MER_FRS.sqlite /var/www/cache/MER_FRS_FULL.sqlite /var/www/cache/MER_FRS_FULL_NO_BANDS.sqlite /var/www/cache/GOOGLE_MERCATOR.sqlite
