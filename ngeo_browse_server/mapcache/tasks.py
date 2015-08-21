@@ -49,6 +49,18 @@ from ngeo_browse_server.mapcache.config import (
 )
 
 
+# Maximum bounds for both supported CRSs
+CRS_BOUNDS = {
+    3857: (-20037508.3428, -20037508.3428, 20037508.3428, 20037508.3428),
+    4326: (-180, -90, 180, 90)
+}
+
+GRID_TO_SRID = {
+    "GoogleMapsCompatible": 3857,
+    "WGS84": 4326
+}
+
+
 logger = logging.getLogger(__name__)
 
 def seed_mapcache(seed_command, config_file, tileset, grid,
@@ -61,11 +73,15 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
     except KeyError:
         raise SeedException("Invalid grid '%s'." % grid)
 
+    bounds = CRS_BOUNDS[GRID_TO_SRID[grid]]
+    full = float(abs(bounds[0]) + abs(bounds[2]))
+
     dateline_crossed = False
-    if maxx>180:
+    if maxx>bounds[2]:
         dateline_crossed = True
-    # extent is always within [-180,360] and only maxx can be >180
-    if minx<-180 or minx>180 or maxx<-180 or maxx>360:
+    # extent is always within [bounds[0],bounds[2]]
+    # where maxx can be >bounds[2] but <=full
+    if minx<bounds[0] or minx>bounds[2] or maxx<bounds[0] or maxx>full:
         raise SeedException("Invalid extent '%s,%s,%s,%s'."
                             % (minx, miny, maxx, maxy))
 
@@ -88,7 +104,7 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
         "-c", config_file,
         "-t", tileset,
         "-g", grid,
-        "-e", "%f,%f,%f,%f" % (minx, miny, 180 if dateline_crossed else maxx, maxy),
+        "-e", "%f,%f,%f,%f" % (minx, miny, bounds[2] if dateline_crossed else maxx, maxy),
         "-n", str(threads),
         "-z", "%d,%d" % (minzoom, maxzoom),
         "-D", "TIME=%sZ/%sZ" % (start_time.isoformat(), end_time.isoformat()),
@@ -132,8 +148,8 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
         # seed second extent if dateline is crossed
         if dateline_crossed:
             with lock:
-                index = seed_args.index("%f,%f,%f,%f" % (minx, miny, 180, maxy))
-                seed_args[index] = "%f,%f,%f,%f" % (-180, miny, maxx-360, maxy)
+                index = seed_args.index("%f,%f,%f,%f" % (minx, miny, bounds[2], maxy))
+                seed_args[index] = "%f,%f,%f,%f" % (bounds[0], miny, maxx-full, maxy)
                 logger.debug("mapcache seeding command: '%s'. raw: '%s'."
                              % (" ".join(seed_args), seed_args))
                 process = subprocess.Popen(seed_args, stdout=subprocess.PIPE,
@@ -202,6 +218,9 @@ def add_mapcache_layer_xml(browse_layer, config=None):
 
     tileset_path = get_tileset_path(browse_layer.browse_type)
 
+    bounds = CRS_BOUNDS[GRID_TO_SRID[URN_TO_GRID[browse_layer.grid]]]
+    full = float(abs(bounds[0]) + abs(bounds[2]))
+
     root.extend([
         E("cache",
             E("dbfile", tileset_path),
@@ -243,7 +262,7 @@ def add_mapcache_layer_xml(browse_layer, config=None):
             E("read-only", "true"),
             E("timedimension",
                 E("dbfile", settings.DATABASES["mapcache"]["NAME"]),
-                E("query", "select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and (start_time<datetime(:end_timestamp,'unixepoch') and (end_time>datetime(:start_timestamp,'unixepoch')) or (start_time=end_time and start_time<=datetime(:end_timestamp,'unixepoch') and end_time>=datetime(:start_timestamp,'unixepoch'))) and ((maxx>=:minx and minx<=:maxx) or (maxx>180 and (maxx-360)>=:minx and (minx-360)<=:maxx)) and maxy>=:miny and miny<=:maxy order by end_time asc limit  " + str(browse_layer.tile_query_limit)),
+                E("query", "select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and (start_time<datetime(:end_timestamp,'unixepoch') and (end_time>datetime(:start_timestamp,'unixepoch')) or (start_time=end_time and start_time<=datetime(:end_timestamp,'unixepoch') and end_time>=datetime(:start_timestamp,'unixepoch'))) and ((maxx>=:minx and minx<=:maxx) or (maxx>"+str(bounds[2])+" and (maxx-"+str(full)+")>=:minx and (minx-"+str(full)+")<=:maxx)) and maxy>=:miny and miny<=:maxy order by end_time asc limit "+str(browse_layer.tile_query_limit)),
                 type="sqlite", default=str(browse_layer.timedimension_default)),
             *([
                 E("auth_method", "cmdlineauth")]

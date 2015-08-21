@@ -42,7 +42,11 @@
         <read-only>true</read-only>
         <timedimension type="sqlite" default="2010">
             <dbfile>{{ mapcache_test_db }}</dbfile>
-            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and (start_time&lt;datetime(:end_timestamp,'unixepoch') and (end_time&gt;datetime(:start_timestamp,'unixepoch')) or (start_time=end_time and start_time&lt;=datetime(:end_timestamp,'unixepoch') and end_time&gt;=datetime(:start_timestamp,'unixepoch'))) and ((maxx&gt;=:minx and minx&lt;=:maxx) or (maxx&gt;180 and (maxx-360)&gt;=:minx and (minx-360)&lt;=:maxx)) and maxy&gt;=:miny and miny&lt;=:maxy order by end_time asc limit 100</query>
+            {% if layer.grid == "urn:ogc:def:wkss:OGC:1.0:GoogleCRS84Quad" %}
+            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and (start_time&lt;datetime(:end_timestamp,'unixepoch') and (end_time&gt;datetime(:start_timestamp,'unixepoch')) or (start_time=end_time and start_time&lt;=datetime(:end_timestamp,'unixepoch') and end_time&gt;=datetime(:start_timestamp,'unixepoch'))) and ((maxx&gt;=:minx and minx&lt;=:maxx) or (maxx&gt;180 and (maxx-360.0)&gt;=:minx and (minx-360.0)&lt;=:maxx)) and maxy&gt;=:miny and miny&lt;=:maxy order by end_time asc limit 100</query>
+            {% elif layer.grid == "urn:ogc:def:wkss:OGC:1.0:GoogleMapsCompatible" %}
+            <query>select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) from time where source_id=:tileset and (start_time&lt;datetime(:end_timestamp,'unixepoch') and (end_time&gt;datetime(:start_timestamp,'unixepoch')) or (start_time=end_time and start_time&lt;=datetime(:end_timestamp,'unixepoch') and end_time&gt;=datetime(:start_timestamp,'unixepoch'))) and ((maxx&gt;=:minx and minx&lt;=:maxx) or (maxx&gt;20037508.3428 and (maxx-40075016.6856)&gt;=:minx and (minx-40075016.6856)&lt;=:maxx)) and maxy&gt;=:miny and miny&lt;=:maxy order by end_time asc limit 100</query>
+            {% endif %}
         </timedimension>
     </tileset>
     {% endfor %}

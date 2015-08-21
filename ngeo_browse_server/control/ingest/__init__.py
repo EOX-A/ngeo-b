@@ -73,7 +73,7 @@ from ngeo_browse_server.control.ingest.config import (
 )
 from ngeo_browse_server.control.ingest.exceptions import IngestionException
 from ngeo_browse_server.mapcache import models as mapcache_models
-from ngeo_browse_server.mapcache.tasks import seed_mapcache
+from ngeo_browse_server.mapcache.tasks import CRS_BOUNDS, seed_mapcache
 from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
 from ngeo_browse_server.config.browsereport.serialization import (
     serialize_browse_report
@@ -708,13 +708,6 @@ FILENAME_CHARS = "/_-." + string.ascii_letters + string.digits
 
 def _valid_path(filename):
     return ''.join(c for c in filename if c in FILENAME_CHARS)
-
-
-# Maximum bounds for both supported CRSs
-CRS_BOUNDS = {
-    3857: (-20037508.3428, -20037508.3428, 20037508.3428, 20037508.3428),
-    4326: (-180, -90, 180, 90)
-}
 
 
 def _coord_list_crosses_dateline(coord_list, bounds):
