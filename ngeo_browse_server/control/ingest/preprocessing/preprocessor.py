@@ -82,7 +82,18 @@ class NGEOPreProcessor(WMSPreProcessor):
             logger.debug("Applying optimization '%s'."
                          % type(optimization).__name__)
             new_ds = optimization(ds)
+
+            logger.debug(str(ds))
+            # cleanup afterwards
+            driver = ds.GetDriver()
+            filelist = ds.GetFileList()
+
+            logger.debug("Filelist: %s" % filelist)
+
             ds = None
+            if filelist and filelist[0]:
+                driver.Delete(filelist[0])
+
             ds = new_ds
 
         # generate the footprint from the dataset
@@ -136,8 +147,10 @@ class NGEOPreProcessor(WMSPreProcessor):
 
             # save the file to the disc
             driver = gdal.GetDriverByName(self.format_selection.driver_name)
-            ds = driver.CreateCopy(output_filename, ds,
-                                   options=self.format_selection.creation_options)
+            ds = driver.CreateCopy(
+                output_filename, ds,
+                options=self.format_selection.creation_options
+            )
 
         for optimization in self.get_post_optimizations(ds):
             logger.debug("Applying post-optimization '%s'."
@@ -202,7 +215,7 @@ class InternalGCPs(object):
             if num_gcps >= min_gcpnum and (max_gcpnum is None or num_gcps <= max_gcpnum):
                 try:
 
-                    if (order < 0) :
+                    if (order < 0):
                         # let the reftools suggest the right interpolator
                         rt_prm = reftools.suggest_transformer(src_ds)
                     else:
@@ -212,11 +225,12 @@ class InternalGCPs(object):
                         }
 
                     logger.debug("Trying order '%i' {method:%s,order:%s}" % (
-                        order, reftools.METHOD2STR[rt_prm["method"]], rt_prm["order"]
+                        order, reftools.METHOD2STR[rt_prm["method"]],
+                        rt_prm["order"]
                     ))
 
                     # get the suggested pixel size/geotransform
-                    size_x, size_y, geotransform = reftools.suggested_warp_output(
+                    size_x, size_y, gt = reftools.suggested_warp_output(
                         src_ds,
                         None,
                         dst_sr.ExportToWkt(),
@@ -233,7 +247,7 @@ class InternalGCPs(object):
 
                     # reproject the image
                     dst_ds.SetProjection(dst_sr.ExportToWkt())
-                    dst_ds.SetGeoTransform(geotransform)
+                    dst_ds.SetGeoTransform(gt)
 
                     reftools.reproject_image(src_ds, "", dst_ds, "", **rt_prm)
 
@@ -254,7 +268,9 @@ class InternalGCPs(object):
                     break
         else:
             # no method worked, so raise an error
-            raise GCPTransformException("Could not find a valid transform method.")
+            raise GCPTransformException(
+                "Could not find a valid transform method."
+            )
 
         # reproject the footprint to a lon/lat projection if necessary
         if not dst_sr.IsGeographic():
