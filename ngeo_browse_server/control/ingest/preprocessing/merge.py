@@ -211,6 +211,15 @@ class GDALMergeSource(GDALDatasetWrapper):
         self.dataset = dataset
         self.use_nodata = use_nodata
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        self.destroy()
+
+    def destroy(self):
+        pass
+
     def get_mask(self, rect, size_x, size_y, source_array):
         nodata_value = src_band.GetNoDataValue()
         if self.use_nodata and not nodata_value is None:
@@ -271,9 +280,11 @@ class GDALGeometryMaskMergeSource(GDALMergeSource):
         band = self.mask_dataset.GetRasterBand(1)
         return band.ReadAsArray(*rect, buf_xsize=size_x, buf_ysize=size_y)
 
-    def __del__(self):
+    def destroy(self):
         # cleanup
-        cleanup_temp(self.mask_dataset)
+        filename = self.mask_dataset.GetFileList()[0]
+        del self.mask_dataset
+        cleanup_temp(filename)
 
 
 class GDALAlphaMaskMergeSource(GDALMergeSource):
@@ -380,38 +391,39 @@ class GDALDatasetMerger(object):
         whole_bbox = target.bbox
 
         for source in self.sources:
-            for band_index in xrange(1, len(target) + 1):
-                target_bbox = whole_bbox & source.bbox
+            with source:
+                for band_index in xrange(1, len(target) + 1):
+                    target_bbox = whole_bbox & source.bbox
 
-                # compute pixel windows
-                source_rect = source.get_window(target_bbox)
-                target_rect = target.get_window(target_bbox)
+                    # compute pixel windows
+                    source_rect = source.get_window(target_bbox)
+                    target_rect = target.get_window(target_bbox)
 
-                # TODO: make this tiled
-                # read the source array with the given window
-                source_data = source.read_data(
-                    band_index, source_rect, *target_rect.size
-                )
-
-                # get a mask if available
-                mask_data = source.get_mask(
-                    source_rect, target_rect.size_x, target_rect.size_y,
-                    source_data
-                )
-                if mask_data is not None:
-                    # first read the data from the target, to allow applying a
-                    # mask
-                    target_data = target.read_data(
-                        band_index, target_rect, *target_rect.size
+                    # TODO: make this tiled
+                    # read the source array with the given window
+                    source_data = source.read_data(
+                        band_index, source_rect, *target_rect.size
                     )
 
-                    masked = source.apply_mask(
-                        source_data, mask_data, target_data
+                    # get a mask if available
+                    mask_data = source.get_mask(
+                        source_rect, target_rect.size_x, target_rect.size_y,
+                        source_data
                     )
-                    # hack? seems to be necessary
-                    source_data = masked
+                    if mask_data is not None:
+                        # first read the data from the target, to allow applying
+                        # a mask
+                        target_data = target.read_data(
+                            band_index, target_rect, *target_rect.size
+                        )
 
-                target.write_data(band_index, target_rect, source_data)
+                        masked = source.apply_mask(
+                            source_data, mask_data, target_data
+                        )
+                        # hack? seems to be necessary
+                        source_data = masked
+
+                    target.write_data(band_index, target_rect, source_data)
 
         return target.dataset
 
