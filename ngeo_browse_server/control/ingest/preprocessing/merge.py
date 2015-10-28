@@ -29,7 +29,9 @@
 import numpy as np
 from django.contrib.gis.geos import GEOSGeometry
 from eoxserver.contrib import gdal, ogr, osr, gdal_array
-from eoxserver.processing.preprocessing.util import create_mem, copy_projection
+from eoxserver.processing.preprocessing.util import (
+    create_temp, copy_projection, cleanup_temp, temporary_dataset
+)
 
 
 ################################################################################
@@ -246,12 +248,15 @@ class GDALGeometryMaskMergeSource(GDALMergeSource):
         #feature.SetField("id", 0)
         layer.CreateFeature(feature)
 
-        # create an in-memory raster dataset with the exact same size as the
+        # create a temporary raster dataset with the exact same size as the
         # dataset to be masked
-        gdal_mem_driver = gdal.GetDriverByName("MEM")
-        self.mask_dataset = gdal_mem_driver.Create(
-            "", self.dataset.RasterXSize, self.dataset.RasterYSize, 1
-        )
+
+        self.mask_dataset = create_temp(
+            self.dataset.RasterXSize, self.dataset.RasterYSize, 1)
+        # gdal_mem_driver = gdal.GetDriverByName("MEM")
+        # self.mask_dataset = gdal_mem_driver.Create(
+        #     "", self.dataset.RasterXSize, self.dataset.RasterYSize, 1
+        # )
         band = self.mask_dataset.GetRasterBand(1)
         band.Fill(1)
 
@@ -265,6 +270,10 @@ class GDALGeometryMaskMergeSource(GDALMergeSource):
         # read the values from the previously created mask dataset
         band = self.mask_dataset.GetRasterBand(1)
         return band.ReadAsArray(*rect, buf_xsize=size_x, buf_ysize=size_y)
+
+    def __del__(self):
+        # cleanup
+        cleanup_temp(self.mask_dataset)
 
 
 class GDALAlphaMaskMergeSource(GDALMergeSource):
@@ -378,6 +387,7 @@ class GDALDatasetMerger(object):
                 source_rect = source.get_window(target_bbox)
                 target_rect = target.get_window(target_bbox)
 
+                # TODO: make this tiled
                 # read the source array with the given window
                 source_data = source.read_data(
                     band_index, source_rect, *target_rect.size
@@ -433,22 +443,22 @@ def generate_footprint_wkt(ds, simplification_factor=2):
 
     # create a temporary in-memory dataset and write the nodata mask
     # into its single band
-    tmp_ds = create_mem(ds.RasterXSize + 2, ds.RasterYSize + 2, 1,
-                        gdal.GDT_Byte)
-    copy_projection(ds, tmp_ds)
-    tmp_band = tmp_ds.GetRasterBand(1)
-    tmp_band.WriteArray(nodata_map.astype(np.uint8))
+    with temporary_dataset(ds.RasterXSize + 2, ds.RasterYSize + 2, 1,
+                           gdal.GDT_Byte) as tmp_ds:
+        copy_projection(ds, tmp_ds)
+        tmp_band = tmp_ds.GetRasterBand(1)
+        tmp_band.WriteArray(nodata_map.astype(np.uint8))
 
-    # create an OGR in memory layer to hold the created polygon
-    sr = osr.SpatialReference()
-    sr.ImportFromWkt(ds.GetProjectionRef())
-    ogr_ds = ogr.GetDriverByName('Memory').CreateDataSource('out')
-    layer = ogr_ds.CreateLayer('poly', sr.sr, ogr.wkbPolygon)
-    fd = ogr.FieldDefn('DN', ogr.OFTInteger)
-    layer.CreateField(fd)
+        # create an OGR in memory layer to hold the created polygon
+        sr = osr.SpatialReference()
+        sr.ImportFromWkt(ds.GetProjectionRef())
+        ogr_ds = ogr.GetDriverByName('Memory').CreateDataSource('out')
+        layer = ogr_ds.CreateLayer('poly', sr.sr, ogr.wkbPolygon)
+        fd = ogr.FieldDefn('DN', ogr.OFTInteger)
+        layer.CreateField(fd)
 
-    # polygonize the mask band and store the result in the OGR layer
-    gdal.Polygonize(tmp_band, tmp_band, layer, 0)
+        # polygonize the mask band and store the result in the OGR layer
+        gdal.Polygonize(tmp_band, tmp_band, layer, 0)
 
     if layer.GetFeatureCount() != 1:
         # if there is more than one polygon, compute the minimum bounding polygon
