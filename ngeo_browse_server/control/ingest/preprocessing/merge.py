@@ -27,13 +27,13 @@
 #-------------------------------------------------------------------------------
 
 from itertools import izip
+import subprocess
 
 
 import numpy as np
 from django.contrib.gis.geos import GEOSGeometry
 from eoxserver.contrib import gdal, ogr, osr, gdal_array
 from eoxserver.processing.preprocessing.util import create_mem, copy_projection
-
 
 ################################################################################
 ################################################################################
@@ -46,7 +46,7 @@ class Rect(tuple):
     """
     __slots__ = ()
 
-    def __new__(cls, offset_x=0, offset_y=0, size_x=None, size_y=None, 
+    def __new__(cls, offset_x=0, offset_y=0, size_x=None, size_y=None,
                 upper_x=0, upper_y=0):
 
         # To subclass tuples, it is necessary to overwrite the `__new__`
@@ -73,12 +73,12 @@ class Rect(tuple):
 
 
     def combination(self, other):
-        """ Returns a combined rect 
+        """ Returns a combined rect
         """
         return Rect(
-            offset_x=min(self.offset_x, other[0]), 
+            offset_x=min(self.offset_x, other[0]),
             offset_y=min(self.offset_y, other[1]),
-            upper_x=max(self.upper_x, other[0] + other[2]), 
+            upper_x=max(self.upper_x, other[0] + other[2]),
             upper_y=max(self.upper_y, other[1] + other[3])
         )
 
@@ -86,9 +86,9 @@ class Rect(tuple):
 
     def intersection(self, other):
         return Rect(
-            offset_x=max(self.offset_x, other[0]), 
+            offset_x=max(self.offset_x, other[0]),
             offset_y=max(self.offset_y, other[1]),
-            upper_x=min(self.upper_x, other[0] + other[2]), 
+            upper_x=min(self.upper_x, other[0] + other[2]),
             upper_y=min(self.upper_y, other[1] + other[3])
         )
 
@@ -100,7 +100,7 @@ class Rect(tuple):
 
     def translated(self, (diff_x, diff_y)):
         return Rect(
-            self.size_x, self.size_y, 
+            self.size_x, self.size_y,
             self.offset_x + diff_x, self.offset_y + diff_y
         )
 
@@ -152,7 +152,7 @@ class BBox(tuple):
 
 class GDALDatasetWrapper(object):
     """ A utility wrapper for GDAL datasets. Eases reading of data and allows
-        some convenience calculations for 
+        some convenience calculations for
     """
 
     def __len__(self):
@@ -244,7 +244,7 @@ class GDALGeometryMaskMergeSource(GDALMergeSource):
         # create an in-memory datasource and add one single layer
         ogr_mem_driver = ogr.GetDriverByName("Memory")
         data_source = ogr_mem_driver.CreateDataSource("xxx")
-        
+
         layer = data_source.CreateLayer("poly", srs)
 
         # create a single feature and add the given geometry
@@ -253,7 +253,7 @@ class GDALGeometryMaskMergeSource(GDALMergeSource):
         #feature.SetField("id", 0)
         layer.CreateFeature(feature)
 
-        # create an in-memory raster dataset with the exact same size as the 
+        # create an in-memory raster dataset with the exact same size as the
         # dataset to be masked
         gdal_mem_driver = gdal.GetDriverByName("MEM")
         self.mask_dataset = gdal_mem_driver.Create(
@@ -278,7 +278,7 @@ class GDALAlphaMaskMergeSource(GDALMergeSource):
 
     def __init__(self, dataset, alpha_band_index=4):
         super(GDALAlphaMaskMergeSource, self).__init__(dataset)
-        
+
         if alpha_band_index > self.dataset.RasterCount or alpha_band_index < 0:
             raise ValueError("Invalid band index for alpha band.")
 
@@ -288,7 +288,7 @@ class GDALAlphaMaskMergeSource(GDALMergeSource):
     def get_mask(self, rect, size_x, size_y, source_array):
         alpha_band = self.dataset.GetRasterBand(self.alpha_band_index)
         dt = gdal_array.GDALTypeCodeToNumericTypeCode(alpha_band.DataType)
-        
+
         raw_alphas = alpha_band.ReadAsArray(
             *rect, buf_xsize=size_x, buf_ysize=size_y
         )
@@ -303,13 +303,13 @@ class GDALAlphaMaskMergeSource(GDALMergeSource):
     def apply_mask(self, source_array, mask_array, target_array):
         dt = target_array.dtype
         return dt(
-            mask_array * source_array + (1 - mask_array) * target_array, 
+            mask_array * source_array + (1 - mask_array) * target_array,
             copy=False
         )
 
 
 class GDALMergeTarget(GDALDatasetWrapper):
-    def __init__(self, filename, size_x, size_y, geotransform, band_num, 
+    def __init__(self, filename, size_x, size_y, geotransform, band_num,
                  data_type, projection, driver=None, creation_options=None):
         driver = gdal.GetDriverByName(driver or "GTiff")
         self.dataset = driver.Create(
@@ -381,6 +381,23 @@ class GDALDatasetMerger(object):
         whole_bbox = target.bbox
 
         for source in self.sources:
+            #delete overviews
+            filename = source.dataset.GetFileList()[0]
+            process = subprocess.Popen(
+                ["gdaladdo", "-q", "-clean", filename],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+            out, err = process.communicate()
+            for string in (out, err):
+                for line in string.split("\n"):
+                    if line != '':
+                        logger.info("gdaladdo output: %s" % line)
+            if process.returncode != 0:
+                logger.warning(
+                    "Deletion of overviews failed. (Returncode: %d)"
+                    % process.returncode
+                )
+
             for band_index in xrange(1, len(target) + 1):
                 target_bbox = whole_bbox & source.bbox
 
@@ -395,11 +412,11 @@ class GDALDatasetMerger(object):
 
                 # get a mask if available
                 mask_data = source.get_mask(
-                    source_rect, target_rect.size_x, target_rect.size_y, 
+                    source_rect, target_rect.size_x, target_rect.size_y,
                     source_data
                 )
                 if mask_data is not None:
-                    # first read the data from the target, to allow applying a 
+                    # first read the data from the target, to allow applying a
                     # mask
                     target_data = target.read_data(
                         band_index, target_rect, *target_rect.size
@@ -424,41 +441,41 @@ class GDALDatasetMerger(object):
 def generate_footprint_wkt(ds, simplification_factor=2):
     """ Generate a fooptrint from a raster, using black/no-data as exclusion
     """
-    
+
     # create an empty boolean array initialized as 'False' to store where
     # values exist as a mask array.
     nodata_map = np.zeros((ds.RasterYSize, ds.RasterXSize),
                              dtype=np.bool)
-    
+
     for idx in range(1, ds.RasterCount + 1):
         band = ds.GetRasterBand(idx)
         raster_data = band.ReadAsArray()
         nodata = band.GetNoDataValue()
-        
+
         if nodata is None:
             nodata = 0
-        
-        # apply the output to the map  
+
+        # apply the output to the map
         nodata_map |= (raster_data != nodata)
-    
-    # create a temporary in-memory dataset and write the nodata mask 
+
+    # create a temporary in-memory dataset and write the nodata mask
     # into its single band
-    tmp_ds = create_mem(ds.RasterXSize + 2, ds.RasterYSize + 2, 1, 
+    tmp_ds = create_mem(ds.RasterXSize + 2, ds.RasterYSize + 2, 1,
                         gdal.GDT_Byte)
     copy_projection(ds, tmp_ds)
     tmp_band = tmp_ds.GetRasterBand(1)
     tmp_band.WriteArray(nodata_map.astype(np.uint8))
-    
+
     # create an OGR in memory layer to hold the created polygon
     sr = osr.SpatialReference(); sr.ImportFromWkt(ds.GetProjectionRef())
     ogr_ds = ogr.GetDriverByName('Memory').CreateDataSource('out')
     layer = ogr_ds.CreateLayer('poly', sr.sr, ogr.wkbPolygon)
     fd = ogr.FieldDefn('DN', ogr.OFTInteger)
     layer.CreateField(fd)
-    
+
     # polygonize the mask band and store the result in the OGR layer
     gdal.Polygonize(tmp_band, tmp_band, layer, 0)
-    
+
     if layer.GetFeatureCount() != 1:
         # if there is more than one polygon, compute the minimum bounding polygon
         geometry = ogr.Geometry(ogr.wkbPolygon)
@@ -466,19 +483,19 @@ def generate_footprint_wkt(ds, simplification_factor=2):
             feature = layer.GetNextFeature()
             if not feature: break
             geometry = geometry.Union(feature.GetGeometryRef())
-        
+
         # TODO: improve this for a better minimum bounding polygon
         geometry = geometry.ConvexHull()
-    
+
     else:
         # obtain geometry from the first (and only) layer
         feature = layer.GetNextFeature()
         geometry = feature.GetGeometryRef()
-    
+
     if geometry.GetGeometryType() not in (ogr.wkbPolygon, ogr.wkbMultiPolygon):
         raise RuntimeError("Error during poligonization. Wrong geometry "
                            "type.")
-    
+
     # check if reprojection to latlon is necessary
     if not sr.IsGeographic():
         dst_sr = osr.SpatialReference(); dst_sr.ImportFromEPSG(4326)
@@ -486,12 +503,12 @@ def generate_footprint_wkt(ds, simplification_factor=2):
             geometry.TransformTo(dst_sr.sr)
         except RuntimeError:
             geometry.Transform(osr.CoordinateTransformation(sr.sr, dst_sr.sr))
-    
+
     gt = ds.GetGeoTransform()
     resolution = min(abs(gt[1]), abs(gt[5]))
 
     simplification_value = simplification_factor * resolution
-    
+
     # simplify the polygon. the tolerance value is *really* vague
     try:
         # SimplifyPreserveTopology() available since OGR 1.9.0
@@ -503,7 +520,7 @@ def generate_footprint_wkt(ds, simplification_factor=2):
                 geometry.ExportToWkt()
             ).simplify(simplification_value, True).wkt
         )
-    
+
     return geometry.ExportToWkt()
 
 
