@@ -26,13 +26,15 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
+from itertools import izip
+import subprocess
+
 import numpy as np
 from django.contrib.gis.geos import GEOSGeometry
 from eoxserver.contrib import gdal, ogr, osr, gdal_array
 from eoxserver.processing.preprocessing.util import (
     create_temp, copy_projection, cleanup_temp, temporary_dataset
 )
-
 
 ################################################################################
 ################################################################################
@@ -392,6 +394,23 @@ class GDALDatasetMerger(object):
 
         for source in self.sources:
             with source:
+                #delete overviews
+                filename = source.dataset.GetFileList()[0]
+                process = subprocess.Popen(
+                    ["gdaladdo", "-q", "-clean", filename],
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                )
+                out, err = process.communicate()
+                for string in (out, err):
+                    for line in string.split("\n"):
+                        if line != '':
+                            logger.info("gdaladdo output: %s" % line)
+                if process.returncode != 0:
+                    logger.warning(
+                        "Deletion of overviews failed. (Returncode: %d)"
+                        % process.returncode
+                    )
+
                 for band_index in xrange(1, len(target) + 1):
                     target_bbox = whole_bbox & source.bbox
 
