@@ -28,6 +28,7 @@
 
 from itertools import izip
 import subprocess
+import logging
 
 import numpy as np
 from django.contrib.gis.geos import GEOSGeometry
@@ -35,6 +36,9 @@ from eoxserver.contrib import gdal, ogr, osr, gdal_array
 from eoxserver.processing.preprocessing.util import (
     create_temp, copy_projection, cleanup_temp, temporary_dataset
 )
+
+
+logger = logging.getLogger(__name__)
 
 ################################################################################
 ################################################################################
