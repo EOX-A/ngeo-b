@@ -176,6 +176,35 @@ class SeedRectifiedBrowse(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     expected_browse_type = "MER_FRS"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 128, 6: 256}
 
+class IngestRectifiedBrowseS2(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    storage_dir = "data/test_data"
+    request_file = "test_data/S2.xml"
+
+    expected_ingested_browse_ids = ("GS2A_20150620T022848_001418_N01.01",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['S2_proc.tif']
+    expected_deleted_files = ['S2.jp2']
+    save_optimized_files = True
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>GS2A_20150620T022848_001418_N01.01</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
 
 #===============================================================================
 # Ingest Regular Grid browse test cases
@@ -312,6 +341,72 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
     <bsi:ingestionResult>
         <bsi:briefRecord>
             <bsi:identifier>ID_20150415T131212823970</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+class IngestRegularGridClippedBrowse3(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    storage_dir = "data/regular_grid_clipping"
+    request_file = "regular_grid_clipping/BrowseServerIngest_input_8B99.xml"
+
+    expected_ingested_browse_ids = ("ID_20150709T171336848564",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['BrowseServerIngest_input_8B99_proc.tif']
+    expected_deleted_files = ['BrowseServerIngest_input_8B99.png']
+    save_optimized_files = True
+
+    configuration = {
+        (INGEST_SECTION, "regular_grid_clipping"): "true",
+    }
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>ID_20150709T171336848564</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+class IngestRegularGridClippedBrowse4(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    storage_dir = "data/regular_grid_clipping"
+    request_file = "regular_grid_clipping/BrowseServerIngest_input_CE69.xml"
+
+    expected_ingested_browse_ids = ("ID_20150928T054547785325",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['BrowseServerIngest_input_CE69_proc.tif']
+    expected_deleted_files = ['BrowseServerIngest_input_CE69.png']
+    save_optimized_files = True
+
+    configuration = {
+        (INGEST_SECTION, "regular_grid_clipping"): "true",
+    }
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>ID_20150928T054547785325</bsi:identifier>
             <bsi:status>success</bsi:status>
         </bsi:briefRecord>
     </bsi:ingestionResult>
