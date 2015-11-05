@@ -149,6 +149,10 @@ class NGEOPreProcessor(WMSPreProcessor):
             # cleanup
             cleanup_temp(ds)
 
+        # close the dataset and write it to the disc
+        final_ds = None
+        final_ds = gdal.Open(output_filename)
+
         for optimization in self.get_post_optimizations(final_ds):
             logger.debug("Applying post-optimization '%s'."
                          % type(optimization).__name__)
@@ -186,7 +190,7 @@ class NGEOPreProcessor(WMSPreProcessor):
 
         num_bands = final_ds.RasterCount
 
-        # close the dataset and write it to the disc
+        # finally close the dataset and write it to the disc
         final_ds = None
 
         return PreProcessResult(output_filename, footprint, num_bands)
