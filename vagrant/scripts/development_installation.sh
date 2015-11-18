@@ -30,7 +30,7 @@
 
 # EOxServer
 cd /var/eoxserver/
-python setup.py develop --disable-extended-reftools
+python setup.py develop
 
 # MapCache
 cd /var/mapcache
