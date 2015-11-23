@@ -81,11 +81,17 @@ class NGEOPreProcessor(WMSPreProcessor):
         for optimization in self.get_optimizations(ds):
             logger.debug("Applying optimization '%s'."
                          % type(optimization).__name__)
-            new_ds = optimization(ds)
 
-            # cleanup afterwards
-            cleanup_temp(ds)
-            ds = new_ds
+            try:
+                new_ds = optimization(ds)
+
+                if new_ds is not ds:
+                    # cleanup afterwards
+                    cleanup_temp(ds)
+                    ds = new_ds
+            except:
+                cleanup_temp(ds)
+                raise
 
         # generate the footprint from the dataset
         if not footprint_wkt:
@@ -114,7 +120,7 @@ class NGEOPreProcessor(WMSPreProcessor):
                     "Original footprint with to be merged image required."
                 )
 
-            original_ds = gdal.Open(merge_with)
+            original_ds = gdal.Open(merge_with, gdal.GA_Update)
             merger = GDALDatasetMerger([
                 GDALGeometryMaskMergeSource(original_ds, original_footprint),
                 GDALGeometryMaskMergeSource(ds, footprint_wkt)
@@ -151,7 +157,7 @@ class NGEOPreProcessor(WMSPreProcessor):
 
         # close the dataset and write it to the disc
         final_ds = None
-        final_ds = gdal.Open(output_filename)
+        final_ds = gdal.Open(output_filename, gdal.GA_Update)
 
         for optimization in self.get_post_optimizations(final_ds):
             logger.debug("Applying post-optimization '%s'."
