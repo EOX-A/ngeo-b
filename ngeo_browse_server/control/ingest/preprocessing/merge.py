@@ -26,7 +26,6 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
-from itertools import izip
 import subprocess
 import logging
 
@@ -398,22 +397,8 @@ class GDALDatasetMerger(object):
 
         for source in self.sources:
             with source:
-                #delete overviews
-                filename = source.dataset.GetFileList()[0]
-                process = subprocess.Popen(
-                    ["gdaladdo", "-q", "-clean", filename],
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                )
-                out, err = process.communicate()
-                for string in (out, err):
-                    for line in string.split("\n"):
-                        if line != '':
-                            logger.info("gdaladdo output: %s" % line)
-                if process.returncode != 0:
-                    logger.warning(
-                        "Deletion of overviews failed. (Returncode: %d)"
-                        % process.returncode
-                    )
+                # delete overviews
+                source.dataset.BuildOverviews("NEAREST", [])
 
                 for band_index in xrange(1, len(target) + 1):
                     target_bbox = whole_bbox & source.bbox
