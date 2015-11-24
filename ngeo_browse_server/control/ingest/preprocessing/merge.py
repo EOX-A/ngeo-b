@@ -238,7 +238,7 @@ class GDALMergeSource(GDALDatasetWrapper):
 
 
 class GDALGeometryMaskMergeSource(GDALMergeSource):
-    def __init__(self, dataset, wkt, srid=None):
+    def __init__(self, dataset, wkt, srid=None, temporary_directory=None):
         super(GDALGeometryMaskMergeSource, self).__init__(dataset)
 
         srs = None
@@ -264,13 +264,11 @@ class GDALGeometryMaskMergeSource(GDALMergeSource):
 
         # create a temporary raster dataset with the exact same size as the
         # dataset to be masked
-
         self.mask_dataset = create_temp(
-            self.dataset.RasterXSize, self.dataset.RasterYSize, 1)
-        # gdal_mem_driver = gdal.GetDriverByName("MEM")
-        # self.mask_dataset = gdal_mem_driver.Create(
-        #     "", self.dataset.RasterXSize, self.dataset.RasterYSize, 1
-        # )
+            self.dataset.RasterXSize, self.dataset.RasterYSize, 1,
+            temporary_directory=temporary_directory
+        )
+
         band = self.mask_dataset.GetRasterBand(1)
         band.Fill(1)
 

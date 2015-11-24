@@ -122,8 +122,14 @@ class NGEOPreProcessor(WMSPreProcessor):
 
             original_ds = gdal.Open(merge_with, gdal.GA_Update)
             merger = GDALDatasetMerger([
-                GDALGeometryMaskMergeSource(original_ds, original_footprint),
-                GDALGeometryMaskMergeSource(ds, footprint_wkt)
+                GDALGeometryMaskMergeSource(
+                    original_ds, original_footprint,
+                    temporary_directory=self.temporary_directory
+                ),
+                GDALGeometryMaskMergeSource(
+                    ds, footprint_wkt,
+                    temporary_directory=self.temporary_directory
+                )
             ])
 
             final_ds = merger.merge(
@@ -156,9 +162,6 @@ class NGEOPreProcessor(WMSPreProcessor):
             cleanup_temp(ds)
 
         # close the dataset and write it to the disc
-        final_ds = None
-        final_ds = gdal.Open(output_filename, gdal.GA_Update)
-
         for optimization in self.get_post_optimizations(final_ds):
             logger.debug("Applying post-optimization '%s'."
                          % type(optimization).__name__)

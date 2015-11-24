@@ -176,6 +176,14 @@ def get_optimization_config(config=None):
     except:
         pass
 
+    in_memory = False
+    try:
+        in_memory = config.getboolean(INGEST_SECTION, "in_memory")
+    except:
+        pass
+
+    values["temporary_directory"] = "/vsimem/" if in_memory else None
+
     return values
 
 
