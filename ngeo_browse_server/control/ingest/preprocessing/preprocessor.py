@@ -145,9 +145,13 @@ class NGEOPreProcessor(WMSPreProcessor):
             cleanup_temp(ds)
 
         else:
-            logger.debug("Writing file to disc using options: %s."
-                         % ", ".join(self.format_selection.creation_options))
-
+            logger.debug(
+                "Writing single file '%s' using options: %s."
+                % (
+                    output_filename,
+                    ", ".join(self.format_selection.creation_options)
+                )
+            )
             logger.debug("Metadata tags to be written: %s"
                          % ", ".join(ds.GetMetadata_List("") or []))
 
