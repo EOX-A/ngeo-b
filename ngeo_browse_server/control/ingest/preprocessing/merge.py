@@ -266,7 +266,7 @@ class GDALGeometryMaskMergeSource(GDALMergeSource):
         # dataset to be masked
         self.mask_dataset = create_temp(
             self.dataset.RasterXSize, self.dataset.RasterYSize, 1,
-            temporary_directory=temporary_directory
+            temp_root=temporary_directory
         )
 
         band = self.mask_dataset.GetRasterBand(1)
