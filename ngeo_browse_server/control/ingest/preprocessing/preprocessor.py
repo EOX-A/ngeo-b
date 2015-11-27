@@ -165,7 +165,6 @@ class NGEOPreProcessor(WMSPreProcessor):
             # cleanup
             cleanup_temp(ds)
 
-        # close the dataset and write it to the disc
         for optimization in self.get_post_optimizations(final_ds):
             logger.debug("Applying post-optimization '%s'."
                          % type(optimization).__name__)
