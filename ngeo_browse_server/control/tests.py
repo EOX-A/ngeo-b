@@ -2410,9 +2410,9 @@ class IngestRasterExtent(BaseTestCaseMixIn, HttpMixIn, ExtentMixIn, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "2010", "ASA_IM__0P_20100722_213840_proc.tif"))
 
-    expected_extent = (-2.7900000000000005,
+    expected_extent = (-2.79,
                        49.461072913650007,
-                       -0.029483356685718665,
+                       -0.029483356685714668,
                        53.079999999999998)
 
 
@@ -2603,9 +2603,9 @@ class IngestFootprintWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
     expected_statistics = [{
         "min": 0.0,
         "max": 255.0,
-        "mean": 64.406300000000002,
-        "stddev": 76.223977987966478,
-        "checksum": 57259
+        "mean": 64.865600000000001,
+        "stddev": 76.682941627457154,
+        "checksum": 56889
     }] * 3
 
 
@@ -2627,7 +2627,7 @@ class IngestRegularGridWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, 
                    )
 
     expected_statistics = [
-        {'max': 251.0, 'checksum': 10783, 'mean': 29.288, 'stddev': 33.909860748755662, 'min': 0.0}
+        {'max': 251.0, 'checksum': 11637, 'mean': 29.290800000000001, 'stddev': 33.977113405349783, 'min': 0.0}
     ] * 3
 
 class IngestFootprintCrossesDatelineRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
