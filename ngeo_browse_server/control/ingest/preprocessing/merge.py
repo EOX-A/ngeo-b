@@ -26,8 +26,9 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
-import subprocess
 import logging
+import math
+from itertools import product
 
 import numpy as np
 from django.contrib.gis.geos import GEOSGeometry
@@ -405,31 +406,57 @@ class GDALDatasetMerger(object):
                     source_rect = source.get_window(target_bbox)
                     target_rect = target.get_window(target_bbox)
 
-                    # TODO: make this tiled
                     # read the source array with the given window
-                    source_data = source.read_data(
-                        band_index, source_rect, *target_rect.size
+                    block_x_size, block_y_size = 512, 512
+
+                    num_x = int(
+                        math.ceil(float(source_rect.size_x) / block_x_size)
+                    )
+                    num_y = int(
+                        math.ceil(float(source_rect.size_y) / block_y_size)
                     )
 
-                    # get a mask if available
-                    mask_data = source.get_mask(
-                        source_rect, target_rect.size_x, target_rect.size_y,
-                        source_data
-                    )
-                    if mask_data is not None:
-                        # first read the data from the target, to allow applying
-                        # a mask
-                        target_data = target.read_data(
-                            band_index, target_rect, *target_rect.size
+                    for block_x, block_y in product(range(num_x), range(num_y)):
+                        offset_x = block_x * block_x_size
+                        offset_y = block_y * block_y_size
+                        size_x = min(source_rect.size_x - offset_x, block_x_size)
+                        size_y = min(source_rect.size_y - offset_y, block_y_size)
+
+                        src_win = Rect(
+                            source_rect.offset_x + offset_x,
+                            source_rect.offset_y + offset_y,
+                            size_x, size_y
                         )
 
-                        masked = source.apply_mask(
-                            source_data, mask_data, target_data
+                        dst_win = Rect(
+                            target_rect.offset_x + offset_x,
+                            target_rect.offset_y + offset_y,
+                            size_x, size_y
                         )
-                        # hack? seems to be necessary
-                        source_data = masked
 
-                    target.write_data(band_index, target_rect, source_data)
+                        source_data = source.read_data(
+                            band_index, src_win, size_x, size_y
+                        )
+
+                        # get a mask if available
+                        mask_data = source.get_mask(
+                            src_win, size_x, size_y, source_data
+                        )
+
+                        if mask_data is not None:
+                            # first read the data from the target, to allow
+                            # applying a mask
+                            target_data = target.read_data(
+                                band_index, dst_win, size_x, size_y
+                            )
+
+                            masked = source.apply_mask(
+                                source_data, mask_data, target_data
+                            )
+                            # hack? seems to be necessary
+                            source_data = masked
+
+                        target.write_data(band_index, dst_win, source_data)
 
         return target.dataset
 
