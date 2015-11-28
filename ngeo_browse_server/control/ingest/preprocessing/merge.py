@@ -38,6 +38,8 @@ from eoxserver.processing.preprocessing.util import (
 )
 
 
+gdal.UseExceptions()
+
 logger = logging.getLogger(__name__)
 
 ################################################################################
@@ -197,6 +199,8 @@ class GDALDatasetWrapper(object):
 
     def get_window(self, bbox):
         gt = self.dataset.GetGeoTransform()
+
+        logger.debug("Dataset geotransform: %s" % str(gt))
 
         # compute target window in pixel coordinates.
         offset_x = int((bbox[0] - gt[0]) / gt[1] + 0.1)
@@ -402,59 +406,102 @@ class GDALDatasetMerger(object):
                 for band_index in xrange(1, len(target) + 1):
                     target_bbox = whole_bbox & source.bbox
 
+                    #import pdb; pdb.set_trace()
+
                     # compute pixel windows
                     source_rect = source.get_window(target_bbox)
                     target_rect = target.get_window(target_bbox)
 
                     # read the source array with the given window
-                    block_x_size, block_y_size = 512, 512
+                    target_block_x_size, target_block_y_size = 512, 512
 
+                    source_block_x_size = (
+                        target.resolution[0] / source.resolution[0] * 512.0
+                    )
+                    source_block_y_size = (
+                        target.resolution[1] / source.resolution[1] * 512.0
+                    )
+
+                    # calculate the number of invloved tiles in x/y directions
                     num_x = int(
-                        math.ceil(float(source_rect.size_x) / block_x_size)
+                        math.ceil(
+                            float(source_rect.size_x) / source_block_x_size
+                        )
                     )
                     num_y = int(
-                        math.ceil(float(source_rect.size_y) / block_y_size)
+                        math.ceil(
+                            float(source_rect.size_y) / source_block_y_size
+                        )
                     )
 
+                    logger.debug("Source rectangle: %s" % str(source_rect))
+                    logger.debug("Destination rectangle: %s" % str(target_rect))
+
+                    # iterate over all tiles
                     for block_x, block_y in product(range(num_x), range(num_y)):
-                        offset_x = block_x * block_x_size
-                        offset_y = block_y * block_y_size
-                        size_x = min(source_rect.size_x - offset_x, block_x_size)
-                        size_y = min(source_rect.size_y - offset_y, block_y_size)
+                        # calculate the base offset of the tile
+                        source_offset_x = block_x * source_block_x_size
+                        source_offset_y = block_y * source_block_y_size
+
+                        target_offset_x = block_x * target_block_x_size
+                        target_offset_y = block_y * target_block_y_size
 
                         src_win = Rect(
-                            source_rect.offset_x + offset_x,
-                            source_rect.offset_y + offset_y,
-                            size_x, size_y
+                            int(source_rect.offset_x + target_offset_x + 0.5),
+                            int(source_rect.offset_y + target_offset_y + 0.5),
+                            int(min(
+                                source_rect.size_x - source_offset_x,
+                                source_block_x_size
+                            ) + 0.5),
+                            int(min(
+                                source_rect.size_y - source_offset_y,
+                                source_block_y_size
+                            ) + 0.5)
                         )
 
                         dst_win = Rect(
-                            target_rect.offset_x + offset_x,
-                            target_rect.offset_y + offset_y,
-                            size_x, size_y
+                            int(target_rect.offset_x + target_offset_x + 0.5),
+                            int(target_rect.offset_y + target_offset_y + 0.5),
+                            int(min(
+                                target_rect.size_x - target_offset_x,
+                                target_block_x_size
+                            ) + 0.5),
+                            int(min(
+                                target_rect.size_y - target_offset_y,
+                                target_block_y_size
+                            ) + 0.5)
                         )
 
+                        logger.debug("Source window: %s" % str(src_win))
+                        logger.debug("Destination window: %s" % str(dst_win))
+
                         source_data = source.read_data(
-                            band_index, src_win, size_x, size_y
+                            band_index, src_win, *dst_win.size
                         )
 
                         # get a mask if available
                         mask_data = source.get_mask(
-                            src_win, size_x, size_y, source_data
+                            src_win, dst_win.size_x, dst_win.size_y, source_data
                         )
+                        logger.debug("Mask data: %s" % str(mask_data))
 
                         if mask_data is not None:
                             # first read the data from the target, to allow
                             # applying a mask
                             target_data = target.read_data(
-                                band_index, dst_win, size_x, size_y
+                                band_index, dst_win, *dst_win.size
                             )
+
+                            logger.debug("Target data: %s" % str(target_data))
 
                             masked = source.apply_mask(
                                 source_data, mask_data, target_data
                             )
+                            logger.debug("Masked data: %s" % str(masked))
                             # hack? seems to be necessary
                             source_data = masked
+
+                        logger.debug("Source Data: %s" % str(source_data))
 
                         target.write_data(band_index, dst_win, source_data)
 
