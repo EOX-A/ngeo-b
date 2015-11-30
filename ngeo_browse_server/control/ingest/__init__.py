@@ -476,7 +476,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                     raise IngestionException, str(e), sys.exc_info()[2]
 
                 # validate preprocess result
-                if result.num_bands not in (1, 3, 4): # color index, RGB, RGBA
+                if result.num_bands not in (1, 3, 4):  # color index, RGB, RGBA
                     raise IngestionException("Processed browse image has %d bands."
                                              % result.num_bands)
 

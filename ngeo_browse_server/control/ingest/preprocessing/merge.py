@@ -230,17 +230,6 @@ class GDALMergeSource(GDALDatasetWrapper):
     def destroy(self):
         pass
 
-    def get_mask(self, rect, size_x, size_y, source_array):
-        nodata_value = src_band.GetNoDataValue()
-        if self.use_nodata and not nodata_value is None:
-            return np.equal(source_array, nodata_value)
-        return None
-
-    def apply_mask(self, source_array, mask_array, target_array):
-        if mask_array is None:
-            return source_array
-        return np.choose(mask_array, (source_array, target_array))
-
 
 class GDALGeometryMaskMergeSource(GDALMergeSource):
     def __init__(self, dataset, wkt, srid=None, temporary_directory=None):
@@ -267,64 +256,30 @@ class GDALGeometryMaskMergeSource(GDALMergeSource):
         #feature.SetField("id", 0)
         layer.CreateFeature(feature)
 
-        # create a temporary raster dataset with the exact same size as the
-        # dataset to be masked
-        self.mask_dataset = create_temp(
+        temporary_ds = temporary_dataset(
             self.dataset.RasterXSize, self.dataset.RasterYSize, 1,
             temp_root=temporary_directory
         )
 
-        band = self.mask_dataset.GetRasterBand(1)
-        band.Fill(1)
+        # create a temporary raster dataset with the exact same size as the
+        # dataset to be masked
+        with temporary_ds as mask_dataset:
+            band = mask_dataset.GetRasterBand(1)
+            band.Fill(1)
 
-        self.mask_dataset.SetGeoTransform(self.dataset.GetGeoTransform())
-        self.mask_dataset.SetProjection(self.dataset.GetProjection())
+            mask_dataset.SetGeoTransform(self.dataset.GetGeoTransform())
+            mask_dataset.SetProjection(self.dataset.GetProjection())
 
-        # finally rasterize the vector layer to the mask dataset
-        gdal.RasterizeLayer(self.mask_dataset, (1,), layer, burn_values=(0,))
+            # finally rasterize the vector layer to the mask dataset
+            gdal.RasterizeLayer(mask_dataset, (1,), layer, burn_values=(0,))
 
-    def get_mask(self, rect, size_x, size_y, source_array):
-        # read the values from the previously created mask dataset
-        band = self.mask_dataset.GetRasterBand(1)
-        return band.ReadAsArray(*rect, buf_xsize=size_x, buf_ysize=size_y)
+            source_mask_band = mask_dataset.GetRasterBand(1)
 
-    def destroy(self):
-        # cleanup
-        filename = self.mask_dataset.GetFileList()[0]
-        del self.mask_dataset
-        cleanup_temp(filename)
+            self.dataset.CreateMaskBand(gdal.GMF_PER_DATASET)
+            band = self.dataset.GetRasterBand(1)
+            mask_band = band.GetMaskBand()
 
-
-class GDALAlphaMaskMergeSource(GDALMergeSource):
-
-    def __init__(self, dataset, alpha_band_index=4):
-        super(GDALAlphaMaskMergeSource, self).__init__(dataset)
-
-        if alpha_band_index > self.dataset.RasterCount or alpha_band_index < 0:
-            raise ValueError("Invalid band index for alpha band.")
-
-        self.alpha_band_index = alpha_band_index
-
-    def get_mask(self, rect, size_x, size_y, source_array):
-        alpha_band = self.dataset.GetRasterBand(self.alpha_band_index)
-        dt = gdal_array.GDALTypeCodeToNumericTypeCode(alpha_band.DataType)
-
-        raw_alphas = alpha_band.ReadAsArray(
-            *rect, buf_xsize=size_x, buf_ysize=size_y
-        )
-        if issubclass(dt, np.floating):
-            return raw_alphas
-        elif issubclass(dt, np.integer):
-            return raw_alphas.astype(np.float32, copy=False) / np.iinfo(dt).max
-        else:
-            raise Exception("Could not convert alpha mask.")
-
-    def apply_mask(self, source_array, mask_array, target_array):
-        dt = target_array.dtype
-        return dt(
-            mask_array * source_array + (1 - mask_array) * target_array,
-            copy=False
-        )
+            mask_band.WriteArray(source_mask_band.ReadAsArray())
 
 
 class GDALMergeTarget(GDALDatasetWrapper):
@@ -396,114 +351,11 @@ class GDALDatasetMerger(object):
             out_filename, self.sources, out_driver, creation_options
         )
 
-        whole_bbox = target.bbox
-
         for source in self.sources:
             with source:
                 # delete overviews
                 source.dataset.BuildOverviews("NEAREST", [])
-
-                for band_index in xrange(1, len(target) + 1):
-                    target_bbox = whole_bbox & source.bbox
-
-                    #import pdb; pdb.set_trace()
-
-                    # compute pixel windows
-                    source_rect = source.get_window(target_bbox)
-                    target_rect = target.get_window(target_bbox)
-
-                    # read the source array with the given window
-                    target_block_x_size, target_block_y_size = 512, 512
-
-                    source_block_x_size = (
-                        target.resolution[0] / source.resolution[0] * 512.0
-                    )
-                    source_block_y_size = (
-                        target.resolution[1] / source.resolution[1] * 512.0
-                    )
-
-                    # calculate the number of invloved tiles in x/y directions
-                    num_x = int(
-                        math.ceil(
-                            float(source_rect.size_x) / source_block_x_size
-                        )
-                    )
-                    num_y = int(
-                        math.ceil(
-                            float(source_rect.size_y) / source_block_y_size
-                        )
-                    )
-
-                    logger.debug("Source rectangle: %s" % str(source_rect))
-                    logger.debug("Destination rectangle: %s" % str(target_rect))
-
-                    # iterate over all tiles
-                    for block_x, block_y in product(range(num_x), range(num_y)):
-                        # calculate the base offset of the tile
-                        source_offset_x = block_x * source_block_x_size
-                        source_offset_y = block_y * source_block_y_size
-
-                        target_offset_x = block_x * target_block_x_size
-                        target_offset_y = block_y * target_block_y_size
-
-                        src_win = Rect(
-                            int(source_rect.offset_x + target_offset_x + 0.5),
-                            int(source_rect.offset_y + target_offset_y + 0.5),
-                            int(min(
-                                source_rect.size_x - source_offset_x,
-                                source_block_x_size
-                            ) + 0.5),
-                            int(min(
-                                source_rect.size_y - source_offset_y,
-                                source_block_y_size
-                            ) + 0.5)
-                        )
-
-                        dst_win = Rect(
-                            int(target_rect.offset_x + target_offset_x + 0.5),
-                            int(target_rect.offset_y + target_offset_y + 0.5),
-                            int(min(
-                                target_rect.size_x - target_offset_x,
-                                target_block_x_size
-                            ) + 0.5),
-                            int(min(
-                                target_rect.size_y - target_offset_y,
-                                target_block_y_size
-                            ) + 0.5)
-                        )
-
-                        logger.debug("Source window: %s" % str(src_win))
-                        logger.debug("Destination window: %s" % str(dst_win))
-
-                        source_data = source.read_data(
-                            band_index, src_win, *dst_win.size
-                        )
-
-                        # get a mask if available
-                        mask_data = source.get_mask(
-                            src_win, dst_win.size_x, dst_win.size_y, source_data
-                        )
-                        logger.debug("Mask data: %s" % str(mask_data))
-
-                        if mask_data is not None:
-                            # first read the data from the target, to allow
-                            # applying a mask
-                            target_data = target.read_data(
-                                band_index, dst_win, *dst_win.size
-                            )
-
-                            logger.debug("Target data: %s" % str(target_data))
-
-                            masked = source.apply_mask(
-                                source_data, mask_data, target_data
-                            )
-                            logger.debug("Masked data: %s" % str(masked))
-                            # hack? seems to be necessary
-                            source_data = masked
-
-                        logger.debug("Source Data: %s" % str(source_data))
-
-                        target.write_data(band_index, dst_win, source_data)
+                gdal.ReprojectImage(source.dataset, target.dataset)
 
         return target.dataset
 
