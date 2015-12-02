@@ -253,7 +253,6 @@ class GDALGeometryMaskMergeSource(GDALMergeSource):
         # create a single feature and add the given geometry
         feature = ogr.Feature(layer.GetLayerDefn())
         feature.SetGeometryDirectly(ogr.Geometry(wkt=str(wkt)))
-        #feature.SetField("id", 0)
         layer.CreateFeature(feature)
 
         temporary_ds = temporary_dataset(
@@ -279,7 +278,18 @@ class GDALGeometryMaskMergeSource(GDALMergeSource):
             band = self.dataset.GetRasterBand(1)
             mask_band = band.GetMaskBand()
 
-            mask_band.WriteArray(source_mask_band.ReadAsArray())
+            block_x_size, block_y_size = source_mask_band.GetBlockSize()
+            num_x = source_mask_band.XSize / block_x_size
+            num_y = source_mask_band.YSize / block_y_size
+
+            for x, y in product(range(num_x), range(num_y)):
+                mask_band.WriteArray(
+                    source_mask_band.ReadAsArray(
+                        x*block_x_size, y*block_y_size,
+                        block_x_size, block_y_size
+                    ),
+                    x*block_x_size, y*block_y_size
+                )
 
 
 class GDALMergeTarget(GDALDatasetWrapper):
@@ -302,7 +312,6 @@ class GDALMergeTarget(GDALDatasetWrapper):
         bbox = first.bbox
         first_srs = osr.SpatialReference()
         first_srs.ImportFromWkt(first.dataset.GetProjection())
-        bandnum = len(first)
 
         for source in others:
             # check the sources
@@ -328,13 +337,6 @@ class GDALMergeTarget(GDALDatasetWrapper):
             first.dataset.GetProjection(), driver, creation_options
         )
 
-    def write_data(self, index, rect, data):
-        band = self.dataset.GetRasterBand(index)
-        if band is None:
-            raise IndexError()
-
-        return band.WriteArray(data, *rect.offset)
-
 
 class GDALDatasetMerger(object):
     def __init__(self, sources=None, target=None):
@@ -353,8 +355,6 @@ class GDALDatasetMerger(object):
 
         for source in self.sources:
             with source:
-                # delete overviews
-                source.dataset.BuildOverviews("NEAREST", [])
                 gdal.ReprojectImage(source.dataset, target.dataset)
 
         return target.dataset
