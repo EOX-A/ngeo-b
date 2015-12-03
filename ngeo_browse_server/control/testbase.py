@@ -487,7 +487,12 @@ class CliFailureMixIn(CliMixIn):
 
     def test_failure_msg(self):
         """ Check the failure message. """
-        self.assertEqual(self.expected_failure_msg, self.get_response())
+
+        response = self.get_response().replace(
+            "INFO: Cannot send notification to CTRL.\n", ""
+        )
+
+        self.assertEqual(self.expected_failure_msg, response)
 
 
 class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):

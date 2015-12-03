@@ -2947,7 +2947,7 @@ class ExportMergedFailure(CliFailureMixIn, SeedTestCaseMixIn, LiveServerTestCase
         return ("--export-cache", )
 
     expect_failure = True
-    expected_failure_msg = "INFO: Starting browse export from command line.\nERROR: Browse layer 'TEST_SAR' contains merged browses and exporting of cache is requested. Try without exporting the cache.\nINFO: Cannot send notification to CTRL.\nError: Browse layer 'TEST_SAR' contains merged browses and exporting of cache is requested. Try without exporting the cache.\n"
+    expected_failure_msg = "INFO: Starting browse export from command line.\nERROR: Browse layer 'TEST_SAR' contains merged browses and exporting of cache is requested. Try without exporting the cache.\nError: Browse layer 'TEST_SAR' contains merged browses and exporting of cache is requested. Try without exporting the cache.\n"
 
 
 #===============================================================================
