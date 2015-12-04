@@ -6,7 +6,7 @@ yum update -y
 # Install packages
 yum install -y --nogpgcheck libtiff4
 yum install -y gdal-eox-libtiff4 gdal-eox-libtiff4-python \
-               gdal-libtiff4-eox-java gdal-eox-driver-openjpeg2 postgis \
+               gdal-eox-libtiff4-java gdal-eox-driver-openjpeg2 postgis \
                Django14 proj-epsg libgeotiff-libtiff4
 yum install -y python-lxml mod_wsgi httpd postgresql-server python-psycopg2 pytz
 yum install -y libxml2 libxml2-python mapserver mapserver-python
