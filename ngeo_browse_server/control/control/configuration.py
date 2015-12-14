@@ -271,8 +271,15 @@ class IngestConfigurator(ngEOConfigConfigurator):
         ),
         Parameter(
             bool, "regular_grid_clipping", "Regular Grid clipping",
-            "Clip the regular grid tie points pixel coordinates to be inside of "
-            "the image bounds. Necessary for Sentinel-1 image data.", "false"
+            "Clip the regular grid tie points pixel coordinates to be inside "
+            "of the image bounds. Necessary for Sentinel-1 image data.", "false"
+        ),
+        Parameter(
+            bool, "in_memory", "Perform pre-processing in memory",
+            "Defines if all all pre-processing is done with in-memory "
+            "datasets. For smaller ones, this might be beneficial in terms "
+            "of performance, but it is safer to directly use files (which "
+            "is the default).", "false"
         ),
         Parameter(
             str, "threshold", "Merge time threshold",

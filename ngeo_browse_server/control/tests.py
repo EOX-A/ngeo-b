@@ -3910,6 +3910,14 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
+          <xsd:element type="xsd:boolean" name="in_memory">
+            <xsd:annotation>
+              <xsd:documentation>
+                <xsd:label>Perform pre-processing in memory</xsd:label>
+                <xsd:tooltip>Defines if all all pre-processing is done with in-memory datasets. For smaller ones, this might be beneficial in terms of performance, but it is safer to directly use files (which is the default).</xsd:tooltip>
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
           <xsd:element type="xsd:string" name="threshold">
             <xsd:annotation>
               <xsd:documentation>
@@ -4056,6 +4064,7 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
         <footprint_alpha>true</footprint_alpha>
         <simplification_factor>2</simplification_factor>
         <regular_grid_clipping>false</regular_grid_clipping>
+        <in_memory>false</in_memory>
         <threshold>5h</threshold>
         <strategy>replace</strategy>
       </ingest>
@@ -4101,6 +4110,7 @@ class ConfigurationChangeTestCase(ConfigMixIn, TestCase):
         <footprint_alpha>false</footprint_alpha>
         <simplification_factor>3</simplification_factor>
         <regular_grid_clipping>true</regular_grid_clipping>
+        <in_memory>true</in_memory>
         <threshold>8h</threshold>
         <strategy>replace</strategy>
       </ingest>
@@ -4145,6 +4155,7 @@ class ConfigurationChangeTestCase(ConfigMixIn, TestCase):
             (INGEST_SECTION, "strategy"): "replace",
             (INGEST_SECTION, "threshold"): "8h",
             (INGEST_SECTION, "regular_grid_clipping"): "True",
+            (INGEST_SECTION, "in_memory"): "True",
             #("mapcache", "threads"): "4",
         }
 
