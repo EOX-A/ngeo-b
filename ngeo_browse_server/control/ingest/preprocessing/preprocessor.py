@@ -37,7 +37,7 @@ from eoxserver.processing.preprocessing import (
 )
 from eoxserver.processing.preprocessing.optimization import *
 from eoxserver.processing.preprocessing.util import (
-    create_mem_copy, create_mem, copy_metadata
+    create_mem_copy, create_mem, copy_metadata, cleanup_temp
 )
 from eoxserver.processing.gdal import reftools
 from eoxserver.processing.preprocessing.exceptions import GCPTransformException
@@ -81,9 +81,17 @@ class NGEOPreProcessor(WMSPreProcessor):
         for optimization in self.get_optimizations(ds):
             logger.debug("Applying optimization '%s'."
                          % type(optimization).__name__)
-            new_ds = optimization(ds)
-            ds = None
-            ds = new_ds
+
+            try:
+                new_ds = optimization(ds)
+
+                if new_ds is not ds:
+                    # cleanup afterwards
+                    cleanup_temp(ds)
+                    ds = new_ds
+            except:
+                cleanup_temp(ds)
+                raise
 
         # generate the footprint from the dataset
         if not footprint_wkt:
@@ -112,37 +120,55 @@ class NGEOPreProcessor(WMSPreProcessor):
                     "Original footprint with to be merged image required."
                 )
 
-            original_ds = gdal.Open(merge_with)
+            original_ds = gdal.Open(merge_with, gdal.GA_Update)
             merger = GDALDatasetMerger([
-                GDALGeometryMaskMergeSource(original_ds, original_footprint),
-                GDALGeometryMaskMergeSource(ds, footprint_wkt)
+                GDALGeometryMaskMergeSource(
+                    original_ds, original_footprint,
+                    temporary_directory=self.temporary_directory
+                ),
+                GDALGeometryMaskMergeSource(
+                    ds, footprint_wkt,
+                    temporary_directory=self.temporary_directory
+                )
             ])
 
-            ds = merger.merge(
+            final_ds = merger.merge(
                 output_filename, self.format_selection.driver_name,
                 self.format_selection.creation_options
             )
+
             # cleanup previous file
             driver = original_ds.GetDriver()
             original_ds = None
             driver.Delete(merge_with)
 
-        else:
-            logger.debug("Writing file to disc using options: %s."
-                         % ", ".join(self.format_selection.creation_options))
+            cleanup_temp(ds)
 
+        else:
+            logger.debug(
+                "Writing single file '%s' using options: %s."
+                % (
+                    output_filename,
+                    ", ".join(self.format_selection.creation_options)
+                )
+            )
             logger.debug("Metadata tags to be written: %s"
                          % ", ".join(ds.GetMetadata_List("") or []))
 
             # save the file to the disc
             driver = gdal.GetDriverByName(self.format_selection.driver_name)
-            ds = driver.CreateCopy(output_filename, ds,
-                                   options=self.format_selection.creation_options)
+            final_ds = driver.CreateCopy(
+                output_filename, ds,
+                options=self.format_selection.creation_options
+            )
 
-        for optimization in self.get_post_optimizations(ds):
+            # cleanup
+            cleanup_temp(ds)
+
+        for optimization in self.get_post_optimizations(final_ds):
             logger.debug("Applying post-optimization '%s'."
                          % type(optimization).__name__)
-            optimization(ds)
+            optimization(final_ds)
 
         # generate metadata if requested
         footprint = None
@@ -174,10 +200,10 @@ class NGEOPreProcessor(WMSPreProcessor):
 
             logger.debug("Calculated Footprint: '%s'" % footprint.wkt)
 
-        num_bands = ds.RasterCount
+        num_bands = final_ds.RasterCount
 
-        # close the dataset and write it to the disc
-        ds = None
+        # finally close the dataset and write it to the disc
+        final_ds = None
 
         return PreProcessResult(output_filename, footprint, num_bands)
 
@@ -202,7 +228,7 @@ class InternalGCPs(object):
             if num_gcps >= min_gcpnum and (max_gcpnum is None or num_gcps <= max_gcpnum):
                 try:
 
-                    if (order < 0) :
+                    if (order < 0):
                         # let the reftools suggest the right interpolator
                         rt_prm = reftools.suggest_transformer(src_ds)
                     else:
@@ -212,11 +238,12 @@ class InternalGCPs(object):
                         }
 
                     logger.debug("Trying order '%i' {method:%s,order:%s}" % (
-                        order, reftools.METHOD2STR[rt_prm["method"]], rt_prm["order"]
+                        order, reftools.METHOD2STR[rt_prm["method"]],
+                        rt_prm["order"]
                     ))
 
                     # get the suggested pixel size/geotransform
-                    size_x, size_y, geotransform = reftools.suggested_warp_output(
+                    size_x, size_y, gt = reftools.suggested_warp_output(
                         src_ds,
                         None,
                         dst_sr.ExportToWkt(),
@@ -233,7 +260,7 @@ class InternalGCPs(object):
 
                     # reproject the image
                     dst_ds.SetProjection(dst_sr.ExportToWkt())
-                    dst_ds.SetGeoTransform(geotransform)
+                    dst_ds.SetGeoTransform(gt)
 
                     reftools.reproject_image(src_ds, "", dst_ds, "", **rt_prm)
 
@@ -254,7 +281,9 @@ class InternalGCPs(object):
                     break
         else:
             # no method worked, so raise an error
-            raise GCPTransformException("Could not find a valid transform method.")
+            raise GCPTransformException(
+                "Could not find a valid transform method."
+            )
 
         # reproject the footprint to a lon/lat projection if necessary
         if not dst_sr.IsGeographic():
