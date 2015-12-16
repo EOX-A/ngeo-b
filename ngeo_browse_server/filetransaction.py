@@ -64,7 +64,9 @@ class FileTransaction(object):
                               if fn and exists(fn)]
 
         for filename in existing_filenames:
-            self._file_map[filename] = tempfile.mkstemp()
+            self._file_map[filename] = tempfile.mkstemp(
+                prefix="ngeob_transaction_"
+            )
             logger.debug("Generating backup file for '%s'." % filename)
 
             if self._copy:

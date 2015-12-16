@@ -219,8 +219,8 @@ EOF
 
     echo "Performing installation step 150"
     # Set includepkgs in EOX Stable
-    if ! grep -Fxq "includepkgs=gdal gdal-python gdal-libs EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python libxerces-c-3_1" /etc/yum.repos.d/eox.repo ; then
-        sed -e 's/^\[eox\]$/&\nincludepkgs=gdal gdal-python gdal-libs EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python libxerces-c-3_1/' -i /etc/yum.repos.d/eox.repo
+    if ! grep -Fxq "includepkgs=libgeotiff-libtiff4 gdal-eox-libtiff4 gdal-eox-libtiff4-python gdal-eox-libtiff4-libs gdal-eox-driver-openjpeg2 openjpeg2 EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python libxerces-c-3_1" /etc/yum.repos.d/eox.repo ; then
+        sed -e 's/^\[eox\]$/&\nincludepkgs=libgeotiff-libtiff4 gdal-eox-libtiff4 gdal-eox-libtiff4-python gdal-eox-libtiff4-libs gdal-eox-driver-openjpeg2 openjpeg2 EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python libxerces-c-3_1/' -i /etc/yum.repos.d/eox.repo
     fi
     if ! grep -Fxq "includepkgs=ngEO_Browse_Server" /etc/yum.repos.d/eox.repo ; then
         sed -e 's/^\[eox-noarch\]$/&\nincludepkgs=ngEO_Browse_Server/' -i /etc/yum.repos.d/eox.repo
@@ -239,12 +239,20 @@ EOF
         sed -e 's/^\[base\]$/&\nexclude=libxml2 libxml2-python libxerces-c-3_1/' -i /etc/yum.repos.d/CentOS-Base.repo
         sed -e 's/^\[updates\]$/&\nexclude=libxml2 libxml2-python libxerces-c-3_1/' -i /etc/yum.repos.d/CentOS-Base.repo
     fi
+    # Set exclude in EPEL
+    if ! grep -Fxq "exclude=openjpeg2" /etc/yum.repos.d/epel.repo ; then
+        sed -e 's/^\[epel\]$/&\nexclude=openjpeg2/' -i /etc/yum.repos.d/epel.repo
+    fi
 
     echo "Performing installation step 170"
     # Re-install libxml2 from eox repository
     rpm -e --justdb --nodeps libxml2
     # Install packages
-    yum install -y gdal gdal-python libxml2 libxml2-python mapserver mapserver-python EOxServer
+    yum install -y libxml2
+    yum install -y --nogpgcheck libtiff4
+    yum install -y libxml2-python gdal-eox-libtiff4 gdal-eox-libtiff4-python \
+                   gdal-eox-driver-openjpeg2 mapserver mapserver-python \
+                   EOxServer
 
 
     # allow installation of local RPMs if available
@@ -753,9 +761,12 @@ ngeo_uninstall() {
     echo "Performing uninstallation step 110"
     echo "Remove packages"
     yum erase -y  python-lxml mod_wsgi httpd pytz python-psycopg2 \
-                  gdal gdal-python postgis mapserver Django14 mapserver-python \
+                  gdal-eox-libtiff4 gdal-eox-libtiff4-python \
+                  gdal-eox-libtiff4-libs gdal-eox-driver-openjpeg2 \
+                  openjpeg2 postgis libtiff4 libgeotiff-libtiff4 \
+                  mapserver Django14 mapserver-python \
                   mapcache ngEO_Browse_Server EOxServer libxerces-c-3_1 \
-                  mod_ssl memcached
+                  mod_ssl memcached libxml2-python
 
     echo "Finished $SUBSYSTEM uninstallation"
 }

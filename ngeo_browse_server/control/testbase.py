@@ -152,6 +152,7 @@ class BaseTestCaseMixIn(object):
         (INGEST_SECTION, "merge_threshold"): "5h",
         (INGEST_SECTION, "simplification_factor"): "2",
         (INGEST_SECTION, "regular_grid_clipping"): "false",
+        (INGEST_SECTION, "in_memory"): "false",
         # storage_dir, success_dir, failure_dir, optimized_files_dir, and
         # seed_command are set automatically in setUp_files.
 
@@ -486,7 +487,12 @@ class CliFailureMixIn(CliMixIn):
 
     def test_failure_msg(self):
         """ Check the failure message. """
-        self.assertEqual(self.expected_failure_msg, self.get_response())
+
+        response = self.get_response().replace(
+            "INFO: Cannot send notification to CTRL.\n", ""
+        )
+
+        self.assertEqual(self.expected_failure_msg, response)
 
 
 class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):

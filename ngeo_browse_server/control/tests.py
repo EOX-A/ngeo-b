@@ -176,6 +176,35 @@ class SeedRectifiedBrowse(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     expected_browse_type = "MER_FRS"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 128, 6: 256}
 
+class IngestRectifiedBrowseS2(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    storage_dir = "data/test_data"
+    request_file = "test_data/S2.xml"
+
+    expected_ingested_browse_ids = ("GS2A_20150620T022848_001418_N01.01",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['S2_proc.tif']
+    expected_deleted_files = ['S2.jp2']
+    save_optimized_files = True
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>GS2A_20150620T022848_001418_N01.01</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
 
 #===============================================================================
 # Ingest Regular Grid browse test cases
@@ -312,6 +341,72 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
     <bsi:ingestionResult>
         <bsi:briefRecord>
             <bsi:identifier>ID_20150415T131212823970</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+class IngestRegularGridClippedBrowse3(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    storage_dir = "data/regular_grid_clipping"
+    request_file = "regular_grid_clipping/BrowseServerIngest_input_8B99.xml"
+
+    expected_ingested_browse_ids = ("ID_20150709T171336848564",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['BrowseServerIngest_input_8B99_proc.tif']
+    expected_deleted_files = ['BrowseServerIngest_input_8B99.png']
+    save_optimized_files = True
+
+    configuration = {
+        (INGEST_SECTION, "regular_grid_clipping"): "true",
+    }
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>ID_20150709T171336848564</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+class IngestRegularGridClippedBrowse4(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    storage_dir = "data/regular_grid_clipping"
+    request_file = "regular_grid_clipping/BrowseServerIngest_input_CE69.xml"
+
+    expected_ingested_browse_ids = ("ID_20150928T054547785325",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['BrowseServerIngest_input_CE69_proc.tif']
+    expected_deleted_files = ['BrowseServerIngest_input_CE69.png']
+    save_optimized_files = True
+
+    configuration = {
+        (INGEST_SECTION, "regular_grid_clipping"): "true",
+    }
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>ID_20150928T054547785325</bsi:identifier>
             <bsi:status>success</bsi:status>
         </bsi:briefRecord>
     </bsi:ingestionResult>
@@ -619,6 +714,44 @@ class SeedFootprintBrowse6(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
 
     expected_browse_type = "OPTICAL"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64}
+
+#===============================================================================
+# In-memory optimizations
+#===============================================================================
+
+
+class IngestModelInGeotiffBrowseInMemory(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    storage_dir = "data/test_data"
+    request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.xml"
+
+    expected_ingested_browse_ids = ("MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced",)
+    expected_inserted_into_series = "TEST_MER_FRS"
+    expected_optimized_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_proc.tif']
+    expected_deleted_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.tif']
+    save_optimized_files = True
+
+    configuration = {
+        (INGEST_SECTION, "in_memory"): "true",
+    }
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
 
 
 #===============================================================================
@@ -2277,9 +2410,9 @@ class IngestRasterExtent(BaseTestCaseMixIn, HttpMixIn, ExtentMixIn, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "2010", "ASA_IM__0P_20100722_213840_proc.tif"))
 
-    expected_extent = (-2.7900000000000005,
+    expected_extent = (-2.79,
                        49.461072913650007,
-                       -0.029483356685718665,
+                       -0.029483356685714668,
                        53.079999999999998)
 
 
@@ -2470,9 +2603,9 @@ class IngestFootprintWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
     expected_statistics = [{
         "min": 0.0,
         "max": 255.0,
-        "mean": 64.406300000000002,
-        "stddev": 76.223977987966478,
-        "checksum": 57259
+        "mean": 64.865600000000001,
+        "stddev": 76.682941627457154,
+        "checksum": 56889
     }] * 3
 
 
@@ -2494,7 +2627,7 @@ class IngestRegularGridWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, 
                    )
 
     expected_statistics = [
-        {'max': 251.0, 'checksum': 10783, 'mean': 29.288, 'stddev': 33.909860748755662, 'min': 0.0}
+        {'max': 251.0, 'checksum': 11637, 'mean': 29.290800000000001, 'stddev': 33.977113405349783, 'min': 0.0}
     ] * 3
 
 class IngestFootprintCrossesDatelineRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
@@ -2814,7 +2947,7 @@ class ExportMergedFailure(CliFailureMixIn, SeedTestCaseMixIn, LiveServerTestCase
         return ("--export-cache", )
 
     expect_failure = True
-    expected_failure_msg = "INFO: Starting browse export from command line.\nERROR: Browse layer 'TEST_SAR' contains merged browses and exporting of cache is requested. Try without exporting the cache.\nINFO: Cannot send notification to CTRL.\nError: Browse layer 'TEST_SAR' contains merged browses and exporting of cache is requested. Try without exporting the cache.\n"
+    expected_failure_msg = "INFO: Starting browse export from command line.\nERROR: Browse layer 'TEST_SAR' contains merged browses and exporting of cache is requested. Try without exporting the cache.\nError: Browse layer 'TEST_SAR' contains merged browses and exporting of cache is requested. Try without exporting the cache.\n"
 
 
 #===============================================================================
@@ -3777,6 +3910,14 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
+          <xsd:element type="xsd:boolean" name="in_memory">
+            <xsd:annotation>
+              <xsd:documentation>
+                <xsd:label>Perform pre-processing in memory</xsd:label>
+                <xsd:tooltip>Defines if all all pre-processing is done with in-memory datasets. For smaller ones, this might be beneficial in terms of performance, but it is safer to directly use files (which is the default).</xsd:tooltip>
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
           <xsd:element type="xsd:string" name="threshold">
             <xsd:annotation>
               <xsd:documentation>
@@ -3923,6 +4064,7 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
         <footprint_alpha>true</footprint_alpha>
         <simplification_factor>2</simplification_factor>
         <regular_grid_clipping>false</regular_grid_clipping>
+        <in_memory>false</in_memory>
         <threshold>5h</threshold>
         <strategy>replace</strategy>
       </ingest>
@@ -3968,6 +4110,7 @@ class ConfigurationChangeTestCase(ConfigMixIn, TestCase):
         <footprint_alpha>false</footprint_alpha>
         <simplification_factor>3</simplification_factor>
         <regular_grid_clipping>true</regular_grid_clipping>
+        <in_memory>true</in_memory>
         <threshold>8h</threshold>
         <strategy>replace</strategy>
       </ingest>
@@ -4012,6 +4155,7 @@ class ConfigurationChangeTestCase(ConfigMixIn, TestCase):
             (INGEST_SECTION, "strategy"): "replace",
             (INGEST_SECTION, "threshold"): "8h",
             (INGEST_SECTION, "regular_grid_clipping"): "True",
+            (INGEST_SECTION, "in_memory"): "True",
             #("mapcache", "threads"): "4",
         }
 
