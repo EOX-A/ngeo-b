@@ -1174,6 +1174,7 @@ class ControlTestCaseMixIn(BaseTestCaseMixIn):
         config.set(CTRL_SECTION, "controller_config_path", self.temp_controller_server_config)
 
     def tearDown_files(self):
+        super(ControlTestCaseMixIn, self).tearDown_files()
         if exists(self.temp_controller_server_config):
             remove(self.temp_controller_server_config)
 
@@ -1308,6 +1309,7 @@ class ControlLogMixIn(ControlTestCaseMixIn):
             utime(filename, (timestamp, timestamp))
 
     def tearDown_files(self):
+        super(ControlLogMixIn, self).tearDown_files()
         shutil.rmtree(self.temp_log_dir)
 
     @property
