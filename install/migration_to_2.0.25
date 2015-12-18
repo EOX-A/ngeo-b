@@ -1,0 +1,32 @@
+#----------------------------------------------------------------------
+# Steps to migrate ngEO_Browse_Server version <2.0.25 to 2.0.25
+#----------------------------------------------------------------------
+# The steps assume a default installation and configuration as for
+# example provided via the `ngeo-install.sh` script.
+
+# adjust the eox yum repository
+sudo vim /etc/yum.repos.d/eox.repo
+# set the [eox] includepkgs option to the following:
+# includepkgs=libgeotiff-libtiff4 gdal-eox-libtiff4 gdal-eox-libtiff4-python gdal-eox-libtiff4-libs gdal-eox-driver-openjpeg2 openjpeg2 EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python libxerces-c-3_1
+​
+# adjust the epel yum repository
+sudo vim /etc/yum.repos.d/epel.repo
+# set the [epel] exclude option to the following:
+# exclude=openjpeg2
+
+# remove default GDAL packages linked against libtiff 3, but keeping
+# all dependent packages
+sudo rpm -e gdal gdal-python gdal-libs --nodeps
+​
+# install libtiff 4 from ELGIS (requires turing off of GPG check)
+sudo yum install -y --nogpgcheck libtiff4
+​
+# install GDAL packages linked against libtiff 4
+sudo yum install -y gdal-eox-libtiff4 gdal-eox-libtiff4-python gdal-eox-driver-openjpeg2
+​
+# Optional: configure the browse server config file and set the
+# [control.ingest] `in_memory` setting to true or false. Default is false.
+sudo vim /var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/conf/ngeo.conf
+​
+# restart the httpd daemon
+sudo service httpd restart
