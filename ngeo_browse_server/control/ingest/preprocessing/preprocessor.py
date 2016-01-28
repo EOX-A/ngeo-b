@@ -75,6 +75,7 @@ class NGEOPreProcessor(WMSPreProcessor):
         if geo_reference:
             logger.debug("Applying geo reference '%s'."
                          % type(geo_reference).__name__)
+            # footprint is always in EPSG:4326
             ds, footprint_wkt = geo_reference.apply(ds)
 
         # apply optimizations
@@ -103,6 +104,27 @@ class NGEOPreProcessor(WMSPreProcessor):
             tmp_extent = getExtentFromRectifiedDS(ds)
             tmp_bbox = Polygon.from_bbox((tmp_extent[0], tmp_extent[1],
                                           tmp_extent[2], tmp_extent[3]))
+
+            # transform image bbox to EPSG:4326 if necessary
+            proj = ds.GetProjection()
+            srs = osr.SpatialReference()
+            try:
+                srs.ImportFromWkt(proj)
+                srs.AutoIdentifyEPSG()
+                ptype = "PROJCS" if srs.IsProjected() else "GEOGCS"
+                srid = int(srs.GetAuthorityCode(ptype))
+                if srid != '4326':
+                    out_srs = osr.SpatialReference()
+                    out_srs.ImportFromEPSG(4326)
+                    transform = osr.CoordinateTransformation(srs, out_srs)
+                    tmp_bbox2 = ogr.CreateGeometryFromWkt(tmp_bbox.wkt)
+                    tmp_bbox2.Transform(transform)
+                    tmp_bbox = GEOSGeometry(tmp_bbox2.ExportToWkt())
+            except (RuntimeError, TypeError), e:
+                logger.warn("Projection: %s" % proj)
+                logger.warn("Failed to identify projection's EPSG code."
+                    "%s: %s" % ( type(e).__name__ , str(e) ) )
+
             tmp_footprint = GEOSGeometry(footprint_wkt)
             if not tmp_bbox.contains(tmp_footprint):
                 footprint_wkt = tmp_footprint.intersection(tmp_bbox).wkt
