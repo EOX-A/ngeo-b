@@ -558,7 +558,7 @@ def update_browse_layer(browse_layer, config=None):
     logger.info("Finished updating browse layer '%s'." % browse_layer.id)
 
 
-def delete_browse_layer(browse_layer, config=None):
+def delete_browse_layer(browse_layer, purge=False, config=None):
     config = config or get_ngeo_config()
 
     # only remove MapCache configuration in order to allow a roll-back
@@ -573,5 +573,55 @@ def delete_browse_layer(browse_layer, config=None):
 
     # remove browse layer from MapCache XML
     remove_mapcache_layer_xml(browse_layer, config)
+
+    if purge:
+        # remove browse layer model. This should also delete all related browses
+        # and browse reports
+        models.BrowseLayer.objects.get(id=browse_layer.id).delete()
+
+        # delete EOxServer layer metadata
+        dss = System.getRegistry().getFromFactory(
+            "resources.coverages.wrappers.DatasetSeriesFactory",
+            {"obj_id": browse_layer.id}
+        )
+        dss._DatasetSeriesWrapper__model.layer_metadata.all().delete()
+        # delete EOxServer dataset series
+        dss_mgr = System.getRegistry().findAndBind(
+            intf_id="resources.coverages.interfaces.Manager",
+            params={
+                "resources.coverages.interfaces.res_type": "eo.dataset_series"
+            }
+        )
+        dss_mgr.delete(browse_layer.id)
+
+        # delete browse layer cache
+        try:
+            logger.info(
+                "Deleting tileset for browse layer '%s'." % browse_layer.id
+            )
+            os.remove(get_tileset_path(browse_layer.browse_type))
+        except OSError:
+            # when no browse was ingested, the sqlite file does not exist, so
+            # just issue a warning
+            logger.warning(
+                "Could not remove tileset '%s'."
+                % get_tileset_path(browse_layer.browse_type)
+            )
+
+        # delete all optimzed files by deleting the whole directory of the layer
+        optimized_dir = get_project_relative_path(join(
+            config.get(INGEST_SECTION, "optimized_files_dir"), browse_layer.id
+        ))
+        try:
+            logger.info(
+                "Deleting optimized images for browse layer '%s'."
+                % browse_layer.id
+            )
+            shutil.rmtree(optimized_dir)
+        except OSError:
+            logger.error(
+                "Could not remove directory for optimzed files: '%s'."
+                % optimized_dir
+            )
 
     logger.info("Finished disabling of browse layer '%s'." % browse_layer.id)
