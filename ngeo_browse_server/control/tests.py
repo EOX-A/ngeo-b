@@ -413,6 +413,35 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 </bsi:ingestBrowseResponse>
 """
 
+class IngestRegularGridBrowseGoogleMercator(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    storage_dir = "data/test_data"
+    request_file = "test_data/google_mercator_regulargrid.xml"
+
+    expected_ingested_browse_ids = ("ID_20150714T194052121495",)
+    expected_inserted_into_series = "TEST_GOOGLE_MERCATOR"
+    expected_optimized_files = ['google_mercator_regulargrid_proc.tif']
+    expected_deleted_files = ['google_mercator_regulargrid.png']
+    save_optimized_files = True
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>ID_20150714T194052121495</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
 
 #===============================================================================
 # Ingest Footprint browse test cases
