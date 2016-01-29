@@ -38,8 +38,6 @@ from eoxserver.core.system import System
 from ngeo_browse_server.control.management.commands import LogToConsoleMixIn
 from ngeo_browse_server.control.queries import delete_browse_layer
 from ngeo_browse_server.config.models import BrowseLayer, Browse
-from ngeo_browse_server.mapcache.tasks import seed_mapcache
-from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
 
 
 logger = logging.getLogger(__name__)
@@ -50,19 +48,19 @@ class Command(LogToConsoleMixIn, BaseCommand):
     option_list = BaseCommand.option_list + (
         make_option('--layer', '--browse-layer',
             dest='browse_layer_id',
-            help=("The browse layer to be deleted.")
+            help=("The identifier of the layer to be purged.")
         ),
         make_option('--browse-type',
             dest='browse_type',
-            help=("The browses of browse type to be deleted.")
+            help=("The browse type of the layer to be purged.")
         )
     )
 
     args = ("--layer=<layer-id> | --browse-type=<browse-type> ")
-    help = ("Deletes the browses specified by either the layer ID, "
-            "its browse type and optionally start and or end time."
-            "Only browses that are completely contained in the time interval"
-            "are actually deleted.")
+    help = ("Completely purges a browse layer identified by '--layer' or "
+            "'--browse-type'. Purge removes everything related to the layer: "
+            "the layer itself, all browses, the mapcache configuration and "
+            "the cache.")
 
     def handle(self, *args, **kwargs):
         System.init()
