@@ -585,7 +585,10 @@ def delete_browse_layer(browse_layer, purge=False, config=None):
     # remove browse layer from MapCache XML
     remove_mapcache_layer_xml(browse_layer, config)
 
+    logger.info("Finished disabling of browse layer '%s'." % browse_layer.id)
+
     if purge:
+        logger.info("Starting purging of browse layer '%s'." % browse_layer.id)
         # remove browse layer model. This should also delete all related browses
         # and browse reports
         models.BrowseLayer.objects.get(id=browse_layer.id).delete()
@@ -622,7 +625,7 @@ def delete_browse_layer(browse_layer, purge=False, config=None):
                 % get_tileset_path(browse_layer.browse_type)
             )
 
-        # delete all optimzed files by deleting the whole directory of the layer
+        # delete all optimized files by deleting the whole directory of the layer
         optimized_dir = get_project_relative_path(join(
             config.get(INGEST_SECTION, "optimized_files_dir"), browse_layer.id
         ))
@@ -634,8 +637,8 @@ def delete_browse_layer(browse_layer, purge=False, config=None):
             shutil.rmtree(optimized_dir)
         except OSError:
             logger.error(
-                "Could not remove directory for optimzed files: '%s'."
+                "Could not remove directory for optimized files: '%s'."
                 % optimized_dir
             )
 
-    logger.info("Finished disabling of browse layer '%s'." % browse_layer.id)
+        logger.info("Finished purging of browse layer '%s'." % browse_layer.id)

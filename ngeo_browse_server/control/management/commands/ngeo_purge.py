@@ -70,7 +70,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
         traceback = kwargs.get("traceback", False)
         self.set_up_logging(["ngeo_browse_server"], self.verbosity, traceback)
 
-        logger.info("Starting browse deletion from command line.")
+        logger.info("Starting browse layer purging from command line.")
 
         browse_layer_id = kwargs.get("browse_layer_id")
         browse_type = kwargs.get("browse_type")
@@ -84,7 +84,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
             )
 
         self._handle(browse_layer_id, browse_type)
-        logger.info("Successfully finished browse deletion from command line.")
+        logger.info("Successfully finished browse layer purging from command line.")
 
     def _handle(self, browse_layer_id, browse_type):
         from ngeo_browse_server.control.queries import remove_browse
@@ -144,7 +144,3 @@ class Command(LogToConsoleMixIn, BaseCommand):
                                "in path: %s" % file_path)
 
         delete_browse_layer(browse_layer_model, purge=True)
-
-        logger.info(
-            "Sucessfully removed browse layer '%s'" % browse_layer_model.id
-        )
