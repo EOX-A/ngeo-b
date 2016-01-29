@@ -594,6 +594,9 @@ def delete_browse_layer(browse_layer, purge=False, config=None):
         )
         dss_mgr.delete(browse_layer.id)
 
+        # remove source from mapcache sqlite
+        mapcache_models.Source.objects.get(name=browse_layer.id).delete()
+
         # delete browse layer cache
         try:
             logger.info(
