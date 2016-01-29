@@ -128,7 +128,8 @@ class Command(LogToConsoleMixIn, BaseCommand):
                 for browse_model in browses_qs:
                     _, filename = remove_browse(
                         browse_model, browse_layer_model,
-                        browse_model.coverage_id, seed_areas
+                        browse_model.coverage_id, seed_areas,
+                        unseed=False
                     )
 
                     paths_to_delete.append(filename)

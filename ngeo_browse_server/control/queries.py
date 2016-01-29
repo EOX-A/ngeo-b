@@ -248,7 +248,7 @@ def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
 
 
 def remove_browse(browse_model, browse_layer_model, coverage_id,
-                  seed_areas, config=None):
+                  seed_areas, unseed=True, config=None):
     """ Delete all models and caches associated with browse model. Image itself
     is not deleted.
     Returns the extent and filename of the replaced image.
@@ -284,21 +284,22 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
             browse_model.start_time, browse_model.end_time
         ))
 
-    # unseed here
-    try:
-        seed_mapcache(tileset=browse_layer_model.id,
-                      grid=browse_layer_model.grid,
-                      minx=time_model.minx, miny=time_model.miny,
-                      maxx=time_model.maxx, maxy=time_model.maxy,
-                      minzoom=browse_layer_model.lowest_map_level,
-                      maxzoom=browse_layer_model.highest_map_level,
-                      start_time=time_model.start_time,
-                      end_time=time_model.end_time,
-                      delete=True,
-                      **get_mapcache_seed_config(config))
+    if unseed:
+        # unseed here
+        try:
+            seed_mapcache(tileset=browse_layer_model.id,
+                          grid=browse_layer_model.grid,
+                          minx=time_model.minx, miny=time_model.miny,
+                          maxx=time_model.maxx, maxy=time_model.maxy,
+                          minzoom=browse_layer_model.lowest_map_level,
+                          maxzoom=browse_layer_model.highest_map_level,
+                          start_time=time_model.start_time,
+                          end_time=time_model.end_time,
+                          delete=True,
+                          **get_mapcache_seed_config(config))
 
-    except Exception, e:
-        logger.warning("Un-seeding failed: %s" % str(e))
+        except Exception, e:
+            logger.warning("Un-seeding failed: %s" % str(e))
 
     # approach
     #    - select the time model to which the browse refers
