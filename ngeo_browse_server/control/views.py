@@ -57,7 +57,7 @@ from ngeo_browse_server.config.browsereport.decoding import (
 from ngeo_browse_server.config.browselayer.decoding import decode_browse_layers
 from ngeo_browse_server.control.ingest.exceptions import IngestionException
 from ngeo_browse_server.control.response import JsonResponse
-from ngeo_browse_server.control.control.register import  register, unregister
+from ngeo_browse_server.control.control.register import register, unregister
 from ngeo_browse_server.control.control.config import get_instance_id
 from ngeo_browse_server.control.control.status import get_status
 from ngeo_browse_server.control.control.logview import (
@@ -353,7 +353,7 @@ def config(request):
                             add_browse_layer(browse_layer, config)
 
                     for browse_layer in remove_layers:
-                        delete_browse_layer(browse_layer, config)
+                        delete_browse_layer(browse_layer, config=config)
 
         # set the new revision
         config = get_ngeo_config()

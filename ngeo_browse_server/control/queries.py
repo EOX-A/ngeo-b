@@ -11,8 +11,8 @@
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
-# copies of the Software, and to permit persons to whom the Software is 
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
 # The above copyright notice and this permission notice shall be included in all
@@ -60,10 +60,11 @@ INGEST_SECTION = "control.ingest"
 
 logger = logging.getLogger(__name__)
 
+
 def get_existing_browse(browse, browse_layer_id):
-    """ Get existing browse either via browse identifier if present or via 
+    """ Get existing browse either via browse identifier if present or via
         Start/End time in the same browse layer. """
-    
+
     try:
         if browse.browse_identifier:
             try:
@@ -100,69 +101,69 @@ def create_browse_report(browse_report, browse_layer_model):
 
 
 def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
-                  crs, replaced, footprint, num_bands, filename, 
+                  crs, replaced, footprint, num_bands, filename,
                   seed_areas, config=None):
     """ Creates all required database models for the browse and returns the
         calculated extent of the registered coverage.
     """
-    
+
     srid = fromShortCode(browse.reference_system_identifier)
-    
+
     # create the correct model from the pared browse
     if browse.geo_type == "rectifiedBrowse":
-        browse_model = _create_model(browse, browse_report_model, 
+        browse_model = _create_model(browse, browse_report_model,
                                      browse_layer_model, coverage_id,
                                      models.RectifiedBrowse)
         browse_model.full_clean()
         browse_model.save()
-        
+
     elif browse.geo_type == "footprintBrowse":
-        browse_model = _create_model(browse, browse_report_model, 
+        browse_model = _create_model(browse, browse_report_model,
                                     browse_layer_model, coverage_id,
                                     models.FootprintBrowse)
         browse_model.full_clean()
         browse_model.save()
-        
+
     elif browse.geo_type == "regularGridBrowse":
-        browse_model = _create_model(browse, browse_report_model, 
+        browse_model = _create_model(browse, browse_report_model,
                                      browse_layer_model, coverage_id,
                                      models.RegularGridBrowse)
         browse_model.full_clean()
         browse_model.save()
-        
+
         for coord_list in browse.coord_lists:
             coord_list = models.RegularGridCoordList(
                 regular_grid_browse=browse_model, coord_list=coord_list
             )
             coord_list.full_clean()
             coord_list.save()
-    
+
     elif browse.geo_type == "modelInGeotiffBrowse":
-        browse_model = _create_model(browse, browse_report_model, 
+        browse_model = _create_model(browse, browse_report_model,
                                      browse_layer_model, coverage_id,
                                      models.ModelInGeotiffBrowse)
         browse_model.full_clean()
         browse_model.save()
-    
+
     else:
         raise NotImplementedError
-    
+
     # if the browse contains an identifier, create the according model
     if browse.browse_identifier is not None:
         try:
             models.HashNameValidator(browse.browse_identifier)
         except ValidationError, e:
-            raise NGEOException("Browse Identifier '%s' not valid: '%s'." % 
+            raise NGEOException("Browse Identifier '%s' not valid: '%s'." %
                                 (browse.browse_identifier, str(e.messages[0])),
                                 "ValidationError")
 
         browse_identifier_model = models.BrowseIdentifier(
-            value=browse.browse_identifier, browse=browse_model, 
+            value=browse.browse_identifier, browse=browse_model,
             browse_layer=browse_layer_model
         )
         browse_identifier_model.full_clean()
         browse_identifier_model.save()
-    
+
     # initialize the Coverage Manager for Rectified Datasets to register the
     # datasets in the database
     rect_mgr = System.getRegistry().findAndBind(
@@ -171,41 +172,42 @@ def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
             "resources.coverages.interfaces.res_type": "eo.rect_dataset"
         }
     )
-    
+
     # create EO metadata necessary for registration
     eo_metadata = EOMetadata(
         coverage_id, browse.start_time, browse.end_time, footprint
     )
-    
+
     # get dataset series ID from browse layer, if available
     container_ids = []
     if browse_layer_model:
         container_ids.append(browse_layer_model.id)
-    
+
     range_type_name = "RGB" if num_bands == 3 else "RGBA"
-    
+
     # register the optimized dataset
     logger.info("Creating Rectified Dataset.")
-    coverage = rect_mgr.create(obj_id=coverage_id, 
+    coverage = rect_mgr.create(obj_id=coverage_id,
                                range_type_name=range_type_name,
-                               default_srid=srid, visible=False, 
+                               default_srid=srid, visible=False,
                                local_path=filename,
-                               eo_metadata=eo_metadata, force=False, 
+                               eo_metadata=eo_metadata, force=False,
                                container_ids=container_ids)
-    
+
     extent = coverage.getExtent()
     minx, miny, maxx, maxy = extent
     start_time, end_time = browse.start_time, browse.end_time
-    
+
     # create mapcache models
-    source, _ = mapcache_models.Source.objects.get_or_create(name=browse_layer_model.id)
-    
+    source, _ = mapcache_models.Source.objects.get_or_create(
+        name=browse_layer_model.id)
+
     # search for time entries with an overlapping time span
     times_qs = mapcache_models.Time.objects.filter(
         start_time__lt=browse.end_time, end_time__gt=browse.start_time,
         source=source
     )
-    
+
     if len(times_qs) > 0:
         # If there are overlapping time entries, merge the time entries to one
         logger.info("Merging %d Time entries." % (len(times_qs) + 1))
@@ -216,42 +218,42 @@ def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
             maxy = max(maxy, time_model.maxy)
             start_time = min(start_time, time_model.start_time)
             end_time = max(end_time, time_model.end_time)
-            
-            seed_mapcache(tileset=browse_layer_model.id, 
-                          grid=browse_layer_model.grid, 
+
+            seed_mapcache(tileset=browse_layer_model.id,
+                          grid=browse_layer_model.grid,
                           minx=time_model.minx, miny=time_model.miny,
-                          maxx=time_model.maxx, maxy=time_model.maxy, 
-                          minzoom=browse_layer_model.lowest_map_level, 
+                          maxx=time_model.maxx, maxy=time_model.maxy,
+                          minzoom=browse_layer_model.lowest_map_level,
                           maxzoom=browse_layer_model.highest_map_level,
                           start_time=time_model.start_time,
                           end_time=time_model.end_time,
                           delete=True,
                           **get_mapcache_seed_config(config))
-    
+
         logger.info("Result time span is %s/%s." % (isotime(start_time),
                                                     isotime(end_time)))
         times_qs.delete()
-    
+
     time_model = mapcache_models.Time(start_time=start_time, end_time=end_time,
-                                      minx=minx, miny=miny, 
+                                      minx=minx, miny=miny,
                                       maxx=maxx, maxy=maxy,
                                       source=source)
-    
+
     time_model.full_clean()
     time_model.save()
-    
+
     seed_areas.append((minx, miny, maxx, maxy, start_time, end_time))
-    
+
     return extent, (browse.start_time, browse.end_time)
 
 
-def remove_browse(browse_model, browse_layer_model, coverage_id, 
-                  seed_areas, config=None):
-    """ Delete all models and caches associated with browse model. Image itself 
+def remove_browse(browse_model, browse_layer_model, coverage_id,
+                  seed_areas, unseed=True, config=None):
+    """ Delete all models and caches associated with browse model. Image itself
     is not deleted.
     Returns the extent and filename of the replaced image.
     """
-    
+
     # get previous extent to "un-seed" MapCache in that area
     rect_ds = System.getRegistry().getFromFactory(
         "resources.coverages.wrappers.EOCoverageFactory",
@@ -259,7 +261,7 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
     )
     replaced_extent = rect_ds.getExtent()
     replaced_filename = rect_ds.getData().getLocation().getPath()
-    
+
     # delete the EOxServer rectified dataset entry
     rect_mgr = System.getRegistry().findAndBind(
         intf_id="resources.coverages.interfaces.Manager",
@@ -269,7 +271,7 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
     )
     rect_mgr.delete(obj_id=browse_model.coverage_id)
     browse_model.delete()
-    
+
     try:
         time_model = mapcache_models.Time.objects.get(
             start_time__lte=browse_model.start_time,
@@ -278,24 +280,27 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
         )
     except mapcache_models.Time.DoesNotExist:
         # issue a warning if no corresponding Time object exists
-        logger.warning("No MapCache Time object found for time: %s, %s" % (browse_model.start_time, browse_model.end_time))
-    
-    # unseed here
-    try:
-        seed_mapcache(tileset=browse_layer_model.id, grid=browse_layer_model.grid, 
-                      minx=time_model.minx, miny=time_model.miny,
-                      maxx=time_model.maxx, maxy=time_model.maxy, 
-                      minzoom=browse_layer_model.lowest_map_level, 
-                      maxzoom=browse_layer_model.highest_map_level,
-                      start_time=time_model.start_time,
-                      end_time=time_model.end_time,
-                      delete=True,
-                      **get_mapcache_seed_config(config))
-    
-    except Exception, e:
-        logger.warning("Un-seeding failed: %s" % str(e))
-    
-    
+        logger.warning("No MapCache Time object found for time: %s, %s" % (
+            browse_model.start_time, browse_model.end_time
+        ))
+
+    if unseed:
+        # unseed here
+        try:
+            seed_mapcache(tileset=browse_layer_model.id,
+                          grid=browse_layer_model.grid,
+                          minx=time_model.minx, miny=time_model.miny,
+                          maxx=time_model.maxx, maxy=time_model.maxy,
+                          minzoom=browse_layer_model.lowest_map_level,
+                          maxzoom=browse_layer_model.highest_map_level,
+                          start_time=time_model.start_time,
+                          end_time=time_model.end_time,
+                          delete=True,
+                          **get_mapcache_seed_config(config))
+
+        except Exception, e:
+            logger.warning("Un-seeding failed: %s" % str(e))
+
     # approach
     #    - select the time model to which the browse refers
     #    - check if there are other browses within this time window
@@ -303,18 +308,18 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
     #        - split/shorten
     #        - for each new time:
     #            - save slot for seeding afterwards
-    
+
     intersecting_browses_qs = models.Browse.objects.filter(
-        start_time__lt = time_model.end_time,
-        end_time__gt = time_model.start_time,
+        start_time__lt=time_model.end_time,
+        end_time__gt=time_model.start_time,
         browse_layer__id=browse_layer_model.id
     )
-    
+
     source_model = time_model.source
     time_model.delete()
-    
+
     if len(intersecting_browses_qs):
-        
+
         class Area(object):
             def __init__(self, minx, miny, maxx, maxy, start_time, end_time):
                 self.minx = minx
@@ -323,11 +328,11 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
                 self.maxy = maxy
                 self.start_time = start_time
                 self.end_time = end_time
-            
+
             def time_intersects(self, other):
                 return (self.end_time >= other.start_time and
                         self.start_time <= other.end_time)
-        
+
         # get "areas" with extent and time slice
         areas = []
         for browse in intersecting_browses_qs:
@@ -346,38 +351,38 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
                 if area.time_intersects(item):
                     return True
             return False
-        
+
         def merge_groups(first, *others):
             for other in others:
                 for browse in other:
                     if browse not in first:
                         first.append(browse)
-        
+
         groups = []
-        
+
         # iterate over all browses that were associated with the deleted time
         for area in areas:
             to_be_merged = []
-            
+
             if len(groups) == 0:
                 groups.append([area])
                 continue
-            
+
             # check for intersections with other groups
             for group in groups:
                 if intersects_with_group(area, group):
                     group.append(area)
                     to_be_merged.append(group)
-            
+
             if len(to_be_merged):
                 # actually perform the merge of the groups
                 merge_groups(*to_be_merged)
                 for group in to_be_merged[1:]:
                     groups.remove(group)
-            
+
             else:
                 groups.append([area])
-        
+
         # each group needs to have its own Time model
         for group in groups:
             minx = group[0].minx
@@ -410,8 +415,10 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
     return replaced_extent, replaced_filename
 
 
-def _create_model(browse, browse_report_model, browse_layer_model, coverage_id, model_cls):
-    model = model_cls(browse_report=browse_report_model, browse_layer=browse_layer_model, 
+def _create_model(browse, browse_report_model, browse_layer_model, coverage_id,
+                  model_cls):
+    model = model_cls(browse_report=browse_report_model,
+                      browse_layer=browse_layer_model,
                       coverage_id=coverage_id, **browse.get_kwargs())
     return model
 
@@ -419,7 +426,7 @@ def _create_model(browse, browse_report_model, browse_layer_model, coverage_id, 
 # browse layer management
 
 def add_browse_layer(browse_layer, config=None):
-    """ Add a browse layer to the ngEO Browse Server system. This includes the 
+    """ Add a browse layer to the ngEO Browse Server system. This includes the
         database models, cache configuration and filesystem paths.
     """
     config = config or get_ngeo_config()
@@ -464,10 +471,12 @@ def add_browse_layer(browse_layer, config=None):
             {"obj_id": browse_layer.id}
         )
         if browse_layer.title:
-            md_title = LayerMetadataRecord.objects.get_or_create(key="ows_title", value=str(browse_layer.title))[0]
+            md_title = LayerMetadataRecord.objects.get_or_create(
+                key="ows_title", value=str(browse_layer.title))[0]
             dss._DatasetSeriesWrapper__model.layer_metadata.add(md_title)
         if browse_layer.description:
-            md_abstract = LayerMetadataRecord.objects.get_or_create(key="ows_abstract", value=str(browse_layer.description))[0]
+            md_abstract = LayerMetadataRecord.objects.get_or_create(
+                key="ows_abstract", value=str(browse_layer.description))[0]
             dss._DatasetSeriesWrapper__model.layer_metadata.add(md_abstract)
 
     # add source to mapcache sqlite
@@ -492,7 +501,7 @@ def update_browse_layer(browse_layer, config=None):
         browse_layer_model = models.BrowseLayer.objects.get(id=browse_layer.id)
     except models.BrowseLayer.DoesNotExist:
         raise Exception(
-            "Could not update browse layer '%s' as it does not exist." 
+            "Could not update browse layer '%s' as it does not exist."
             % browse_layer.id
         )
 
@@ -543,10 +552,12 @@ def update_browse_layer(browse_layer, config=None):
         )
         dss._DatasetSeriesWrapper__model.layer_metadata.all().delete()
         if browse_layer.title:
-            md_title = LayerMetadataRecord.objects.get_or_create(key="ows_title", value=str(browse_layer.title))[0]
+            md_title = LayerMetadataRecord.objects.get_or_create(
+                key="ows_title", value=str(browse_layer.title))[0]
             dss._DatasetSeriesWrapper__model.layer_metadata.add(md_title)
         if browse_layer.description:
-            md_abstract = LayerMetadataRecord.objects.get_or_create(key="ows_abstract", value=str(browse_layer.description))[0]
+            md_abstract = LayerMetadataRecord.objects.get_or_create(
+                key="ows_abstract", value=str(browse_layer.description))[0]
             dss._DatasetSeriesWrapper__model.layer_metadata.add(md_abstract)
 
     if refresh_mapcache_xml:
@@ -558,7 +569,7 @@ def update_browse_layer(browse_layer, config=None):
     logger.info("Finished updating browse layer '%s'." % browse_layer.id)
 
 
-def delete_browse_layer(browse_layer, config=None):
+def delete_browse_layer(browse_layer, purge=False, config=None):
     config = config or get_ngeo_config()
 
     # only remove MapCache configuration in order to allow a roll-back
@@ -575,3 +586,59 @@ def delete_browse_layer(browse_layer, config=None):
     remove_mapcache_layer_xml(browse_layer, config)
 
     logger.info("Finished disabling of browse layer '%s'." % browse_layer.id)
+
+    if purge:
+        logger.info("Starting purging of browse layer '%s'." % browse_layer.id)
+        # remove browse layer model. This should also delete all related browses
+        # and browse reports
+        models.BrowseLayer.objects.get(id=browse_layer.id).delete()
+
+        # delete EOxServer layer metadata
+        dss = System.getRegistry().getFromFactory(
+            "resources.coverages.wrappers.DatasetSeriesFactory",
+            {"obj_id": browse_layer.id}
+        )
+        dss._DatasetSeriesWrapper__model.layer_metadata.all().delete()
+        # delete EOxServer dataset series
+        dss_mgr = System.getRegistry().findAndBind(
+            intf_id="resources.coverages.interfaces.Manager",
+            params={
+                "resources.coverages.interfaces.res_type": "eo.dataset_series"
+            }
+        )
+        dss_mgr.delete(browse_layer.id)
+
+        # remove source from mapcache sqlite
+        mapcache_models.Source.objects.get(name=browse_layer.id).delete()
+
+        # delete browse layer cache
+        try:
+            logger.info(
+                "Deleting tileset for browse layer '%s'." % browse_layer.id
+            )
+            os.remove(get_tileset_path(browse_layer.browse_type))
+        except OSError:
+            # when no browse was ingested, the sqlite file does not exist, so
+            # just issue a warning
+            logger.warning(
+                "Could not remove tileset '%s'."
+                % get_tileset_path(browse_layer.browse_type)
+            )
+
+        # delete all optimized files by deleting the whole directory of the layer
+        optimized_dir = get_project_relative_path(join(
+            config.get(INGEST_SECTION, "optimized_files_dir"), browse_layer.id
+        ))
+        try:
+            logger.info(
+                "Deleting optimized images for browse layer '%s'."
+                % browse_layer.id
+            )
+            shutil.rmtree(optimized_dir)
+        except OSError:
+            logger.error(
+                "Could not remove directory for optimized files: '%s'."
+                % optimized_dir
+            )
+
+        logger.info("Finished purging of browse layer '%s'." % browse_layer.id)

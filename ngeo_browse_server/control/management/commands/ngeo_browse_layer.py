@@ -145,7 +145,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
                             add_browse_layer(browse_layer, config)
 
                     for browse_layer in remove_layers:
-                        delete_browse_layer(browse_layer, config)
+                        delete_browse_layer(browse_layer, config=config)
 
         # set the new revision
         config = config or get_ngeo_config()

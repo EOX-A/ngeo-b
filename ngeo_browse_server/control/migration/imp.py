@@ -238,7 +238,7 @@ def import_browse(p, browse, browse_report_model, browse_layer_model, crs,
         
         replaced_extent, replaced_filename = remove_browse(
             existing_browse_model, browse_layer_model, coverage_id, seed_areas,
-            config
+            config=config
         )
         replaced = True
     

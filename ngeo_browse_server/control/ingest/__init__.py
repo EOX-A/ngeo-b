@@ -413,7 +413,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
 
                 _, _ = remove_browse(
                     existing_browse_model, browse_layer, coverage_id,
-                    seed_areas, config
+                    seed_areas, config=config
                 )
                 replaced = False
                 logger.debug("Existing browse found, merging it.")
@@ -425,7 +425,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
 
                 replaced_extent, replaced_filename = remove_browse(
                     existing_browse_model, browse_layer, coverage_id,
-                    seed_areas, config
+                    seed_areas, config=config
                 )
                 replaced = True
                 logger.info("Existing browse found, replacing it.")
