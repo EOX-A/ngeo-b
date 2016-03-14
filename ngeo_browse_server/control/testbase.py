@@ -734,12 +734,16 @@ class SeedTestCaseMixIn(BaseTestCaseMixIn):
                 for (tile,) in cur.fetchall():
                     # create in-memory file and open it with gdal
                     gdal.FileFromMemBuffer(vsimem_path, str(tile))
-                    ds = gdal.Open(vsimem_path)
-                    data = ds.ReadAsArray()
 
-                    # check if it contains any data; (0,0,0,0) is empty
-                    not_empty = numpy.any(data)
-                    any_filled = not_empty or any_filled
+                    try:
+                        ds = gdal.Open(vsimem_path)
+                        data = ds.ReadAsArray()
+
+                        # check if it contains any data; (0,0,0,0) is empty
+                        not_empty = numpy.any(data)
+                        any_filled = not_empty or any_filled
+                    except RuntimeError:
+                        pass
 
                     # delete the file when done
                     gdal.Unlink(vsimem_path)
