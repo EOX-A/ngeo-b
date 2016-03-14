@@ -295,7 +295,7 @@ def remove_mapcache_layer_xml(browse_layer, config=None):
         root.remove(root.xpath("source[@name='%s']" % name)[0])
         root.remove(root.xpath("tileset[@name='%s']" % name)[0])
     except IndexError:
-        raise LayerException(
+        logger.warning(
             "Failed to remove browse layer from mapcache config, because a "
             "layer with the name '%s' could not be found." % name
         )
