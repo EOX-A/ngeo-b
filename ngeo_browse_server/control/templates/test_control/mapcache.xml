@@ -14,6 +14,9 @@
     {% for layer in browse_layers %}
     <cache name="{{ layer.pk }}" type="sqlite3">
         <dbfile>{{ mapcache_dir }}{{ layer.browse_type }}.sqlite</dbfile>
+        <detect_blank>true</detect_blank>
+        <pragma name="max_page_count">2147483646</pragma>
+        <pragma name="page_size">2048</pragma>
     </cache>
 
     <source name="{{ layer.pk }}" type="wms">
