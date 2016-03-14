@@ -225,6 +225,8 @@ def add_mapcache_layer_xml(browse_layer, config=None):
         E("cache",
             E("dbfile", tileset_path),
             E("detect_blank", "true"),
+            E("pragma", "2147483646", name="max_page_count"),
+            E("pragma", "2048", name="page_size"),
             name=name, type="sqlite3"
         ),
         E("source",
@@ -293,7 +295,7 @@ def remove_mapcache_layer_xml(browse_layer, config=None):
         root.remove(root.xpath("source[@name='%s']" % name)[0])
         root.remove(root.xpath("tileset[@name='%s']" % name)[0])
     except IndexError:
-        raise LayerException(
+        logger.warning(
             "Failed to remove browse layer from mapcache config, because a "
             "layer with the name '%s' could not be found." % name
         )
