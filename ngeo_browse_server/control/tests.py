@@ -1325,7 +1325,7 @@ class SeedMerge2_2(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase
 
 
 class SeedMerge3(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
-    """ Splitting consquent time window in seperate. """
+    """ Splitting consequent time window in separate. """
 
     request_files = ("merge_test_data/br_merge_1.xml",
                      "merge_test_data/br_merge_2.xml",
@@ -1346,7 +1346,7 @@ class SeedMerge3(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
 
 
 class SeedMerge4(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
-    """ Splitting consquent time window in two seperate but with slight overlap.
+    """ Splitting consequent time window in two separate but with slight overlap.
     """
 
     request_files = ("merge_test_data/br_merge_2.xml",
@@ -1381,6 +1381,41 @@ class SeedMerge5(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
     expected_seeded_areas = [
         (parse_datetime("2010-07-22T21:36:40Z"),
+         parse_datetime("2010-07-22T21:39:38Z"))
+    ]
+
+class SeedMerge6(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
+    """ Merging time interval with point in time.
+    """
+
+    request_files = ("merge_test_data/br_merge_4_1.xml",
+                     "merge_test_data/br_merge_4_2.xml",
+                     )
+
+    storage_dir = "data/merge_test_data"
+
+    expected_browse_type = "SAR"
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
+    expected_seeded_areas = [
+        (parse_datetime("2010-07-22T21:38:40Z"),
+         parse_datetime("2010-07-22T21:39:38Z"))
+    ]
+
+class SeedMerge7(SeedMergeTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
+    """ Merging two points in time.
+    """
+
+    request_files = ("merge_test_data/br_merge_4_1.xml",
+                     "merge_test_data/br_merge_4_2.xml",
+                     "merge_test_data/br_merge_4_3.xml",
+                     )
+
+    storage_dir = "data/merge_test_data"
+
+    expected_browse_type = "SAR"
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 128, 4: 128}
+    expected_seeded_areas = [
+        (parse_datetime("2010-07-22T21:38:40Z"),
          parse_datetime("2010-07-22T21:39:38Z"))
     ]
 

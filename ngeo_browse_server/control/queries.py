@@ -35,6 +35,8 @@ from datetime import datetime
 
 from django.core.exceptions import ValidationError
 from django.contrib.gis.geos import Polygon, MultiPolygon
+from django.db.models import F, Q
+from django.db import transaction
 
 from eoxserver.core.system import System
 from eoxserver.resources.coverages.crss import fromShortCode
@@ -203,10 +205,21 @@ def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
         name=browse_layer_model.id)
 
     # search for time entries with an overlapping time span
-    times_qs = mapcache_models.Time.objects.filter(
-        start_time__lt=browse.end_time, end_time__gt=browse.start_time,
-        source=source
-    )
+    if browse.start_time==browse.end_time:
+        times_qs = mapcache_models.Time.objects.filter(
+            source=source,
+            start_time__lte=browse.end_time,
+            end_time__gte=browse.start_time
+        )
+    else:
+        times_qs = mapcache_models.Time.objects.filter(
+            Q(source=source),
+            Q(start_time__lt=browse.end_time,
+              end_time__gt=browse.start_time) |
+            Q(start_time=F("end_time"),
+              start_time__lte=browse.end_time,
+              end_time__gte=browse.start_time)
+        )
 
     if len(times_qs) > 0:
         # If there are overlapping time entries, merge the time entries to one
@@ -272,17 +285,51 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
     rect_mgr.delete(obj_id=browse_model.coverage_id)
     browse_model.delete()
 
-    try:
-        time_model = mapcache_models.Time.objects.get(
-            start_time__lte=browse_model.start_time,
-            end_time__gte=browse_model.end_time,
-            source__name=browse_layer_model.id
+    # search for time entries with an overlapping time span
+    if browse_model.start_time==browse_model.end_time:
+        times_qs = mapcache_models.Time.objects.filter(
+            source=browse_layer_model.id,
+            start_time__lte=browse_model.end_time,
+            end_time__gte=browse_model.start_time
         )
-    except mapcache_models.Time.DoesNotExist:
-        # issue a warning if no corresponding Time object exists
+    else:
+        times_qs = mapcache_models.Time.objects.filter(
+            Q(source=browse_layer_model.id),
+            Q(start_time__lt=browse_model.end_time,
+              end_time__gt=browse_model.start_time) |
+            Q(start_time=F("end_time"),
+              start_time__lte=browse_model.end_time,
+              end_time__gte=browse_model.start_time)
+        )
+
+    if len(times_qs) == 1:
+        time_model = times_qs[0]
+    elif len(times_qs) == 0:
+        #issue a warning if no corresponding Time object exists
         logger.warning("No MapCache Time object found for time: %s, %s" % (
             browse_model.start_time, browse_model.end_time
         ))
+    elif len(times_qs) > 1:
+        #issue a warning if too many corresponding Time objects exist
+        #try to delete redundant time models
+        #note that this situation should never happen but just in case...
+        logger.warning("Multiple MapCache Time objects found for time: %s, "
+                       "%s. Trying to delete redundant ones." % (
+                       browse_model.start_time, browse_model.end_time
+        ))
+        first = True
+        with transaction.commit_manually(using="mapcache"):
+            for time_model_tmp in times_qs:
+                if first:
+                    first = False
+                    time_model = time_model_tmp
+                elif (time_model_tmp.start_time <= time_model.start_time and
+                      time_model_tmp.end_time >= time_model.end_time):
+                    time_model.delete()
+                    time_model = time_model_tmp
+                else:
+                    time_model_tmp.delete()
+            transaction.commit(using="mapcache")
 
     if unseed:
         # unseed here
