@@ -2697,9 +2697,9 @@ class IngestFootprintWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
     expected_statistics = [{
         "min": 0.0,
         "max": 255.0,
-        "mean": 64.865600000000001,
-        "stddev": 76.682941627457154,
-        "checksum": 56889
+        "mean": 64.406300000000002,
+        "stddev": 76.223977987966478,
+        "checksum": 57259
     }] * 3
 
 
