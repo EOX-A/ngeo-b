@@ -6,7 +6,7 @@
   #          Stephan Meissl <stephan.meissl@eox.at>
   #
   #-------------------------------------------------------------------------------
-  # Copyright (C) 2013 EOX IT Services GmbH
+  # Copyright (C) 2013 European Space Agency
   #
   # Permission is hereby granted, free of charge, to any person obtaining a copy
   # of this software and associated documentation files (the "Software"), to deal
@@ -32,7 +32,7 @@ ngEO Browse Server Documentation
 
 .. toctree::
    :maxdepth: 1
-   
+
    configuration
    management
    testing

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# EOxServer documentation build configuration file, created by
+# ngEOBrowseServer documentation build configuration file, created by
 # sphinx-quickstart on Fri Feb 18 17:54:45 2011.
 #
 # This file is execfile()d with the current directory set to its containing dir.
@@ -38,7 +38,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'ngEO Browse Server'
-copyright = u'2011, 2012, EOX IT Services GmbH'
+copyright = u'2011, 2012, 2013, 2014, 2015, 2016 European Space Agency'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -104,7 +104,7 @@ html_theme = 'default'
 #html_theme_path = []
 
 # TODO: ?
-html_style = "eoxserver.css"
+html_style = "styles.css"
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
@@ -114,12 +114,12 @@ html_style = "eoxserver.css"
 #html_short_title = None
 
 # TODO: ?
-#html_title = "EOxServer " + release + " documentation"
+#html_title = ""ngEO Browse Server documentation " + release + " documentation"
 html_title = "ngEO Browse Server documentation (version %s)" % release
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = 'logo/EOxServer_logo.png'
+html_logo = 'logo/logo.png'
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -184,16 +184,14 @@ latex_paper_size = 'a4'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('en/index', 'EOxServer.tex', u'EOxServer Documentation',
-   u'Stephan Meissl \\and Stephan Krause \\and Fabian Schindler \\and \
-   Gerhard Triebnig \\and Milan Novacek \\and Arndt Bonitz \\and Martin Paces \
-   \\and Joachim Ungar',
+  ('en/index', 'ngEOBrowseServer.tex', u'ngEOBrowseServer Documentation',
+   u'Stephan Meissl \\and Fabian Schindler',
    'manual', True),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
-latex_logo = 'logo/EOxServer_logo_big.png'
+latex_logo = 'logo/logo.png'
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.
