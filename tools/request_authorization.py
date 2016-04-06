@@ -5,13 +5,13 @@
 # Authors: Fabian Schindler <fabian.schindler@eox.at>
 #
 #-------------------------------------------------------------------------------
-# Copyright (C) 2014 EOX IT Services GmbH
+# Copyright (C) 2014 European Space Agency
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
-# copies of the Software, and to permit persons to whom the Software is 
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
 # The above copyright notice and this permission notice shall be included in all
@@ -36,8 +36,8 @@ def request_authorization(baseurl, user, layer, timeperiod):
     """
     try:
         url = (
-            "%s/BrwsAuthorizationCheck?UserId=%s&BrowseLayerId=%s&TimePeriod=%s" 
-            % (baseurl if not baseurl.endswith("/") else baseurl[:-1], 
+            "%s/BrwsAuthorizationCheck?UserId=%s&BrowseLayerId=%s&TimePeriod=%s"
+            % (baseurl if not baseurl.endswith("/") else baseurl[:-1],
                user, layer, timeperiod
             )
         )
