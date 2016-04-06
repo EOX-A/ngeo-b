@@ -108,6 +108,7 @@ class IngestModelInGeotiffBrowseGoogleMercator(IngestTestCaseMixIn, HttpTestCase
     expected_inserted_into_series = "TEST_GOOGLE_MERCATOR"
     expected_optimized_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_proc.tif']
     expected_deleted_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.tif']
+    save_optimized_files = True
 
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -134,6 +135,35 @@ class SeedModelInGeotiffBrowseGoogleMercator(SeedTestCaseMixIn, HttpMixIn, LiveS
 
     expected_browse_type = "GOOGLE_MERCATOR"
     expected_tiles = {0: 1, 1: 4, 2: 16, 3: 64, 4: 64, 5: 64, 6: 128}
+
+class IngestModelInGeotiffBrowseRotatedAxes(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    storage_dir = "data/test_data"
+    request_file = "test_data/rotated_axes.xml"
+
+    expected_ingested_browse_ids = ("ID_urn_eop_PHR_MULTISPECTRAL_0.5m_DS_PHR1B_201506300817486_FR1_PX_E060N66_0402_01276",)
+    expected_inserted_into_series = "TEST_OPTICAL"
+    expected_optimized_files = ['rotated_axes_proc.tif']
+    expected_deleted_files = ['rotated_axes.tif']
+    save_optimized_files = True
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>ID_urn_eop_PHR_MULTISPECTRAL_0.5m_DS_PHR1B_201506300817486_FR1_PX_E060N66_0402_01276</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
 
 
 #===============================================================================
@@ -2667,9 +2697,9 @@ class IngestFootprintWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
     expected_statistics = [{
         "min": 0.0,
         "max": 255.0,
-        "mean": 64.865600000000001,
-        "stddev": 76.682941627457154,
-        "checksum": 56889
+        "mean": 64.406300000000002,
+        "stddev": 76.223977987966478,
+        "checksum": 57259
     }] * 3
 
 
