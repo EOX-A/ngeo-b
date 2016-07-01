@@ -37,6 +37,21 @@ ngeo_start() {
     echo "------------------------------------------------------------------------------"
     service postgresql start
     service memcached start
+    #make sure postgresql is accepting connections before starting httpd
+    #timeout after 20 attempts
+    i="0"
+    while [ $i -lt 20 ]; do
+        response=`su - postgres -c -- 'psql -U postgres -t  -c "select now()" postgres'`
+        if [ $? -eq 0 ]; then
+            break
+        fi
+        sleep 1
+        i=$[$i+1]
+    done
+    if [ $i -eq 20 ]; then
+        echo "ERROR: Couldn't connect to PostgreSQL server"
+        exit 1
+    fi
     service httpd start
 }
 
