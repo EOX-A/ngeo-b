@@ -65,7 +65,7 @@ logger = logging.getLogger(__name__)
 
 def seed_mapcache(seed_command, config_file, tileset, grid,
                   minx, miny, maxx, maxy, minzoom, maxzoom,
-                  start_time, end_time, threads, delete):
+                  start_time, end_time, threads, delete, force=True):
 
     # translate grid URN to mapcache grid name
     try:
@@ -94,10 +94,12 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
 
     logger.info("Starting mapcache seed with parameters: command='%s', "
                 "config_file='%s', tileset='%s', grid='%s', "
-                "extent='%s,%s,%s,%s', zoom='%s,%s', threads='%s', mode='%s'."
+                "extent='%s,%s,%s,%s', zoom='%s,%s', nthreads='%s', "
+                "mode='%s', dimension='TIME=%sZ/%sZ'."
                 % (seed_command, config_file, tileset, grid,
                   minx, miny, maxx, maxy, minzoom, maxzoom, threads,
-                  "seed" if not delete else "delete"))
+                  "seed" if not delete else "delete",
+                  start_time.isoformat(), end_time.isoformat()))
 
     seed_args = [
         seed_command,
@@ -112,7 +114,7 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
         "-q",
         "-M", "8,8",
     ]
-    if not delete:
+    if not delete and force:
         seed_args.append("-f")
 
 
