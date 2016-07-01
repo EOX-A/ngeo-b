@@ -9,8 +9,8 @@
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
-# copies of the Software, and to permit persons to whom the Software is 
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
 # The above copyright notice and this permission notice shall be included in all
@@ -90,7 +90,7 @@ class BrowseAccessReport(Report):
                 if int(raw_status) not in (200, 304):
                     continue
 
-                try: 
+                try:
                     size = int(raw_size)
                 except ValueError:
                     size = 0
@@ -121,20 +121,20 @@ class BrowseAccessReport(Report):
                 max_dt = max(dts)
 
                 yield BrowseAccessRecord(
-                    max_dt, layers, user, count, agg_size, agg_processing_time
+                    max_dt.replace(tzinfo=None).isoformat("T") + "Z",
+                    layers, user, count, agg_size, agg_processing_time
                 )
 
     def get_additional_keys(self, record):
         return ()
 
     def get_data(self, record):
-        for key, value in zip(record._fields[1:], record[1:]):
-            yield key, value
+        return record._asdict()
 
     def get_layers(self, request):
         kvps = dict(
             (key.lower(), value)
-            for key, value in urlparse.parse_qsl(request)
+            for key, value in urlparse.parse_qsl(request.split("?")[1])
         )
 
         if request.startswith("/c/wmts"):
@@ -150,6 +150,9 @@ class BrowseAccessReport(Report):
         elif request.startswith("/c/wms"):
             return kvps.get("layers")
 
+    def get_fields(self):
+        return BrowseAccessRecord._fields
+
 
 
 class BrowseReportReport(Report):
@@ -163,20 +166,24 @@ class BrowseReportReport(Report):
                     continue
                 elif self.begin and self.begin > date:
                     continue
-                yield BrowseReportRecord(date, *items[1:])
+                yield BrowseReportRecord(*items)
 
     def get_additional_keys(self, record):
         return ()
 
     def get_data(self, record):
-        return [(key, value) for key, value in record._asdict().items() if key != "date"]
+        return record._asdict()
+
+    def get_fields(self):
+        return BrowseReportRecord._fields
 
 
-BrowseAccessRecord = namedtuple("BrowseAccessRecord", ("date", "browselayers", "userid", "numRequests", "aggregatedSize", "aggregatedProcessingTime"))
-BrowseReportRecord = namedtuple("BrowseReportRecord", ("date", "responsibleOrgName", "dateTime", "browseType", "numberOfContainedBrowses", "numberOfSuccessfulBrowses", "numberOfFailedBrowses"))
+BrowseAccessRecord = namedtuple("BrowseAccessRecord", ("TIME", "browselayers", "userid", "numRequests", "aggregatedSize", "aggregatedProcessingTime"))
+BrowseReportRecord = namedtuple("BrowseReportRecord", ("TIME", "BROWSE_TYPE", "BROWSE_LAYER_IDENTIFIER", "BROWSE_BEGIN_DATE", "BROWSE_END_DATE"))
 
 def get_report_xml(begin, end, access_logfile=None, report_logfile=None, config=None):
-    
+
+    start = datetime.utcnow().isoformat("T") + "Z"
     config = config or get_ngeo_config()
     component_name = config.get("control", "instance_id")
 
@@ -186,25 +193,35 @@ def get_report_xml(begin, end, access_logfile=None, report_logfile=None, config=
     if report_logfile:
         reports.append(BrowseReportReport(begin, end, report_logfile))
 
-    root = E("fetchReportDataResponse")
+    root = E("DWH_DATA")
+    header = E("HEADER", E("CONTENT_ID", "NGEO_BROW"))
+    root.append(header)
+
+    window_start_date = ""
+    window_end_date = ""
+
+    rowset = E("ROWSET")
     for report in reports:
         for record in report.get_records():
-            root.append(
-                E("report",
-                    E("header",
-                        E("operation", report.operation),
-                        E("component", component_name),
-                        E("date", isotime(record.date)), *[
-                            E("additionalKey", value, key=key)
-                            for key, value in report.get_additional_keys(record)
-                        ]
-                    ),
-                    E("data", *[
-                        E("value", value, key=key)
-                        for key, value in report.get_data(record)
-                    ])
-                )
+            report_data = report.get_data(record)
+            rowset.append(
+                E("ROW", *[
+                    E(key, report_data[key]) for key in report.get_fields()
+                ])
             )
+            try:
+                date = datetime.strptime(report_data["TIME"], "%Y-%m-%dT%H:%M:%S.%fZ" )
+            except ValueError:
+                date = datetime.strptime(report_data["TIME"], "%Y-%m-%dT%H:%M:%SZ" )
+            window_start_date = date if (window_start_date == "" or window_start_date > date) else window_start_date
+            window_end_date = date if (window_end_date == "" or window_end_date < date) else window_end_date
+    root.append(rowset)
+
+    header.append(E("EXTRACTION_START_DATE", start))
+    header.append(E("EXTRACTION_END_DATE", datetime.utcnow().isoformat("T") + "Z"))
+    header.append(E("WINDOW_START_DATE", "" if window_start_date == "" else window_start_date.replace(tzinfo=None).isoformat("T") + "Z"))
+    header.append(E("WINDOW_END_DATE", "" if window_start_date == "" else window_end_date.replace(tzinfo=None).isoformat("T") + "Z"))
+
     return root
 
 
@@ -241,6 +258,6 @@ def send_report(ip_address=None, begin=None, end=None, access_logfile=None, repo
 def save_report(filename, begin=None, end=None, access_logfile=None, report_logfile=None, config=None):
     config = config or get_ngeo_config()
     tree = get_report_xml(begin, end, access_logfile, report_logfile, config)
-    
+
     with open(filename, "w+") as f:
         f.write(etree.tostring(tree, pretty_print=True))
