@@ -132,9 +132,13 @@ class BrowseAccessReport(Report):
         return record._asdict()
 
     def get_layers(self, request):
+        if "?" in request:
+            qs = request.split("?")[1]
+        else:
+            qs = request
         kvps = dict(
             (key.lower(), value)
-            for key, value in urlparse.parse_qsl(request.split("?")[1])
+            for key, value in urlparse.parse_qsl(qs)
         )
 
         if request.startswith("/c/wmts"):
