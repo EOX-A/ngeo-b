@@ -38,6 +38,8 @@ from django.conf import settings
 from django.test import TestCase, TransactionTestCase, LiveServerTestCase
 from django.utils.dateparse import parse_datetime
 
+from eoxserver.resources.coverages import models as eoxs_models
+
 from ngeo_browse_server import get_version
 from ngeo_browse_server.config import models
 from ngeo_browse_server.control.testbase import (
@@ -821,7 +823,7 @@ class IngestBrowseNoID(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606_noid.xml"
 
     expected_ingested_browse_ids = (None,)
-    expected_ingested_coverage_ids = ("20100722101606000000_20100722101722000000",)
+    expected_ingested_coverage_ids = ("20100722101606000000_20100722101722000000_ATS_TOA_1P_20100722_101606.jpg",)
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['ATS_TOA_1P_20100722_101606_proc.tif']
     expected_deleted_files = ['ATS_TOA_1P_20100722_101606.jpg']
@@ -851,11 +853,86 @@ class SeedBrowseNoID(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     expected_browse_type = "OPTICAL"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64}
 
+
+class ReplaceBrowseNoID(IngestReplaceTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    request_before_test_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606_noid.xml"
+    request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606_noid.xml"
+
+    expected_num_replaced = 1
+
+    expected_ingested_browse_ids = (None,)
+    expected_ingested_coverage_ids = ("20100722101606000000_20100722101722000000_ATS_TOA_1P_20100722_101606.jpg",)
+    expected_inserted_into_series = "TEST_OPTICAL"
+    expected_optimized_files = ['ATS_TOA_1P_20100722_101606_proc.tif']
+    expected_deleted_optimized_files = ['ATS_TOA_1P_20100722_101606_proc.tif']
+
+    expected_deleted_files = ['NOT_TESTED_BECAUSE_WE_ARE_REUSING_THE_FILE']
+    configuration = {
+        (INGEST_SECTION, "leave_original"): "true",
+    }
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>0</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>1</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>None</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+class IngestBrowseNoIDsameTime(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606_noid_2.xml"
+
+    expected_ingested_browse_ids = (None,None,)
+    expected_ingested_coverage_ids = ("20100722101606000000_20100722101722000000_ATS_TOA_1P_20100722_101606_2.jpg","20100722101606000000_20100722101722000000_ATS_TOA_1P_20100722_101606.jpg",)
+    expected_inserted_into_series = "TEST_OPTICAL"
+    expected_optimized_files = ['ATS_TOA_1P_20100722_101606_2_proc.tif','ATS_TOA_1P_20100722_101606_proc.tif']
+    expected_deleted_files = ['ATS_TOA_1P_20100722_101606_2.jpg','ATS_TOA_1P_20100722_101606.jpg']
+
+    surveilled_model_classes = (
+        models.Browse,
+        eoxs_models.RectifiedDatasetRecord
+    )
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>2</bsi:toBeReplaced>
+        <bsi:actuallyInserted>2</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>None</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+        <bsi:briefRecord>
+            <bsi:identifier>None</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+
 class IngestBrowseSpecialID(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606_specialid.xml"
 
     expected_ingested_browse_ids = ("#some:#special:id",)
-    expected_ingested_coverage_ids = ("20100722101606000000_20100722101722000000",)
+    expected_ingested_coverage_ids = ("20100722101606000000_20100722101722000000_ATS_TOA_1P_20100722_101606.jpg",)
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['ATS_TOA_1P_20100722_101606_proc.tif']
     expected_deleted_files = ['ATS_TOA_1P_20100722_101606.jpg']
@@ -2108,68 +2185,6 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
             <bsi:error>
                 <bsi:exceptionCode>IngestionException</bsi:exceptionCode>
                 <bsi:exceptionMessage>Given referenceSystemIdentifier &#39;RAW&#39; not valid for a &#39;footprintBrowse&#39;.</bsi:exceptionMessage>
-            </bsi:error>
-        </bsi:briefRecord>
-    </bsi:ingestionResult>
-</bsi:ingestBrowseResponse>
-"""
-
-
-class IngestFailureContradictingIDs(IngestFailureTestCaseMixIn, IngestReplaceTestCaseMixIn, HttpTestCaseMixin, TestCase):
-    request_before_test_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327.xml"
-
-    expected_num_replaced = 0
-    expected_failed_browse_ids = ("FAILURE",)
-    expected_failed_files = ["ASA_IM__0P_20100807_101327_new.jpg"]
-    expected_generated_failure_browse_report = "SAR_ESA_20121002093000000000_(.*).xml"
-
-    expected_ingested_browse_ids = ()
-    expected_optimized_files = ['ASA_IM__0P_20100807_101327_proc.tif']
-    expected_deleted_files = ['ASA_IM__0P_20100807_101327_new.jpg']
-    expected_deleted_optimized_files = []
-
-    # disable those tests as they are not valid for exception tests
-    test_expected_inserted_browses = None
-    test_expected_inserted_into_series = None
-
-    request = """\
-<?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/ngEO/browseReport/1.0 IF-ngEO-BrowseReport.xsd" version="1.3">
-    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
-    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
-    <rep:browseType>SAR</rep:browseType>
-    <rep:browse>
-        <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
-        <rep:fileName>ASA_IM__0P_20100807_101327_new.jpg</rep:fileName>
-        <rep:imageType>Jpeg</rep:imageType>
-        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier>
-        <rep:footprint nodeNumber="5">
-            <rep:colRowList>0 0 494 0 494 861 0 861 0 0</rep:colRowList>
-            <rep:coordList>51.8 2.45 51.58 3.99 49.89 3.36 50.1 1.87 51.8 2.45</rep:coordList>
-        </rep:footprint>
-        <rep:startTime>2010-08-07T10:13:37Z</rep:startTime>
-        <rep:endTime>2010-08-07T10:14:06Z</rep:endTime>
-    </rep:browse>
-</rep:browseReport>
-"""
-
-    expected_response = """\
-<?xml version="1.0" encoding="UTF-8"?>
-<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
-xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-    <bsi:status>partial</bsi:status>
-    <bsi:ingestionSummary>
-        <bsi:toBeReplaced>1</bsi:toBeReplaced>
-        <bsi:actuallyInserted>0</bsi:actuallyInserted>
-        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
-    </bsi:ingestionSummary>
-    <bsi:ingestionResult>
-        <bsi:briefRecord>
-            <bsi:identifier>FAILURE</bsi:identifier>
-            <bsi:status>failure</bsi:status>
-            <bsi:error>
-                <bsi:exceptionCode>IngestionException</bsi:exceptionCode>
-                <bsi:exceptionMessage>Existing browse with same start and end time does not have the same browse ID as the one to ingest.</bsi:exceptionMessage>
             </bsi:error>
         </bsi:briefRecord>
     </bsi:ingestionResult>
