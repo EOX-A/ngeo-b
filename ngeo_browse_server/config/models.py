@@ -11,8 +11,8 @@
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
-# copies of the Software, and to permit persons to whom the Software is 
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
 # The above copyright notice and this permission notice shall be included in all
@@ -27,7 +27,7 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
-"""This module defines the models used to persist the ngEO Browse Server 
+"""This module defines the models used to persist the ngEO Browse Server
 configuration, mainly Browse Layers and Browses.
 
 .. moduleauthor:: Stephan Meissl <stephan.meissl@eox.at>
@@ -41,7 +41,7 @@ from django.core.exceptions import ValidationError
 
 from eoxserver.resources.coverages.models import NCNameValidator
 
-ReferenceSystemIdentifierValidator = RegexValidator( 
+ReferenceSystemIdentifierValidator = RegexValidator(
     re.compile(r'^EPSG:[0-9]+$|^RAW$'),
     message="Reference system identifier must be 'RAW' or follow the pattern 'EPSG:<code>."
 )
@@ -60,18 +60,18 @@ FileNameValidator = RegexValidator(
 
 
 class BrowseLayer(models.Model):
-    """The Browse Layers are available as WMS and WMTS layers and are mapped 
+    """The Browse Layers are available as WMS and WMTS layers and are mapped
     to DatasetSeries in EOxServer.
-    
-    Browse Layers have a unique Browse Type which is used in Browse Reports 
+
+    Browse Layers have a unique Browse Type which is used in Browse Reports
     to associate Browses with Browse Layers.
-    
+
     """
     id = models.CharField("Browse Layer ID", max_length=1024, primary_key=True, validators=[NameValidator])
     browse_type = models.CharField("Browse Type", max_length=1024, unique=True, validators=[NameValidator])
     title = models.CharField(max_length=1024)
     description = models.CharField(max_length=1024, blank=True)
-    browse_access_policy = models.CharField(max_length=10, default="OPEN", 
+    browse_access_policy = models.CharField(max_length=10, default="OPEN",
         choices = (
             ("OPEN", "Open"),
             ("RESTRICTED", "Restricted"),
@@ -84,7 +84,7 @@ class BrowseLayer(models.Model):
     b_band = models.IntegerField(null=True, blank=True, default=None)
     radiometric_interval_min = models.IntegerField(null=True, blank=True, default=None)
     radiometric_interval_max = models.IntegerField(null=True, blank=True, default=None)
-    grid = models.CharField(max_length=45, default="urn:ogc:def:wkss:OGC:1.0:GoogleCRS84Quad", 
+    grid = models.CharField(max_length=45, default="urn:ogc:def:wkss:OGC:1.0:GoogleCRS84Quad",
         choices = (
             ("urn:ogc:def:wkss:OGC:1.0:GoogleMapsCompatible", "GoogleMapsCompatible using EPSG:3857"),
             ("urn:ogc:def:wkss:OGC:1.0:GoogleCRS84Quad", "GoogleCRS84Quad using EPSG:4326")
@@ -96,8 +96,8 @@ class BrowseLayer(models.Model):
     # ingestion strategy
     strategy = models.CharField(max_length=8, default="inherit",
         choices=(
-            ("replace", "replace"), 
-            ("merge", "merge"), 
+            ("replace", "replace"),
+            ("merge", "merge"),
             ("inherit", "inherit")
         )
     )
@@ -107,16 +107,16 @@ class BrowseLayer(models.Model):
 
     # for mapcache lookup query limit
     tile_query_limit = models.PositiveIntegerField(default=100)
-    
+
     def __unicode__(self):
         return "Browse Layer '%s' with Browse Type '%s'" % (
             self.id, self.browse_type
         )
-    
+
     class Meta:
         verbose_name = "Browse Layer"
         verbose_name_plural = "Browse Layers"
-        
+
     def clean(self):
         # custom model validation
         if self.highest_map_level < self.lowest_map_level:
@@ -127,51 +127,51 @@ class BrowseLayer(models.Model):
 
 class RelatedDataset(models.Model):
     """The Browse Layer configuration contains Related Datasets.
-    
-    Note that this information is not needed by the Browse Server but stored 
+
+    Note that this information is not needed by the Browse Server but stored
     for completeness.
-    
+
     """
     dataset_id = models.CharField(max_length=1024, unique=True, validators=[NameValidator])
     browse_layer = models.ForeignKey(BrowseLayer, related_name="related_datasets", verbose_name="Browse Layer")
-    
+
     class Meta:
         verbose_name = "Related Dataset"
         verbose_name_plural = "Related Datasets"
 
 
 class BrowseReport(models.Model):
-    """Browse Reports contain the metadata of some Browses, i.e. browse 
+    """Browse Reports contain the metadata of some Browses, i.e. browse
     images, and are received from the ngEO Feed.
-    
-    Note that Browse Reports contain a Browse Type which is unique among 
+
+    Note that Browse Reports contain a Browse Type which is unique among
     Browse Layers. Thus we directly use Browse Layer as foreign key.
-    
+
     """
     browse_layer = models.ForeignKey(BrowseLayer, verbose_name="Browse Layer")
     responsible_org_name = models.CharField(max_length=1024, blank=True)
     date_time = models.DateTimeField()
-    
+
     def __unicode__(self):
         return "Browse Report for '%s' from '%s' and '%s'" % (
             self.browse_layer, self.date_time, self.responsible_org_name
         )
-    
+
     class Meta:
         verbose_name = "Browse Report"
         verbose_name_plural = "Browse Reports"
 
 
 class Browse(models.Model):
-    """This is the NOT abstract base class for Browses which have one of the 
+    """This is the NOT abstract base class for Browses which have one of the
     defined five types that inherit from this class.
-    
+
     """
     coverage_id = models.CharField("Coverage ID", max_length=256, primary_key=True, validators=[NCNameValidator])
     browse_report = models.ForeignKey(BrowseReport, related_name="browses", verbose_name="Browse Report")
     browse_layer = models.ForeignKey(BrowseLayer, related_name="browses", verbose_name="Browse Layer")
     file_name = models.CharField(max_length=1024, validators=[FileNameValidator])
-    image_type = models.CharField(max_length=8, default="GeoTIFF", 
+    image_type = models.CharField(max_length=8, default="GeoTIFF",
         choices = (
             ("Jpeg", "Jpeg"),
             ("Jpeg2000", "Jpeg2000"),
@@ -184,37 +184,37 @@ class Browse(models.Model):
     reference_system_identifier = models.CharField(max_length=10, validators=[ReferenceSystemIdentifierValidator])
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
-    
+
     def __unicode__(self):
         return "Browse image '%s' with internal ID '%s'" % (
             self.file_name, self.coverage_id
         )
-    
+
     class Meta:
         verbose_name = "Browse image"
         verbose_name_plural = "Browse images"
         unique_together = (("start_time", "end_time", "browse_layer"),)
-    
+
     def clean(self):
         # custom model validation
         if self.start_time > self.end_time:
             raise ValidationError("Start time may not be more recent than end "
                                   "time.")
-        
+
 
 
 class BrowseIdentifier(models.Model):
-    """A Product Facility may define an identifier for a Browse which may be 
+    """A Product Facility may define an identifier for a Browse which may be
     used later to update the browse data.
-    
+
     """
     value = models.CharField("Browse Identifier", max_length=1024, validators=[HashNameValidator])
     browse = models.OneToOneField(Browse, related_name="browse_identifier")
     browse_layer = models.ForeignKey(BrowseLayer, verbose_name="Browse Layer")
-    
+
     def __unicode__(self):
         return "Browse identifier '%s'" % self.id
-    
+
     class Meta:
         verbose_name = "Browse identifier"
         verbose_name_plural = "Browse identifiers"
@@ -223,15 +223,15 @@ class BrowseIdentifier(models.Model):
 
 class RectifiedBrowse(Browse):
     """Rectified Browses with given corner coordinates.
-    
+
     """
     coord_list = models.CharField(max_length=2048)
-    
+
 
 class FootprintBrowse(Browse):
-    """Non-rectified Browses with given polygon delimiting boundary or 
+    """Non-rectified Browses with given polygon delimiting boundary or
     footprint.
-    
+
     """
     node_number = models.IntegerField()
     col_row_list = models.CharField(max_length=2048) # We just store this information, no need for a usable representation.
@@ -239,7 +239,7 @@ class FootprintBrowse(Browse):
 
 class RegularGridBrowse(Browse):
     """Non-rectified Browses with given grid of tie-points.
-    
+
     """
     col_node_number = models.IntegerField()
     row_node_number = models.IntegerField()
@@ -248,7 +248,7 @@ class RegularGridBrowse(Browse):
 
 class RegularGridCoordList(models.Model):
     """Coordinate Lists used in RegularGridBrowses.
-    
+
     """
     regular_grid_browse = models.ForeignKey(RegularGridBrowse, related_name="coord_lists", verbose_name="RegularGrid Browse", on_delete=models.CASCADE)
     coord_list = models.CharField(max_length=2048) # We just store this information, no need for a usable representation.
@@ -256,14 +256,14 @@ class RegularGridCoordList(models.Model):
 # TODO: Vertical curtains are not supported for now.
 class VerticalCurtainBrowse(Browse):
     """Vertical curtain Browses with given suitable footprint object.
-    
+
     Note: Vertical curtains are not supported for now.
-    
+
     """
     pass
 
 class ModelInGeotiffBrowse(Browse):
     """Rectified Browses given as GeoTIFFs.
-    
+
     """
     pass
