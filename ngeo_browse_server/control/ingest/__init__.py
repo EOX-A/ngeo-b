@@ -204,7 +204,7 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
                     transaction.commit()
                     transaction.commit(using="mapcache")
 
-                    logger.info("Commited changes to database.")
+                    logger.info("Committed changes to database.")
 
                     for minx, miny, maxx, maxy, start_time, end_time in seed_areas:
                         try:
@@ -226,6 +226,16 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
                         except Exception, e:
                             logger.warn("Seeding failed: %s" % str(e))
 
+                    # log ingestions for report generation
+                    # date/browseType/browseLayerId/start/end
+                    report_logger.info("/\\/\\".join((
+                        datetime.utcnow().isoformat("T") + "Z",
+                        parsed_browse_report.browse_type,
+                        browse_layer.id,
+                        (parsed_browse.start_time.replace(tzinfo=None)-parsed_browse.start_time.utcoffset()).isoformat("T") + "Z",
+                        (parsed_browse.end_time.replace(tzinfo=None)-parsed_browse.end_time.utcoffset()).isoformat("T") + "Z"
+                    )))
+
                 except Exception, e:
                     # report error
                     logger.error("Failure during ingestion of browse '%s'." %
@@ -242,20 +252,6 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
 
                     transaction.rollback()
                     transaction.rollback(using="mapcache")
-
-
-    # date/responsibleOrgName/dateTime/browseType/numberOfContainedBrowses/
-    # numberOfSuccessfulBrowses/numberOfFailedBrowses
-
-    report_logger.info("/\\/\\".join((
-        datetime.now().isoformat("T") + "Z",
-        parsed_browse_report.responsible_org_name,
-        browse_report.date_time.isoformat("T"),
-        parsed_browse_report.browse_type,
-        str(report_result.to_be_replaced),
-        str(report_result.to_be_replaced - report_result.failures),
-        str(report_result.failures)
-    )))
 
     # generate browse report and save to to success/failure dir
     if len(succeded):
@@ -369,21 +365,9 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         ingest_config = get_ingest_config(config)
 
         # check if a browse already exists and delete it in order to replace it
-        existing_browse_model = get_existing_browse(parsed_browse, browse_layer.id)
+        existing_browse_model = get_existing_browse(parsed_browse.browse_identifier, coverage_id, browse_layer.id)
+
         if existing_browse_model:
-            try:
-                identifier = existing_browse_model.browse_identifier
-            except ObjectDoesNotExist:
-                identifier = None
-
-            # if the to be ingested browse is equal to an already stored one
-            # then raise an exception if the identifiers don't match
-            if (identifier and parsed_browse.browse_identifier
-                and  identifier.value != parsed_browse.browse_identifier):
-                raise IngestionException("Existing browse with same start and end "
-                                         "time does not have the same browse ID "
-                                         "as the one to ingest.")
-
             previous_time = existing_browse_model.browse_report.date_time
             current_time = browse_report.date_time
             timedelta = current_time - previous_time
@@ -676,9 +660,10 @@ def _georef_from_parsed(parsed_browse, clipping=None):
 
 def _generate_coverage_id(parsed_browse, browse_layer):
     frmt = "%Y%m%d%H%M%S%f"
-    return "%s_%s_%s" % (browse_layer.id,
-                         parsed_browse.start_time.strftime(frmt),
-                         parsed_browse.end_time.strftime(frmt))
+    return "%s_%s_%s_%s" % (browse_layer.id,
+                            parsed_browse.start_time.strftime(frmt),
+                            parsed_browse.end_time.strftime(frmt),
+                            parsed_browse.file_name)
 
 
 def _save_result_browse_report(browse_report, path):

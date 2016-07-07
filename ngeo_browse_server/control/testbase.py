@@ -1423,7 +1423,11 @@ class GenerateReportMixIn(BaseTestCaseMixIn, CliMixIn):
 
     def test_report(self):
         with open(self.output_report_filename) as f:
-            self.assertEqual(self.expected_report, f.read())
+            #normalize dates
+            tree = etree.fromstring(f.read())
+            tree.find("./HEADER/EXTRACTION_START_DATE").text = "NORMALIZED"
+            tree.find("./HEADER/EXTRACTION_END_DATE").text = "NORMALIZED"
+            self.assertEqual(self.expected_report, etree.tostring(tree, pretty_print=True))
 
 
 

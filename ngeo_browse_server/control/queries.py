@@ -63,27 +63,27 @@ INGEST_SECTION = "control.ingest"
 logger = logging.getLogger(__name__)
 
 
-def get_existing_browse(browse, browse_layer_id):
+def get_existing_browse(browse_identifier, coverage_id, browse_layer_id):
     """ Get existing browse either via browse identifier if present or via
-        Start/End time in the same browse layer. """
+        coverage identifier consisting of start/end time and filename in the
+        same browse layer. """
 
     try:
-        if browse.browse_identifier:
+        if browse_identifier:
             try:
                 model = models.Browse.objects.get(
-                    browse_identifier__value=browse.browse_identifier,
+                    browse_identifier__value=browse_identifier,
                     browse_layer__id=browse_layer_id
                 )
-                logger.debug("Existing browse found by ID.")
+                logger.debug("Existing browse found by browse identifier.")
                 return model
             except models.Browse.DoesNotExist:
                 pass
         model = models.Browse.objects.get(
-            start_time=browse.start_time,
-            end_time=browse.end_time,
+            coverage_id=coverage_id,
             browse_layer__id=browse_layer_id
         )
-        logger.debug("Existing browse found by time interval.")
+        logger.debug("Existing browse found by coverage identifier.")
         return model
     except models.Browse.DoesNotExist:
         return None
