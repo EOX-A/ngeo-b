@@ -38,6 +38,8 @@ from django.conf import settings
 from django.test import TestCase, TransactionTestCase, LiveServerTestCase
 from django.utils.dateparse import parse_datetime
 
+from eoxserver.resources.coverages import models as eoxs_models
+
 from ngeo_browse_server import get_version
 from ngeo_browse_server.config import models
 from ngeo_browse_server.control.testbase import (
@@ -821,7 +823,7 @@ class IngestBrowseNoID(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606_noid.xml"
 
     expected_ingested_browse_ids = (None,)
-    expected_ingested_coverage_ids = ("20100722101606000000_20100722101722000000",)
+    expected_ingested_coverage_ids = ("20100722101606000000_20100722101722000000_ATS_TOA_1P_20100722_101606.jpg",)
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['ATS_TOA_1P_20100722_101606_proc.tif']
     expected_deleted_files = ['ATS_TOA_1P_20100722_101606.jpg']
@@ -851,11 +853,86 @@ class SeedBrowseNoID(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
     expected_browse_type = "OPTICAL"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64}
 
+
+class ReplaceBrowseNoID(IngestReplaceTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    request_before_test_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606_noid.xml"
+    request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606_noid.xml"
+
+    expected_num_replaced = 1
+
+    expected_ingested_browse_ids = (None,)
+    expected_ingested_coverage_ids = ("20100722101606000000_20100722101722000000_ATS_TOA_1P_20100722_101606.jpg",)
+    expected_inserted_into_series = "TEST_OPTICAL"
+    expected_optimized_files = ['ATS_TOA_1P_20100722_101606_proc.tif']
+    expected_deleted_optimized_files = ['ATS_TOA_1P_20100722_101606_proc.tif']
+
+    expected_deleted_files = ['NOT_TESTED_BECAUSE_WE_ARE_REUSING_THE_FILE']
+    configuration = {
+        (INGEST_SECTION, "leave_original"): "true",
+    }
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>0</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>1</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>None</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+class IngestBrowseNoIDsameTime(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606_noid_2.xml"
+
+    expected_ingested_browse_ids = (None,None,)
+    expected_ingested_coverage_ids = ("20100722101606000000_20100722101722000000_ATS_TOA_1P_20100722_101606_2.jpg","20100722101606000000_20100722101722000000_ATS_TOA_1P_20100722_101606.jpg",)
+    expected_inserted_into_series = "TEST_OPTICAL"
+    expected_optimized_files = ['ATS_TOA_1P_20100722_101606_2_proc.tif','ATS_TOA_1P_20100722_101606_proc.tif']
+    expected_deleted_files = ['ATS_TOA_1P_20100722_101606_2.jpg','ATS_TOA_1P_20100722_101606.jpg']
+
+    surveilled_model_classes = (
+        models.Browse,
+        eoxs_models.RectifiedDatasetRecord
+    )
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>2</bsi:toBeReplaced>
+        <bsi:actuallyInserted>2</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>None</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+        <bsi:briefRecord>
+            <bsi:identifier>None</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+
 class IngestBrowseSpecialID(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "reference_test_data/browseReport_ATS_TOA_1P_20100722_101606_specialid.xml"
 
     expected_ingested_browse_ids = ("#some:#special:id",)
-    expected_ingested_coverage_ids = ("20100722101606000000_20100722101722000000",)
+    expected_ingested_coverage_ids = ("20100722101606000000_20100722101722000000_ATS_TOA_1P_20100722_101606.jpg",)
     expected_inserted_into_series = "TEST_OPTICAL"
     expected_optimized_files = ['ATS_TOA_1P_20100722_101606_proc.tif']
     expected_deleted_files = ['ATS_TOA_1P_20100722_101606.jpg']
@@ -2108,68 +2185,6 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
             <bsi:error>
                 <bsi:exceptionCode>IngestionException</bsi:exceptionCode>
                 <bsi:exceptionMessage>Given referenceSystemIdentifier &#39;RAW&#39; not valid for a &#39;footprintBrowse&#39;.</bsi:exceptionMessage>
-            </bsi:error>
-        </bsi:briefRecord>
-    </bsi:ingestionResult>
-</bsi:ingestBrowseResponse>
-"""
-
-
-class IngestFailureContradictingIDs(IngestFailureTestCaseMixIn, IngestReplaceTestCaseMixIn, HttpTestCaseMixin, TestCase):
-    request_before_test_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327.xml"
-
-    expected_num_replaced = 0
-    expected_failed_browse_ids = ("FAILURE",)
-    expected_failed_files = ["ASA_IM__0P_20100807_101327_new.jpg"]
-    expected_generated_failure_browse_report = "SAR_ESA_20121002093000000000_(.*).xml"
-
-    expected_ingested_browse_ids = ()
-    expected_optimized_files = ['ASA_IM__0P_20100807_101327_proc.tif']
-    expected_deleted_files = ['ASA_IM__0P_20100807_101327_new.jpg']
-    expected_deleted_optimized_files = []
-
-    # disable those tests as they are not valid for exception tests
-    test_expected_inserted_browses = None
-    test_expected_inserted_into_series = None
-
-    request = """\
-<?xml version="1.0" encoding="UTF-8"?>
-<rep:browseReport xmlns:rep="http://ngeo.eo.esa.int/ngEO/browseReport/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ngeo.eo.esa.int/ngEO/browseReport/1.0 IF-ngEO-BrowseReport.xsd" version="1.3">
-    <rep:responsibleOrgName>ESA</rep:responsibleOrgName>
-    <rep:dateTime>2012-10-02T09:30:00Z</rep:dateTime>
-    <rep:browseType>SAR</rep:browseType>
-    <rep:browse>
-        <rep:browseIdentifier>FAILURE</rep:browseIdentifier>
-        <rep:fileName>ASA_IM__0P_20100807_101327_new.jpg</rep:fileName>
-        <rep:imageType>Jpeg</rep:imageType>
-        <rep:referenceSystemIdentifier>EPSG:4326</rep:referenceSystemIdentifier>
-        <rep:footprint nodeNumber="5">
-            <rep:colRowList>0 0 494 0 494 861 0 861 0 0</rep:colRowList>
-            <rep:coordList>51.8 2.45 51.58 3.99 49.89 3.36 50.1 1.87 51.8 2.45</rep:coordList>
-        </rep:footprint>
-        <rep:startTime>2010-08-07T10:13:37Z</rep:startTime>
-        <rep:endTime>2010-08-07T10:14:06Z</rep:endTime>
-    </rep:browse>
-</rep:browseReport>
-"""
-
-    expected_response = """\
-<?xml version="1.0" encoding="UTF-8"?>
-<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
-xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-    <bsi:status>partial</bsi:status>
-    <bsi:ingestionSummary>
-        <bsi:toBeReplaced>1</bsi:toBeReplaced>
-        <bsi:actuallyInserted>0</bsi:actuallyInserted>
-        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
-    </bsi:ingestionSummary>
-    <bsi:ingestionResult>
-        <bsi:briefRecord>
-            <bsi:identifier>FAILURE</bsi:identifier>
-            <bsi:status>failure</bsi:status>
-            <bsi:error>
-                <bsi:exceptionCode>IngestionException</bsi:exceptionCode>
-                <bsi:exceptionMessage>Existing browse with same start and end time does not have the same browse ID as the one to ingest.</bsi:exceptionMessage>
             </bsi:error>
         </bsi:briefRecord>
     </bsi:ingestionResult>
@@ -4487,50 +4502,41 @@ class ReportAccessTestCase(GenerateReportMixIn, TestCase):
     access_logfile = join(settings.PROJECT_DIR, "data/report_logs/access.log")
 
     expected_report = """\
-<fetchReportDataResponse>
-  <report>
-    <header>
-      <operation>BROWSE_ACCESS</operation>
-      <component>instance</component>
-      <date>2014-04-07T13:00:08Z</date>
-    </header>
-    <data>
-      <value key="browselayers">layerA</value>
-      <value key="userid">-</value>
-      <value key="numRequests">1</value>
-      <value key="aggregatedSize">1576</value>
-      <value key="aggregatedProcessingTime">2500</value>
-    </data>
-  </report>
-  <report>
-    <header>
-      <operation>BROWSE_ACCESS</operation>
-      <component>instance</component>
-      <date>2014-04-12T13:00:08Z</date>
-    </header>
-    <data>
-      <value key="browselayers">layerB</value>
-      <value key="userid">-</value>
-      <value key="numRequests">5</value>
-      <value key="aggregatedSize">7880</value>
-      <value key="aggregatedProcessingTime">9907</value>
-    </data>
-  </report>
-  <report>
-    <header>
-      <operation>BROWSE_ACCESS</operation>
-      <component>instance</component>
-      <date>2014-04-13T13:00:08Z</date>
-    </header>
-    <data>
-      <value key="browselayers">layerA,layerB</value>
-      <value key="userid">-</value>
-      <value key="numRequests">1</value>
-      <value key="aggregatedSize">1576</value>
-      <value key="aggregatedProcessingTime">1956</value>
-    </data>
-  </report>
-</fetchReportDataResponse>
+<DWH_DATA>
+  <HEADER>
+    <CONTENT_ID>NGEO_BROW</CONTENT_ID>
+    <EXTRACTION_START_DATE>NORMALIZED</EXTRACTION_START_DATE>
+    <EXTRACTION_END_DATE>NORMALIZED</EXTRACTION_END_DATE>
+    <WINDOW_START_DATE>2014-04-13T13:00:08Z</WINDOW_START_DATE>
+    <WINDOW_END_DATE>2014-04-13T13:00:08Z</WINDOW_END_DATE>
+  </HEADER>
+  <ROWSET>
+    <ROW>
+      <TIME>2014-04-13T13:00:08Z</TIME>
+      <browselayers>layerA</browselayers>
+      <userid>-</userid>
+      <numRequests>2</numRequests>
+      <aggregatedSize>3152</aggregatedSize>
+      <aggregatedProcessingTime>4456</aggregatedProcessingTime>
+    </ROW>
+    <ROW>
+      <TIME>2014-04-13T13:00:08Z</TIME>
+      <browselayers>layerB</browselayers>
+      <userid>-</userid>
+      <numRequests>6</numRequests>
+      <aggregatedSize>9456</aggregatedSize>
+      <aggregatedProcessingTime>11863</aggregatedProcessingTime>
+    </ROW>
+    <ROW>
+      <TIME>2014-04-13T13:00:08Z</TIME>
+      <browselayers>layerA,layerB</browselayers>
+      <userid>-</userid>
+      <numRequests>1</numRequests>
+      <aggregatedSize>1576</aggregatedSize>
+      <aggregatedProcessingTime>1956</aggregatedProcessingTime>
+    </ROW>
+  </ROWSET>
+</DWH_DATA>
 """
 
 
@@ -4540,22 +4546,25 @@ class ReportAccessSubsetTestCase(GenerateReportMixIn, TestCase):
     end = "2014-04-10T20:30Z"
 
     expected_report = """\
-<fetchReportDataResponse>
-  <report>
-    <header>
-      <operation>BROWSE_ACCESS</operation>
-      <component>instance</component>
-      <date>2014-04-10T13:00:08Z</date>
-    </header>
-    <data>
-      <value key="browselayers">layerB</value>
-      <value key="userid">-</value>
-      <value key="numRequests">2</value>
-      <value key="aggregatedSize">3152</value>
-      <value key="aggregatedProcessingTime">2406</value>
-    </data>
-  </report>
-</fetchReportDataResponse>
+<DWH_DATA>
+  <HEADER>
+    <CONTENT_ID>NGEO_BROW</CONTENT_ID>
+    <EXTRACTION_START_DATE>NORMALIZED</EXTRACTION_START_DATE>
+    <EXTRACTION_END_DATE>NORMALIZED</EXTRACTION_END_DATE>
+    <WINDOW_START_DATE>2014-04-10T13:00:08Z</WINDOW_START_DATE>
+    <WINDOW_END_DATE>2014-04-10T13:00:08Z</WINDOW_END_DATE>
+  </HEADER>
+  <ROWSET>
+    <ROW>
+      <TIME>2014-04-10T13:00:08Z</TIME>
+      <browselayers>layerB</browselayers>
+      <userid>-</userid>
+      <numRequests>2</numRequests>
+      <aggregatedSize>3152</aggregatedSize>
+      <aggregatedProcessingTime>2406</aggregatedProcessingTime>
+    </ROW>
+  </ROWSET>
+</DWH_DATA>
 """
 
 
@@ -4567,113 +4576,45 @@ class ReportIngestTestCase(GenerateReportMixIn, TestCase):
     report_logfile = join(settings.PROJECT_DIR, "data/report_logs/ingest.log")
 
     expected_report = """\
-<fetchReportDataResponse>
-  <report>
-    <header>
-      <operation>BROWSE_REPORT</operation>
-      <component>instance</component>
-      <date>2014-04-07T15:30:33Z</date>
-    </header>
-    <data>
-      <value key="browseType">SAR</value>
-      <value key="numberOfFailedBrowses">1</value>
-      <value key="numberOfSuccessfulBrowses">0</value>
-      <value key="dateTime">2012-10-02T09:30:00+00:00</value>
-      <value key="numberOfContainedBrowses">1</value>
-      <value key="responsibleOrgName">ESA</value>
-    </data>
-  </report>
-  <report>
-    <header>
-      <operation>BROWSE_REPORT</operation>
-      <component>instance</component>
-      <date>2014-04-08T15:31:15Z</date>
-    </header>
-    <data>
-      <value key="browseType">SAR</value>
-      <value key="numberOfFailedBrowses">0</value>
-      <value key="numberOfSuccessfulBrowses">1</value>
-      <value key="dateTime">2012-10-02T09:30:00+00:00</value>
-      <value key="numberOfContainedBrowses">1</value>
-      <value key="responsibleOrgName">ESA</value>
-    </data>
-  </report>
-  <report>
-    <header>
-      <operation>BROWSE_REPORT</operation>
-      <component>instance</component>
-      <date>2014-04-09T15:31:42Z</date>
-    </header>
-    <data>
-      <value key="browseType">SAR</value>
-      <value key="numberOfFailedBrowses">0</value>
-      <value key="numberOfSuccessfulBrowses">1</value>
-      <value key="dateTime">2012-10-02T09:30:00+00:00</value>
-      <value key="numberOfContainedBrowses">1</value>
-      <value key="responsibleOrgName">ESA</value>
-    </data>
-  </report>
-  <report>
-    <header>
-      <operation>BROWSE_REPORT</operation>
-      <component>instance</component>
-      <date>2014-04-10T15:31:47Z</date>
-    </header>
-    <data>
-      <value key="browseType">SAR</value>
-      <value key="numberOfFailedBrowses">0</value>
-      <value key="numberOfSuccessfulBrowses">1</value>
-      <value key="dateTime">2012-10-02T10:30:00+00:00</value>
-      <value key="numberOfContainedBrowses">1</value>
-      <value key="responsibleOrgName">ESA</value>
-    </data>
-  </report>
-  <report>
-    <header>
-      <operation>BROWSE_REPORT</operation>
-      <component>instance</component>
-      <date>2014-04-11T15:31:48Z</date>
-    </header>
-    <data>
-      <value key="browseType">SAR</value>
-      <value key="numberOfFailedBrowses">1</value>
-      <value key="numberOfSuccessfulBrowses">0</value>
-      <value key="dateTime">2012-11-02T09:30:00+00:00</value>
-      <value key="numberOfContainedBrowses">1</value>
-      <value key="responsibleOrgName">ESA</value>
-    </data>
-  </report>
-  <report>
-    <header>
-      <operation>BROWSE_REPORT</operation>
-      <component>instance</component>
-      <date>2014-04-12T15:31:51Z</date>
-    </header>
-    <data>
-      <value key="browseType">SAR</value>
-      <value key="numberOfFailedBrowses">0</value>
-      <value key="numberOfSuccessfulBrowses">1</value>
-      <value key="dateTime">2012-10-02T09:30:00+00:00</value>
-      <value key="numberOfContainedBrowses">1</value>
-      <value key="responsibleOrgName">ESA</value>
-    </data>
-  </report>
-  <report>
-    <header>
-      <operation>BROWSE_REPORT</operation>
-      <component>instance</component>
-      <date>2014-04-13T15:31:54Z</date>
-    </header>
-    <data>
-      <value key="browseType">SAR</value>
-      <value key="numberOfFailedBrowses">0</value>
-      <value key="numberOfSuccessfulBrowses">1</value>
-      <value key="dateTime">2012-10-02T09:30:00+00:00</value>
-      <value key="numberOfContainedBrowses">1</value>
-      <value key="responsibleOrgName">ESA</value>
-    </data>
-  </report>
-</fetchReportDataResponse>
+<DWH_DATA>
+  <HEADER>
+    <CONTENT_ID>NGEO_BROW</CONTENT_ID>
+    <EXTRACTION_START_DATE>NORMALIZED</EXTRACTION_START_DATE>
+    <EXTRACTION_END_DATE>NORMALIZED</EXTRACTION_END_DATE>
+    <WINDOW_START_DATE>2014-04-07T15:30:33.029092Z</WINDOW_START_DATE>
+    <WINDOW_END_DATE>2014-04-13T15:31:54.229544Z</WINDOW_END_DATE>
+  </HEADER>
+  <ROWSET>
+    <ROW>
+      <TIME>2014-04-07T15:30:33.029092Z</TIME>
+      <BROWSE_TYPE>SAR</BROWSE_TYPE>
+      <BROWSE_LAYER_IDENTIFIER>TEST_SAR</BROWSE_LAYER_IDENTIFIER>
+      <BROWSE_BEGIN_DATE>2012-10-02T09:30:00Z</BROWSE_BEGIN_DATE>
+      <BROWSE_END_DATE>2012-10-02T09:33:00Z</BROWSE_END_DATE>
+    </ROW>
+    <ROW>
+      <TIME>2014-04-09T15:31:42.127078Z</TIME>
+      <BROWSE_TYPE>SAR</BROWSE_TYPE>
+      <BROWSE_LAYER_IDENTIFIER>TEST_SAR</BROWSE_LAYER_IDENTIFIER>
+      <BROWSE_BEGIN_DATE>2012-10-02T09:30:00Z</BROWSE_BEGIN_DATE>
+      <BROWSE_END_DATE>2012-10-02T09:35:00Z</BROWSE_END_DATE>
+    </ROW>
+    <ROW>
+      <TIME>2014-04-11T15:31:48.388294Z</TIME>
+      <BROWSE_TYPE>SAR</BROWSE_TYPE>
+      <BROWSE_LAYER_IDENTIFIER>TEST_SAR</BROWSE_LAYER_IDENTIFIER>
+      <BROWSE_BEGIN_DATE>2012-11-02T09:30:00Z</BROWSE_BEGIN_DATE>
+      <BROWSE_END_DATE>2012-11-02T09:33:00Z</BROWSE_END_DATE>
+    </ROW>
+    <ROW>
+      <TIME>2014-04-13T15:31:54.229544Z</TIME>
+      <BROWSE_TYPE>SAR</BROWSE_TYPE>
+      <BROWSE_LAYER_IDENTIFIER>TEST_SAR</BROWSE_LAYER_IDENTIFIER>
+      <BROWSE_BEGIN_DATE>2012-10-02T09:30:00Z</BROWSE_BEGIN_DATE>
+      <BROWSE_END_DATE>2012-10-02T09:30:00Z</BROWSE_END_DATE>
+    </ROW>
+  </ROWSET>
+</DWH_DATA>
 """
 
 class ReportIngestSubsetTestCase(GenerateReportMixIn, TestCase):
@@ -4682,53 +4623,24 @@ class ReportIngestSubsetTestCase(GenerateReportMixIn, TestCase):
     end="2014-04-10T20:30Z"
 
     expected_report = """\
-<fetchReportDataResponse>
-  <report>
-    <header>
-      <operation>BROWSE_REPORT</operation>
-      <component>instance</component>
-      <date>2014-04-08T15:31:15Z</date>
-    </header>
-    <data>
-      <value key="browseType">SAR</value>
-      <value key="numberOfFailedBrowses">0</value>
-      <value key="numberOfSuccessfulBrowses">1</value>
-      <value key="dateTime">2012-10-02T09:30:00+00:00</value>
-      <value key="numberOfContainedBrowses">1</value>
-      <value key="responsibleOrgName">ESA</value>
-    </data>
-  </report>
-  <report>
-    <header>
-      <operation>BROWSE_REPORT</operation>
-      <component>instance</component>
-      <date>2014-04-09T15:31:42Z</date>
-    </header>
-    <data>
-      <value key="browseType">SAR</value>
-      <value key="numberOfFailedBrowses">0</value>
-      <value key="numberOfSuccessfulBrowses">1</value>
-      <value key="dateTime">2012-10-02T09:30:00+00:00</value>
-      <value key="numberOfContainedBrowses">1</value>
-      <value key="responsibleOrgName">ESA</value>
-    </data>
-  </report>
-  <report>
-    <header>
-      <operation>BROWSE_REPORT</operation>
-      <component>instance</component>
-      <date>2014-04-10T15:31:47Z</date>
-    </header>
-    <data>
-      <value key="browseType">SAR</value>
-      <value key="numberOfFailedBrowses">0</value>
-      <value key="numberOfSuccessfulBrowses">1</value>
-      <value key="dateTime">2012-10-02T10:30:00+00:00</value>
-      <value key="numberOfContainedBrowses">1</value>
-      <value key="responsibleOrgName">ESA</value>
-    </data>
-  </report>
-</fetchReportDataResponse>
+<DWH_DATA>
+  <HEADER>
+    <CONTENT_ID>NGEO_BROW</CONTENT_ID>
+    <EXTRACTION_START_DATE>NORMALIZED</EXTRACTION_START_DATE>
+    <EXTRACTION_END_DATE>NORMALIZED</EXTRACTION_END_DATE>
+    <WINDOW_START_DATE>2014-04-09T15:31:42.127078Z</WINDOW_START_DATE>
+    <WINDOW_END_DATE>2014-04-09T15:31:42.127078Z</WINDOW_END_DATE>
+  </HEADER>
+  <ROWSET>
+    <ROW>
+      <TIME>2014-04-09T15:31:42.127078Z</TIME>
+      <BROWSE_TYPE>SAR</BROWSE_TYPE>
+      <BROWSE_LAYER_IDENTIFIER>TEST_SAR</BROWSE_LAYER_IDENTIFIER>
+      <BROWSE_BEGIN_DATE>2012-10-02T09:30:00Z</BROWSE_BEGIN_DATE>
+      <BROWSE_END_DATE>2012-10-02T09:35:00Z</BROWSE_END_DATE>
+    </ROW>
+  </ROWSET>
+</DWH_DATA>
 """
 
 class ReportBothSubsetTestCase(GenerateReportMixIn, TestCase):
@@ -4738,65 +4650,30 @@ class ReportBothSubsetTestCase(GenerateReportMixIn, TestCase):
     end = "2014-04-10T20:30Z"
 
     expected_report = """\
-<fetchReportDataResponse>
-  <report>
-    <header>
-      <operation>BROWSE_ACCESS</operation>
-      <component>instance</component>
-      <date>2014-04-10T13:00:08Z</date>
-    </header>
-    <data>
-      <value key="browselayers">layerB</value>
-      <value key="userid">-</value>
-      <value key="numRequests">2</value>
-      <value key="aggregatedSize">3152</value>
-      <value key="aggregatedProcessingTime">2406</value>
-    </data>
-  </report>
-  <report>
-    <header>
-      <operation>BROWSE_REPORT</operation>
-      <component>instance</component>
-      <date>2014-04-08T15:31:15Z</date>
-    </header>
-    <data>
-      <value key="browseType">SAR</value>
-      <value key="numberOfFailedBrowses">0</value>
-      <value key="numberOfSuccessfulBrowses">1</value>
-      <value key="dateTime">2012-10-02T09:30:00+00:00</value>
-      <value key="numberOfContainedBrowses">1</value>
-      <value key="responsibleOrgName">ESA</value>
-    </data>
-  </report>
-  <report>
-    <header>
-      <operation>BROWSE_REPORT</operation>
-      <component>instance</component>
-      <date>2014-04-09T15:31:42Z</date>
-    </header>
-    <data>
-      <value key="browseType">SAR</value>
-      <value key="numberOfFailedBrowses">0</value>
-      <value key="numberOfSuccessfulBrowses">1</value>
-      <value key="dateTime">2012-10-02T09:30:00+00:00</value>
-      <value key="numberOfContainedBrowses">1</value>
-      <value key="responsibleOrgName">ESA</value>
-    </data>
-  </report>
-  <report>
-    <header>
-      <operation>BROWSE_REPORT</operation>
-      <component>instance</component>
-      <date>2014-04-10T15:31:47Z</date>
-    </header>
-    <data>
-      <value key="browseType">SAR</value>
-      <value key="numberOfFailedBrowses">0</value>
-      <value key="numberOfSuccessfulBrowses">1</value>
-      <value key="dateTime">2012-10-02T10:30:00+00:00</value>
-      <value key="numberOfContainedBrowses">1</value>
-      <value key="responsibleOrgName">ESA</value>
-    </data>
-  </report>
-</fetchReportDataResponse>
+<DWH_DATA>
+  <HEADER>
+    <CONTENT_ID>NGEO_BROW</CONTENT_ID>
+    <EXTRACTION_START_DATE>NORMALIZED</EXTRACTION_START_DATE>
+    <EXTRACTION_END_DATE>NORMALIZED</EXTRACTION_END_DATE>
+    <WINDOW_START_DATE>2014-04-09T15:31:42.127078Z</WINDOW_START_DATE>
+    <WINDOW_END_DATE>2014-04-10T13:00:08Z</WINDOW_END_DATE>
+  </HEADER>
+  <ROWSET>
+    <ROW>
+      <TIME>2014-04-10T13:00:08Z</TIME>
+      <browselayers>layerB</browselayers>
+      <userid>-</userid>
+      <numRequests>2</numRequests>
+      <aggregatedSize>3152</aggregatedSize>
+      <aggregatedProcessingTime>2406</aggregatedProcessingTime>
+    </ROW>
+    <ROW>
+      <TIME>2014-04-09T15:31:42.127078Z</TIME>
+      <BROWSE_TYPE>SAR</BROWSE_TYPE>
+      <BROWSE_LAYER_IDENTIFIER>TEST_SAR</BROWSE_LAYER_IDENTIFIER>
+      <BROWSE_BEGIN_DATE>2012-10-02T09:30:00Z</BROWSE_BEGIN_DATE>
+      <BROWSE_END_DATE>2012-10-02T09:35:00Z</BROWSE_END_DATE>
+    </ROW>
+  </ROWSET>
+</DWH_DATA>
 """
