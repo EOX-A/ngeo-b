@@ -1,0 +1,39 @@
+#-------------------------------------------------------------------------------
+#
+# Project: ngEO Browse Server <http://ngeo.eox.at>
+# Authors: Stephan Meissl <stephan.meissl@eox.at>
+#
+#-------------------------------------------------------------------------------
+# Copyright (C) 2016 European Space Agency
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies of this Software or works derived from this Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Steps to migrate ngEO_Browse_Server version <2.0.28 to 2.0.28
+#-------------------------------------------------------------------------------
+# The steps assume a default installation and configuration as for
+# example provided via the `ngeo-install.sh` script.
+
+# adjust the UNIQUE constraint on the config_browse table
+psql -U ngeo_user ngeo_browse_server_db -c 'ALTER TABLE "config_browse" DROP CONSTRAINT "config_browse_start_time_key";'
+psql -U ngeo_user ngeo_browse_server_db -c 'ALTER TABLE "config_browse" ADD CONSTRAINT "config_browse_start_time_key" UNIQUE ("start_time", "end_time", "file_name", "browse_layer_id");'
+
+# restart the httpd daemon
+sudo service httpd restart
