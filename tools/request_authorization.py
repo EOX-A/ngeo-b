@@ -35,6 +35,7 @@ def request_authorization(baseurl, user, layer, timeperiod):
     """ Function, that sends an HTTP GET request to the given ngEO Web Server.
     """
     try:
+        timeperiod = timeperiod.replace("/", ",").replace("--", ",")
         url = (
             "%s/BrwsAuthorizationCheck?UserId=%s&BrowseLayerId=%s&TimePeriod=%s"
             % (baseurl if not baseurl.endswith("/") else baseurl[:-1],
@@ -72,7 +73,7 @@ if __name__ == "__main__":
     opts, _ = parser.parse_args()
 
     authorized = request_authorization(
-        opts.baseurl, opts.user, opts.layer, opts.timeperiod
+        opts.baseurl, opts.user, opts.layer, opts.timeperiod or ""
     )
 
     sys.exit(0 if authorized else 1)
