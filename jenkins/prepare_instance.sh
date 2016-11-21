@@ -121,7 +121,7 @@ cat << EOF > "$MAPCACHE_DIR/$MAPCACHE_CONF"
 <?xml version="1.0" encoding="UTF-8"?>
 <mapcache>
   <auth_method name="cmdlineauth" type="cmd">
-    <template>/usr/bin/python /usr/bin/request_authorization.py -b http://127.0.0.1:8000/authorized -u :user -l :tileset</template>
+    <template>/usr/bin/python /usr/bin/request_authorization.py -b http://127.0.0.1:8000/authorized -u :user -l :tileset -t :time</template>
     <user_header>SP-Person-Identifier</user_header>
     <auth_cache type="memcache">
       <expires>1000</expires>

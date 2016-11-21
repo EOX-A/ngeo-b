@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mapcache>
     <auth_method name="cmdlineauth" type="cmd">
-        <template>request_authorization.py --layer :tileset --user :user --baseurl http://www.example.com/</template>
+        <template>request_authorization.py --layer :tileset --user :user -t :time --baseurl http://www.example.com/</template>
         <user_header>user</user_header>
         <auth_cache type="memcache">
             <expires>1000</expires>
