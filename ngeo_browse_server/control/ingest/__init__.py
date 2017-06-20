@@ -30,7 +30,8 @@
 import sys
 from os import remove, makedirs, rmdir
 from os.path import (
-    exists, dirname, join, isdir, samefile, commonprefix, abspath, relpath
+    exists, dirname, join, isdir, samefile, commonprefix, abspath, relpath,
+    basename
 )
 import shutil
 from numpy import arange
@@ -39,9 +40,11 @@ import traceback
 from datetime import datetime
 import string
 import uuid
+from urllib2 import urlopen, URLError, HTTPError
 
 from django.conf import settings
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from django.core.validators import URLValidator
 from django.db import transaction
 from django.template.loader import render_to_string
 from eoxserver.core.system import System
@@ -339,11 +342,39 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
     leave_original = False
     try:
         leave_original = config.getboolean("control.ingest", "leave_original")
-    except: pass
+    except:
+        pass
 
     # get the input and output filenames
     storage_path = get_storage_path()
-    input_filename = abspath(get_storage_path(parsed_browse.file_name, config=config))
+    # if file_name is a URL download browse first and store it locally
+    validate = URLValidator()
+    try:
+        validate(parsed_browse.file_name)
+        input_filename = abspath(get_storage_path(
+            basename(parsed_browse.file_name), config=config))
+        logger.info("URL given, downloading browse image from '%s' to '%s'."
+                    % (parsed_browse.file_name, input_filename))
+        if not exists(input_filename):
+            try:
+                remote_browse = urlopen(parsed_browse.file_name)
+                with open(input_filename, "wb") as local_browse:
+                    local_browse.write(remote_browse.read())
+            except HTTPError, e:
+                raise IngestionException("HTTP error downloading '%s': %s"
+                                         % (parsed_browse.file_name, e.code))
+            except URLError, e:
+                raise IngestionException("URL error downloading '%s': %s"
+                                         % (parsed_browse.file_name, e.reason))
+        else:
+            raise IngestionException("File do download already exists locally "
+                                     "as '%s'" % input_filename)
+
+    except ValidationError:
+        input_filename = abspath(get_storage_path(parsed_browse.file_name,
+                                                  config=config))
+        logger.info("Filename given, using local browse image '%s'."
+                    % input_filename)
 
     # check that the input filename is valid -> somewhere under the storage dir
     if commonprefix((input_filename, storage_path)) != storage_path:
