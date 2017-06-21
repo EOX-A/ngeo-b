@@ -4677,3 +4677,45 @@ class ReportBothSubsetTestCase(GenerateReportMixIn, TestCase):
   </ROWSET>
 </DWH_DATA>
 """
+
+
+
+#===============================================================================
+# ngEO-Light test cases
+#===============================================================================
+
+class IngestNgeoLightUrlNcol(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    storage_dir = "data/ngeo-light"
+    request_file = "ngeo-light/ASA_asc.xml"
+
+    expected_ingested_browse_ids = ("ASA_IMP_1PNESA20030305_202921_000000152014_00229_05293_0000",)
+    expected_inserted_into_series = "TEST_NGEO-LIGHT"
+    expected_optimized_files = ['ASA_IMP_1PNESA20030305_202921_000000152014_00229_05293_0000.N1_BID_proc.tif']
+    expected_deleted_files = []
+    save_optimized_files = True
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>ASA_IMP_1PNESA20030305_202921_000000152014_00229_05293_0000</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+class SeedNgeoLightUrlNcol(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
+    storage_dir = "data/ngeo-light"
+    request_file = "ngeo-light/ASA_asc.xml"
+
+    expected_browse_type = "NGEO-LIGHT"
+    expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 64, 6: 64, 7: 64, 8: 128}
