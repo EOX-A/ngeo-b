@@ -467,9 +467,11 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                                              % input_filename)
 
                 clipping = None
-                if parsed_browse.geo_type == "regularGridBrowse" and \
-                        ingest_config["regular_grid_clipping"]:
-                        #TODO: get clipping
+                if (parsed_browse.geo_type == "regularGridBrowse" and
+                    ingest_config["regular_grid_clipping"]) or \
+                    (parsed_browse.geo_type == "footprintBrowse" and
+                     ("ncol" in parsed_browse.col_row_list or
+                      "nrow" in parsed_browse.col_row_list)):
                     clipping = _get_clipping(input_filename)
 
                 # initialize a GeoReference for the preprocessor
@@ -605,6 +607,11 @@ def _georef_from_parsed(parsed_browse, clipping=None):
     elif parsed_browse.geo_type == "footprintBrowse":
         # Generate GCPs from footprint coordinates
         pixels = decode_coord_list(parsed_browse.col_row_list)
+        # substitute ncol and nrow with image size
+        if clipping:
+            clip_x, clip_y = clipping
+            pixels[:] = [(clip_x if x == "ncol" else x, clip_y if y == "nrow"
+                         else y) for x, y in pixels]
         coord_list = decode_coord_list(parsed_browse.coord_list, swap_axes)
 
         if _coord_list_crosses_dateline(coord_list, CRS_BOUNDS[srid]):
