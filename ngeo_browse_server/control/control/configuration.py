@@ -272,7 +272,8 @@ class IngestConfigurator(ngEOConfigConfigurator):
         Parameter(
             bool, "regular_grid_clipping", "Regular Grid clipping",
             "Clip the regular grid tie points pixel coordinates to be inside "
-            "of the image bounds. Necessary for Sentinel-1 image data.", "false"
+            "of the image bounds. Necessary for Sentinel-1 image data.",
+            "false"
         ),
         Parameter(
             bool, "in_memory", "Perform pre-processing in memory",
@@ -287,15 +288,17 @@ class IngestConfigurator(ngEOConfigConfigurator):
             "allow a 'merge'. E.g: 1w 5d 3h 12m 18ms. Defaults to '5h'.", "5h"
         ),
         Parameter(
-            str, "strategy", "Ident browse strategy",
+            str, "strategy", "Indent browse strategy",
             "Sets the 'strategy' for when an ingested browse is equal with an "
             "existing one. The 'merge'-strategy tries to merge the two "
             "existing images to one single. This is only possible if the time "
             "difference of the two browse reports (the report of the to be "
             "ingested browse and the one of the already existing one) is "
-            "lower than the threshold. Otherwise a 'replace' is done. The "
-            "'replace' strategy removes the previous browse, before ingesting "
-            "the new one.", "merge"
+            "lower than the threshold. Otherwise a 'replace' is done. "
+            "The 'replace' strategy removes the previous browse, before "
+            "ingesting the new one. The 'skip' strategy skips the ingestion "
+            "when the new browse is not newer than the already ingested one."
+            "Defaults to 'replace'.", "merge"
         ),
     )
 

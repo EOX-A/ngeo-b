@@ -432,6 +432,9 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                 )
                 replaced = False
                 logger.debug("Existing browse found, merging it.")
+            elif strategy == "skip" and current_time <= previous_time:
+                logger.debug("Existing browse found and not older, skipping.")
+                return
             else:
                 # perform replacement
 
