@@ -2630,9 +2630,9 @@ class IngestModelInGeoTiffWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixI
     save_to_file = "results/wms/IngestModelInGeoTiffWMSRaster.png"
 
     expected_statistics = [
-        {'max': 255.0, 'checksum': 10021, 'mean': 40.744900000000001, 'stddev': 41.571134504485194, 'min': 0.0},
-        {'max': 255.0, 'checksum': 9487, 'mean': 39.966999999999999, 'stddev': 40.339262648194257, 'min': 0.0},
-        {'max': 255.0, 'checksum': 11914, 'mean': 42.195999999999998, 'stddev': 38.414057114551177, 'min': 0.0}
+        {'max': 231.0, 'checksum': 12342, 'mean': 41.841900000000003, 'stddev': 39.020467762316734, 'min': 0.0},
+        {'max': 230.0, 'checksum': 11877, 'mean': 41.055500000000002, 'stddev': 37.848759817859289, 'min': 0.0},
+        {'max': 231.0, 'checksum': 14532, 'mean': 43.339399999999998, 'stddev': 36.393048891787018, 'min': 0.0}
     ]
 
 
@@ -2657,9 +2657,9 @@ class IngestRectifiedWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
     save_to_file = "results/wms/IngestRectifiedWMSRaster.png"
 
     expected_statistics = [
-        {'max': 255.0, 'checksum': 10021, 'mean': 40.744900000000001, 'stddev': 41.571134504485194, 'min': 0.0},
-        {'max': 255.0, 'checksum': 9487, 'mean': 39.966999999999999, 'stddev': 40.339262648194257, 'min': 0.0},
-        {'max': 255.0, 'checksum': 11914, 'mean': 42.195999999999998, 'stddev': 38.414057114551177, 'min': 0.0}
+        {'max': 231.0, 'checksum': 12342, 'mean': 41.841900000000003, 'stddev': 39.020467762316734, 'min': 0.0},
+        {'max': 230.0, 'checksum': 11877, 'mean': 41.055500000000002, 'stddev': 37.848759817859289, 'min': 0.0},
+        {'max': 231.0, 'checksum': 14532, 'mean': 43.339399999999998, 'stddev': 36.393048891787018, 'min': 0.0}
     ]
 
 
@@ -2684,9 +2684,9 @@ class IngestRectifiedFlippedWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMi
     save_to_file = "results/wms/IngestRectifiedFlippedWMSRaster.png"
 
     expected_statistics = [
-        {'max': 251.0, 'checksum': 10335, 'mean': 40.872199999999999, 'stddev': 42.13926277428213, 'min': 0.0},
-        {'max': 250.0, 'checksum': 9440, 'mean': 40.122500000000002, 'stddev': 40.939221948517776, 'min': 0.0},
-        {'max': 252.0, 'checksum': 11907, 'mean': 42.537399999999998, 'stddev': 39.100483388827818, 'min': 0.0}
+        {'max': 236.0, 'checksum': 12258, 'mean': 42.077199999999998, 'stddev': 39.260998970479598, 'min': 0.0},
+        {'max': 235.0, 'checksum': 12140, 'mean': 41.281799999999997, 'stddev': 38.084679186780612, 'min': 0.0},
+        {'max': 228.0, 'checksum': 13407, 'mean': 43.543700000000001, 'stddev': 36.527133617490435, 'min': 0.0}
     ]
 
 
@@ -2711,10 +2711,10 @@ class IngestFootprintWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
 
     expected_statistics = [{
         "min": 0.0,
-        "max": 255.0,
-        "mean": 64.406300000000002,
-        "stddev": 76.223977987966478,
-        "checksum": 57259
+        "max": 248.0,
+        "mean": 65.092399999999998,
+        "stddev": 72.434486691354422,
+        "checksum": 60675
     }] * 3
 
 
@@ -2736,7 +2736,7 @@ class IngestRegularGridWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, 
                    )
 
     expected_statistics = [
-        {'max': 251.0, 'checksum': 11637, 'mean': 29.290800000000001, 'stddev': 33.977113405349783, 'min': 0.0}
+        {'max': 191.0, 'checksum': 13092, 'mean': 29.900400000000001, 'stddev': 32.331215254611138, 'min': 0.0}
     ] * 3
 
 class IngestFootprintCrossesDatelineRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
@@ -2757,9 +2757,9 @@ class IngestFootprintCrossesDatelineRaster(BaseTestCaseMixIn, HttpMixIn, Statist
                    )
 
     expected_statistics = [
-        {'checksum': 22981, 'max': 250.0, 'mean': 149.01589999999999, 'min': 0.0, 'stddev': 116.91123405041111},
-        {'checksum': 17526, 'max': 249.0, 'mean': 147.9785, 'min': 0.0, 'stddev': 116.12415441134544},
-        {'checksum': 1612, 'max': 242.0, 'mean': 140.79480000000001, 'min': 0.0, 'stddev': 110.58494785891973}
+        {'checksum': 23626, 'max': 250.0, 'mean': 149.62190000000001, 'min': 0.0, 'stddev': 116.22100300887959},
+        {'checksum': 18277, 'max': 249.0, 'mean': 148.57599999999999, 'min': 0.0, 'stddev': 115.43073084755206},
+        {'checksum': 2630, 'max': 242.0, 'mean': 141.36770000000001, 'min': 0.0, 'stddev': 109.90778906296859}
     ]
 
 class IngestFootprintCrossesDatelineRasterSecond(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
@@ -2781,9 +2781,9 @@ class IngestFootprintCrossesDatelineRasterSecond(BaseTestCaseMixIn, HttpMixIn, S
                    )
 
     expected_statistics = [
-        {'checksum': 22981, 'max': 250.0, 'mean': 149.01589999999999, 'min': 0.0, 'stddev': 116.91123405041111},
-        {'checksum': 17526, 'max': 249.0, 'mean': 147.9785, 'min': 0.0, 'stddev': 116.12415441134544},
-        {'checksum': 1612, 'max': 242.0, 'mean': 140.79480000000001, 'min': 0.0, 'stddev': 110.58494785891973}
+        {'checksum': 23626, 'max': 250.0, 'mean': 149.62190000000001, 'min': 0.0, 'stddev': 116.22100300887959},
+        {'checksum': 18277, 'max': 249.0, 'mean': 148.57599999999999, 'min': 0.0, 'stddev': 115.43073084755206},
+        {'checksum': 2630, 'max': 242.0, 'mean': 141.36770000000001, 'min': 0.0, 'stddev': 109.90778906296859}
     ]
 
 class IngestFootprintCrossesDatelineRasterThird(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
@@ -2805,9 +2805,9 @@ class IngestFootprintCrossesDatelineRasterThird(BaseTestCaseMixIn, HttpMixIn, St
                    )
 
     expected_statistics = [
-        {'checksum': 18991, 'max': 255.0, 'mean': 2.361958, 'min': 0.0, 'stddev': 22.611632015540938},
-        {'checksum': 46269, 'max': 255.0, 'mean': 2.4702989999999998, 'min': 0.0, 'stddev': 22.501223318979772},
-        {'checksum': 34188, 'max': 255.0, 'mean': 2.5279354999999999, 'min': 0.0, 'stddev': 22.22917375000339}
+        {'checksum': 40705, 'max': 255.0, 'mean': 2.4149029999999998, 'min': 0.0, 'stddev': 22.68776704527334},
+        {'checksum': 64942, 'max': 255.0, 'mean': 2.5240960000000001, 'min': 0.0, 'stddev': 22.587629764603104},
+        {'checksum': 56547, 'max': 255.0, 'mean': 2.5835344999999998, 'min': 0.0, 'stddev': 22.342400743593107}
     ]
 
 
@@ -3139,7 +3139,7 @@ class DebugLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCase
 
     expected_logs = {
         logging.DEBUG: 12,
-        logging.INFO: 14,
+        logging.INFO: 15,
         logging.WARN: 0,
         logging.ERROR: 0,
         logging.CRITICAL: 0
@@ -3196,7 +3196,7 @@ class InfoLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCaseM
 
     expected_logs = {
         logging.DEBUG: 0,
-        logging.INFO: 14,
+        logging.INFO: 15,
         logging.WARN: 0,
         logging.ERROR: 0,
         logging.CRITICAL: 0
@@ -4038,8 +4038,8 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
           <xsd:element type="xsd:string" name="strategy">
             <xsd:annotation>
               <xsd:documentation>
-                <xsd:label>Ident browse strategy</xsd:label>
-                <xsd:tooltip>Sets the 'strategy' for when an ingested browse is equal with an existing one. The 'merge'-strategy tries to merge the two existing images to one single. This is only possible if the time difference of the two browse reports (the report of the to be ingested browse and the one of the already existing one) is lower than the threshold. Otherwise a 'replace' is done. The 'replace' strategy removes the previous browse, before ingesting the new one.</xsd:tooltip>
+                <xsd:label>Indent browse strategy</xsd:label>
+                <xsd:tooltip>Sets the 'strategy' for when an ingested browse is equal with an existing one. The 'merge'-strategy tries to merge the two existing images to one single. This is only possible if the time difference of the two browse reports (the report of the to be ingested browse and the one of the already existing one) is lower than the threshold. Otherwise a 'replace' is done. The 'replace' strategy removes the previous browse, before ingesting the new one. The 'skip' strategy skips the ingestion when the new browse is not newer than the already ingested one.Defaults to 'replace'.</xsd:tooltip>
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
@@ -4719,3 +4719,65 @@ class SeedNgeoLightUrlNcol(SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase):
 
     expected_browse_type = "NGEO-LIGHT"
     expected_tiles = {0: 2, 1: 8, 2: 32, 3: 64, 4: 64, 5: 64, 6: 64, 7: 64, 8: 128}
+
+class IngestNgeoLightNotSkip(IngestReplaceTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    request_before_test_file = "ngeo-light/ASA_asc.xml"
+    request_file = "ngeo-light/ASA_asc_newer.xml"
+
+    expected_num_replaced = 1
+
+    expected_ingested_browse_ids = ('ASA_IMP_1PNESA20030305_202921_000000152014_00229_05293_0000',)
+    expected_inserted_into_series = "TEST_NGEO-LIGHT"
+    expected_optimized_files = ['ASA_IMP_1PNESA20030305_202921_000000152014_00229_05293_0000.N1_BID_proc.tif']
+    expected_deleted_files = []
+    expected_deleted_optimized_files = ['ASA_IMP_1PNESA20030305_202921_000000152014_00229_05293_0000.N1_BID_proc.tif']
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>0</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>1</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>ASA_IMP_1PNESA20030305_202921_000000152014_00229_05293_0000</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+class IngestNgeoLightSkip(IngestReplaceTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    request_before_test_file = "ngeo-light/ASA_asc_newer.xml"
+    request_file = "ngeo-light/ASA_asc.xml"
+
+    expected_num_replaced = 0
+
+    expected_ingested_browse_ids = ('ASA_IMP_1PNESA20030305_202921_000000152014_00229_05293_0000',)
+    expected_inserted_into_series = "TEST_NGEO-LIGHT"
+    expected_optimized_files = ['ASA_IMP_1PNESA20030305_202921_000000152014_00229_05293_0000.N1_BID_proc.tif']
+    expected_deleted_files = []
+    expected_deleted_optimized_files = []
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>0</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>ASA_IMP_1PNESA20030305_202921_000000152014_00229_05293_0000</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""

@@ -64,7 +64,7 @@ from ngeo_browse_server.config.browsereport.decoding import (
 from ngeo_browse_server.config.browsereport import data
 from ngeo_browse_server.control.ingest.result import (
     IngestBrowseReportResult, IngestBrowseResult, IngestBrowseReplaceResult,
-    IngestBrowseFailureResult
+    IngestBrowseSkipResult, IngestBrowseFailureResult
 )
 from ngeo_browse_server.control.ingest.config import (
     get_project_relative_path, get_storage_path, get_optimized_path,
@@ -387,16 +387,20 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
 
     # Get filename to store preprocessed image
     output_filename = "%s_%s" % (uuid.uuid4().hex, parsed_browse.file_name)
-    output_filename = _valid_path(get_optimized_path(output_filename,
-                                                     browse_layer.id + "/" + str(parsed_browse.start_time.year),
-                                                     config=config))
+    output_filename = _valid_path(
+        get_optimized_path(
+            output_filename, browse_layer.id + "/" +
+            str(parsed_browse.start_time.year), config=config
+        )
+    )
     output_filename = preprocessor.generate_filename(output_filename)
 
     try:
         ingest_config = get_ingest_config(config)
 
-        # check if a browse already exists and delete it in order to replace it
-        existing_browse_model = get_existing_browse(parsed_browse.browse_identifier, coverage_id, browse_layer.id)
+        # check if a browse already exists and decide how to deal with it
+        existing_browse_model = get_existing_browse(
+            parsed_browse.browse_identifier, coverage_id, browse_layer.id)
 
         if existing_browse_model:
             previous_time = existing_browse_model.browse_report.date_time
@@ -432,9 +436,11 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                 )
                 replaced = False
                 logger.debug("Existing browse found, merging it.")
+
             elif strategy == "skip" and current_time <= previous_time:
                 logger.debug("Existing browse found and not older, skipping.")
-                return
+                return IngestBrowseSkipResult(parsed_browse.browse_identifier)
+
             else:
                 # perform replacement
 
@@ -449,7 +455,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                 logger.info("Existing browse found, replacing it.")
 
         else:
-            # A browse with that identifier does not exist, so just create a new one
+            # A browse with that identifier does not exist, so create a new one
             logger.info("Creating new browse.")
 
         # assert that the output file does not exist (unless it is a to-be
