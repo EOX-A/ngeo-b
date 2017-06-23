@@ -11,8 +11,8 @@
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
-# copies of the Software, and to permit persons to whom the Software is 
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
 # The above copyright notice and this permission notice shall be included in all
@@ -30,13 +30,13 @@
 
 class BrowseLayer(object):
     def __init__(self, browse_layer_identifier, browse_type, title, grid,
-                 browse_access_policy, contains_vertical_curtains, 
-                 highest_map_level, lowest_map_level, 
+                 browse_access_policy, contains_vertical_curtains,
+                 highest_map_level, lowest_map_level,
                  hosting_browse_server_name, related_dataset_ids,
                  description="", r_band=None, g_band=None, b_band=None,
                  radiometric_interval_min=None, radiometric_interval_max=None,
-                 strategy=None, timedimension_default=None, 
-                 tile_query_limit=None):
+                 strategy=None, harvesting_source=None,
+                 timedimension_default=None, tile_query_limit=None):
         self._browse_layer_identifier = browse_layer_identifier
         self._browse_type = browse_type
         self._title = title
@@ -54,9 +54,10 @@ class BrowseLayer(object):
         self._highest_map_level = highest_map_level
         self._lowest_map_level = lowest_map_level
         self._strategy = strategy
+        self._harvesting_source = harvesting_source
         self._timedimension_default = timedimension_default
         self._tile_query_limit = tile_query_limit
-    
+
     id = property(lambda self: self._browse_layer_identifier)
     browse_type = property(lambda self: self._browse_type)
     title = property(lambda self: self._title)
@@ -74,10 +75,11 @@ class BrowseLayer(object):
     highest_map_level = property(lambda self: self._highest_map_level)
     lowest_map_level = property(lambda self: self._lowest_map_level)
     strategy = property(lambda self: self._strategy)
+    harvesting_source = property(lambda self: self._harvesting_source)
     timedimension_default = property(lambda self: self._timedimension_default)
     tile_query_limit = property(lambda self: self._tile_query_limit)
 
-    
+
     def get_kwargs(self):
         return {
             "id": self.id,
@@ -95,6 +97,7 @@ class BrowseLayer(object):
             "highest_map_level": self.highest_map_level,
             "lowest_map_level": self.lowest_map_level,
             "strategy": self.strategy,
+            "harvesting_source": self.harvesting_source,
             "timedimension_default": self.timedimension_default,
             "tile_query_limit": self.tile_query_limit
         }
@@ -103,10 +106,10 @@ class BrowseLayer(object):
     def from_model(cls, model):
         return cls(
             browse_layer_identifier=model.id, browse_type=model.browse_type,
-            title=model.title, description=model.description, grid=model.grid, 
+            title=model.title, description=model.description, grid=model.grid,
             browse_access_policy=model.browse_access_policy,
             hosting_browse_server_name="",
-            related_dataset_ids=[rel_ds.dataset_id 
+            related_dataset_ids=[rel_ds.dataset_id
                                  for rel_ds in model.related_datasets.all()],
             contains_vertical_curtains=model.contains_vertical_curtains,
             r_band=model.r_band, g_band=model.g_band, b_band=model.b_band,

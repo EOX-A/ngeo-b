@@ -53,6 +53,11 @@ ngeo_start() {
         exit 1
     fi
     service httpd start
+    if [ -f /etc/init.d/harvestd ] ; then
+        service ntpd start
+        service harvestd start
+    fi
+
 }
 
 # ----------------------------------------------------------------------------
@@ -65,6 +70,10 @@ ngeo_stop() {
     service httpd stop
     service memcached stop
     service postgresql stop
+    if [ -f /etc/init.d/harvestd ] ; then
+        service ntpd stop
+        service harvestd stop
+    fi
 }
 
 # ----------------------------------------------------------------------------
@@ -75,6 +84,10 @@ ngeo_status() {
     service postgresql status
     service httpd status
     service memcached status
+    if [ -f /etc/init.d/harvestd ] ; then
+        service ntpd status
+        service harvestd status
+    fi
 }
 
 # ----------------------------------------------------------------------------

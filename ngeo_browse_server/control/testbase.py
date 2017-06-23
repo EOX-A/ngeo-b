@@ -135,6 +135,7 @@ class BaseTestCaseMixIn(object):
         (CTRL_SECTION, "controller_config_path"): "conf/controller.conf",
         (CTRL_SECTION, "notification_url"): "",
         (CTRL_SECTION, "report_store_dir"): "/var/www/ngeo/store/reports/",
+        (CTRL_SECTION, "harvesting_via_sxcat"): "false",
         (INGEST_SECTION, "optimized_files_postfix"): "_proc",
         (INGEST_SECTION, "compression"): "LZW",
         (INGEST_SECTION, "jpeg_quality"): "75",

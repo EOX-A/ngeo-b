@@ -219,8 +219,8 @@ EOF
 
     echo "Performing installation step 150"
     # Set includepkgs in EOX Stable
-    if ! grep -Fxq "includepkgs=libgeotiff-libtiff4 gdal-eox-libtiff4 gdal-eox-libtiff4-python gdal-eox-libtiff4-libs gdal-eox-driver-openjpeg2 openjpeg2 EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python libxerces-c-3_1" /etc/yum.repos.d/eox.repo ; then
-        sed -e 's/^\[eox\]$/&\nincludepkgs=libgeotiff-libtiff4 gdal-eox-libtiff4 gdal-eox-libtiff4-python gdal-eox-libtiff4-libs gdal-eox-driver-openjpeg2 openjpeg2 EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python libxerces-c-3_1/' -i /etc/yum.repos.d/eox.repo
+    if ! grep -Fxq "includepkgs=libgeotiff-libtiff4 gdal-eox-libtiff4 gdal-eox-libtiff4-python gdal-eox-libtiff4-libs gdal-eox-driver-openjpeg2 openjpeg2 EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python libxerces-c-3_1 python-pyspatialite-eox" /etc/yum.repos.d/eox.repo ; then
+        sed -e 's/^\[eox\]$/&\nincludepkgs=libgeotiff-libtiff4 gdal-eox-libtiff4 gdal-eox-libtiff4-python gdal-eox-libtiff4-libs gdal-eox-driver-openjpeg2 openjpeg2 EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python libxerces-c-3_1 python-pyspatialite-eox/' -i /etc/yum.repos.d/eox.repo
     fi
     if ! grep -Fxq "includepkgs=ngEO_Browse_Server" /etc/yum.repos.d/eox.repo ; then
         sed -e 's/^\[eox-noarch\]$/&\nincludepkgs=ngEO_Browse_Server/' -i /etc/yum.repos.d/eox.repo
@@ -695,6 +695,49 @@ $NGEOB_LOG_DIR/eoxserver.log $NGEOB_LOG_DIR/ngeo.log {
 }
 EOF
 
+    # Install and configure SxCat if available
+    if [ -f sxcat-*.rpm ] ; then
+        echo "Installing local SxCat RPM `ls sxcat-*.rpm`"
+        yum install -y python-pyspatialite-eox
+        yum install -y sxcat-*.rpm
+
+        echo "Configuring SxCat and starting harvestd daemon"
+        cat << EOF >> /etc/sxcat/catalogue/catalogue.conf
+
+[browse_reports]
+enabled = true
+use_footprint = true
+EOF
+
+        # change ownership to apache
+        chown -R apache:apache /srv/sxcat/ /var/log/sxcat/ /etc/sxcat
+
+        # change user/group to apache in /etc/logrotate.d/sxcat
+        sed -e "/create 0640 sxcat sxcat/s/sxcat/apache/g" -i /etc/logrotate.d/sxcat
+
+        # change user to apache in /etc/init.d/harvestd
+        sed -e "/^USER=/s/sxcat/apache/" -i /etc/init.d/harvestd
+
+        # empty apache configuration of SxCat
+        rm -f /etc/httpd/conf.d/sxcat.conf /etc/httpd/conf.d/mod_qos.conf
+        touch /etc/httpd/conf.d/sxcat.conf /etc/httpd/conf.d/mod_qos.conf
+        service httpd restart
+
+        # Permanently start ntpd and harvestd
+        chkconfig ntpd on
+        chkconfig harvestd on
+        # start ntpd and harvestd
+        service ntpd start
+        service harvestd start
+
+        # enable harvesting in ngEO_Browse_Server
+        cd "${NGEOB_INSTALL_DIR}/ngeo_browse_server_instance"
+        sed -e "s/^#harvesting_via_sxcat=false/harvesting_via_sxcat=true/" -i ngeo_browse_server_instance/conf/ngeo.conf
+
+    else
+        echo "Not installing SxCat as it is not provided locally"
+    fi
+
     echo "Finished $SUBSYSTEM installation"
     echo "Check successful installation by pointing your browse to the "
     echo "following URLs and check the correctness of the shown content:"
@@ -766,7 +809,16 @@ ngeo_uninstall() {
                   openjpeg2 postgis libtiff4 libgeotiff-libtiff4 \
                   mapserver Django14 mapserver-python \
                   mapcache ngEO_Browse_Server EOxServer libxerces-c-3_1 \
-                  mod_ssl memcached libxml2-python
+                  mod_ssl memcached libxml2-python sxcat python-sxcat \
+                  python-pyspatialite-eox python-babel python-jinja2 mod_qos \
+                  pycairo postgresql-libs apr apr-util httpd-tools  mailcap \
+                  apr-util-ldap libxslt libevent lftp proj libICE libSM \
+                  libXtst geos libart_lgpl libgcj python-simplejson java \
+                  jpackage-utils sinjdoc proj-epsg giflib libgfortran atlas \
+                  hdf5 cfitsio xerces libgta libspatialite fribidi freexl \
+                  libgeotiff CharLS libdap openjpeg-libs shapelib unixODBC \
+                  python-nose python-setuptools numpy libtool-ltdl qt fcgi \
+                  gpsbabel poppler-data lcms-libs poppler libXpm gd
 
     echo "Finished $SUBSYSTEM uninstallation"
 }
@@ -846,6 +898,10 @@ EOF
     echo "Delete Apache HTTP server configuration"
     rm -rf "${APACHE_CONF}" "${APACHE_CONF}.DISABLED"
 
+    echo "Performing uninstallation of SxCat"
+    echo "Delete SxCat configuration and instance"
+    rm -rf /srv/sxcat/ /etc/sxcat/
+
     # remove packages
     ngeo_uninstall
 
@@ -876,6 +932,7 @@ ngeo_status() {
     ngeo_check_rpm_status ngEO_Browse_Server
     ngeo_check_rpm_status EOxServer
     ngeo_check_rpm_status mapcache
+    ngeo_check_rpm_status sxcat
 }
 
 

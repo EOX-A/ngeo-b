@@ -11,8 +11,8 @@
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
-# copies of the Software, and to permit persons to whom the Software is 
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
 # The above copyright notice and this permission notice shall be included in all
@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 def decode_browse_layers(browse_layers_elem, config=None):
     logger.info("Start decoding browse layer.")
-    
+
     config = config or get_ngeo_config()
     timedimension_default = safe_get(
         config, "mapcache", "timedimension_default", "2014"
@@ -48,39 +48,43 @@ def decode_browse_layers(browse_layers_elem, config=None):
     tile_query_limit_default = safe_get(
         config, "mapcache", "tile_query_limit_default", "100"
     )
-    
+
     browse_layers = []
     for browse_layer_elem in browse_layers_elem.findall(ns_cfg("browseLayer")):
-    
+
         opt = {
             "strategy": "inherit"
         }
         description_elem = browse_layer_elem.find(ns_cfg("description"))
         if description_elem is not None:
             opt["description"] = description_elem.text or ""
-        
+
         related_dataset_ids_elem = browse_layer_elem.find(ns_cfg("relatedDatasetIds"))
         related_dataset_ids = [elem.text for elem in related_dataset_ids_elem]
-        
+
         rgb_bands_elem = browse_layer_elem.find(ns_cfg("rgbBands"))
         if rgb_bands_elem is not None:
             r, g, b = map(int, rgb_bands_elem.text.split(","))
             opt["r_band"] = r; opt["g_band"] = g; opt["b_band"] = b
-        
+
         radiometric_interval_elem = browse_layer_elem.find(ns_cfg("radiometricInterval"))
         if radiometric_interval_elem is not None:
             opt["radiometric_interval_min"] = int(radiometric_interval_elem.find(ns_cfg("min")).text)
             opt["radiometric_interval_max"] = int(radiometric_interval_elem.find(ns_cfg("max")).text)
-        
+
         strategy_elem = browse_layer_elem.find(ns_cfg("strategy"))
         if strategy_elem is not None:
             opt["strategy"] = strategy_elem.text
+
+        harvesting_source_elem = browse_layer_elem.find(ns_cfg("harvestingSource"))
+        if harvesting_source_elem is not None:
+            opt["harvesting_source"] = harvesting_source_elem.text
 
         opt["timedimension_default"] = browse_layer_elem.findtext(
             ns_cfg("timeDimensionDefault")
         ) or timedimension_default
         opt["tile_query_limit"] = int(
-            browse_layer_elem.findtext(ns_cfg("tileQueryLimit")) 
+            browse_layer_elem.findtext(ns_cfg("tileQueryLimit"))
             or tile_query_limit_default
         )
 
@@ -97,7 +101,7 @@ def decode_browse_layers(browse_layers_elem, config=None):
             related_dataset_ids,
             **opt
         ))
-    
+
     return browse_layers
 
 

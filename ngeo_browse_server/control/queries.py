@@ -54,6 +54,9 @@ from ngeo_browse_server.mapcache.config import (
     get_mapcache_seed_config, get_tileset_path
 )
 from ngeo_browse_server.mapcache.exceptions import LayerException
+from ngeo_browse_server.sxcat.tasks import (
+    add_collection, disable_collection, remove_collection
+)
 from ngeo_browse_server.exceptions import NGEOException
 
 
@@ -539,6 +542,17 @@ def add_browse_layer(browse_layer, config=None):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
+    # create SxCat collection if harvesting via SxCat is enabled and source
+    # is given
+    harvesting_via_sxcat = False
+    try:
+        harvesting_via_sxcat = config.getboolean("control",
+                                                 "harvesting_via_sxcat")
+    except:
+        pass
+    if harvesting_via_sxcat and browse_layer.harvesting_source:
+        add_collection(browse_layer)
+
 
 def update_browse_layer(browse_layer, config=None):
     config = config or get_ngeo_config()
@@ -555,7 +569,7 @@ def update_browse_layer(browse_layer, config=None):
     immutable_values = (
         "id", "browse_type", "contains_vertical_curtains", "r_band", "g_band",
         "b_band", "radiometric_interval_min", "radiometric_interval_max",
-        "grid", "lowest_map_level", "highest_map_level"
+        "grid", "lowest_map_level", "highest_map_level", "harvesting_source"
     )
     for key in immutable_values:
         if getattr(browse_layer_model, key) != getattr(browse_layer, key):
@@ -613,6 +627,18 @@ def update_browse_layer(browse_layer, config=None):
         except LayerException:
             logger.info("Nothing to be removed. Layer disabled?")
         add_mapcache_layer_xml(browse_layer, config)
+
+    # re-configure SxCat harvesting for collection
+    harvesting_via_sxcat = False
+    try:
+        harvesting_via_sxcat = config.getboolean("control",
+                                                 "harvesting_via_sxcat")
+    except:
+        pass
+    if (harvesting_via_sxcat and browse_layer.harvesting_source and
+       browse_layer.harvesting_source == browse_layer_model.harvesting_source):
+        add_collection(browse_layer)
+
     logger.info("Finished updating browse layer '%s'." % browse_layer.id)
 
 
@@ -631,6 +657,16 @@ def delete_browse_layer(browse_layer, purge=False, config=None):
 
     # remove browse layer from MapCache XML
     remove_mapcache_layer_xml(browse_layer, config)
+
+    # disable SxCat harvesting for collection
+    harvesting_via_sxcat = False
+    try:
+        harvesting_via_sxcat = config.getboolean("control",
+                                                 "harvesting_via_sxcat")
+    except:
+        pass
+    if harvesting_via_sxcat and browse_layer.harvesting_source:
+        disable_collection(browse_layer)
 
     logger.info("Finished disabling of browse layer '%s'." % browse_layer.id)
 
@@ -687,5 +723,8 @@ def delete_browse_layer(browse_layer, purge=False, config=None):
                 "Could not remove directory for optimized files: '%s'."
                 % optimized_dir
             )
+
+        if harvesting_via_sxcat and browse_layer.harvesting_source:
+            remove_collection(browse_layer)
 
         logger.info("Finished purging of browse layer '%s'." % browse_layer.id)

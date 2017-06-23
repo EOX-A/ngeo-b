@@ -1,0 +1,76 @@
+#-------------------------------------------------------------------------------
+#
+# Project: ngEO Browse Server <http://ngeo.eox.at>
+# Authors: Stephan Meissl <stephan.meissl@eox.at>
+#
+#-------------------------------------------------------------------------------
+# Copyright (C) 2017 European Space Agency
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies of this Software or works derived from this Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Steps to migrate ngEO_Browse_Server version <2.0.31 to 3.0.0
+#-------------------------------------------------------------------------------
+# The steps assume a default installation and configuration as for
+# example provided via the `ngeo-install.sh` script.
+
+# adjust the UNIQUE constraint on the config_browse table
+psql -U ngeo_user ngeo_browse_server_db -c 'ALTER TABLE "config_browselayer" ADD COLUMN "harvesting_source" varchar(1024);'
+
+# Optional: Install and configure SxCat for harvesting browses:
+
+    yum install -y python-pyspatialite-eox
+    yum install -y sxcat-*.rpm
+
+    echo "Configuring SxCat and starting harvestd daemon"
+    cat << EOF >> /etc/sxcat/catalogue/catalogue.conf
+
+[browse_reports]
+enabled = true
+use_footprint = true
+EOF
+
+    # change ownership to apache
+    chown -R apache:apache /srv/sxcat/ /var/log/sxcat/ /etc/sxcat
+
+    # change user/group to apache in /etc/logrotate.d/sxcat
+    sed -e "/create 0640 sxcat sxcat/s/sxcat/apache/g" -i /etc/logrotate.d/sxcat
+
+    # change user to apache in /etc/init.d/harvestd
+    sed -e "/^USER=/s/sxcat/apache/" -i /etc/init.d/harvestd
+
+    # empty apache configuration of SxCat
+    rm -f /etc/httpd/conf.d/sxcat.conf /etc/httpd/conf.d/mod_qos.conf
+    touch /etc/httpd/conf.d/sxcat.conf /etc/httpd/conf.d/mod_qos.conf
+    service httpd restart
+
+    # Permanently start ntpd and harvestd
+    chkconfig ntpd on
+    chkconfig harvestd on
+    # start ntpd and harvestd
+    service ntpd start
+    service harvestd start
+
+    # Configure the browse server config file and set the
+    # [control] `harvesting_via_sxcat` setting to true or false. Default is false.
+    sudo vim /var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/conf/ngeo.conf
+    ​
+# restart the httpd daemon
+sudo service httpd restart

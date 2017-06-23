@@ -103,6 +103,9 @@ class BrowseLayer(models.Model):
         )
     )
 
+    # source for harvesting via SxCat
+    harvesting_source = models.CharField(max_length=1024, null=True, blank=True)
+
     # for mapache timedimension default
     timedimension_default = models.CharField(max_length=64)
 
