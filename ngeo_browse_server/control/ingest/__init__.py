@@ -30,7 +30,8 @@
 import sys
 from os import remove, makedirs, rmdir
 from os.path import (
-    exists, dirname, join, isdir, samefile, commonprefix, abspath, relpath
+    exists, dirname, join, isdir, samefile, commonprefix, abspath, relpath,
+    basename
 )
 import shutil
 from numpy import arange
@@ -39,9 +40,11 @@ import traceback
 from datetime import datetime
 import string
 import uuid
+from urllib2 import urlopen, URLError, HTTPError
 
 from django.conf import settings
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from django.core.validators import URLValidator
 from django.db import transaction
 from django.template.loader import render_to_string
 from eoxserver.core.system import System
@@ -61,7 +64,7 @@ from ngeo_browse_server.config.browsereport.decoding import (
 from ngeo_browse_server.config.browsereport import data
 from ngeo_browse_server.control.ingest.result import (
     IngestBrowseReportResult, IngestBrowseResult, IngestBrowseReplaceResult,
-    IngestBrowseFailureResult
+    IngestBrowseSkipResult, IngestBrowseFailureResult
 )
 from ngeo_browse_server.control.ingest.config import (
     get_project_relative_path, get_storage_path, get_optimized_path,
@@ -339,11 +342,39 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
     leave_original = False
     try:
         leave_original = config.getboolean("control.ingest", "leave_original")
-    except: pass
+    except:
+        pass
 
     # get the input and output filenames
     storage_path = get_storage_path()
-    input_filename = abspath(get_storage_path(parsed_browse.file_name, config=config))
+    # if file_name is a URL download browse first and store it locally
+    validate = URLValidator()
+    try:
+        validate(parsed_browse.file_name)
+        input_filename = abspath(get_storage_path(
+            basename(parsed_browse.file_name), config=config))
+        logger.info("URL given, downloading browse image from '%s' to '%s'."
+                    % (parsed_browse.file_name, input_filename))
+        if not exists(input_filename):
+            try:
+                remote_browse = urlopen(parsed_browse.file_name)
+                with open(input_filename, "wb") as local_browse:
+                    local_browse.write(remote_browse.read())
+            except HTTPError, e:
+                raise IngestionException("HTTP error downloading '%s': %s"
+                                         % (parsed_browse.file_name, e.code))
+            except URLError, e:
+                raise IngestionException("URL error downloading '%s': %s"
+                                         % (parsed_browse.file_name, e.reason))
+        else:
+            raise IngestionException("File do download already exists locally "
+                                     "as '%s'" % input_filename)
+
+    except ValidationError:
+        input_filename = abspath(get_storage_path(parsed_browse.file_name,
+                                                  config=config))
+        logger.info("Filename given, using local browse image '%s'."
+                    % input_filename)
 
     # check that the input filename is valid -> somewhere under the storage dir
     if commonprefix((input_filename, storage_path)) != storage_path:
@@ -356,16 +387,20 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
 
     # Get filename to store preprocessed image
     output_filename = "%s_%s" % (uuid.uuid4().hex, parsed_browse.file_name)
-    output_filename = _valid_path(get_optimized_path(output_filename,
-                                                     browse_layer.id + "/" + str(parsed_browse.start_time.year),
-                                                     config=config))
+    output_filename = _valid_path(
+        get_optimized_path(
+            output_filename, browse_layer.id + "/" +
+            str(parsed_browse.start_time.year), config=config
+        )
+    )
     output_filename = preprocessor.generate_filename(output_filename)
 
     try:
         ingest_config = get_ingest_config(config)
 
-        # check if a browse already exists and delete it in order to replace it
-        existing_browse_model = get_existing_browse(parsed_browse.browse_identifier, coverage_id, browse_layer.id)
+        # check if a browse already exists and decide how to deal with it
+        existing_browse_model = get_existing_browse(
+            parsed_browse.browse_identifier, coverage_id, browse_layer.id)
 
         if existing_browse_model:
             previous_time = existing_browse_model.browse_report.date_time
@@ -401,6 +436,11 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                 )
                 replaced = False
                 logger.debug("Existing browse found, merging it.")
+
+            elif strategy == "skip" and current_time <= previous_time:
+                logger.debug("Existing browse found and not older, skipping.")
+                return IngestBrowseSkipResult(parsed_browse.browse_identifier)
+
             else:
                 # perform replacement
 
@@ -415,7 +455,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                 logger.info("Existing browse found, replacing it.")
 
         else:
-            # A browse with that identifier does not exist, so just create a new one
+            # A browse with that identifier does not exist, so create a new one
             logger.info("Creating new browse.")
 
         # assert that the output file does not exist (unless it is a to-be
@@ -436,9 +476,11 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                                              % input_filename)
 
                 clipping = None
-                if parsed_browse.geo_type == "regularGridBrowse" and \
-                        ingest_config["regular_grid_clipping"]:
-                        #TODO: get clipping
+                if (parsed_browse.geo_type == "regularGridBrowse" and
+                    ingest_config["regular_grid_clipping"]) or \
+                    (parsed_browse.geo_type == "footprintBrowse" and
+                     ("ncol" in parsed_browse.col_row_list or
+                      "nrow" in parsed_browse.col_row_list)):
                     clipping = _get_clipping(input_filename)
 
                 # initialize a GeoReference for the preprocessor
@@ -574,6 +616,11 @@ def _georef_from_parsed(parsed_browse, clipping=None):
     elif parsed_browse.geo_type == "footprintBrowse":
         # Generate GCPs from footprint coordinates
         pixels = decode_coord_list(parsed_browse.col_row_list)
+        # substitute ncol and nrow with image size
+        if clipping:
+            clip_x, clip_y = clipping
+            pixels[:] = [(clip_x if x == "ncol" else x, clip_y if y == "nrow"
+                         else y) for x, y in pixels]
         coord_list = decode_coord_list(parsed_browse.coord_list, swap_axes)
 
         if _coord_list_crosses_dateline(coord_list, CRS_BOUNDS[srid]):

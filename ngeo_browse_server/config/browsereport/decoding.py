@@ -55,10 +55,11 @@ def pairwise_iterative(iterable):
 
 
 def decode_coord_list(coord_list, swap_axes=False):
+    coords = list(pairwise(map(lambda x: x if x in ["ncol", "nrow"]
+                               else float(x), coord_list.split())))
     if not swap_axes:
-        return list(pairwise(map(float, coord_list.split())))
+        return coords
     else:
-        coords = list(pairwise(map(float, coord_list.split())))
         return [(x, y) for (y, x) in coords]
 
 

@@ -98,6 +98,7 @@ class BrowseLayer(models.Model):
         choices=(
             ("replace", "replace"),
             ("merge", "merge"),
+            ("skip", "skip"),
             ("inherit", "inherit")
         )
     )

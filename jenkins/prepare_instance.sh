@@ -75,6 +75,10 @@ sed -e "s/#from sys import argv/from sys import argv/" -i ngeo_browse_server_ins
 sed -e "s/#if 'test' in argv:/if 'test' in argv:/" -i ngeo_browse_server_instance/settings.py
 sed -e "s/#    DEFAULT_TABLESPACE = 'ramfs'/    DEFAULT_TABLESPACE = 'ramfs'/" -i ngeo_browse_server_instance/settings.py
 
+#mount ramfs on /mnt via fstab: "none /mnt tmpfs mode=1777 0 0"
+mkdir -p /mnt/pgdata/
+chmod 0777 /mnt/pgdata/
+
 # Configure instance
 sed -e "s,http_service_url=http://localhost:8000/ows,http_service_url=$NGEOB_URL$APACHE_NGEO_BROWSE_ALIAS/ows," -i ngeo_browse_server_instance/conf/eoxserver.conf
 MAPCACHE_DIR_ESCAPED=`echo $MAPCACHE_DIR | sed -e 's/\//\\\&/g'`
