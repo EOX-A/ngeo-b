@@ -1,0 +1,68 @@
+#!/bin/bash
+##############################################################################
+# @maintained by: EOX IT Services GmbH
+# @project ngEO-Light
+# @version 1.0
+# @date 2017-06-29
+# @purpose ngEO service script to ingest harvested browse reports
+#          To be placed in /etc/init.d
+##############################################################################
+### BEGIN INIT INFO
+# Provides: browsewatchd service
+# Required-Start: $local_fs $network ngeo
+# Required-Stop: $local_fs $network ngeo
+# Default-Start: 2 3 5
+# Default-Stop: 0 1 4 6
+# Short-Description: ngEO service script to ingest harvested browse reports
+# Description: To start, stop, restart browse watching
+### END INIT INFO
+
+
+# Source function library.
+. /etc/init.d/functions
+
+SERVICE="browsewatchd"
+PIDFILE="/var/run/${SERVICE}.pid"
+LOCKFILE="/var/lock/subsys/$SERVICE"
+CONSOLE_LOG="/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/logs/${SERVICE}.log"
+USER="apache"
+
+COMMAND="runuser -s /bin/bash $USER -c 'ulimit -S -c 0 &>/dev/null ; nohup browsewatch.sh 0<&- &>>$CONSOLE_LOG & echo \$!' > $PIDFILE"
+
+start() {
+  echo -n $"starting $SERVICE: "
+  daemon --pidfile="$PIDFILE" "$COMMAND"
+  RETVAL="$?"
+  echo
+  [ "$RETVAL" -eq 0 ] && touch "$LOCKFILE"
+  return "$RETVAL"
+}
+
+stop() {
+  echo -n $"stopping $SERVICE: "
+  killproc -p "$PIDFILE" "$SERVICE"
+  RETVAL="$?"
+  echo
+  [ "$RETVAL" -eq 0 ] && rm -f "$LOCKFILE"
+  return "$RETVAL"
+}
+
+case "$1" in
+  start)
+    start
+  ;;
+  stop)
+    stop
+  ;;
+  status)
+    status -p "$PIDFILE" "$SERVICE"
+  ;;
+  restart)
+    stop
+    start
+  ;;
+  *)
+    echo "Usage: $SERVICE {start|stop|status|restart"
+    exit 1
+  ;;
+esac

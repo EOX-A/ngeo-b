@@ -631,10 +631,15 @@ EOF
 
     echo "Performing installation step 260"
     # Configure Browse Server as service "ngeo"
-    cp ngeo /etc/init.d/
-    chkconfig --level 235 ngeo on
-    chmod +x /etc/init.d/ngeo
-    service ngeo start
+    if [ -f ngeo ] ; then
+        echo "Adding, enabling, and starting ngeo service"
+        cp ngeo /etc/init.d/
+        chkconfig --level 235 ngeo on
+        chmod +x /etc/init.d/ngeo
+        service ngeo start
+    else
+        echoe "Necessary ngeo service script not found. Please provide and restart installation."
+    fi
 
     echo "Performing installation step 270"
     # Configure logrotate for ngeo log files
@@ -698,7 +703,7 @@ EOF
     # Install and configure SxCat if available
     if [ -f sxcat-*.rpm ] ; then
         echo "Installing local SxCat RPM `ls sxcat-*.rpm`"
-        yum install -y python-pyspatialite-eox
+        yum install -y python-pyspatialite-eox inotify-tools
         yum install -y sxcat-*.rpm
 
         echo "Configuring SxCat and starting harvestd daemon"
@@ -733,6 +738,44 @@ EOF
         # enable harvesting in ngEO_Browse_Server
         cd "${NGEOB_INSTALL_DIR}/ngeo_browse_server_instance"
         sed -e "s/^#harvesting_via_sxcat=false/harvesting_via_sxcat=true/" -i ngeo_browse_server_instance/conf/ngeo.conf
+        cd -
+
+        # add browsewatch
+        mkdir -p /srv/sxcat/collections/tmp/browse_reports/
+
+        # add browsewatchd daemon
+        if [ -f browsewatchd ] ; then
+            echo "Adding, enabling, and starting browsewatchd service"
+            cp browsewatchd /etc/init.d/
+            chkconfig browsewatchd on
+            chmod +x /etc/init.d/browsewatchd
+            service browsewatchd start
+
+            # allow user apache to restart browsewatchd
+            cat << EOF > /etc/sudoers.d/browsewatchd
+# Allow user apache to restart browsewatchd
+Cmnd_Alias BROWSEWATCHD = /sbin/service browsewatchd restart
+%apache ALL=(root) NOPASSWD: BROWSEWATCHD
+EOF
+
+            cat << EOF > /etc/logrotate.d/browsewatchd
+${NGEOB_LOG_DIR}/browsewatchd.log {
+    daily
+    rotate 14
+    dateext
+    missingok
+    notifempty
+    delaycompress
+    compress
+    postrotate
+        /sbin/service browsewatchd restart > /dev/null 2>/dev/null || true
+    endscript
+}
+EOF
+
+        else
+            echo "Necessary browsewatchd service script not found. Please provide and restart installation."
+        fi
 
     else
         echo "Not installing SxCat as it is not provided locally"
@@ -799,6 +842,13 @@ ngeo_uninstall() {
     fi
     if [ -f /etc/init.d/memcached ] ; then
         chkconfig memcached off
+    fi
+
+    if [ -f /etc/init.d/browsewatchd ] ; then
+        service browsewatchd stop
+
+        echo "Delete service browsewatchd"
+        rm -f /etc/init.d/browsewatchd
     fi
 
     echo "Performing uninstallation step 110"

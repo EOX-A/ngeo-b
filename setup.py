@@ -66,7 +66,8 @@ setup(
     include_package_data=True,
     scripts=[
         "tools/request_authorization.py",
-        "tools/download-ers.sh"
+        "tools/download-ers.sh",
+        "tools/browsewatch.sh"
     ],
 
     install_requires=[

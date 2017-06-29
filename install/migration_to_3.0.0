@@ -31,12 +31,14 @@
 # The steps assume a default installation and configuration as for
 # example provided via the `ngeo-install.sh` script.
 
-# adjust the UNIQUE constraint on the config_browse table
+
+# add column harvesting_source to table config_browselayer
 psql -U ngeo_user ngeo_browse_server_db -c 'ALTER TABLE "config_browselayer" ADD COLUMN "harvesting_source" varchar(1024);'
+
 
 # Optional: Install and configure SxCat for harvesting browses:
 
-    yum install -y python-pyspatialite-eox
+    yum install -y python-pyspatialite-eox inotify-tools
     yum install -y sxcat-*.rpm
 
     echo "Configuring SxCat and starting harvestd daemon"
@@ -71,6 +73,42 @@ EOF
     # Configure the browse server config file and set the
     # [control] `harvesting_via_sxcat` setting to true or false. Default is false.
     sudo vim /var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/conf/ngeo.conf
+
+    # add browsewatch
+    mkdir -p /srv/sxcat/collections/tmp/browse_reports/
+
+    # add browsewatchd daemon from https://raw.githubusercontent.com/EOX-A/ngeo-b/branch-3-0/install/browsewatchd
+    cp browsewatchd /etc/init.d/
+    chkconfig browsewatchd on
+    chmod +x /etc/init.d/browsewatchd
+    service browsewatchd start
+
+    # allow user apache to restart browsewatchd
+    cat << EOF >> /etc/sudoers.d/browsewatchd
+# Allow user apache to restart browsewatchd
+Cmnd_Alias BROWSEWATCHD = /sbin/service browsewatchd restart
+%apache ALL=(root) NOPASSWD: BROWSEWATCHD
+EOF
+
+    cat << EOF > /etc/logrotate.d/browsewatchd
+/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/logs/browsewatchd.log {
+    daily
+    rotate 14
+    dateext
+    missingok
+    notifempty
+    delaycompress
+    compress
+    postrotate
+        /sbin/service browsewatchd restart > /dev/null 2>/dev/null || true
+    endscript
+}
+EOF
+
+
+# extend ngeo service
+# the content of /etc/init.d/ngeo should be the same as here https://raw.githubusercontent.com/EOX-A/ngeo-b/branch-3-0/install/ngeo
+
     ​
 # restart the httpd daemon
 sudo service httpd restart

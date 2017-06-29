@@ -56,6 +56,7 @@ ngeo_start() {
     if [ -f /etc/init.d/harvestd ] ; then
         service ntpd start
         service harvestd start
+        service browsewatchd start
     fi
 
 }
@@ -73,6 +74,7 @@ ngeo_stop() {
     if [ -f /etc/init.d/harvestd ] ; then
         service ntpd stop
         service harvestd stop
+        service browsewatchd stop
     fi
 }
 
@@ -87,6 +89,7 @@ ngeo_status() {
     if [ -f /etc/init.d/harvestd ] ; then
         service ntpd status
         service harvestd status
+        service browsewatchd status
     fi
 }
 
