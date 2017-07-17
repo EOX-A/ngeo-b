@@ -749,7 +749,6 @@ EOF
             cp browsewatchd /etc/init.d/
             chkconfig browsewatchd on
             chmod +x /etc/init.d/browsewatchd
-            service browsewatchd start
 
             # allow user apache to restart browsewatchd
             cat << EOF > /etc/sudoers.d/browsewatchd
@@ -757,6 +756,7 @@ EOF
 Cmnd_Alias BROWSEWATCHD = /sbin/service browsewatchd restart
 %apache ALL=(root) NOPASSWD: BROWSEWATCHD
 EOF
+            sudo -H -u apache bash -c 'sudo /sbin/service browsewatchd start'
 
             cat << EOF > /etc/logrotate.d/browsewatchd
 ${NGEOB_LOG_DIR}/browsewatchd.log {
