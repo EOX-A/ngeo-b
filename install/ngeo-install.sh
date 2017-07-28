@@ -756,7 +756,7 @@ EOF
 Cmnd_Alias BROWSEWATCHD = /sbin/service browsewatchd restart
 %apache ALL=(root) NOPASSWD: BROWSEWATCHD
 EOF
-            sudo -H -u apache bash -c 'sudo /sbin/service browsewatchd start'
+            sudo -H -u apache bash -c 'sudo /sbin/service browsewatchd restart'
 
             cat << EOF > /etc/logrotate.d/browsewatchd
 ${NGEOB_LOG_DIR}/browsewatchd.log {
