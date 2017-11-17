@@ -737,6 +737,11 @@ ngeo_uninstall() {
     echo "Delete extra Yum repositories"
     yum erase -y epel-release elgis-release eox-release
 
+    # Remove exclude from CentOS-Base
+    if grep -Fxq "exclude=libxml2 libxml2-python libxerces-c-3_1" /etc/yum.repos.d/CentOS-Base.repo ; then
+        sed -e '/exclude=libxml2 libxml2-python libxerces-c-3_1/d' -i /etc/yum.repos.d/CentOS-Base.repo
+    fi
+
     echo "Performing uninstallation step 100"
     echo "Stop Apache HTTP server"
     if service httpd status ; then
