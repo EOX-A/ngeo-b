@@ -7,7 +7,6 @@ yum update -y
 cd "/var/ngeob/install/local_packages"
 yum install -y Django14-1.4.21-1.el6.noarch.rpm \
                geos-3.3.8-2.el6.x86_64.rpm \
-               libgeotiff-1.4.0-1.el6.x86_64.rpm \
                libspatialite-2.4.0-0.6_0.RC4.el6.x86_64.rpm \
                libtiff4-4.0.3-1.el6.x86_64.rpm \
                postgis-1.5.8-1.el6.x86_64.rpm \
