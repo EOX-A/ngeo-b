@@ -189,9 +189,17 @@ EOF
     rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-6
 
     echo "Performing installation step 100"
-    # ELGIS
-    rpm -Uvh --replacepkgs http://elgis.argeo.org/repos/6/elgis-release-6-6_0.noarch.rpm
-    rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-ELGIS
+    # Local packages
+    cd "local_packages"
+    yum install -y Django14-1.4.21-1.el6.noarch.rpm \
+                   geos-3.3.8-2.el6.x86_64.rpm \
+                   libgeotiff-1.4.0-1.el6.x86_64.rpm \
+                   libspatialite-2.4.0-0.6_0.RC4.el6.x86_64.rpm \
+                   libtiff4-4.0.3-1.el6.x86_64.rpm \
+                   postgis-1.5.8-1.el6.x86_64.rpm \
+                   proj-4.8.0-3.el6.x86_64.rpm \
+                   proj-epsg-4.8.0-3.el6.x86_64.rpm
+    cd -
 
     echo "Performing installation step 110"
     # Apply available upgrades
@@ -735,7 +743,7 @@ ngeo_uninstall() {
 
     echo "Performing uninstallation step 90"
     echo "Delete extra Yum repositories"
-    yum erase -y epel-release elgis-release eox-release
+    yum erase -y epel-release eox-release
 
     # Remove exclude from CentOS-Base
     if grep -Fxq "exclude=libxml2 libxml2-python libxerces-c-3_1" /etc/yum.repos.d/CentOS-Base.repo ; then
