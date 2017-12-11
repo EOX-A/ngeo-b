@@ -112,7 +112,7 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
         "-D", "TIME=%sZ/%sZ" % (start_time.isoformat(), end_time.isoformat()),
         "-m", "seed" if not delete else "delete",
         "-q",
-        "-M", "8,8",
+        "-M", "1,1",
     ]
     if not delete and force:
         seed_args.append("-f")
