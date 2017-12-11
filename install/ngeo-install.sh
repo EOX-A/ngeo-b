@@ -189,9 +189,6 @@ EOF
     rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-6
 
     echo "Performing installation step 100"
-    # ELGIS
-    rpm -Uvh --replacepkgs http://elgis.argeo.org/repos/6/elgis-release-6-6_0.noarch.rpm
-    rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-ELGIS
 
     echo "Performing installation step 110"
     # Apply available upgrades
@@ -199,7 +196,16 @@ EOF
 
     echo "Performing installation step 120"
     # Install packages
-    yum install -y postgis Django14 proj-epsg
+    # Local packages
+    cd "local_packages"
+    yum install -y Django14-1.4.21-1.el6.noarch.rpm \
+                   geos-3.3.8-2.el6.x86_64.rpm \
+                   libspatialite-2.4.0-0.6_0.RC4.el6.x86_64.rpm \
+                   libtiff4-4.0.3-1.el6.x86_64.rpm \
+                   postgis-1.5.8-1.el6.x86_64.rpm \
+                   proj-4.8.0-3.el6.x86_64.rpm \
+                   proj-epsg-4.8.0-3.el6.x86_64.rpm
+    cd -
 
 
     #------------------------
@@ -505,6 +511,11 @@ EOF
             sed -e 's/^KeepAliveTimeout .*$/KeepAliveTimeout 5/' -i /etc/httpd/conf/httpd.conf
         fi
 
+        # Enlarge timeout setting for ingestion of full resolution images
+        if ! grep -Fxq "Timeout 1800" /etc/httpd/conf/httpd.conf ; then
+            sed -e 's/^Timeout .*$/Timeout 1800/' -i /etc/httpd/conf/httpd.conf
+        fi
+
         echo "More performance tuning of apache is needed. Specifically the settings of the prefork module!"
         echo "A sample configuration could look like the following."
         cat << EOF
@@ -546,7 +557,7 @@ EOF
     Alias /static "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/static"
     Alias $APACHE_NGEO_BROWSE_ALIAS "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/wsgi.py"
 
-    WSGIDaemonProcess ngeob processes=10 threads=1
+    WSGIDaemonProcess ngeob processes=10 threads=1 deadlock-timeout=1800 shutdown-timeout=1800
     <Directory "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance">
         AllowOverride None
         Options -Indexes +ExecCGI -MultiViews +SymLinksIfOwnerMatch
@@ -749,7 +760,6 @@ EOF
             cp browsewatchd /etc/init.d/
             chkconfig browsewatchd on
             chmod +x /etc/init.d/browsewatchd
-            service browsewatchd start
 
             # allow user apache to restart browsewatchd
             cat << EOF > /etc/sudoers.d/browsewatchd
@@ -757,6 +767,7 @@ EOF
 Cmnd_Alias BROWSEWATCHD = /sbin/service browsewatchd restart
 %apache ALL=(root) NOPASSWD: BROWSEWATCHD
 EOF
+            sudo -H -u apache bash -c 'sudo /sbin/service browsewatchd restart'
 
             cat << EOF > /etc/logrotate.d/browsewatchd
 ${NGEOB_LOG_DIR}/browsewatchd.log {
@@ -821,7 +832,12 @@ ngeo_uninstall() {
 
     echo "Performing uninstallation step 90"
     echo "Delete extra Yum repositories"
-    yum erase -y epel-release elgis-release eox-release
+    yum erase -y epel-release eox-release
+
+    # Remove exclude from CentOS-Base
+    if grep -Fxq "exclude=libxml2 libxml2-python libxerces-c-3_1" /etc/yum.repos.d/CentOS-Base.repo ; then
+        sed -e '/exclude=libxml2 libxml2-python libxerces-c-3_1/d' -i /etc/yum.repos.d/CentOS-Base.repo
+    fi
 
     echo "Performing uninstallation step 100"
     echo "Stop Apache HTTP server"

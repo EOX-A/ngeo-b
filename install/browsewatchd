@@ -40,6 +40,7 @@ start() {
 
 stop() {
   echo -n $"stopping $SERVICE: "
+  [ -f $PIDFILE ] && pkill -P `cat $PIDFILE`
   killproc -p "$PIDFILE" "$SERVICE"
   RETVAL="$?"
   echo
