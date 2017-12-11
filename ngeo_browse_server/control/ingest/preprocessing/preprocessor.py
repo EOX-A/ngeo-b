@@ -94,6 +94,7 @@ class NGEOPreProcessor(WMSPreProcessor):
                 cleanup_temp(ds)
                 raise
 
+
         # generate the footprint from the dataset
         if not footprint_wkt:
             logger.debug("Generating footprint.")
@@ -104,7 +105,6 @@ class NGEOPreProcessor(WMSPreProcessor):
             tmp_extent = getExtentFromRectifiedDS(ds)
             tmp_bbox = Polygon.from_bbox((tmp_extent[0], tmp_extent[1],
                                           tmp_extent[2], tmp_extent[3]))
-
             # transform image bbox to EPSG:4326 if necessary
             proj = ds.GetProjection()
             srs = osr.SpatialReference()
@@ -127,6 +127,8 @@ class NGEOPreProcessor(WMSPreProcessor):
 
             tmp_footprint = GEOSGeometry(footprint_wkt)
             if not tmp_bbox.contains(tmp_footprint):
+                logger.debug("Re-generating footprint because not inside of "
+                             "generated image.")
                 footprint_wkt = tmp_footprint.intersection(tmp_bbox).wkt
 
         if self.footprint_alpha:
@@ -228,6 +230,110 @@ class NGEOPreProcessor(WMSPreProcessor):
         final_ds = None
 
         return PreProcessResult(output_filename, footprint, num_bands)
+
+
+    def _generate_footprint_wkt(self, ds):
+        """ Generate a footprint from a raster, using black/no-data as exclusion
+        """
+
+        # create an empty boolean array initialized as 'False' to store where
+        # values exist as a mask array.
+        nodata_map = numpy.zeros((ds.RasterYSize, ds.RasterXSize),
+                                 dtype=numpy.bool)
+
+        for idx in range(1, ds.RasterCount + 1):
+            band = ds.GetRasterBand(idx)
+            raster_data = band.ReadAsArray()
+            nodata = band.GetNoDataValue()
+
+            if nodata is None:
+                nodata = 0
+
+            # apply the output to the map
+            nodata_map |= (raster_data != nodata)
+
+        # create a temporary in-memory dataset and write the nodata mask
+        # into its single band
+        tmp_ds = create_mem(ds.RasterXSize + 2, ds.RasterYSize + 2, 1,
+                            gdal.GDT_Byte)
+        copy_projection(ds, tmp_ds)
+        tmp_band = tmp_ds.GetRasterBand(1)
+        tmp_band.WriteArray(nodata_map.astype(numpy.uint8))
+        # Remove areas that are smaller than 16 pixels
+        gdal.SieveFilter(tmp_band, None, tmp_band, 16, 4)
+
+        # create an OGR in memory layer to hold the created polygon
+        sr = osr.SpatialReference()
+        sr.ImportFromWkt(ds.GetProjectionRef())
+        ogr_ds = ogr.GetDriverByName('Memory').CreateDataSource('out')
+        layer = ogr_ds.CreateLayer('poly', sr, ogr.wkbPolygon)
+        fd = ogr.FieldDefn('DN', ogr.OFTInteger)
+        layer.CreateField(fd)
+
+        # polygonize the mask band and store the result in the OGR layer
+        gdal.Polygonize(tmp_band, tmp_band, layer, 0)
+
+        tmp_ds = None
+
+        if layer.GetFeatureCount() > 1:
+            # if there is more than one polygon, compute the minimum
+            # bounding polygon
+            logger.debug("Merging %s features in footprint."
+                         % layer.GetFeatureCount())
+
+            # union all features in one multi-polygon
+            geometry = ogr.Geometry(ogr.wkbMultiPolygon)
+            while True:
+                feature = layer.GetNextFeature()
+                if not feature:
+                    break
+                geometry.AddGeometry(feature.GetGeometryRef())
+            geometry = geometry.UnionCascaded()
+
+            # TODO: improve this for a better minimum bounding polygon
+            geometry = geometry.ConvexHull()
+
+        elif layer.GetFeatureCount() < 1:
+            # there was an error during polygonization
+            raise RuntimeError("Error during polygonization. No feature "
+                               "obtained.")
+        else:
+            # obtain geometry from the first (and only) layer
+            feature = layer.GetNextFeature()
+            geometry = feature.GetGeometryRef()
+
+        if geometry.GetGeometryType() != ogr.wkbPolygon:
+            raise RuntimeError("Error during polygonization. Wrong geometry "
+                               "type: %s" % ogr.GeometryTypeToName(
+                                    geometry.GetGeometryType()))
+
+        # check if reprojection to latlon is necessary
+        if not sr.IsGeographic():
+            dst_sr = osr.SpatialReference()
+            dst_sr.ImportFromEPSG(4326)
+            try:
+                geometry.TransformTo(dst_sr)
+            except RuntimeError:
+                geometry.Transform(osr.CoordinateTransformation(sr, dst_sr))
+
+        gt = ds.GetGeoTransform()
+        resolution = min(abs(gt[1]), abs(gt[5]))
+
+        simplification_value = self.simplification_factor * resolution
+
+        # simplify the polygon. the tolerance value is *really* vague
+        try:
+            # SimplifyPreserveTopology() available since OGR 1.9.0
+            geometry = geometry.SimplifyPreserveTopology(simplification_value)
+        except AttributeError:
+            # use GeoDjango bindings if OGR is too old
+            geometry = ogr.CreateGeometryFromWkt(
+                GEOSGeometry(geometry.ExportToWkt()).simplify(
+                    simplification_value, True
+                ).wkt
+            )
+
+        return geometry.ExportToWkt()
 
 
 class InternalGCPs(object):
