@@ -156,8 +156,9 @@ class BaseTestCaseMixIn(object):
         # storage_dir, success_dir, failure_dir, optimized_files_dir, and
         # seed_command are set automatically in setUp_files.
 
-        ("mapcache", "timedimension_default"): "2014",
-        ("mapcache", "tile_query_limit_default"): "100"
+        (SEED_SECTION, "timedimension_default"): "2014",
+        (SEED_SECTION, "tile_query_limit_default"): "100",
+        (SEED_SECTION, "threads"): "4",
     }
 
     configuration = {}
