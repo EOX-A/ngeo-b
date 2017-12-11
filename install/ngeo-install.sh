@@ -511,6 +511,11 @@ EOF
             sed -e 's/^KeepAliveTimeout .*$/KeepAliveTimeout 5/' -i /etc/httpd/conf/httpd.conf
         fi
 
+        # Enlarge timeout setting for ingestion of full resolution images
+        if ! grep -Fxq "Timeout 1800" /etc/httpd/conf/httpd.conf ; then
+            sed -e 's/^Timeout .*$/Timeout 1800/' -i /etc/httpd/conf/httpd.conf
+        fi
+
         echo "More performance tuning of apache is needed. Specifically the settings of the prefork module!"
         echo "A sample configuration could look like the following."
         cat << EOF
@@ -552,7 +557,7 @@ EOF
     Alias /static "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/static"
     Alias $APACHE_NGEO_BROWSE_ALIAS "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/wsgi.py"
 
-    WSGIDaemonProcess ngeob processes=10 threads=1
+    WSGIDaemonProcess ngeob processes=10 threads=1 deadlock-timeout=1800 shutdown-timeout=1800
     <Directory "$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance">
         AllowOverride None
         Options -Indexes +ExecCGI -MultiViews +SymLinksIfOwnerMatch
