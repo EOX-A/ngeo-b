@@ -11,6 +11,9 @@ sed -e 's/^#ServerName www.example.com:80$/ServerName ngeob-vagrant/' -i /etc/ht
 sed -e 's/^User apache$/User vagrant/' -i /etc/httpd/conf/httpd.conf
 sed -e 's/^Group apache$/Group vagrant/' -i /etc/httpd/conf/httpd.conf
 
+# Adjust timeout in /etc/httpd/conf/httpd.conf
+sed -e 's/^Timeout .*$/Timeout 1800/' -i /etc/httpd/conf/httpd.conf
+
 # Adjust owner of httpd run directory to the same user
 chown -f vagrant /var/run/httpd
 
