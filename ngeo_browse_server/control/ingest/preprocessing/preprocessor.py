@@ -51,7 +51,49 @@ from ngeo_browse_server.control.ingest.preprocessing.merge import (
 logger = logging.getLogger(__name__)
 
 
+# enum for bandmode
+RGB = range(3)
+
+
 class NGEOPreProcessor(WMSPreProcessor):
+
+    def __init__(self, format_selection, overviews=True, crs=None, bands=None,
+                 bandmode=RGB, footprint_alpha=False,
+                 color_index=False, palette_file=None, no_data_value=None,
+                 overview_resampling=None, overview_levels=None,
+                 overview_minsize=None, radiometric_interval_min=None,
+                 radiometric_interval_max=None, sieve_max_threshold=None,
+                 simplification_factor=None, temporary_directory=None):
+
+        self.format_selection = format_selection
+        self.overviews = overviews
+        self.overview_resampling = overview_resampling
+        self.overview_levels = overview_levels
+        self.overview_minsize = overview_minsize
+
+        self.crs = crs
+
+        self.bands = bands
+        self.bandmode = bandmode
+        self.footprint_alpha = footprint_alpha
+        self.color_index = color_index
+        self.palette_file = palette_file
+        self.no_data_value = no_data_value
+        self.radiometric_interval_min = radiometric_interval_min
+        self.radiometric_interval_max = radiometric_interval_max
+
+        if sieve_max_threshold is not None:
+            self.sieve_max_threshold = sieve_max_threshold
+        else:
+            self.sieve_max_threshold = 0
+
+        if simplification_factor is not None:
+            self.simplification_factor = simplification_factor
+        else:
+            # default 2 * resolution == 2 pixels
+            self.simplification_factor = 2
+
+        self.temporary_directory = temporary_directory
 
     def process(self, input_filename, output_filename,
                 geo_reference=None, generate_metadata=True,
@@ -231,9 +273,9 @@ class NGEOPreProcessor(WMSPreProcessor):
 
         return PreProcessResult(output_filename, footprint, num_bands)
 
-
     def _generate_footprint_wkt(self, ds):
-        """ Generate a footprint from a raster, using black/no-data as exclusion
+        """ Generate a footprint from a raster, using black/no-data as
+            exclusion
         """
 
         # create an empty boolean array initialized as 'False' to store where
@@ -259,8 +301,20 @@ class NGEOPreProcessor(WMSPreProcessor):
         copy_projection(ds, tmp_ds)
         tmp_band = tmp_ds.GetRasterBand(1)
         tmp_band.WriteArray(nodata_map.astype(numpy.uint8))
-        # Remove areas that are smaller than 16 pixels
-        gdal.SieveFilter(tmp_band, None, tmp_band, 16, 4)
+
+        # Remove unwanted small areas of nodata
+        # www.gdal.org/gdal__alg_8h.html#a33309c0a316b223bd33ae5753cc7f616
+        no_pixels = tmp_ds.RasterXSize * tmp_ds.RasterYSize
+        threshold = 4
+        max_threshold = (no_pixels / 16)
+        if self.sieve_max_threshold > 0:
+            max_threshold = self.sieve_max_threshold
+        while threshold <= max_threshold and threshold < 2147483647:
+            gdal.SieveFilter(tmp_band, None, tmp_band, threshold, 4)
+            threshold *= 4
+
+        #for debugging:
+        #gdal.GetDriverByName('GTiff').CreateCopy('/tmp/test.tif', tmp_ds)
 
         # create an OGR in memory layer to hold the created polygon
         sr = osr.SpatialReference()
@@ -305,7 +359,7 @@ class NGEOPreProcessor(WMSPreProcessor):
         if geometry.GetGeometryType() != ogr.wkbPolygon:
             raise RuntimeError("Error during polygonization. Wrong geometry "
                                "type: %s" % ogr.GeometryTypeToName(
-                                    geometry.GetGeometryType()))
+                                   geometry.GetGeometryType()))
 
         # check if reprojection to latlon is necessary
         if not sr.IsGeographic():
@@ -320,6 +374,9 @@ class NGEOPreProcessor(WMSPreProcessor):
         resolution = min(abs(gt[1]), abs(gt[5]))
 
         simplification_value = self.simplification_factor * resolution
+
+        #for debugging:
+        #geometry.GetGeometryRef(0).GetPointCount()
 
         # simplify the polygon. the tolerance value is *really* vague
         try:
