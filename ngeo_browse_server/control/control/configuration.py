@@ -263,6 +263,13 @@ class IngestConfigurator(ngEOConfigConfigurator):
             "the images area of interest.", "false"
         ),
         Parameter(
+            int, "sieve_max_threshold", "",
+            "Sets the maximum threshold for the sieve algorithm. See "
+            "`http://www.gdal.org/gdal__alg_8h.html#a33309c0a316b223bd33ae5753cc7f616` "
+            "for details. Defaults to the number of pixels divided by 16 "
+            "which is indicated by a value of 0.", "0"
+        ),
+        Parameter(
             int, "simplification_factor", "",
             "Sets the factor for the simplification algorithm. See "
             "`http://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm` "

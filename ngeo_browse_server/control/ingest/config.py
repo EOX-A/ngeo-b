@@ -171,6 +171,12 @@ def get_optimization_config(config=None):
         pass
 
     try:
+        values["sieve_max_threshold"] = config.getint(
+            INGEST_SECTION, "sieve_max_threshold")
+    except:
+        pass
+
+    try:
         values["simplification_factor"] = config.getfloat(
             INGEST_SECTION, "simplification_factor")
     except:

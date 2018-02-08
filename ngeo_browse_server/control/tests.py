@@ -4011,6 +4011,14 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
+          <xsd:element type="xsd:integer" name="sieve_max_threshold">
+            <xsd:annotation>
+              <xsd:documentation>
+                <xsd:label></xsd:label>
+                <xsd:tooltip>Sets the maximum threshold for the sieve algorithm. See `http://www.gdal.org/gdal__alg_8h.html#a33309c0a316b223bd33ae5753cc7f616` for details. Defaults to the number of pixels divided by 16 which is indicated by a value of 0.</xsd:tooltip>
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
           <xsd:element type="xsd:integer" name="simplification_factor">
             <xsd:annotation>
               <xsd:documentation>
@@ -4179,6 +4187,7 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
         <overview_minsize>256</overview_minsize>
         <color_index>false</color_index>
         <footprint_alpha>true</footprint_alpha>
+        <sieve_max_threshold>0</sieve_max_threshold>
         <simplification_factor>2</simplification_factor>
         <regular_grid_clipping>false</regular_grid_clipping>
         <in_memory>false</in_memory>
@@ -4225,6 +4234,7 @@ class ConfigurationChangeTestCase(ConfigMixIn, TestCase):
         <overview_minsize>512</overview_minsize>
         <color_index>true</color_index>
         <footprint_alpha>false</footprint_alpha>
+        <sieve_max_threshold>4096</sieve_max_threshold>
         <simplification_factor>3</simplification_factor>
         <regular_grid_clipping>true</regular_grid_clipping>
         <in_memory>true</in_memory>
