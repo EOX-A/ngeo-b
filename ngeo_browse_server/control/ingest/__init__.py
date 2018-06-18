@@ -75,7 +75,6 @@ from ngeo_browse_server.control.ingest.config import (
     get_success_dir, get_failure_dir
 )
 from ngeo_browse_server.control.ingest.exceptions import IngestionException
-from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.mapcache.tasks import CRS_BOUNDS, seed_mapcache
 from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
 from ngeo_browse_server.config.browsereport.serialization import (
@@ -191,70 +190,47 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
     for parsed_browse in parsed_browse_report:
         # transaction management per browse
         with transaction.commit_manually():
-            with transaction.commit_manually(using="mapcache"):
-                try:
-                    seed_areas = []
-                    # try ingest a single browse and log success
-                    result = ingest_browse(parsed_browse, browse_report,
-                                           browse_layer, preprocessor, crs,
-                                           success_dir, failure_dir,
-                                           seed_areas, config=config)
+            try:
+                seed_areas = []
+                # try ingest a single browse and log success
+                result = ingest_browse(parsed_browse, browse_report,
+                                       browse_layer, preprocessor, crs,
+                                       success_dir, failure_dir,
+                                       seed_areas, config=config)
 
-                    report_result.add(result)
-                    succeded.append(parsed_browse)
+                report_result.add(result)
+                succeded.append(parsed_browse)
 
-                    # commit here to allow seeding
-                    transaction.commit()
-                    transaction.commit(using="mapcache")
+                # commit here to allow seeding
+                transaction.commit()
 
-                    logger.info("Committed changes to database.")
+                logger.info("Committed changes to database.")
 
-                    for minx, miny, maxx, maxy, start_time, end_time in seed_areas:
-                        try:
+                # log ingestions for report generation
+                # date/browseType/browseLayerId/start/end
+                report_logger.info("/\\/\\".join((
+                    datetime.utcnow().isoformat("T") + "Z",
+                    parsed_browse_report.browse_type,
+                    browse_layer.id,
+                    (parsed_browse.start_time.replace(tzinfo=None)-parsed_browse.start_time.utcoffset()).isoformat("T") + "Z",
+                    (parsed_browse.end_time.replace(tzinfo=None)-parsed_browse.end_time.utcoffset()).isoformat("T") + "Z"
+                )))
 
-                            # seed MapCache synchronously
-                            # TODO: maybe replace this with an async solution
-                            seed_mapcache(tileset=browse_layer.id,
-                                          grid=browse_layer.grid,
-                                          minx=minx, miny=miny,
-                                          maxx=maxx, maxy=maxy,
-                                          minzoom=browse_layer.lowest_map_level,
-                                          maxzoom=browse_layer.highest_map_level,
-                                          start_time=start_time,
-                                          end_time=end_time,
-                                          delete=False,
-                                          **get_mapcache_seed_config(config))
-                            logger.info("Successfully finished seeding.")
+            except Exception, e:
+                # report error
+                logger.error("Failure during ingestion of browse '%s'." %
+                             parsed_browse.browse_identifier)
+                logger.error("Exception was '%s': %s" % (type(e).__name__, str(e)))
+                logger.debug(traceback.format_exc() + "\n")
 
-                        except Exception, e:
-                            logger.warn("Seeding failed: %s" % str(e))
+                # undo latest changes, append the failure and continue
+                report_result.add(IngestBrowseFailureResult(
+                    parsed_browse.browse_identifier,
+                    getattr(e, "code", None) or type(e).__name__, str(e))
+                )
+                failed.append(parsed_browse)
 
-                    # log ingestions for report generation
-                    # date/browseType/browseLayerId/start/end
-                    report_logger.info("/\\/\\".join((
-                        datetime.utcnow().isoformat("T") + "Z",
-                        parsed_browse_report.browse_type,
-                        browse_layer.id,
-                        (parsed_browse.start_time.replace(tzinfo=None)-parsed_browse.start_time.utcoffset()).isoformat("T") + "Z",
-                        (parsed_browse.end_time.replace(tzinfo=None)-parsed_browse.end_time.utcoffset()).isoformat("T") + "Z"
-                    )))
-
-                except Exception, e:
-                    # report error
-                    logger.error("Failure during ingestion of browse '%s'." %
-                                 parsed_browse.browse_identifier)
-                    logger.error("Exception was '%s': %s" % (type(e).__name__, str(e)))
-                    logger.debug(traceback.format_exc() + "\n")
-
-                    # undo latest changes, append the failure and continue
-                    report_result.add(IngestBrowseFailureResult(
-                        parsed_browse.browse_identifier,
-                        getattr(e, "code", None) or type(e).__name__, str(e))
-                    )
-                    failed.append(parsed_browse)
-
-                    transaction.rollback()
-                    transaction.rollback(using="mapcache")
+                transaction.rollback()
 
     # generate browse report and save to to success/failure dir
     if len(succeded):
@@ -349,27 +325,14 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
     storage_path = get_storage_path()
     # if file_name is a URL download browse first and store it locally
     validate = URLValidator()
+    needs_download = False
     try:
         validate(parsed_browse.file_name)
         input_filename = abspath(get_storage_path(
             basename(parsed_browse.file_name), config=config))
+        needs_download = True
         logger.info("URL given, downloading browse image from '%s' to '%s'."
                     % (parsed_browse.file_name, input_filename))
-        if not exists(input_filename):
-            try:
-                remote_browse = urlopen(parsed_browse.file_name)
-                with open(input_filename, "wb") as local_browse:
-                    local_browse.write(remote_browse.read())
-            except HTTPError, e:
-                raise IngestionException("HTTP error downloading '%s': %s"
-                                         % (parsed_browse.file_name, e.code))
-            except URLError, e:
-                raise IngestionException("URL error downloading '%s': %s"
-                                         % (parsed_browse.file_name, e.reason))
-        else:
-            raise IngestionException("File do download already exists locally "
-                                     "as '%s'" % input_filename)
-
     except ValidationError:
         input_filename = abspath(get_storage_path(parsed_browse.file_name,
                                                   config=config))
@@ -435,10 +398,10 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                     seed_areas, config=config
                 )
                 replaced = False
-                logger.debug("Existing browse found, merging it.")
+                logger.info("Existing browse found, merging it.")
 
             elif strategy == "skip" and current_time <= previous_time:
-                logger.debug("Existing browse found and not older, skipping.")
+                logger.info("Existing browse found and not older, skipping.")
                 return IngestBrowseSkipResult(parsed_browse.browse_identifier)
 
             else:
@@ -470,6 +433,24 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         # wrap all file operations with IngestionTransaction
         with FileTransaction((output_filename, replaced_filename)):
             with FileTransaction((merge_with,), True):
+
+                # download input file if URL is given
+                if needs_download:
+                    if not exists(input_filename):
+                        try:
+                            remote_browse = urlopen(parsed_browse.file_name)
+                            with open(input_filename, "wb") as local_browse:
+                                local_browse.write(remote_browse.read())
+                        except HTTPError, e:
+                            raise IngestionException("HTTP error downloading '%s': %s"
+                                                     % (parsed_browse.file_name, e.code))
+                        except URLError, e:
+                            raise IngestionException("URL error downloading '%s': %s"
+                                                     % (parsed_browse.file_name, e.reason))
+                    else:
+                        raise IngestionException("File do download already exists locally "
+                                                 "as '%s'" % input_filename)
+
                 # assert that the input file exists
                 if not exists(input_filename):
                     raise IngestionException("Input file '%s' does not exist."

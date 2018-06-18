@@ -46,9 +46,8 @@ from eoxserver.core.util.timetools import isotime
 from ngeo_browse_server.config import (
     models, get_ngeo_config, get_project_relative_path
 )
-from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.mapcache.tasks import (
-    seed_mapcache, add_mapcache_layer_xml, remove_mapcache_layer_xml
+    add_mapcache_layer_xml, remove_mapcache_layer_xml
 )
 from ngeo_browse_server.mapcache.config import (
     get_mapcache_seed_config, get_tileset_path
@@ -197,65 +196,6 @@ def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
                                container_ids=container_ids)
 
     extent = coverage.getExtent()
-    minx, miny, maxx, maxy = extent
-    start_time, end_time = browse.start_time, browse.end_time
-
-    # create mapcache models
-    source, _ = mapcache_models.Source.objects.get_or_create(
-        name=browse_layer_model.id)
-
-    # search for time entries with an overlapping time span
-    if browse.start_time==browse.end_time:
-        times_qs = mapcache_models.Time.objects.filter(
-            source=source,
-            start_time__lte=browse.end_time,
-            end_time__gte=browse.start_time
-        )
-    else:
-        times_qs = mapcache_models.Time.objects.filter(
-            Q(source=source),
-            Q(start_time__lt=browse.end_time,
-              end_time__gt=browse.start_time) |
-            Q(start_time=F("end_time"),
-              start_time__lte=browse.end_time,
-              end_time__gte=browse.start_time)
-        )
-
-    if len(times_qs) > 0:
-        # If there are overlapping time entries, merge the time entries to one
-        logger.info("Merging %d Time entries." % (len(times_qs) + 1))
-        for time_model in times_qs:
-            minx = min(minx, time_model.minx)
-            miny = min(miny, time_model.miny)
-            maxx = max(maxx, time_model.maxx)
-            maxy = max(maxy, time_model.maxy)
-            start_time = min(start_time, time_model.start_time)
-            end_time = max(end_time, time_model.end_time)
-
-            seed_mapcache(tileset=browse_layer_model.id,
-                          grid=browse_layer_model.grid,
-                          minx=time_model.minx, miny=time_model.miny,
-                          maxx=time_model.maxx, maxy=time_model.maxy,
-                          minzoom=browse_layer_model.lowest_map_level,
-                          maxzoom=browse_layer_model.highest_map_level,
-                          start_time=time_model.start_time,
-                          end_time=time_model.end_time,
-                          delete=True,
-                          **get_mapcache_seed_config(config))
-
-        logger.info("Result time span is %s/%s." % (isotime(start_time),
-                                                    isotime(end_time)))
-        times_qs.delete()
-
-    time_model = mapcache_models.Time(start_time=start_time, end_time=end_time,
-                                      minx=minx, miny=miny,
-                                      maxx=maxx, maxy=maxy,
-                                      source=source)
-
-    time_model.full_clean()
-    time_model.save()
-
-    seed_areas.append((minx, miny, maxx, maxy, start_time, end_time))
 
     return extent, (browse.start_time, browse.end_time)
 
@@ -284,180 +224,6 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
     )
     rect_mgr.delete(obj_id=browse_model.coverage_id)
     browse_model.delete()
-
-    # search for time entries with an overlapping time span
-    if browse_model.start_time==browse_model.end_time:
-        times_qs = mapcache_models.Time.objects.filter(
-            source=browse_layer_model.id,
-            start_time__lte=browse_model.end_time,
-            end_time__gte=browse_model.start_time
-        )
-    else:
-        times_qs = mapcache_models.Time.objects.filter(
-            Q(source=browse_layer_model.id),
-            Q(start_time__lt=browse_model.end_time,
-              end_time__gt=browse_model.start_time) |
-            Q(start_time=F("end_time"),
-              start_time__lte=browse_model.end_time,
-              end_time__gte=browse_model.start_time)
-        )
-
-    if len(times_qs) == 1:
-        time_model = times_qs[0]
-    elif len(times_qs) == 0:
-        #issue a warning if no corresponding Time object exists
-        logger.warning("No MapCache Time object found for time: %s, %s" % (
-            browse_model.start_time, browse_model.end_time
-        ))
-    elif len(times_qs) > 1:
-        #issue a warning if too many corresponding Time objects exist
-        #try to delete redundant time models
-        #note that this situation should never happen but just in case...
-        logger.warning("Multiple MapCache Time objects found for time: %s, "
-                       "%s. Trying to delete redundant ones." % (
-                       browse_model.start_time, browse_model.end_time
-        ))
-        first = True
-        with transaction.commit_manually(using="mapcache"):
-            for time_model_tmp in times_qs:
-                if first:
-                    first = False
-                    time_model = time_model_tmp
-                elif (time_model_tmp.start_time <= time_model.start_time and
-                      time_model_tmp.end_time >= time_model.end_time):
-                    time_model.delete()
-                    time_model = time_model_tmp
-                else:
-                    time_model_tmp.delete()
-            transaction.commit(using="mapcache")
-
-    if unseed:
-        # unseed here
-        try:
-            seed_mapcache(tileset=browse_layer_model.id,
-                          grid=browse_layer_model.grid,
-                          minx=time_model.minx, miny=time_model.miny,
-                          maxx=time_model.maxx, maxy=time_model.maxy,
-                          minzoom=browse_layer_model.lowest_map_level,
-                          maxzoom=browse_layer_model.highest_map_level,
-                          start_time=time_model.start_time,
-                          end_time=time_model.end_time,
-                          delete=True,
-                          **get_mapcache_seed_config(config))
-
-        except Exception, e:
-            logger.warning("Un-seeding failed: %s" % str(e))
-
-    # approach
-    #    - select the time model to which the browse refers
-    #    - check if there are other browses within this time window
-    #    - if yes:
-    #        - split/shorten
-    #        - for each new time:
-    #            - save slot for seeding afterwards
-
-    intersecting_browses_qs = models.Browse.objects.filter(
-        start_time__lt=time_model.end_time,
-        end_time__gt=time_model.start_time,
-        browse_layer__id=browse_layer_model.id
-    )
-
-    source_model = time_model.source
-    time_model.delete()
-
-    if len(intersecting_browses_qs):
-
-        class Area(object):
-            def __init__(self, minx, miny, maxx, maxy, start_time, end_time):
-                self.minx = minx
-                self.miny = miny
-                self.maxx = maxx
-                self.maxy = maxy
-                self.start_time = start_time
-                self.end_time = end_time
-
-            def time_intersects(self, other):
-                return (self.end_time >= other.start_time and
-                        self.start_time <= other.end_time)
-
-        # get "areas" with extent and time slice
-        areas = []
-        for browse in intersecting_browses_qs:
-            coverage = System.getRegistry().getFromFactory(
-                "resources.coverages.wrappers.EOCoverageFactory",
-                {"obj_id": browse.coverage_id}
-            )
-            minx, miny, maxx, maxy = coverage.getExtent()
-            areas.append(Area(
-                minx, miny, maxx, maxy, browse.start_time, browse.end_time
-            ))
-
-        # some helpers
-        def intersects_with_group(area, group):
-            for item in group:
-                if area.time_intersects(item):
-                    return True
-            return False
-
-        def merge_groups(first, *others):
-            for other in others:
-                for browse in other:
-                    if browse not in first:
-                        first.append(browse)
-
-        groups = []
-
-        # iterate over all browses that were associated with the deleted time
-        for area in areas:
-            to_be_merged = []
-
-            if len(groups) == 0:
-                groups.append([area])
-                continue
-
-            # check for intersections with other groups
-            for group in groups:
-                if intersects_with_group(area, group):
-                    group.append(area)
-                    to_be_merged.append(group)
-
-            if len(to_be_merged):
-                # actually perform the merge of the groups
-                merge_groups(*to_be_merged)
-                for group in to_be_merged[1:]:
-                    groups.remove(group)
-
-            else:
-                groups.append([area])
-
-        # each group needs to have its own Time model
-        for group in groups:
-            minx = group[0].minx
-            miny = group[0].miny
-            maxx = group[0].maxx
-            maxy = group[0].maxy
-            start_time = group[0].start_time
-            end_time = group[0].end_time
-
-            for browse in group[1:]:
-                minx = min(minx, browse.minx)
-                miny = min(miny, browse.miny)
-                maxx = max(maxx, browse.maxx)
-                maxy = max(maxy, browse.maxy)
-                start_time = min(start_time, browse.start_time)
-                end_time = max(end_time, browse.end_time)
-
-            # create time model
-            time = mapcache_models.Time(
-                minx=minx, miny=miny, maxx=maxx, maxy=maxy,
-                start_time=start_time, end_time=end_time,
-                source=source_model
-            )
-            time.full_clean()
-            time.save()
-
-            # add it to the regions that need to be seeded
-            seed_areas.append((minx, miny, maxx, maxy, start_time, end_time))
 
     return replaced_extent, replaced_filename
 
@@ -525,9 +291,6 @@ def add_browse_layer(browse_layer, config=None):
             md_abstract = LayerMetadataRecord.objects.get_or_create(
                 key="ows_abstract", value=str(browse_layer.description))[0]
             dss._DatasetSeriesWrapper__model.layer_metadata.add(md_abstract)
-
-    # add source to mapcache sqlite
-    mapcache_models.Source.objects.create(name=browse_layer.id)
 
     # add an XML section to the mapcache config xml
     add_mapcache_layer_xml(browse_layer, config)
@@ -654,9 +417,6 @@ def delete_browse_layer(browse_layer, purge=False, config=None):
             }
         )
         dss_mgr.delete(browse_layer.id)
-
-        # remove source from mapcache sqlite
-        mapcache_models.Source.objects.get(name=browse_layer.id).delete()
 
         # delete browse layer cache
         try:
