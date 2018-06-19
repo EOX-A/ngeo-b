@@ -97,17 +97,31 @@ class Command(LogToConsoleMixIn, BaseCommand):
 
         browses_qs = models.Browse.objects.all().filter(
             browse_layer=browse_layer_model
+        ).extra(
+            select={
+                # ugly, ugly hack to get the extent from a browse by manually
+                # joining the ExtentRecord model of the associated coverage
+                # as only a single value is allowed in a subquery, the values
+                # are encoded in a string and joined by ','
+                'extent': (
+                    '''SELECT extent.minx || ',' || extent.miny || ',' || extent.maxx || ',' || extent.maxy
+                    FROM coverages_extentrecord AS extent,
+                         coverages_rectifieddatasetrecord AS rectifieddataset,
+                         coverages_coveragerecord AS coverage
+                    WHERE rectifieddataset.extent_id = extent.id
+                    AND rectifieddataset.coveragerecord_ptr_id =
+                        coverage.resource_ptr_id
+                    AND config_browse.coverage_id = coverage.coverage_id'''
+                )
+            }
         )
 
         # iterate through browses
         for browse_model in browses_qs:
-
-            rect_ds = System.getRegistry().getFromFactory(
-                "resources.coverages.wrappers.EOCoverageFactory",
-                {"obj_id": browse_model.coverage_id}
+            # decode extent from the above hack
+            minx, miny, maxx, maxy = (
+                float(v) for v in browse_model.extent.split(',')
             )
-            extent = rect_ds.getExtent()
-            minx, miny, maxx, maxy = extent
             start_time = browse_model.start_time
             end_time = browse_model.end_time
 
