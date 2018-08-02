@@ -174,17 +174,24 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
         browse_report.date_time.strftime("%Y%m%d%H%M%S%f"),
         timestamp
     ))
-    success_dir = join(get_success_dir(config), browse_dirname)
-    failure_dir = join(get_failure_dir(config), browse_dirname)
 
-    if exists(success_dir):
-        logger.warn("Success directory '%s' already exists.")
+    if get_success_dir(config):
+        success_dir = join(get_success_dir(config), browse_dirname)
+        if exists(success_dir):
+            logger.warn("Success directory '%s' already exists.")
+        else:
+            makedirs(success_dir)
     else:
-        makedirs(success_dir)
-    if exists(failure_dir):
-        logger.warn("Failure directory '%s' already exists.")
+        success_dir = None
+
+    if get_failure_dir(config):
+        failure_dir = join(get_failure_dir(config), browse_dirname)
+        if exists(failure_dir):
+            logger.warn("Failure directory '%s' already exists.")
+        else:
+            makedirs(failure_dir)
     else:
-        makedirs(failure_dir)
+        failure_dir = None
 
     # iterate over all browses in the browse report
     for parsed_browse in parsed_browse_report:
@@ -235,15 +242,16 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
     # generate browse report and save to to success/failure dir
     if len(succeded):
         try:
-            logger.info("Creating browse report for successfully ingested "
-                        "browses at '%s'." % success_dir)
-            succeded_report = data.BrowseReport(
-                parsed_browse_report.browse_type,
-                parsed_browse_report.date_time,
-                parsed_browse_report.responsible_org_name,
-                succeded
-            )
-            _save_result_browse_report(succeded_report, success_dir)
+            if success_dir:
+                logger.info("Creating browse report for successfully ingested "
+                            "browses at '%s'." % success_dir)
+                succeded_report = data.BrowseReport(
+                    parsed_browse_report.browse_type,
+                    parsed_browse_report.date_time,
+                    parsed_browse_report.responsible_org_name,
+                    succeded
+                )
+                _save_result_browse_report(succeded_report, success_dir)
 
         except Exception, e:
             logger.warn("Could not write result browse report as the file '%s'.")
@@ -253,27 +261,28 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
         except Exception, e:
             logger.warn("Could not remove the unused dir '%s'." % success_dir)
 
-
     if len(failed):
         try:
-            logger.info("Creating browse report for erroneously ingested "
-                        "browses at '%s'." % failure_dir)
-            failed_report = data.BrowseReport(
-                parsed_browse_report.browse_type,
-                parsed_browse_report.date_time,
-                parsed_browse_report.responsible_org_name,
-                failed
-            )
-            _save_result_browse_report(failed_report, failure_dir)
+            if failure_dir:
+                logger.info("Creating browse report for erroneously ingested "
+                            "browses at '%s'." % failure_dir)
+                failed_report = data.BrowseReport(
+                    parsed_browse_report.browse_type,
+                    parsed_browse_report.date_time,
+                    parsed_browse_report.responsible_org_name,
+                    failed
+                )
+                _save_result_browse_report(failed_report, failure_dir)
 
         except Exception, e:
             logger.warn("Could not write result browse report as the file '%s'.")
     else:
-        try:
-            rmdir(failure_dir)
-        except Exception, e:
-            logger.warn("Could not remove the unused dir '%s'." % failure_dir)
-
+        if failure_dir:
+            try:
+                rmdir(failure_dir)
+            except Exception, e:
+                logger.warn("Could not remove the unused dir '%s'."
+                            % failure_dir)
 
     return report_result
 
@@ -484,7 +493,8 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
 
                 # validate preprocess result
                 if result.num_bands not in (1, 3, 4):  # color index, RGB, RGBA
-                    raise IngestionException("Processed browse image has %d bands."
+                    raise IngestionException("Processed browse image has "
+                                             "%d bands."
                                              % result.num_bands)
 
                 logger.info("Creating database models.")
@@ -494,27 +504,36 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                     output_filename, seed_areas, config=config
                 )
 
-
     except:
         # save exception info to re-raise it
         exc_info = sys.exc_info()
 
-        logger.error("Error during ingestion of Browse '%s'. Moving "
-                     "original image to `failure_dir` '%s'."
-                     % (parsed_browse.browse_identifier, failure_dir))
+        if failure_dir:
+            logger.error("Error during ingestion of Browse '%s'. Moving "
+                         "original image to `failure_dir` '%s'."
+                         % (parsed_browse.browse_identifier, failure_dir))
+            # move the file to failure folder
+            try:
+                if not leave_original:
+                    storage_dir = get_storage_path()
+                    relative = relpath(input_filename, storage_dir)
+                    dst_dirname = join(failure_dir, dirname(relative))
+                    safe_makedirs(dst_dirname)
+                    shutil.move(input_filename, dst_dirname)
+            except Exception, e:
+                logger.warn("Could not move '%s' to configured "
+                            "`failure_dir` '%s'. Error was: '%s'."
+                            % (input_filename, failure_dir, str(e)))
 
-        # move the file to failure folder
-        try:
-            if not leave_original:
-                storage_dir = get_storage_path()
-                relative = relpath(input_filename, storage_dir)
-                dst_dirname = join(failure_dir, dirname(relative))
-                safe_makedirs(dst_dirname)
-                shutil.move(input_filename, dst_dirname)
-        except Exception, e:
-            logger.warn("Could not move '%s' to configured "
-                        "`failure_dir` '%s'. Error was: '%s'."
-                        % (input_filename, failure_dir, str(e)))
+        else:
+            logger.error("Error during ingestion of Browse '%s'. Deleting "
+                         "original image."
+                         % (parsed_browse.browse_identifier,))
+            try:
+                remove(input_filename)
+            except Exception, e:
+                logger.warn("Could not delete '%s'. Error was: '%s'."
+                            % (input_filename, str(e)))
 
         # re-raise the exception
         raise exc_info[0], exc_info[1], exc_info[2]
@@ -522,11 +541,15 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
     else:
         # move the file to success folder, or delete it right away
         delete_on_success = True
-        try: delete_on_success = config.getboolean("control.ingest", "delete_on_success")
-        except: pass
+        try:
+            delete_on_success = config.getboolean(
+                "control.ingest", "delete_on_success"
+            )
+        except:
+            pass
 
         if not leave_original:
-            if delete_on_success:
+            if delete_on_success or not success_dir:
                 remove(input_filename)
             else:
                 try:

@@ -57,6 +57,22 @@ def get_storage_path(file_name=None, storage_dir=None, config=None):
     return get_project_relative_path(join(storage_dir, file_name))
 
 
+def get_temporary_path(file_name=None, storage_dir=None, config=None):
+    """ Returns an absolute path to a filename within the intermediary storage
+    directory for uploaded but unprocessed files.
+    """
+
+    config = config or get_ngeo_config()
+
+    if not storage_dir:
+        storage_dir = config.get(INGEST_SECTION, "temporary_dir")
+
+    if not file_name:
+        return get_project_relative_path(storage_dir)
+
+    return get_project_relative_path(join(storage_dir, file_name))
+
+
 def get_optimized_path(file_name, directory=None, config=None):
     """ Returns an absolute path to a filename within the storage directory for
     optimized raster files. Uses the 'control.ingest.optimized_files_dir'
@@ -87,20 +103,22 @@ def get_success_dir(config=None):
     """ Returns the configured success directory. """
 
     config = config or get_ngeo_config()
+    dirname = safe_get(config, "control.ingest", "success_dir")
+    if not dirname:
+        return None
 
-    return get_project_relative_path(
-        safe_get(config, "control.ingest", "success_dir")
-    )
+    return get_project_relative_path(dirname)
 
 
 def get_failure_dir(config=None):
     """ Returns the configured failure directory. """
 
     config = config or get_ngeo_config()
+    dirname = safe_get(config, "control.ingest", "failure_dir")
+    if not dirname:
+        return None
 
-    return get_project_relative_path(
-        safe_get(config, "control.ingest", "failure_dir")
-    )
+    return get_project_relative_path(dirname)
 
 
 def get_format_config(config=None):
