@@ -56,14 +56,14 @@ RGB = range(3)
 
 
 class NGEOPreProcessor(WMSPreProcessor):
-
     def __init__(self, format_selection, overviews=True, crs=None, bands=None,
                  bandmode=RGB, footprint_alpha=False,
                  color_index=False, palette_file=None, no_data_value=None,
                  overview_resampling=None, overview_levels=None,
                  overview_minsize=None, radiometric_interval_min=None,
                  radiometric_interval_max=None, sieve_max_threshold=None,
-                 simplification_factor=None, temporary_directory=None):
+                 simplification_factor=None, temporary_directory=None,
+                 scalefactor=1):
 
         self.format_selection = format_selection
         self.overviews = overviews
@@ -94,14 +94,46 @@ class NGEOPreProcessor(WMSPreProcessor):
             self.simplification_factor = 2
 
         self.temporary_directory = temporary_directory
+        self.scalefactor = scalefactor
 
     def process(self, input_filename, output_filename,
                 geo_reference=None, generate_metadata=True,
                 merge_with=None, original_footprint=None):
 
-        # open the dataset and create an In-Memory Dataset as copy
-        # to perform optimizations
-        ds = create_mem_copy(gdal.Open(input_filename))
+        # open the dataset
+        orig_ds = gdal.Open(input_filename)
+
+        if self.scalefactor != 1:
+            ds = create_mem(
+                int(orig_ds.RasterXSize * self.scalefactor),
+                int(orig_ds.RasterYSize * self.scalefactor),
+                orig_ds.RasterCount,
+                orig_ds.GetRasterBand(1).DataType
+            )
+
+            tmp_geo = orig_ds.GetGeoTransform()
+            dst_geo = (
+                tmp_geo[0], tmp_geo[1] / self.scalefactor, tmp_geo[2],
+                tmp_geo[3], tmp_geo[4], tmp_geo[5] / self.scalefactor
+            )
+            ds.SetProjection(orig_ds.GetProjection())
+            ds.SetGeoTransform(dst_geo)
+            copy_metadata(orig_ds, ds)
+
+            # for JPEG2000 (15% size) this approach is ~4 times faster than
+            # reading the whole image and then rescale it.
+            for i in range(orig_ds.RasterCount):
+                src_band = orig_ds.GetRasterBand(i + 1)
+                out_band = ds.GetRasterBand(i + 1)
+                band_data = src_band.ReadAsArray(
+                    0, 0,
+                    orig_ds.RasterXSize, orig_ds.RasterYSize,
+                    int(orig_ds.RasterXSize * self.scalefactor),
+                    int(orig_ds.RasterYSize * self.scalefactor)
+                )
+                out_band.WriteArray(band_data)
+        else:
+            ds = create_mem_copy(orig_ds)
 
         gt = ds.GetGeoTransform()
         footprint_wkt = None
@@ -135,7 +167,6 @@ class NGEOPreProcessor(WMSPreProcessor):
             except:
                 cleanup_temp(ds)
                 raise
-
 
         # generate the footprint from the dataset
         if not footprint_wkt:

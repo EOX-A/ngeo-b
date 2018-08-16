@@ -206,6 +206,12 @@ def get_optimization_config(config=None):
     except:
         pass
 
+    try:
+        values["scalefactor"] = config.getfloat(
+            INGEST_SECTION, "scalefactor")
+    except:
+        pass
+
     values["temporary_directory"] = "/vsimem/" if in_memory else None
 
     return values
