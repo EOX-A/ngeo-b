@@ -212,6 +212,12 @@ def get_optimization_config(config=None):
     except:
         pass
 
+    try:
+        values["timeout"] = config.getfloat(
+            INGEST_SECTION, "timeout")
+    except:
+        pass
+
     values["temporary_directory"] = "/vsimem/" if in_memory else None
 
     return values

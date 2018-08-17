@@ -27,6 +27,11 @@
 #-------------------------------------------------------------------------------
 
 import logging
+import multiprocessing
+import tempfile
+from uuid import uuid4
+from os.path import join
+import traceback
 
 from django.contrib.gis.geos import (
     GEOSGeometry, MultiPolygon, Polygon, LinearRing,
@@ -55,6 +60,17 @@ logger = logging.getLogger(__name__)
 RGB = range(3)
 
 
+def _process_proxy(preprocessor, return_dict, *args, **kwargs):
+    """ Shim necessary for multiprocessing.
+    """
+    try:
+        return_dict['result'] = preprocessor._process(*args, **kwargs)
+    except Exception, e:
+        logger.error(traceback.format_exc())
+        return_dict['exception'] = e
+        raise
+
+
 class NGEOPreProcessor(WMSPreProcessor):
     def __init__(self, format_selection, overviews=True, crs=None, bands=None,
                  bandmode=RGB, footprint_alpha=False,
@@ -63,7 +79,7 @@ class NGEOPreProcessor(WMSPreProcessor):
                  overview_minsize=None, radiometric_interval_min=None,
                  radiometric_interval_max=None, sieve_max_threshold=None,
                  simplification_factor=None, temporary_directory=None,
-                 scalefactor=1):
+                 scalefactor=1, timeout=None):
 
         self.format_selection = format_selection
         self.overviews = overviews
@@ -95,10 +111,43 @@ class NGEOPreProcessor(WMSPreProcessor):
 
         self.temporary_directory = temporary_directory
         self.scalefactor = scalefactor
+        self.timeout = timeout
 
-    def process(self, input_filename, output_filename,
-                geo_reference=None, generate_metadata=True,
-                merge_with=None, original_footprint=None):
+    def process(self, *args, **kwargs):
+        if self.timeout:
+            logger.debug("Starting preprocessing with timeout %f" % self.timeout)
+
+            manager = multiprocessing.Manager()
+            return_dict = manager.dict()
+            process = multiprocessing.Process(
+                target=_process_proxy,
+                args=(self, return_dict) + args,
+                kwargs=kwargs
+            )
+            process.start()
+            process.join(self.timeout)
+
+            if process.is_alive():
+                logger.error(
+                    "Preprocessing hit timeout, terminating preprocessing"
+                )
+                process.terminate()
+                process.join()
+                raise multiprocessing.TimeoutError
+
+            else:
+                result = return_dict.get('result')
+                if not result:
+                    raise return_dict['exception']
+
+            return result
+
+        else:
+            return self._process(*args, **kwargs)
+
+    def _process(self, input_filename, output_filename,
+                 geo_reference=None, generate_metadata=True,
+                 merge_with=None, original_footprint=None):
 
         # open the dataset
         orig_ds = gdal.Open(input_filename)
