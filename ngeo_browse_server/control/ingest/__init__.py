@@ -449,16 +449,22 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                         try:
                             remote_browse = urlopen(parsed_browse.file_name)
                             with open(input_filename, "wb") as local_browse:
-                                local_browse.write(remote_browse.read())
+                                shutil.copyfileobj(remote_browse, local_browse)
                         except HTTPError, e:
-                            raise IngestionException("HTTP error downloading '%s': %s"
-                                                     % (parsed_browse.file_name, e.code))
+                            raise IngestionException(
+                                "HTTP error downloading '%s': %s"
+                                % (parsed_browse.file_name, e.code)
+                            )
                         except URLError, e:
-                            raise IngestionException("URL error downloading '%s': %s"
-                                                     % (parsed_browse.file_name, e.reason))
+                            raise IngestionException(
+                                "URL error downloading '%s': %s"
+                                % (parsed_browse.file_name, e.reason)
+                            )
                     else:
-                        raise IngestionException("File do download already exists locally "
-                                                 "as '%s'" % input_filename)
+                        raise IngestionException(
+                            "File do download already exists locally as '%s'"
+                            % input_filename
+                        )
 
                 # assert that the input file exists
                 if not exists(input_filename):
