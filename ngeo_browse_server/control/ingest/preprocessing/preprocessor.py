@@ -209,7 +209,10 @@ class NGEOPreProcessor(WMSPreProcessor):
             opt = AlphaBandOptimization()
             opt(ds, footprint_wkt)
 
-        output_filename = self.generate_filename(output_filename)
+        temp_output_filename = join(
+            self.temporary_directory or tempfile.gettempdir(),
+            '%s.tif' % uuid4().hex
+        )
 
         if merge_with is not None:
             if original_footprint is None:
@@ -230,7 +233,7 @@ class NGEOPreProcessor(WMSPreProcessor):
             ])
 
             final_ds = merger.merge(
-                output_filename, self.format_selection.driver_name,
+                temp_output_filename, self.format_selection.driver_name,
                 self.format_selection.creation_options
             )
 
@@ -245,7 +248,7 @@ class NGEOPreProcessor(WMSPreProcessor):
             logger.debug(
                 "Writing single file '%s' using options: %s."
                 % (
-                    output_filename,
+                    temp_output_filename,
                     ", ".join(self.format_selection.creation_options)
                 )
             )
@@ -255,7 +258,7 @@ class NGEOPreProcessor(WMSPreProcessor):
             # save the file to the disc
             driver = gdal.GetDriverByName(self.format_selection.driver_name)
             final_ds = driver.CreateCopy(
-                output_filename, ds,
+                temp_output_filename, ds,
                 options=self.format_selection.creation_options
             )
 
@@ -266,6 +269,17 @@ class NGEOPreProcessor(WMSPreProcessor):
             logger.debug("Applying post-optimization '%s'."
                          % type(optimization).__name__)
             optimization(final_ds)
+
+        num_bands = final_ds.RasterCount
+
+        # move the file to the final position
+        output_filename = str(self.generate_filename(output_filename))
+        logger.info("Moving final file to %s." % output_filename)
+        driver = final_ds.GetDriver()
+        # finally close the dataset and write it to the disc
+        final_ds = None
+
+        driver.Rename(output_filename, temp_output_filename)
 
         # generate metadata if requested
         footprint = None
@@ -296,11 +310,6 @@ class NGEOPreProcessor(WMSPreProcessor):
                 footprint = footprint.union(GEOSGeometry(original_footprint))
 
             logger.debug("Calculated Footprint: '%s'" % footprint.wkt)
-
-        num_bands = final_ds.RasterCount
-
-        # finally close the dataset and write it to the disc
-        final_ds = None
 
         return PreProcessResult(output_filename, footprint, num_bands)
 
