@@ -58,7 +58,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
 
     help = ("Synchronizes the MapCache SQLite DB holding times and extents.")
 
-    def handle(self, *output_filename, **kwargs):
+    def handle(self, **kwargs):
         # parse command arguments
         self.verbosity = int(kwargs.get("verbosity", 1))
         traceback_conf = kwargs.get("traceback", False)
@@ -101,7 +101,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
                 source, _ = mapcache_models.Source.objects.get_or_create(
                     name=browse_layer_model.id)
 
-                browses_qs = models.Browse.objects.all().filter(
+                browses_qs = models.Browse.objects.filter(
                     browse_layer=browse_layer_model
                 ).extra(
                     select={
@@ -124,32 +124,80 @@ class Command(LogToConsoleMixIn, BaseCommand):
                                 coverage.coverage_id'''
                         )
                     }
+                ).values(
+                    'start_time', 'end_time', 'extent'
+                ).order_by(
+                    'start_time'
                 )
+                logger.info("Number browses: %s" % len(browses_qs))
 
-                # iterate through browses
-                for browse_model in browses_qs:
-                    # decode extent from the above hack
-                    minx, miny, maxx, maxy = (
-                        float(v) for v in browse_model.extent.split(',')
+                unique_times_qs = models.Browse.objects.filter(
+                    browse_layer=browse_layer_model
+                ).values(
+                    'start_time', 'end_time'
+                ).distinct(
+                    'start_time', 'end_time'
+                ).order_by(
+                    'start_time'
+                )
+                logger.info("Number unique times: %s" % len(unique_times_qs))
+
+                # iterate through unique times
+                for unique_time in unique_times_qs:
+
+                    start_time = unique_time['start_time']
+                    end_time = unique_time['end_time']
+                    minx, miny, maxx, maxy = (None,)*4
+
+                    # search for all browses with that time and combine extent
+                    time_qs = browses_qs.filter(
+                        start_time=start_time,
+                        end_time=end_time
                     )
-                    start_time = browse_model.start_time
-                    end_time = browse_model.end_time
+
+                    if len(time_qs) <= 0:
+                        logger.errro(
+                            "DB queries got different results which should "
+                            "never happen."
+                        )
+                        raise CommandError("DB queries got different results.")
+                    else:
+                        for time in time_qs:
+                            # decode extent from the above hack
+                            minx_tmp, miny_tmp, maxx_tmp, maxy_tmp = (
+                                float(v) for v in time['extent'].split(',')
+                            )
+                            minx = min(
+                                i for i in [minx_tmp, minx] if i is not None
+                            )
+                            miny = min(
+                                i for i in [miny_tmp, miny] if i is not None
+                            )
+                            maxx = max(
+                                i for i in [maxx_tmp, maxx] if i is not None
+                            )
+                            maxy = max(
+                                i for i in [maxy_tmp, maxy] if i is not None
+                            )
+
+                    #TODO guess it would be faster to first compute all Time
+                    #models and save all at once?
 
                     # search for time entries with an overlapping time span
-                    if browse_model.start_time == browse_model.end_time:
+                    if start_time == end_time:
                         times_qs = mapcache_models.Time.objects.filter(
                             source=source,
-                            start_time__lte=browse_model.end_time,
-                            end_time__gte=browse_model.start_time
+                            start_time__lte=end_time,
+                            end_time__gte=start_time
                         )
                     else:
                         times_qs = mapcache_models.Time.objects.filter(
                             Q(source=source),
-                            Q(start_time__lt=browse_model.end_time,
-                              end_time__gt=browse_model.start_time) |
+                            Q(start_time__lt=end_time,
+                              end_time__gt=start_time) |
                             Q(start_time=F("end_time"),
-                              start_time__lte=browse_model.end_time,
-                              end_time__gte=browse_model.start_time)
+                              start_time__lte=end_time,
+                              end_time__gte=start_time)
                         )
 
                     if len(times_qs) > 0:
