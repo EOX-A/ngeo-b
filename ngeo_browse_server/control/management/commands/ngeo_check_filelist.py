@@ -26,8 +26,7 @@
 #------------------------------------------------------------------------------
 
 import logging
-from os import walk
-from os.path import isdir, join
+from os.path import isfile, exists
 import traceback
 
 from django.core.management.base import BaseCommand, CommandError
@@ -41,10 +40,10 @@ logger = logging.getLogger(__name__)
 
 class Command(LogToConsoleMixIn, BaseCommand):
 
-    args = ("directory")
-    help = ("Checks directory for image files not referenced in DB.")
+    args = ("filelist_in", "filelist_out")
+    help = ("Checks list of files for image files not referenced in DB.")
 
-    def handle(self, *directory, **kwargs):
+    def handle(self, *filelists, **kwargs):
         # parse command arguments
         self.verbosity = int(kwargs.get("verbosity", 1))
         traceback_conf = kwargs.get("traceback", False)
@@ -53,31 +52,38 @@ class Command(LogToConsoleMixIn, BaseCommand):
         )
 
         # check consistency
-        if not len(directory):
-            logger.error("No directory given.")
-            raise CommandError("No directory given.")
-        elif len(directory) > 1:
-            logger.error("Too many directories given.")
-            raise CommandError("Too many directories given.")
+        if not len(filelists):
+            logger.error("No filelists given.")
+            raise CommandError("No filelists given.")
+        elif len(filelists) > 2:
+            logger.error("Too many filelists given.")
+            raise CommandError("Too many filelists given.")
+        elif len(filelists) == 1:
+            logger.error("Need two filelists.")
+            raise CommandError("Need two filelists.")
         else:
-            directory = directory[0]
-            if not isdir(directory):
-                logger.error("No valid directory given.")
-                raise CommandError("No valid directory given.")
+            filelist_in = filelists[0]
+            filelist_out = filelists[1]
+            if not isfile(filelist_in):
+                logger.error("No valid filelist_in given.")
+                raise CommandError("No valid filelist_in given.")
+            if exists(filelist_out):
+                logger.error("No valid filelist_out given.")
+                raise CommandError("No valid filelist_out given.")
 
         logger.info(
-            "Starting directory check on '%s' for images files not referenced "
-            "in DB." % directory
+            "Starting list of files check on '%s' for images files not "
+            "referenced in DB." % filelist_in
         )
 
-        self.handle_directory(directory)
+        self.handle_filelist(filelist_in, filelist_out)
 
         logger.info(
-            "Finished directory check on '%s' for image files not referenced "
-            "in DB." % directory
+            "Finished list of files check on '%s' for image files not "
+            "referenced in DB." % filelist_in
         )
 
-    def handle_directory(self, directory):
+    def handle_filelist(self, filelist_in, filelist_out):
 
         try:
             browses_qs = models.Browse.objects.extra(
@@ -100,21 +106,25 @@ class Command(LogToConsoleMixIn, BaseCommand):
                 'file_ref'
             )
 
-            for path, _, files in walk(directory):
-                for file in files:
-                    if not join(path, file) in browses_qs:
-                        logger.info(
-                            "'%s' has no reference in DB." % join(path, file)
-                        )
-                    # else:
-                    #     logger.info(
-                    #         "'%s' has reference in DB." % join(path, file)
-                    #     )
+            with open(filelist_in, "r") as filenames:
+                with open(filelist_out, "w") as filenames_out:
+                    for filename in filenames:
+                        if not filename.rstrip('\n') in browses_qs:
+                            filenames_out.write(filename)
+                            logger.debug(
+                                "'%s' has no reference in DB."
+                                % filename.rstrip('\n')
+                            )
+                        else:
+                            logger.debug(
+                                "'%s' has reference in DB."
+                                % filename.rstrip('\n')
+                            )
 
         except Exception as e:
             logger.error(
-                "Failure during directory check on '%s' for image files not "
-                "referenced in DB." % file
+                "Failure during filelist check on '%s' for image files not "
+                "referenced in DB." % filelist_in
             )
             logger.error(
                 "Exception was '%s': %s" % (type(e).__name__, str(e))

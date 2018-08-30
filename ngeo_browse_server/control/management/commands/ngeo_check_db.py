@@ -123,11 +123,11 @@ class Command(LogToConsoleMixIn, BaseCommand):
                                 "'%s' has dangling reference to '%s'."
                                 % (browse_model.coverage_id, file_ref)
                             )
-                    # else:
-                    #     logger.info(
-                    #         "'%s' has good reference to '%s'."
-                    #         % (browse_model.coverage_id, file_ref)
-                    #     )
+                    else:
+                        logger.debug(
+                            "'%s' has good reference to '%s'."
+                            % (browse_model.coverage_id, file_ref)
+                        )
 
                 transaction.commit()
 
