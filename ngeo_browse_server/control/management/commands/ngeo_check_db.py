@@ -31,7 +31,6 @@ from os.path import isfile
 import traceback
 
 from django.core.management.base import BaseCommand
-from django.db import transaction
 
 from eoxserver.core.system import System
 
@@ -78,65 +77,60 @@ class Command(LogToConsoleMixIn, BaseCommand):
 
     def handle_browse_layer(self, browse_layer_model, delete=False):
 
-        with transaction.commit_manually():
+        try:
+            logger.info("Checking layer '%s'" % browse_layer_model.id)
 
-            try:
-                logger.info("Checking layer '%s'" % browse_layer_model.id)
+            browses_qs = models.Browse.objects.filter(
+                browse_layer=browse_layer_model
+            ).extra(
+                select={
+                    'file_ref': (
+                        '''SELECT lp.path
+                        FROM coverages_coveragerecord AS cr,
+                             coverages_rectifieddatasetrecord AS rdsr,
+                             coverages_localdatapackage AS dp,
+                             backends_localpath AS lp
+                        WHERE dp.data_location_id = lp.location_ptr_id
+                        AND rdsr.data_package_id = dp.datapackage_ptr_id
+                        AND cr.resource_ptr_id = rdsr.coveragerecord_ptr_id
+                        AND config_browse.coverage_id = cr.coverage_id'''
+                    )
+                }
+            )
 
-                browses_qs = models.Browse.objects.filter(
-                    browse_layer=browse_layer_model
-                ).extra(
-                    select={
-                        'file_ref': (
-                            '''SELECT lp.path
-                            FROM coverages_coveragerecord AS cr,
-                                 coverages_rectifieddatasetrecord AS rdsr,
-                                 coverages_localdatapackage AS dp,
-                                 backends_localpath AS lp
-                            WHERE dp.data_location_id = lp.location_ptr_id
-                            AND rdsr.data_package_id = dp.datapackage_ptr_id
-                            AND cr.resource_ptr_id = rdsr.coveragerecord_ptr_id
-                            AND config_browse.coverage_id = cr.coverage_id'''
+            num_browses = len(browses_qs)
+            logger.info("Iterating through %s browses." % num_browses)
+
+            # iterate through browses
+            for browse_model in browses_qs:
+                file_ref = browse_model.file_ref
+
+                if not(isfile(file_ref)):
+                    if delete:
+                        logger.info(
+                            "Deleting '%s' with dangling reference to "
+                            "'%s'." % (browse_model.coverage_id, file_ref)
                         )
-                    }
-                )
-
-                num_browses = len(browses_qs)
-                logger.info("Iterating through %s browses." % num_browses)
-
-                # iterate through browses
-                for browse_model in browses_qs:
-                    file_ref = browse_model.file_ref
-
-                    if not(isfile(file_ref)):
-                        if delete:
-                            logger.info(
-                                "Deleting '%s' with dangling reference to "
-                                "'%s'." % (browse_model.coverage_id, file_ref)
-                            )
-                            _, _ = remove_browse(
-                                browse_model, browse_layer_model,
-                                browse_model.coverage_id, []
-                            )
-                        else:
-                            logger.info(
-                                "'%s' has dangling reference to '%s'."
-                                % (browse_model.coverage_id, file_ref)
-                            )
+                        _, _ = remove_browse(
+                            browse_model, browse_layer_model,
+                            browse_model.coverage_id, []
+                        )
                     else:
-                        logger.debug(
-                            "'%s' has good reference to '%s'."
+                        logger.info(
+                            "'%s' has dangling reference to '%s'."
                             % (browse_model.coverage_id, file_ref)
                         )
+                else:
+                    logger.debug(
+                        "'%s' has good reference to '%s'."
+                        % (browse_model.coverage_id, file_ref)
+                    )
 
-                transaction.commit()
-
-            except Exception as e:
-                logger.error(
-                    "Failure during DB check for dangling references to files."
-                )
-                logger.error(
-                    "Exception was '%s': %s" % (type(e).__name__, str(e))
-                )
-                logger.debug(traceback.format_exc() + "\n")
-                transaction.rollback()
+        except Exception as e:
+            logger.error(
+                "Failure during DB check for dangling references to files."
+            )
+            logger.error(
+                "Exception was '%s': %s" % (type(e).__name__, str(e))
+            )
+            logger.debug(traceback.format_exc() + "\n")
