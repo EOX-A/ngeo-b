@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 class Command(LogToConsoleMixIn, BaseCommand):
 
-    args = ("filelist_in", "filelist_out")
+    args = ("filelist_in", "filelist_out_nodb", "filelist_out_nofs")
     help = ("Checks list of files for image files not referenced in DB.")
 
     def handle(self, *filelists, **kwargs):
@@ -55,37 +55,46 @@ class Command(LogToConsoleMixIn, BaseCommand):
         if not len(filelists):
             logger.error("No filelists given.")
             raise CommandError("No filelists given.")
-        elif len(filelists) > 2:
+        elif len(filelists) > 3:
             logger.error("Too many filelists given.")
             raise CommandError("Too many filelists given.")
-        elif len(filelists) == 1:
-            logger.error("Need two filelists.")
-            raise CommandError("Need two filelists.")
+        elif len(filelists) < 3:
+            logger.error("Need three filelists.")
+            raise CommandError("Need three filelists.")
         else:
             filelist_in = filelists[0]
-            filelist_out = filelists[1]
+            filelist_out_nodb = filelists[1]
+            filelist_out_nofs = filelists[2]
             if not isfile(filelist_in):
                 logger.error("filelist_in '%s' is not a file." % filelist_in)
                 raise CommandError(
                     "filelist_in '%s' is not a file." % filelist_in
                 )
-            if exists(filelist_out):
-                logger.error("filelist_out '%s' exists." % filelist_out)
-                raise CommandError("filelist_out '%s' exists." % filelist_out)
+            if exists(filelist_out_nodb) or exists(filelist_out_nofs):
+                logger.error(
+                    "One of out filelists '%s' and '%s' exists."
+                    % (filelist_out_nodb, filelist_out_nofs)
+                )
+                raise CommandError(
+                    "One of out filelists '%s' and '%s' exists."
+                    % (filelist_out_nodb, filelist_out_nofs)
+                )
 
         logger.info(
             "Starting list of files check on '%s' for images files not "
             "referenced in DB." % filelist_in
         )
 
-        self.handle_filelist(filelist_in, filelist_out)
+        self.handle_filelist(filelist_in, filelist_out_nodb, filelist_out_nofs)
 
         logger.info(
             "Finished list of files check on '%s' for image files not "
             "referenced in DB." % filelist_in
         )
 
-    def handle_filelist(self, filelist_in, filelist_out):
+    def handle_filelist(
+        self, filelist_in, filelist_out_nodb, filelist_out_nofs
+    ):
 
         try:
             filenames_db = set(models.Browse.objects.extra(
@@ -108,11 +117,22 @@ class Command(LogToConsoleMixIn, BaseCommand):
 
             filenames_in = set(line.strip() for line in open(filelist_in))
 
-            filenames_out = filenames_in - filenames_db
-            logger.info("Found %s not referenced files." % len(filenames_out))
+            filenames_nodb = filenames_in - filenames_db
+            logger.info("Found %s not referenced files." % len(filenames_nodb))
 
-            with open(filelist_out, "w") as f:
-                f.writelines("%s\n" % line for line in filenames_out)
+            filenames_nofs = filenames_db - filenames_in
+            logger.info(
+                "Found %s DB entries not in the filelist. Please use this "
+                "info with caution, these entries may have been ingested "
+                "since the generation of the filelist."
+                % len(filenames_nofs)
+            )
+
+            with open(filelist_out_nodb, "w") as f:
+                f.writelines("%s\n" % line for line in filenames_nodb)
+
+            with open(filelist_out_nofs, "w") as f:
+                f.writelines("%s\n" % line for line in filenames_nofs)
 
         except Exception as e:
             logger.error(
