@@ -133,7 +133,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
 
                 unique_times_qs = models.Browse.objects.filter(
                     browse_layer=browse_layer_model
-                ).values(
+                ).values_list(
                     'start_time', 'end_time'
                 ).distinct(
                     'start_time', 'end_time'
@@ -145,8 +145,8 @@ class Command(LogToConsoleMixIn, BaseCommand):
                 # iterate through unique times
                 for unique_time in unique_times_qs:
 
-                    start_time = unique_time['start_time']
-                    end_time = unique_time['end_time']
+                    start_time = unique_time[0]
+                    end_time = unique_time[1]
                     minx, miny, maxx, maxy = (None,)*4
 
                     # search for all browses with that time and combine extent
@@ -167,6 +167,17 @@ class Command(LogToConsoleMixIn, BaseCommand):
                             minx_tmp, miny_tmp, maxx_tmp, maxy_tmp = (
                                 float(v) for v in time['extent'].split(',')
                             )
+                            # change one extent to ]0,360] if difference gets
+                            # smaller
+                            if minx is not None and maxx is not None:
+                                if (minx_tmp <= 0 and maxx_tmp <= 0 and
+                                        (minx-maxx_tmp) > (360+minx_tmp-maxx)):
+                                    minx_tmp += 360
+                                    maxx_tmp += 360
+                                elif (minx <= 0 and maxx <= 0 and
+                                        (minx_tmp-maxx) > (360+minx-maxx_tmp)):
+                                    minx += 360
+                                    maxx += 360
                             minx = min(
                                 i for i in [minx_tmp, minx] if i is not None
                             )
