@@ -96,35 +96,44 @@ class Command(LogToConsoleMixIn, BaseCommand):
                         AND config_browse.coverage_id = cr.coverage_id'''
                     )
                 }
+            ).values_list(
+                'coverage_id', 'file_ref'
             )
 
-            num_browses = len(browses_qs)
-            logger.info("Iterating through %s browses." % num_browses)
+            counter = 1
 
             # iterate through browses
-            for browse_model in browses_qs:
-                file_ref = browse_model.file_ref
+            for browse in browses_qs:
+                coverage_id = browse[0]
+                file_ref = browse[1]
 
                 if not(isfile(file_ref)):
                     if delete:
                         logger.info(
-                            "Deleting '%s' with dangling reference to "
-                            "'%s'." % (browse_model.coverage_id, file_ref)
+                            "%s: Deleting '%s' with dangling reference to "
+                            "'%s'."
+                            % (counter, coverage_id, file_ref)
+                        )
+                        browse_model = models.Browse.objects.get(
+                            browse_layer=browse_layer_model,
+                            coverage_id=coverage_id
                         )
                         _, _ = remove_browse(
                             browse_model, browse_layer_model,
-                            browse_model.coverage_id, []
+                            coverage_id, []
                         )
                     else:
                         logger.info(
-                            "'%s' has dangling reference to '%s'."
-                            % (browse_model.coverage_id, file_ref)
+                            "%s: '%s' has dangling reference to '%s'."
+                            % (counter, coverage_id, file_ref)
                         )
                 else:
-                    logger.debug(
-                        "'%s' has good reference to '%s'."
-                        % (browse_model.coverage_id, file_ref)
+                    logger.info(
+                        "%s: '%s' has good reference to '%s'."
+                        % (counter, coverage_id, file_ref)
                     )
+
+                counter += 1
 
         except Exception as e:
             logger.error(
