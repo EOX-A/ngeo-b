@@ -65,11 +65,13 @@ class Command(LogToConsoleMixIn, BaseCommand):
             filelist_in = filelists[0]
             filelist_out = filelists[1]
             if not isfile(filelist_in):
-                logger.error("No valid filelist_in given.")
-                raise CommandError("No valid filelist_in given.")
+                logger.error("filelist_in '%s' is not a file." % filelist_in)
+                raise CommandError(
+                    "filelist_in '%s' is not a file." % filelist_in
+                )
             if exists(filelist_out):
-                logger.error("No valid filelist_out given.")
-                raise CommandError("No valid filelist_out given.")
+                logger.error("filelist_out '%s' exists." % filelist_out)
+                raise CommandError("filelist_out '%s' exists." % filelist_out)
 
         logger.info(
             "Starting list of files check on '%s' for images files not "
@@ -86,7 +88,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
     def handle_filelist(self, filelist_in, filelist_out):
 
         try:
-            browses_qs = models.Browse.objects.extra(
+            filenames_db = set(models.Browse.objects.extra(
                 select={
                     'file_ref': (
                         '''SELECT lp.path
@@ -102,24 +104,15 @@ class Command(LogToConsoleMixIn, BaseCommand):
                 }
             ).values_list(
                 'file_ref', flat=True
-            ).order_by(
-                'file_ref'
-            )
+            ))
 
-            with open(filelist_in, "r") as filenames:
-                with open(filelist_out, "w") as filenames_out:
-                    for filename in filenames:
-                        if not filename.rstrip('\n') in browses_qs:
-                            filenames_out.write(filename)
-                            logger.debug(
-                                "'%s' has no reference in DB."
-                                % filename.rstrip('\n')
-                            )
-                        else:
-                            logger.debug(
-                                "'%s' has reference in DB."
-                                % filename.rstrip('\n')
-                            )
+            filenames_in = set(line.strip() for line in open(filelist_in))
+
+            filenames_out = filenames_in - filenames_db
+            logger.info("Found %s not referenced files." % len(filenames_out))
+
+            with open(filelist_out, "w") as f:
+                f.writelines("%s\n" % line for line in filenames_out)
 
         except Exception as e:
             logger.error(
