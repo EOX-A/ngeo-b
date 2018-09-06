@@ -30,7 +30,7 @@ from optparse import make_option
 from os.path import isfile
 import traceback
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 from eoxserver.core.system import System
 
@@ -53,15 +53,34 @@ class Command(LogToConsoleMixIn, BaseCommand):
         ),
     )
 
-    help = ("Checks DB for dangling references to files.")
+    args = ("filelist_in")
+    help = (
+        "Checks DB for dangling references to files for files in "
+        "'filelist_in'."
+    )
 
-    def handle(self, **kwargs):
+    def handle(self, *filelist, **kwargs):
         # parse command arguments
         self.verbosity = int(kwargs.get("verbosity", 1))
         traceback_conf = kwargs.get("traceback", False)
         self.set_up_logging(
             ["ngeo_browse_server"], self.verbosity, traceback_conf
         )
+
+        # check consistency
+        if not len(filelist):
+            logger.error("No filelist given.")
+            raise CommandError("No filelist given.")
+        elif len(filelist) > 1:
+            logger.error("Too many filelists given.")
+            raise CommandError("Too many filelists given.")
+        else:
+            filelist_in = filelist[0]
+            if not isfile(filelist_in):
+                logger.error("filelist_in '%s' is not a file." % filelist_in)
+                raise CommandError(
+                    "filelist_in '%s' is not a file." % filelist_in
+                )
 
         logger.info("Starting DB check for dangling references to files.")
 
@@ -71,14 +90,19 @@ class Command(LogToConsoleMixIn, BaseCommand):
             logger.info("Caution, deletion enabled.")
 
         for browse_layer_model in models.BrowseLayer.objects.all():
-            self.handle_browse_layer(browse_layer_model, delete)
+            self.handle_browse_layer(browse_layer_model, filelist_in, delete)
 
         logger.info("Finished DB check for dangling references to files.")
 
-    def handle_browse_layer(self, browse_layer_model, delete=False):
+    def handle_browse_layer(
+        self, browse_layer_model, filelist_in, delete=False
+    ):
 
         try:
             logger.info("Checking layer '%s'" % browse_layer_model.id)
+
+            filenames_in = set(line.strip() for line in open(filelist_in))
+            logger.info("Inspecting %s references" % len(filenames_in))
 
             browses_qs = models.Browse.objects.filter(
                 browse_layer=browse_layer_model
@@ -107,33 +131,35 @@ class Command(LogToConsoleMixIn, BaseCommand):
                 coverage_id = browse[0]
                 file_ref = browse[1]
 
-                if not(isfile(file_ref)):
-                    if delete:
-                        logger.info(
-                            "%s: Deleting '%s' with dangling reference to "
-                            "'%s'."
-                            % (counter, coverage_id, file_ref)
-                        )
-                        browse_model = models.Browse.objects.get(
-                            browse_layer=browse_layer_model,
-                            coverage_id=coverage_id
-                        )
-                        _, _ = remove_browse(
-                            browse_model, browse_layer_model,
-                            coverage_id, []
-                        )
+                if file_ref in filenames_in:
+
+                    if not(isfile(file_ref)):
+                        if delete:
+                            logger.info(
+                                "%s: Deleting '%s' with dangling reference to "
+                                "'%s'."
+                                % (counter, coverage_id, file_ref)
+                            )
+                            browse_model = models.Browse.objects.get(
+                                browse_layer=browse_layer_model,
+                                coverage_id=coverage_id
+                            )
+                            _, _ = remove_browse(
+                                browse_model, browse_layer_model,
+                                coverage_id, []
+                            )
+                        else:
+                            logger.info(
+                                "%s: '%s' has dangling reference to '%s'."
+                                % (counter, coverage_id, file_ref)
+                            )
                     else:
                         logger.info(
-                            "%s: '%s' has dangling reference to '%s'."
+                            "%s: '%s' has good reference to '%s'."
                             % (counter, coverage_id, file_ref)
                         )
-                else:
-                    logger.info(
-                        "%s: '%s' has good reference to '%s'."
-                        % (counter, coverage_id, file_ref)
-                    )
 
-                counter += 1
+                    counter += 1
 
         except Exception as e:
             logger.error(
