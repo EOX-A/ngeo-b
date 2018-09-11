@@ -349,7 +349,9 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         raise IngestionException("%s" % str(e), "ValidationError")
 
     # Get filename to store preprocessed image
-    output_filename = "%s_%s" % (uuid.uuid4().hex, parsed_browse.file_name)
+    output_filename = "%s_%s" % (
+        uuid.uuid4().hex, basename(parsed_browse.file_name)
+    )
     output_filename = _valid_path(
         get_optimized_path(
             output_filename, browse_layer.id + "/" +
