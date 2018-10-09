@@ -293,16 +293,16 @@ if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='template_p
     echo "Creating template database."
     createdb -E UTF8 template_postgis
     createlang plpgsql -d template_postgis
-    psql postgres -c "UPDATE pg_database SET datistemplate='true' WHERE datname='template_postgis';"
+    psql -q postgres -c "UPDATE pg_database SET datistemplate='true' WHERE datname='template_postgis';"
     if [ -f /usr/share/pgsql/contrib/postgis-64.sql ] ; then
-        psql -d template_postgis -f /usr/share/pgsql/contrib/postgis-64.sql
+        psql -q -d template_postgis -f /usr/share/pgsql/contrib/postgis-64.sql
     else
-        psql -d template_postgis -f /usr/share/pgsql/contrib/postgis.sql
+        psql -q -d template_postgis -f /usr/share/pgsql/contrib/postgis.sql
     fi
-    psql -d template_postgis -f /usr/share/pgsql/contrib/spatial_ref_sys.sql
-    psql -d template_postgis -c "GRANT ALL ON geometry_columns TO PUBLIC;"
-    psql -d template_postgis -c "GRANT ALL ON geography_columns TO PUBLIC;"
-    psql -d template_postgis -c "GRANT ALL ON spatial_ref_sys TO PUBLIC;"
+    psql -q -d template_postgis -f /usr/share/pgsql/contrib/spatial_ref_sys.sql
+    psql -q -d template_postgis -c "GRANT ALL ON geometry_columns TO PUBLIC;"
+    psql -q -d template_postgis -c "GRANT ALL ON geography_columns TO PUBLIC;"
+    psql -q -d template_postgis -c "GRANT ALL ON spatial_ref_sys TO PUBLIC;"
 fi
 if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'")" != 1 ] ; then
     echo "Creating ngEO database user."
@@ -349,6 +349,9 @@ EOF
         sed -e "/'HOST': '',                                                             # Set to empty string for localhost. Not used with spatialite./d" -i ngeo_browse_server_instance/settings.py
         sed -e "/'PORT': '',                                                             # Set to empty string for default. Not used with spatialite./d" -i ngeo_browse_server_instance/settings.py
         sed -e "s/#'TEST_NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/test-mapcache.sqlite',/'TEST_NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/test-mapcache.sqlite',/" -i ngeo_browse_server_instance/settings.py
+
+        # include datetime in logs
+        sed -e "s/'format': '%(levelname)s: %(message)s'/'format': '%(asctime)s %(levelname)s: %(message)s'/" -i ngeo_browse_server_instance/settings.p
 
         # Configure instance
         sed -e "s,http_service_url=http://localhost:8000/ows,http_service_url=$APACHE_NGEO_BROWSE_ALIAS/ows," -i ngeo_browse_server_instance/conf/eoxserver.conf
