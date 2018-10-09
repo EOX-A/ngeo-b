@@ -143,8 +143,10 @@ EOF
     if ! [ `getenforce` == "Disabled" ] ; then
         setenforce 0
     fi
-    if ! grep -Fxq "SELINUX=disabled" /etc/selinux/config ; then
-        sed -e 's/^SELINUX=.*$/SELINUX=disabled/' -i /etc/selinux/config
+    if [ -f /etc/selinux/config ] ; then
+        if ! grep -Fxq "SELINUX=disabled" /etc/selinux/config ; then
+            sed -e 's/^SELINUX=.*$/SELINUX=disabled/' -i /etc/selinux/config
+        fi
     fi
 
     echo "Performing installation step 50"
@@ -280,7 +282,8 @@ EOF
     # Configure PostgreSQL/PostGIS database
 
     ## Write database configuration script
-    TMPFILE=`mktemp`
+    mkdir -p /tmppostgres
+    TMPFILE=`mktemp -p /tmppostgres`
     cat << EOF > "$TMPFILE"
 #!/bin/sh -e
 # cd to a "safe" location
@@ -316,6 +319,7 @@ EOF
         chmod g+rx $TMPFILE
         su postgres -c "$TMPFILE"
         rm "$TMPFILE"
+        rmdir --ignore-fail-on-non-empty /tmppostgres
     else
         echo "Script to configure DB not found."
     fi
@@ -536,7 +540,7 @@ EOF
 
         # Add hostname
         HOSTNAME=`hostname`
-        if ! grep -Gxq "127\.0\.0\.1.* $HOSTNAME" /etc/hosts ; then
+        if ! grep -Gxq "127\.0\.0\.1.*$HOSTNAME" /etc/hosts ; then
             sed -e "s/^127\.0\.0\.1.*$/& $HOSTNAME/" -i /etc/hosts
         fi
 
