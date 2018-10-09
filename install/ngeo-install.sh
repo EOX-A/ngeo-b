@@ -264,19 +264,20 @@ EOF
 
 
     # allow installation of local RPMs if available
-    if [ -f mapcache-*.rpm ] ; then
-        echo "Installing local mapcache RPM `ls mapcache-*.rpm`"
-        yum install -y mapcache-*.rpm
+    if ls mapcache-*.x86_64.rpm   1> /dev/null 2>&1; then
+        file=`ls -r mapcache-*.x86_64.rpm | head -1`
+        echo "Installing local mapcache RPM ${file}"
+        yum install -y ${file}
     else
         yum install -y mapcache
     fi
-    if [ -f ngEO_Browse_Server-*.rpm ] ; then
-        echo "Installing local ngEO_Browse_Server RPM `ls ngEO_Browse_Server-*.rpm`"
-        yum install -y ngEO_Browse_Server-*.rpm
+    if ls ngEO_Browse_Server-*.noarch.rpm 1> /dev/null 2>&1; then
+        file=`ls -r ngEO_Browse_Server-*.noarch.rpm | head -1`
+        echo "Installing local ngEO_Browse_Server RPM ${file}"
+        yum install -y ${file}
     else
         yum install -y ngEO_Browse_Server
     fi
-
 
     echo "Performing installation step 180"
     # Configure PostgreSQL/PostGIS database
@@ -716,10 +717,12 @@ $NGEOB_LOG_DIR/eoxserver.log $NGEOB_LOG_DIR/ngeo.log {
 EOF
 
     # Install and configure SxCat if available
-    if [ -f sxcat-*.rpm ] ; then
-        echo "Installing local SxCat RPM `ls sxcat-*.rpm`"
+
+    if ls sxcat-*.noarch.rpm 1> /dev/null 2>&1; then
+        file=`ls -r sxcat-*.noarch.rpm | head -1`
+        echo "Installing local SxCat RPM ${file}"
         yum install -y python-pyspatialite-eox inotify-tools
-        yum install -y sxcat-*.rpm
+        yum install -y ${file}
 
         echo "Configuring SxCat and starting harvestd daemon"
         cat << EOF >> /etc/sxcat/catalogue/catalogue.conf
@@ -728,6 +731,9 @@ EOF
 enabled = true
 use_footprint = true
 EOF
+
+        # add browsewatch
+        mkdir -p /srv/sxcat/collections/tmp/browse_reports/
 
         # change ownership to apache
         chown -R apache:apache /srv/sxcat/ /var/log/sxcat/ /etc/sxcat
@@ -754,9 +760,6 @@ EOF
         cd "${NGEOB_INSTALL_DIR}/ngeo_browse_server_instance"
         sed -e "s/^#harvesting_via_sxcat=false/harvesting_via_sxcat=true/" -i ngeo_browse_server_instance/conf/ngeo.conf
         cd -
-
-        # add browsewatch
-        mkdir -p /srv/sxcat/collections/tmp/browse_reports/
 
         # add browsewatchd daemon
         if [ -f browsewatchd ] ; then
@@ -912,7 +915,8 @@ ngeo_full_uninstall() {
 
     if service postgresql status ; then
         ## Write database deletion script
-        TMPFILE=`mktemp`
+        mkdir -p /tmppostgres
+        TMPFILE=`mktemp -p /tmppostgres`
         cat << EOF > "$TMPFILE"
 #!/bin/sh -e
 # cd to a "safe" location
@@ -940,6 +944,7 @@ EOF
             chmod g+rx $TMPFILE
             su postgres -c "$TMPFILE"
             rm "$TMPFILE"
+            rmdir --ignore-fail-on-non-empty /tmppostgres
         else
             echo "Script to delete DB not found."
         fi
