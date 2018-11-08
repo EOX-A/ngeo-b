@@ -7,7 +7,7 @@
 #          Stephan Meissl <stephan.meissl@eox.at>
 #
 #-------------------------------------------------------------------------------
-# Copyright (C) 2012, 2013 European Space Agency
+# Copyright (C) 2012, 2013, 2018 European Space Agency
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -204,9 +204,21 @@ EOF
                    geos-3.3.8-2.el6.x86_64.rpm \
                    libspatialite-2.4.0-0.6_0.RC4.el6.x86_64.rpm \
                    libtiff4-4.0.3-1.el6.x86_64.rpm \
+                   libgeotiff-libtiff4-1.4.0-1.el6.x86_64.rpm \
                    postgis-1.5.8-1.el6.x86_64.rpm \
                    proj-4.8.0-3.el6.x86_64.rpm \
-                   proj-epsg-4.8.0-3.el6.x86_64.rpm
+                   proj-epsg-4.8.0-3.el6.x86_64.rpm \
+                   libxml2-2.7.6-21.el6_8.1_eox.1.x86_64.rpm \
+                   libxml2-python-2.7.6-21.el6_8.1_eox.1.x86_64.rpm \
+                   gdal-eox-driver-openjpeg2-1.9.2-2.el6.x86_64.rpm \
+                   gdal-eox-libtiff4-1.9.2-3.el6.x86_64.rpm \
+                   gdal-eox-libtiff4-libs-1.9.2-3.el6.x86_64.rpm \
+                   gdal-eox-libtiff4-python-1.9.2-3.el6.x86_64.rpm \
+                   python-pyspatialite-eox-2.6.2-1.x86_64.rpm \
+                   mapserver-6.2.2-2.el6.x86_64.rpm \
+                   mapserver-python-6.2.2-2.el6.x86_64.rpm \
+                   EOxServer-0.3.7-1.x86_64.rpm \
+                   mapcache-1.2.1-4.el6.x86_64.rpm
     cd -
 
 
@@ -216,30 +228,7 @@ EOF
 
     echo "Assuming successful execution of installation step 130"
 
-    # Install needed yum repositories
-    echo "Performing installation step 140"
-    # EOX
-    rpm -Uvh --replacepkgs http://yum.packages.eox.at/el/eox-release-6-2.noarch.rpm
-    rpm --import /etc/pki/rpm-gpg/eox-package-maintainers.gpg
-    if "$TESTING" ; then
-        sed -e 's/^enabled=0/enabled=1/' -i /etc/yum.repos.d/eox-testing.repo
-    fi
-
-    echo "Performing installation step 150"
-    # Set includepkgs in EOX Stable
-    if ! grep -Fxq "includepkgs=libgeotiff-libtiff4 gdal-eox-libtiff4 gdal-eox-libtiff4-python gdal-eox-libtiff4-libs gdal-eox-driver-openjpeg2 openjpeg2 EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python libxerces-c-3_1 python-pyspatialite-eox" /etc/yum.repos.d/eox.repo ; then
-        sed -e 's/^\[eox\]$/&\nincludepkgs=libgeotiff-libtiff4 gdal-eox-libtiff4 gdal-eox-libtiff4-python gdal-eox-libtiff4-libs gdal-eox-driver-openjpeg2 openjpeg2 EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python libxerces-c-3_1 python-pyspatialite-eox/' -i /etc/yum.repos.d/eox.repo
-    fi
-    if ! grep -Fxq "includepkgs=ngEO_Browse_Server" /etc/yum.repos.d/eox.repo ; then
-        sed -e 's/^\[eox-noarch\]$/&\nincludepkgs=ngEO_Browse_Server/' -i /etc/yum.repos.d/eox.repo
-    fi
-    # Set includepkgs in EOX Testing
-    if ! grep -Fxq "includepkgs=EOxServer mapcache" /etc/yum.repos.d/eox-testing.repo ; then
-        sed -e 's/^\[eox-testing\]$/&\nincludepkgs=EOxServer mapcache/' -i /etc/yum.repos.d/eox-testing.repo
-    fi
-    if ! grep -Fxq "includepkgs=ngEO_Browse_Server" /etc/yum.repos.d/eox-testing.repo ; then
-        sed -e 's/^\[eox-testing-noarch\]$/&\nincludepkgs=ngEO_Browse_Server/' -i /etc/yum.repos.d/eox-testing.repo
-    fi
+    echo "Skipped installation steps 140 and 150 since integrated in step 120"
 
     echo "Performing installation step 160"
     # Set exclude in CentOS-Base
@@ -253,30 +242,13 @@ EOF
     fi
 
     echo "Performing installation step 170"
-    # Re-install libxml2 from eox repository
-    rpm -e --justdb --nodeps libxml2
-    # Install packages
-    yum install -y libxml2
-    yum install -y --nogpgcheck libtiff4
-    yum install -y libxml2-python gdal-eox-libtiff4 gdal-eox-libtiff4-python \
-                   gdal-eox-driver-openjpeg2 mapserver mapserver-python \
-                   EOxServer
-
-
-    # allow installation of local RPMs if available
-    if ls mapcache-*.x86_64.rpm   1> /dev/null 2>&1; then
-        file=`ls -r mapcache-*.x86_64.rpm | head -1`
-        echo "Installing local mapcache RPM ${file}"
-        yum install -y ${file}
-    else
-        yum install -y mapcache
-    fi
     if ls ngEO_Browse_Server-*.noarch.rpm 1> /dev/null 2>&1; then
         file=`ls -r ngEO_Browse_Server-*.noarch.rpm | head -1`
         echo "Installing local ngEO_Browse_Server RPM ${file}"
         yum install -y ${file}
     else
-        yum install -y ngEO_Browse_Server
+        echo "Aborting, no ngEO_Browse_Server RPM found for installation."
+        exit 1
     fi
 
     echo "Performing installation step 180"
@@ -351,7 +323,7 @@ EOF
         sed -e "s/#'TEST_NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/test-mapcache.sqlite',/'TEST_NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/test-mapcache.sqlite',/" -i ngeo_browse_server_instance/settings.py
 
         # include datetime in logs
-        sed -e "s/'format': '%(levelname)s: %(message)s'/'format': '%(asctime)s %(levelname)s: %(message)s'/" -i ngeo_browse_server_instance/settings.p
+        sed -e "s/'format': '%(levelname)s: %(message)s'/'format': '%(asctime)s %(levelname)s: %(message)s'/" -i ngeo_browse_server_instance/settings.py
 
         # Configure instance
         sed -e "s,http_service_url=http://localhost:8000/ows,http_service_url=$APACHE_NGEO_BROWSE_ALIAS/ows," -i ngeo_browse_server_instance/conf/eoxserver.conf
@@ -724,7 +696,7 @@ EOF
     if ls sxcat-*.noarch.rpm 1> /dev/null 2>&1; then
         file=`ls -r sxcat-*.noarch.rpm | head -1`
         echo "Installing local SxCat RPM ${file}"
-        yum install -y python-pyspatialite-eox inotify-tools
+        yum install -y inotify-tools
         yum install -y ${file}
 
         echo "Configuring SxCat and starting harvestd daemon"
@@ -842,7 +814,7 @@ ngeo_uninstall() {
 
     echo "Performing uninstallation step 90"
     echo "Delete extra Yum repositories"
-    yum erase -y epel-release eox-release
+    yum erase -y epel-release
 
     # Remove exclude from CentOS-Base
     if grep -Fxq "exclude=libxml2 libxml2-python libxerces-c-3_1" /etc/yum.repos.d/CentOS-Base.repo ; then
