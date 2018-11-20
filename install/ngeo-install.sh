@@ -108,8 +108,12 @@ ngeo_install() {
     echo "------------------------------------------------------------------------------"
 
     echo "Performing installation step 0"
-    echo "Uninstalling any previous version"
-    ngeo_uninstall
+    echo "Checking for any previous version and exiting if present"
+    if [ -n "`rpm -qa | grep ngEO_Browse_Server`" ] ; then
+        echo -e "Package ngEO_Browse_Server: \033[1;31minstalled\033[m\017"
+        echo "Exiting, please run uninstall or full_uninstall before continuing."
+        exit 1
+    fi
 
     echo "Starting ngEO Browse Server installation"
     echo "Assuming successful execution of installation steps 10, 20, and 30"
