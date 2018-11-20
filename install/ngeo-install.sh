@@ -693,10 +693,17 @@ EOF
 
     # Install and configure SxCat if available
 
-    if ls sxcat-*.noarch.rpm 1> /dev/null 2>&1; then
-        file=`ls -r sxcat-*.noarch.rpm | head -1`
-        echo "Installing local SxCat RPM ${file}"
-        yum install -y inotify-tools
+    if ls sxcat-bs*.noarch.rpm 1> /dev/null 2>&1 && ls sxcat-brb*.noarch.rpm 1> /dev/null 2>&1; then
+        # Install and permanently start redis
+        yum install -y redis python-redis
+        chkconfig redis on
+        service redis start
+
+        file=`ls -r sxcat-bs*.noarch.rpm | head -1`
+        echo "Installing local SxCat Browse Server RPM ${file}"
+        yum install -y ${file}
+        file=`ls -r sxcat-brb*.noarch.rpm | head -1`
+        echo "Installing local SxCat BRB RPM ${file}"
         yum install -y ${file}
 
         echo "Configuring SxCat and starting harvestd daemon"
@@ -704,7 +711,13 @@ EOF
 
 [browse_reports]
 enabled = true
+backend = redis
 use_footprint = true
+
+[browse_reports_redis]
+host = localhost
+port = 6379
+queue = ingest_queue
 EOF
 
         # add browsewatch
@@ -739,9 +752,12 @@ EOF
         # add browsewatchd daemon
         if [ -f browsewatchd ] ; then
             echo "Adding, enabling, and starting browsewatchd service"
+
+            # Install and permanently start browsewatchd
             cp browsewatchd /etc/init.d/
-            chkconfig browsewatchd on
             chmod +x /etc/init.d/browsewatchd
+            chkconfig browsewatchd on
+            service browsewatchd start
 
             # allow user apache to restart browsewatchd
             cat << EOF > /etc/sudoers.d/browsewatchd

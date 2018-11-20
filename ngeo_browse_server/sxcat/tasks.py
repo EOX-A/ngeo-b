@@ -5,7 +5,7 @@
 #          Stephan Meissl <stephan.meissl@eox.at>
 #
 #------------------------------------------------------------------------------
-# Copyright (C) 2017 European Space Agency
+# Copyright (C) 2017, 2018 European Space Agency
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -29,37 +29,12 @@
 import logging
 import subprocess
 
-from os import makedirs
-from os.path import join
-
 
 logger = logging.getLogger(__name__)
 
 
 class SxCatException(Exception):
     """ Base class for SxCat related errors. """
-
-
-def browsewatchd_restart():
-    # update directories watched by browsewatchd
-    browsewatch_args = [
-        "sudo", "/sbin/service", "browsewatchd", "restart"
-    ]
-    logger.debug("Restart browsewatchd with command: '%s'. raw: '%s'."
-                 % (" ".join(browsewatch_args), browsewatch_args))
-
-    process = subprocess.Popen(browsewatch_args, stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE)
-
-    out, err = process.communicate()
-    for string in (out, err):
-        for line in string.split("\n"):
-            if line != '':
-                logger.info("browsewatchd output: %s" % line)
-
-    if process.returncode != 0:
-        raise SxCatException("browsewatchd restarting failed. Returncode '%d'."
-                             % process.returncode)
 
 
 def add_collection(browse_layer):
@@ -97,9 +72,6 @@ source = %s
     if process.returncode != 0:
         raise SxCatException("Collection configuring failed. Returncode '%d'."
                              % process.returncode)
-
-    makedirs(join("/srv/sxcat/collections", name, "browse_reports"))
-    browsewatchd_restart()
 
     # enable harvesting
     sxcat_harvest_args = [
@@ -174,7 +146,5 @@ def remove_collection(browse_layer):
     if process.returncode != 0:
         raise SxCatException("Removing collection failed. Returncode '%d'."
                              % process.returncode)
-
-    browsewatchd_restart()
 
     logger.info("Successfully removed collection from SxCat.")
