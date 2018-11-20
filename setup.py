@@ -82,7 +82,7 @@ setup(
     maintainer="EOX IT Services GmbH",
     maintainer_email="packages@eox.at",
 
-    description="ngEO Browse Server providing access to browse images via WMS",
+    description="Browse Server (ESA-CAT-BROW) providing access to browse images via WMS",
     long_description=read("README.rst"),
 
     classifiers=[
@@ -112,6 +112,6 @@ setup(
     ],
 
     license="MIT License",
-    keywords="ngEO, Browse, OGC, WMS",
-    url="http://ngeo.eox.at/"
+    keywords="ESA-CAT-BROW, Browse, OGC, WMS",
+    url="https://eox.at/"
 )
