@@ -4283,6 +4283,8 @@ class ConfigurationChangeTestCase(ConfigMixIn, TestCase):
             (INGEST_SECTION, "threshold"): "8h",
             (INGEST_SECTION, "regular_grid_clipping"): "True",
             (INGEST_SECTION, "in_memory"): "True",
+            (INGEST_SECTION, "sieve_max_threshold"): "4096",
+            (INGEST_SECTION, "simplification_factor"): "3",
             #("mapcache", "threads"): "4",
         }
 
