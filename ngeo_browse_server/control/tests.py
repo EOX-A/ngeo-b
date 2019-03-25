@@ -1292,7 +1292,6 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 </bsi:ingestBrowseResponse>
 """
 
-
 class IngestFootprintBrowseMerge(IngestMergeTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_before_test_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327.xml"
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_new_merge.xml"
@@ -1318,6 +1317,93 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
     <bsi:ingestionResult>
         <bsi:briefRecord>
             <bsi:identifier>b_id_3</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+#==============================================================================
+# Ingest two browse reports with products in consecutive seconds
+# MapCache adds a second in case of equal start and stop to add some duration
+#==============================================================================
+
+class SeedConsecutiveSeconds(SeedTestCaseMixIn, LoggingTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
+    request_files = ( "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_equal-start-stop_id-1.xml",
+                      "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_equal-start-stop_id-2.xml"
+                     )
+
+    expected_browse_type = "SAR"
+    expected_tiles = {0: 2, 1: 2, 2: 2, 3: 2, 4: 2}
+
+    expected_logs = {
+        logging.DEBUG: 26,
+        logging.INFO: 32,
+        logging.WARN: 0,
+        logging.ERROR: 0,
+        logging.CRITICAL: 0
+    }
+
+    logging_config = {
+        'version': 1,
+        'disable_existing_loggers': True,
+        'filters': {
+            'require_debug_false': {
+                '()': 'django.utils.log.RequireDebugFalse'
+            }
+        },
+        'formatters': {
+            'simple': {
+                'format': '%(levelname)s: %(message)s'
+            },
+            'verbose': {
+                'format': '[%(asctime)s][%(module)s] %(levelname)s: %(message)s'
+            }
+        },
+        'handlers': {
+            'ngeo_file': {
+                'level': 'DEBUG',
+                'class': 'logging.handlers.WatchedFileHandler',
+                'filename': join(settings.PROJECT_DIR, 'logs', 'ngeo.log'),
+                'formatter': 'simple',
+                'filters': [],
+            }
+        },
+        'loggers': {
+            'ngeo_browse_server': {
+                'handlers': ['ngeo_file'],
+                'level': 'DEBUG',
+                'propagate': False,
+            },
+        }
+    }
+
+class IngestConsecutiveSeconds(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    request_before_test_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_equal-start-stop_id-1.xml"
+    request_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_equal-start-stop_id-2.xml"
+
+    expected_num_replaced = 0
+    test_model_counts = None
+
+    expected_ingested_browse_ids = ("b_id_3_1", "b_id_3_2", )
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['ASA_IM__0P_20100807_101327_proc.tif', 'ASA_IM__0P_20100807_101327_new_proc.tif']
+    expected_deleted_files = ['ASA_IM__0P_20100807_101327_new.jpg']
+    expected_deleted_optimized_files = ['ASA_IM__0P_20100807_101327.tif']
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>b_id_3_2</bsi:identifier>
             <bsi:status>success</bsi:status>
         </bsi:briefRecord>
     </bsi:ingestionResult>
