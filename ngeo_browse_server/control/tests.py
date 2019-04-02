@@ -1334,7 +1334,7 @@ class SeedConsecutiveSeconds(SeedTestCaseMixIn, LoggingTestCaseMixIn, HttpMultip
                      )
 
     expected_browse_type = "SAR"
-    expected_tiles = {0: 2, 1: 2, 2: 2, 3: 2, 4: 2}
+    expected_tiles = {0: 3, 1: 3, 2: 3, 3: 3, 4: 3}
 
     expected_logs = {
         logging.DEBUG: 26,
@@ -1410,6 +1410,60 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 </bsi:ingestBrowseResponse>
 """
 
+#==============================================================================
+# Merge and replace browse reports with no duration
+#==============================================================================
+
+class SeedMergeAndReplaceNoDuration(SeedTestCaseMixIn, LoggingTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
+    request_files = ( "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_equal-start-stop_id-1.xml",
+                      "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_shifted.xml",
+                      "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_equal-start-stop_id-1_new.xml",
+                     )
+
+    expected_browse_type = "SAR"
+    expected_tiles = {0: 1, 1: 1, 2: 1, 3: 1, 4: 1}
+
+    expected_logs = {
+        logging.DEBUG: 46,
+        logging.INFO: 64,
+        logging.WARN: 0,
+        logging.ERROR: 0,
+        logging.CRITICAL: 0
+    }
+
+    logging_config = {
+        'version': 1,
+        'disable_existing_loggers': True,
+        'filters': {
+            'require_debug_false': {
+                '()': 'django.utils.log.RequireDebugFalse'
+            }
+        },
+        'formatters': {
+            'simple': {
+                'format': '%(levelname)s: %(message)s'
+            },
+            'verbose': {
+                'format': '[%(asctime)s][%(module)s] %(levelname)s: %(message)s'
+            }
+        },
+        'handlers': {
+            'ngeo_file': {
+                'level': 'DEBUG',
+                'class': 'logging.handlers.WatchedFileHandler',
+                'filename': join(settings.PROJECT_DIR, 'logs', 'ngeo.log'),
+                'formatter': 'simple',
+                'filters': [],
+            }
+        },
+        'loggers': {
+            'ngeo_browse_server': {
+                'handlers': ['ngeo_file'],
+                'level': 'DEBUG',
+                'propagate': False,
+            },
+        }
+    }
 
 #===============================================================================
 # Ingest partial (some success and some failure) tests
