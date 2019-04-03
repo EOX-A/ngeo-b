@@ -3108,6 +3108,68 @@ class DeleteFromCommandStartEndMerge3(DeleteTestCaseMixIn, CliMixIn, SeedMergeTe
          parse_datetime("2010-07-22T21:40:38Z"))
     ]
 
+class DeleteMergedNoDuration(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LoggingTestCaseMixIn, LiveServerTestCase):
+    kwargs = {
+        "layer" : "TEST_SAR",
+        "start": "2010-08-07T10:13:36Z",
+        "end": "2010-08-07T10:13:36Z"
+    }
+
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
+                        join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_IM__0P_20100807_101327_equal-start-stop_id-1.xml"),
+                        join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_IM__0P_20100807_101327_shifted.xml"),
+                        join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_IM__0P_20100807_101327_equal-start-stop_id-1_new.xml")]
+
+    expected_remaining_browses = 0
+    expected_deleted_files = [
+        "TEST_SAR/2010/3aba17aa8b954a6fbf46f00019297f15_ASA_IM__0P_20100807_101327_new_proc.tif",
+        "TEST_SAR/2010/62864bf458e44a6494a2ddda4f1575cc_ASA_IM__0P_20100731_103315_proc.tif",
+    ]
+    expected_browse_type = "SAR"
+    expected_tiles = {}
+
+    expected_logs = {
+        logging.DEBUG: 48,
+        logging.INFO: 89,
+        logging.WARN: 0,
+        logging.ERROR: 0,
+        logging.CRITICAL: 0
+    }
+
+    logging_config = {
+        'version': 1,
+        'disable_existing_loggers': True,
+        'filters': {
+            'require_debug_false': {
+                '()': 'django.utils.log.RequireDebugFalse'
+            }
+        },
+        'formatters': {
+            'simple': {
+                'format': '%(levelname)s: %(message)s'
+            },
+            'verbose': {
+                'format': '[%(asctime)s][%(module)s] %(levelname)s: %(message)s'
+            }
+        },
+        'handlers': {
+            'ngeo_file': {
+                'level': 'DEBUG',
+                'class': 'logging.handlers.WatchedFileHandler',
+                'filename': join(settings.PROJECT_DIR, 'logs', 'ngeo.log'),
+                'formatter': 'simple',
+                'filters': [],
+            }
+        },
+        'loggers': {
+            'ngeo_browse_server': {
+                'handlers': ['ngeo_file'],
+                'level': 'DEBUG',
+                'propagate': False,
+            },
+        }
+    }
+
 
 #===============================================================================
 # Export test cases
