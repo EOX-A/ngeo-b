@@ -1292,7 +1292,6 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 </bsi:ingestBrowseResponse>
 """
 
-
 class IngestFootprintBrowseMerge(IngestMergeTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_before_test_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327.xml"
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_new_merge.xml"
@@ -1324,6 +1323,147 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 </bsi:ingestBrowseResponse>
 """
 
+#==============================================================================
+# Ingest two browse reports with products in consecutive seconds
+# MapCache adds a second in case of equal start and stop to add some duration
+#==============================================================================
+
+class SeedConsecutiveSeconds(SeedTestCaseMixIn, LoggingTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
+    request_files = ( "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_equal-start-stop_id-1.xml",
+                      "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_equal-start-stop_id-2.xml"
+                     )
+
+    expected_browse_type = "SAR"
+    expected_tiles = {0: 3, 1: 3, 2: 3, 3: 3, 4: 3}
+
+    expected_logs = {
+        logging.DEBUG: 26,
+        logging.INFO: 32,
+        logging.WARN: 0,
+        logging.ERROR: 0,
+        logging.CRITICAL: 0
+    }
+
+    logging_config = {
+        'version': 1,
+        'disable_existing_loggers': True,
+        'filters': {
+            'require_debug_false': {
+                '()': 'django.utils.log.RequireDebugFalse'
+            }
+        },
+        'formatters': {
+            'simple': {
+                'format': '%(levelname)s: %(message)s'
+            },
+            'verbose': {
+                'format': '[%(asctime)s][%(module)s] %(levelname)s: %(message)s'
+            }
+        },
+        'handlers': {
+            'ngeo_file': {
+                'level': 'DEBUG',
+                'class': 'logging.handlers.WatchedFileHandler',
+                'filename': join(settings.PROJECT_DIR, 'logs', 'ngeo.log'),
+                'formatter': 'simple',
+                'filters': [],
+            }
+        },
+        'loggers': {
+            'ngeo_browse_server': {
+                'handlers': ['ngeo_file'],
+                'level': 'DEBUG',
+                'propagate': False,
+            },
+        }
+    }
+
+class IngestConsecutiveSeconds(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    request_before_test_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_equal-start-stop_id-1.xml"
+    request_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_equal-start-stop_id-2.xml"
+
+    expected_num_replaced = 0
+    test_model_counts = None
+
+    expected_ingested_browse_ids = ("b_id_3_1", "b_id_3_2", )
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['ASA_IM__0P_20100807_101327_proc.tif', 'ASA_IM__0P_20100807_101327_new_proc.tif']
+    expected_deleted_files = ['ASA_IM__0P_20100807_101327_new.jpg']
+    expected_deleted_optimized_files = ['ASA_IM__0P_20100807_101327.tif']
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>b_id_3_2</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+#==============================================================================
+# Merge and replace browse reports with no duration
+#==============================================================================
+
+class SeedMergeAndReplaceNoDuration(SeedTestCaseMixIn, LoggingTestCaseMixIn, HttpMultipleMixIn, LiveServerTestCase):
+    request_files = ( "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_equal-start-stop_id-1.xml",
+                      "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_shifted.xml",
+                      "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_equal-start-stop_id-1_new.xml",
+                     )
+
+    expected_browse_type = "SAR"
+    expected_tiles = {0: 1, 1: 1, 2: 1, 3: 1, 4: 2}
+
+    expected_logs = {
+        logging.DEBUG: 46,
+        logging.INFO: 64,
+        logging.WARN: 0,
+        logging.ERROR: 0,
+        logging.CRITICAL: 0
+    }
+
+    logging_config = {
+        'version': 1,
+        'disable_existing_loggers': True,
+        'filters': {
+            'require_debug_false': {
+                '()': 'django.utils.log.RequireDebugFalse'
+            }
+        },
+        'formatters': {
+            'simple': {
+                'format': '%(levelname)s: %(message)s'
+            },
+            'verbose': {
+                'format': '[%(asctime)s][%(module)s] %(levelname)s: %(message)s'
+            }
+        },
+        'handlers': {
+            'ngeo_file': {
+                'level': 'DEBUG',
+                'class': 'logging.handlers.WatchedFileHandler',
+                'filename': join(settings.PROJECT_DIR, 'logs', 'ngeo.log'),
+                'formatter': 'simple',
+                'filters': [],
+            }
+        },
+        'loggers': {
+            'ngeo_browse_server': {
+                'handlers': ['ngeo_file'],
+                'level': 'DEBUG',
+                'propagate': False,
+            },
+        }
+    }
 
 #===============================================================================
 # Ingest partial (some success and some failure) tests
@@ -2968,6 +3108,68 @@ class DeleteFromCommandStartEndMerge3(DeleteTestCaseMixIn, CliMixIn, SeedMergeTe
          parse_datetime("2010-07-22T21:40:38Z"))
     ]
 
+class DeleteMergedNoDuration(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LoggingTestCaseMixIn, LiveServerTestCase):
+    kwargs = {
+        "layer" : "TEST_SAR",
+        "start": "2010-08-07T10:13:36Z",
+        "end": "2010-08-07T10:13:36Z"
+    }
+
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
+                        join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_IM__0P_20100807_101327_equal-start-stop_id-1.xml"),
+                        join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_IM__0P_20100807_101327_shifted.xml"),
+                        join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_IM__0P_20100807_101327_equal-start-stop_id-1_new.xml")]
+
+    expected_remaining_browses = 0
+    expected_deleted_files = [
+        "TEST_SAR/2010/3aba17aa8b954a6fbf46f00019297f15_ASA_IM__0P_20100807_101327_new_proc.tif",
+        "TEST_SAR/2010/62864bf458e44a6494a2ddda4f1575cc_ASA_IM__0P_20100731_103315_proc.tif",
+    ]
+    expected_browse_type = "SAR"
+    expected_tiles = {}
+
+    expected_logs = {
+        logging.DEBUG: 48,
+        logging.INFO: 89,
+        logging.WARN: 0,
+        logging.ERROR: 0,
+        logging.CRITICAL: 0
+    }
+
+    logging_config = {
+        'version': 1,
+        'disable_existing_loggers': True,
+        'filters': {
+            'require_debug_false': {
+                '()': 'django.utils.log.RequireDebugFalse'
+            }
+        },
+        'formatters': {
+            'simple': {
+                'format': '%(levelname)s: %(message)s'
+            },
+            'verbose': {
+                'format': '[%(asctime)s][%(module)s] %(levelname)s: %(message)s'
+            }
+        },
+        'handlers': {
+            'ngeo_file': {
+                'level': 'DEBUG',
+                'class': 'logging.handlers.WatchedFileHandler',
+                'filename': join(settings.PROJECT_DIR, 'logs', 'ngeo.log'),
+                'formatter': 'simple',
+                'filters': [],
+            }
+        },
+        'loggers': {
+            'ngeo_browse_server': {
+                'handlers': ['ngeo_file'],
+                'level': 'DEBUG',
+                'propagate': False,
+            },
+        }
+    }
+
 
 #===============================================================================
 # Export test cases
@@ -4283,6 +4485,8 @@ class ConfigurationChangeTestCase(ConfigMixIn, TestCase):
             (INGEST_SECTION, "threshold"): "8h",
             (INGEST_SECTION, "regular_grid_clipping"): "True",
             (INGEST_SECTION, "in_memory"): "True",
+            (INGEST_SECTION, "sieve_max_threshold"): "4096",
+            (INGEST_SECTION, "simplification_factor"): "3",
             #("mapcache", "threads"): "4",
         }
 

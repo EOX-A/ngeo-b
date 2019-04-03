@@ -124,8 +124,8 @@ def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
 
     elif browse.geo_type == "footprintBrowse":
         browse_model = _create_model(browse, browse_report_model,
-                                    browse_layer_model, coverage_id,
-                                    models.FootprintBrowse)
+                                     browse_layer_model, coverage_id,
+                                     models.FootprintBrowse)
         browse_model.full_clean()
         browse_model.save()
 
@@ -208,7 +208,7 @@ def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
         name=browse_layer_model.id)
 
     # search for time entries with an overlapping time span
-    if browse.start_time==browse.end_time:
+    if browse.start_time == browse.end_time:
         times_qs = mapcache_models.Time.objects.filter(
             source=source,
             start_time__lte=browse.end_time,
@@ -289,7 +289,7 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
     browse_model.delete()
 
     # search for time entries with an overlapping time span
-    if browse_model.start_time==browse_model.end_time:
+    if browse_model.start_time == browse_model.end_time:
         times_qs = mapcache_models.Time.objects.filter(
             source=browse_layer_model.id,
             start_time__lte=browse_model.end_time,
@@ -318,8 +318,8 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
         #note that this situation should never happen but just in case...
         logger.warning("Multiple MapCache Time objects found for time: %s, "
                        "%s. Trying to delete redundant ones." % (
-                       browse_model.start_time, browse_model.end_time
-        ))
+                           browse_model.start_time, browse_model.end_time
+                       ))
         first = True
         with transaction.commit_manually(using="mapcache"):
             for time_model_tmp in times_qs:
@@ -358,12 +358,21 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
     #        - split/shorten
     #        - for each new time:
     #            - save slot for seeding afterwards
-
-    intersecting_browses_qs = models.Browse.objects.filter(
-        start_time__lt=time_model.end_time,
-        end_time__gt=time_model.start_time,
-        browse_layer__id=browse_layer_model.id
-    )
+    if time_model.start_time == time_model.end_time:
+        intersecting_browses_qs = models.Browse.objects.filter(
+            browse_layer__id=browse_layer_model.id,
+            start_time__lte=time_model.end_time,
+            end_time__gte=time_model.start_time
+        )
+    else:
+        intersecting_browses_qs = models.Browse.objects.filter(
+            Q(browse_layer__id=browse_layer_model.id),
+            Q(start_time__lt=time_model.end_time,
+              end_time__gt=time_model.start_time) |
+            Q(start_time=F("end_time"),
+              start_time__lte=time_model.end_time,
+              end_time__gte=time_model.start_time)
+        )
 
     source_model = time_model.source
     time_model.delete()

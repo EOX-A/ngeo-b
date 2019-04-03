@@ -519,7 +519,7 @@ EOF
         fi
 
         # Add hostname
-        HOSTNAME=`hostname`
+        HOSTNAME=${HOSTNAME:=`hostname`}
         if ! grep -Gxq "127\.0\.0\.1.*$HOSTNAME" /etc/hosts ; then
             sed -e "s/^127\.0\.0\.1.*$/& $HOSTNAME/" -i /etc/hosts
         fi
