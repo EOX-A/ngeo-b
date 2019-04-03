@@ -46,10 +46,12 @@ git tag -a release-2.0.33 -m "Tagging release 2.0.33."
 git push --tags
 
 # Build RPMs
-docker run -it --rm --name build-ngeo-browse-server -p 8081:80 -v "${PWD}/../":/ngeo-b/ --tmpfs /tmp:rw,exec,nosuid,nodev -h browse --add-host=browse:127.0.0.1 ngeo-browse-server /bin/bash -c "yum update && yum install -y rpmdevtools && cd /ngeo-b/ && python setup.py bdist_rpm"
+cd install/
+docker run -it --rm --name build-ngeo-browse-server -p 8081:80 -v "${PWD}/../":/ngeo-b/ --tmpfs /tmp:rw,exec,nosuid,nodev -h browse --add-host=browse:127.0.0.1 ngeo-browse-server /bin/bash -c "yum update -y && yum install -y rpmdevtools && cd /ngeo-b/ && python setup.py bdist_rpm"
+cd -
 
 # Upload packages to yum repository
-scp dist.zip packages@packages.eox.at:
+scp dist/*rpm packages@packages.eox.at:
 # ...
 
 vi ngeo_browse_server/__init__.py
