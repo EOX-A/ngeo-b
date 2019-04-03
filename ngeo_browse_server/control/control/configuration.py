@@ -43,7 +43,7 @@ ns_xsd = lambda s: ("{%s}%s" % (ns_xsd_uri, s))
 XSD = ElementMaker(namespace=ns_xsd_uri, nsmap={ns_xsd_prefix: ns_xsd_uri})
 
 TYPE_MAP = {
-    bool: (lambda s: s == "true")
+    bool: (lambda s: s == "true" or s == "True")
 }
 
 ENCODE_MAP = {

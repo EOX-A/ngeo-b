@@ -1,33 +1,15 @@
-INSTANCE_DIR=/var/www/ngeo/ngeo_browse_server_instance/
-WATCH_DIR=/srv/sxcat/collections/*/browse_reports/
-TMP_DIR=/var/www/ngeo/ngeo_browse_server_instance/browsewatch_tmp/
+#!/usr/bin/env bash
+set -euo pipefail
 
-pushd ${INSTANCE_DIR}
 
-mkdir -p ${TMP_DIR}
+REDIS_HOST=${HOST:-localhost}
+REDIS_PORT=${PORT:-6379}
 
-inotifywait -m ${WATCH_DIR} -e create -e moved_to |
+INSTANCE_DIR=${INSTANCE_DIR:-/var/www/ngeo/ngeo_browse_server_instance/}
 
-    while read dir event file; do
-
-        if [ ${event} = "CREATE" ] || [ ${event} = "MOVED_TO" ] ; then
-
-            # check if temporary file exists
-            if [ ! -f ${TMP_DIR}${file} ] ; then
-                echo "Ingesting browse report '${file}' from '${dir}'"
-                mv ${dir}${file} ${TMP_DIR}
-                python manage.py ngeo_ingest -v0 ${TMP_DIR}${file}
-
-                # remove file upon successful ingestion, leave otherwise
-                if [ $? -eq 0 ]; then
-                  rm ${TMP_DIR}${file}
-                fi
-            else
-                echo "Skipping ingestion of browse report '${file}' from '${dir}' as temporary file exists"
-            fi
-
-        fi
-
-   done
-
-popd
+while :
+do
+    browse_report=$(redis-cli -h ${REDIS_HOST} -p ${REDIS_PORT} --raw brpop ingest_queue 0 | tail -n +2)
+    echo "Ingesting browse"
+    python ${INSTANCE_DIR}/manage.py ngeo_ingest -v0 <(echo ${browse_report})
+done

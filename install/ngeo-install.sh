@@ -7,7 +7,7 @@
 #          Stephan Meissl <stephan.meissl@eox.at>
 #
 #-------------------------------------------------------------------------------
-# Copyright (C) 2012, 2013 European Space Agency
+# Copyright (C) 2012, 2013, 2018 European Space Agency
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -108,8 +108,12 @@ ngeo_install() {
     echo "------------------------------------------------------------------------------"
 
     echo "Performing installation step 0"
-    echo "Uninstalling any previous version"
-    ngeo_uninstall
+    echo "Checking for any previous version and exiting if present"
+    if [ -n "`rpm -qa | grep ngEO_Browse_Server`" ] ; then
+        echo -e "Package ngEO_Browse_Server: \033[1;31minstalled\033[m\017"
+        echo "Exiting, please run uninstall or full_uninstall before continuing."
+        exit 1
+    fi
 
     echo "Starting ngEO Browse Server installation"
     echo "Assuming successful execution of installation steps 10, 20, and 30"
@@ -143,8 +147,10 @@ EOF
     if ! [ `getenforce` == "Disabled" ] ; then
         setenforce 0
     fi
-    if ! grep -Fxq "SELINUX=disabled" /etc/selinux/config ; then
-        sed -e 's/^SELINUX=.*$/SELINUX=disabled/' -i /etc/selinux/config
+    if [ -f /etc/selinux/config ] ; then
+        if ! grep -Fxq "SELINUX=disabled" /etc/selinux/config ; then
+            sed -e 's/^SELINUX=.*$/SELINUX=disabled/' -i /etc/selinux/config
+        fi
     fi
 
     echo "Performing installation step 50"
@@ -202,9 +208,21 @@ EOF
                    geos-3.3.8-2.el6.x86_64.rpm \
                    libspatialite-2.4.0-0.6_0.RC4.el6.x86_64.rpm \
                    libtiff4-4.0.3-1.el6.x86_64.rpm \
+                   libgeotiff-libtiff4-1.4.0-1.el6.x86_64.rpm \
                    postgis-1.5.8-1.el6.x86_64.rpm \
                    proj-4.8.0-3.el6.x86_64.rpm \
-                   proj-epsg-4.8.0-3.el6.x86_64.rpm
+                   proj-epsg-4.8.0-3.el6.x86_64.rpm \
+                   libxml2-2.7.6-21.el6_8.1_eox.1.x86_64.rpm \
+                   libxml2-python-2.7.6-21.el6_8.1_eox.1.x86_64.rpm \
+                   gdal-eox-driver-openjpeg2-1.9.2-2.el6.x86_64.rpm \
+                   gdal-eox-libtiff4-1.9.2-3.el6.x86_64.rpm \
+                   gdal-eox-libtiff4-libs-1.9.2-3.el6.x86_64.rpm \
+                   gdal-eox-libtiff4-python-1.9.2-3.el6.x86_64.rpm \
+                   python-pyspatialite-eox-2.6.2-1.x86_64.rpm \
+                   mapserver-6.2.2-2.el6.x86_64.rpm \
+                   mapserver-python-6.2.2-2.el6.x86_64.rpm \
+                   EOxServer-0.3.7-1.x86_64.rpm \
+                   mapcache-1.2.1-4.el6.x86_64.rpm
     cd -
 
 
@@ -214,30 +232,7 @@ EOF
 
     echo "Assuming successful execution of installation step 130"
 
-    # Install needed yum repositories
-    echo "Performing installation step 140"
-    # EOX
-    rpm -Uvh --replacepkgs http://yum.packages.eox.at/el/eox-release-6-2.noarch.rpm
-    rpm --import /etc/pki/rpm-gpg/eox-package-maintainers.gpg
-    if "$TESTING" ; then
-        sed -e 's/^enabled=0/enabled=1/' -i /etc/yum.repos.d/eox-testing.repo
-    fi
-
-    echo "Performing installation step 150"
-    # Set includepkgs in EOX Stable
-    if ! grep -Fxq "includepkgs=libgeotiff-libtiff4 gdal-eox-libtiff4 gdal-eox-libtiff4-python gdal-eox-libtiff4-libs gdal-eox-driver-openjpeg2 openjpeg2 EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python libxerces-c-3_1 python-pyspatialite-eox" /etc/yum.repos.d/eox.repo ; then
-        sed -e 's/^\[eox\]$/&\nincludepkgs=libgeotiff-libtiff4 gdal-eox-libtiff4 gdal-eox-libtiff4-python gdal-eox-libtiff4-libs gdal-eox-driver-openjpeg2 openjpeg2 EOxServer mapserver mapserver-python mapcache libxml2 libxml2-python libxerces-c-3_1 python-pyspatialite-eox/' -i /etc/yum.repos.d/eox.repo
-    fi
-    if ! grep -Fxq "includepkgs=ngEO_Browse_Server" /etc/yum.repos.d/eox.repo ; then
-        sed -e 's/^\[eox-noarch\]$/&\nincludepkgs=ngEO_Browse_Server/' -i /etc/yum.repos.d/eox.repo
-    fi
-    # Set includepkgs in EOX Testing
-    if ! grep -Fxq "includepkgs=EOxServer mapcache" /etc/yum.repos.d/eox-testing.repo ; then
-        sed -e 's/^\[eox-testing\]$/&\nincludepkgs=EOxServer mapcache/' -i /etc/yum.repos.d/eox-testing.repo
-    fi
-    if ! grep -Fxq "includepkgs=ngEO_Browse_Server" /etc/yum.repos.d/eox-testing.repo ; then
-        sed -e 's/^\[eox-testing-noarch\]$/&\nincludepkgs=ngEO_Browse_Server/' -i /etc/yum.repos.d/eox-testing.repo
-    fi
+    echo "Skipped installation steps 140 and 150 since integrated in step 120"
 
     echo "Performing installation step 160"
     # Set exclude in CentOS-Base
@@ -251,36 +246,21 @@ EOF
     fi
 
     echo "Performing installation step 170"
-    # Re-install libxml2 from eox repository
-    rpm -e --justdb --nodeps libxml2
-    # Install packages
-    yum install -y libxml2
-    yum install -y --nogpgcheck libtiff4
-    yum install -y libxml2-python gdal-eox-libtiff4 gdal-eox-libtiff4-python \
-                   gdal-eox-driver-openjpeg2 mapserver mapserver-python \
-                   EOxServer
-
-
-    # allow installation of local RPMs if available
-    if [ -f mapcache-*.rpm ] ; then
-        echo "Installing local mapcache RPM `ls mapcache-*.rpm`"
-        yum install -y mapcache-*.rpm
+    if ls ngEO_Browse_Server-*.noarch.rpm 1> /dev/null 2>&1; then
+        file=`ls -r ngEO_Browse_Server-*.noarch.rpm | head -1`
+        echo "Installing local ngEO_Browse_Server RPM ${file}"
+        yum install -y ${file}
     else
-        yum install -y mapcache
+        echo "Aborting, no ngEO_Browse_Server RPM found for installation."
+        exit 1
     fi
-    if [ -f ngEO_Browse_Server-*.rpm ] ; then
-        echo "Installing local ngEO_Browse_Server RPM `ls ngEO_Browse_Server-*.rpm`"
-        yum install -y ngEO_Browse_Server-*.rpm
-    else
-        yum install -y ngEO_Browse_Server
-    fi
-
 
     echo "Performing installation step 180"
     # Configure PostgreSQL/PostGIS database
 
     ## Write database configuration script
-    TMPFILE=`mktemp`
+    mkdir -p /tmppostgres
+    TMPFILE=`mktemp -p /tmppostgres`
     cat << EOF > "$TMPFILE"
 #!/bin/sh -e
 # cd to a "safe" location
@@ -289,16 +269,16 @@ if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='template_p
     echo "Creating template database."
     createdb -E UTF8 template_postgis
     createlang plpgsql -d template_postgis
-    psql postgres -c "UPDATE pg_database SET datistemplate='true' WHERE datname='template_postgis';"
+    psql -q postgres -c "UPDATE pg_database SET datistemplate='true' WHERE datname='template_postgis';"
     if [ -f /usr/share/pgsql/contrib/postgis-64.sql ] ; then
-        psql -d template_postgis -f /usr/share/pgsql/contrib/postgis-64.sql
+        psql -q -d template_postgis -f /usr/share/pgsql/contrib/postgis-64.sql
     else
-        psql -d template_postgis -f /usr/share/pgsql/contrib/postgis.sql
+        psql -q -d template_postgis -f /usr/share/pgsql/contrib/postgis.sql
     fi
-    psql -d template_postgis -f /usr/share/pgsql/contrib/spatial_ref_sys.sql
-    psql -d template_postgis -c "GRANT ALL ON geometry_columns TO PUBLIC;"
-    psql -d template_postgis -c "GRANT ALL ON geography_columns TO PUBLIC;"
-    psql -d template_postgis -c "GRANT ALL ON spatial_ref_sys TO PUBLIC;"
+    psql -q -d template_postgis -f /usr/share/pgsql/contrib/spatial_ref_sys.sql
+    psql -q -d template_postgis -c "GRANT ALL ON geometry_columns TO PUBLIC;"
+    psql -q -d template_postgis -c "GRANT ALL ON geography_columns TO PUBLIC;"
+    psql -q -d template_postgis -c "GRANT ALL ON spatial_ref_sys TO PUBLIC;"
 fi
 if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'")" != 1 ] ; then
     echo "Creating ngEO database user."
@@ -316,6 +296,7 @@ EOF
         chmod g+rx $TMPFILE
         su postgres -c "$TMPFILE"
         rm "$TMPFILE"
+        rmdir --ignore-fail-on-non-empty /tmppostgres
     else
         echo "Script to configure DB not found."
     fi
@@ -344,6 +325,9 @@ EOF
         sed -e "/'HOST': '',                                                             # Set to empty string for localhost. Not used with spatialite./d" -i ngeo_browse_server_instance/settings.py
         sed -e "/'PORT': '',                                                             # Set to empty string for default. Not used with spatialite./d" -i ngeo_browse_server_instance/settings.py
         sed -e "s/#'TEST_NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/test-mapcache.sqlite',/'TEST_NAME': '$NGEOB_INSTALL_DIR_ESCAPED\/ngeo_browse_server_instance\/ngeo_browse_server_instance\/data\/test-mapcache.sqlite',/" -i ngeo_browse_server_instance/settings.py
+
+        # include datetime in logs
+        sed -e "s/'format': '%(levelname)s: %(message)s'/'format': '%(asctime)s %(levelname)s: %(message)s'/" -i ngeo_browse_server_instance/settings.py
 
         # Configure instance
         sed -e "s,http_service_url=http://localhost:8000/ows,http_service_url=$APACHE_NGEO_BROWSE_ALIAS/ows," -i ngeo_browse_server_instance/conf/eoxserver.conf
@@ -535,8 +519,8 @@ EOF
         fi
 
         # Add hostname
-        HOSTNAME=`hostname`
-        if ! grep -Gxq "127\.0\.0\.1.* $HOSTNAME" /etc/hosts ; then
+        HOSTNAME=${HOSTNAME:=`hostname`}
+        if ! grep -Gxq "127\.0\.0\.1.*$HOSTNAME" /etc/hosts ; then
             sed -e "s/^127\.0\.0\.1.*$/& $HOSTNAME/" -i /etc/hosts
         fi
 
@@ -712,18 +696,36 @@ $NGEOB_LOG_DIR/eoxserver.log $NGEOB_LOG_DIR/ngeo.log {
 EOF
 
     # Install and configure SxCat if available
-    if [ -f sxcat-*.rpm ] ; then
-        echo "Installing local SxCat RPM `ls sxcat-*.rpm`"
-        yum install -y python-pyspatialite-eox inotify-tools
-        yum install -y sxcat-*.rpm
+
+    if ls sxcat-bs*.noarch.rpm 1> /dev/null 2>&1 && ls sxcat-brb*.noarch.rpm 1> /dev/null 2>&1; then
+        # Install and permanently start redis
+        yum install -y redis python-redis
+        chkconfig redis on
+        service redis start
+
+        file=`ls -r sxcat-bs*.noarch.rpm | head -1`
+        echo "Installing local SxCat Browse Server RPM ${file}"
+        yum install -y ${file}
+        file=`ls -r sxcat-brb*.noarch.rpm | head -1`
+        echo "Installing local SxCat BRB RPM ${file}"
+        yum install -y ${file}
 
         echo "Configuring SxCat and starting harvestd daemon"
         cat << EOF >> /etc/sxcat/catalogue/catalogue.conf
 
 [browse_reports]
 enabled = true
+backend = redis
 use_footprint = true
+
+[browse_reports_redis]
+host = localhost
+port = 6379
+queue = ingest_queue
 EOF
+
+        # add browsewatch
+        mkdir -p /srv/sxcat/collections/tmp/browse_reports/
 
         # change ownership to apache
         chown -R apache:apache /srv/sxcat/ /var/log/sxcat/ /etc/sxcat
@@ -751,15 +753,15 @@ EOF
         sed -e "s/^#harvesting_via_sxcat=false/harvesting_via_sxcat=true/" -i ngeo_browse_server_instance/conf/ngeo.conf
         cd -
 
-        # add browsewatch
-        mkdir -p /srv/sxcat/collections/tmp/browse_reports/
-
         # add browsewatchd daemon
         if [ -f browsewatchd ] ; then
             echo "Adding, enabling, and starting browsewatchd service"
+
+            # Install and permanently start browsewatchd
             cp browsewatchd /etc/init.d/
-            chkconfig browsewatchd on
             chmod +x /etc/init.d/browsewatchd
+            chkconfig browsewatchd on
+            service browsewatchd start
 
             # allow user apache to restart browsewatchd
             cat << EOF > /etc/sudoers.d/browsewatchd
@@ -832,7 +834,7 @@ ngeo_uninstall() {
 
     echo "Performing uninstallation step 90"
     echo "Delete extra Yum repositories"
-    yum erase -y epel-release eox-release
+    yum erase -y epel-release
 
     # Remove exclude from CentOS-Base
     if grep -Fxq "exclude=libxml2 libxml2-python libxerces-c-3_1" /etc/yum.repos.d/CentOS-Base.repo ; then
@@ -908,7 +910,8 @@ ngeo_full_uninstall() {
 
     if service postgresql status ; then
         ## Write database deletion script
-        TMPFILE=`mktemp`
+        mkdir -p /tmppostgres
+        TMPFILE=`mktemp -p /tmppostgres`
         cat << EOF > "$TMPFILE"
 #!/bin/sh -e
 # cd to a "safe" location
@@ -936,6 +939,7 @@ EOF
             chmod g+rx $TMPFILE
             su postgres -c "$TMPFILE"
             rm "$TMPFILE"
+            rmdir --ignore-fail-on-non-empty /tmppostgres
         else
             echo "Script to delete DB not found."
         fi
