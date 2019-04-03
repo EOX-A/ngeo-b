@@ -1421,7 +1421,7 @@ class SeedMergeAndReplaceNoDuration(SeedTestCaseMixIn, LoggingTestCaseMixIn, Htt
                      )
 
     expected_browse_type = "SAR"
-    expected_tiles = {0: 1, 1: 1, 2: 1, 3: 1, 4: 1}
+    expected_tiles = {0: 1, 1: 1, 2: 1, 3: 1, 4: 2}
 
     expected_logs = {
         logging.DEBUG: 46,
