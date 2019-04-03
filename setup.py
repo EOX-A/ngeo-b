@@ -81,7 +81,7 @@ setup(
     maintainer="EOX IT Services GmbH",
     maintainer_email="packages@eox.at",
 
-    description="ngEO Browse Server providing access to browse images via WMS",
+    description="Browse Server providing access to browse images via WMS",
     long_description=read("README.rst"),
 
     classifiers=[
@@ -111,6 +111,6 @@ setup(
     ],
 
     license="MIT License",
-    keywords="ngEO, Browse, OGC, WMS",
-    url="http://ngeo.eox.at/"
+    keywords="Browse, OGC, WMS, EO-CAT",
+    url="https://github.com/EOX-A/ngeo-b"
 )
