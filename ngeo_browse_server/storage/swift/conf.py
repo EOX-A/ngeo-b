@@ -25,46 +25,34 @@
 # THE SOFTWARE.
 # ------------------------------------------------------------------------------
 
-import os
 
-from eoxserver.services.views import ows as ows_view
-from osgeo import gdal
-
-from ngeo_browse_server.config import get_ngeo_config
-from ngeo_browse_server.storage.conf import (
-    get_auth_method, get_swift_auth_config, get_storage_url
+from ngeo_browse_server.config import (
+    get_ngeo_config, safe_get
 )
-from ngeo_browse_server.storage.swift.auth import AuthTokenManager
+
+SWIFT_SECTION = 'storage.auth.swift'
 
 
-class AuthTokenMiddleware(object):
-    """ Django middleware class to handle auth token retrieval. Currently only
-        for swift.
+def get_swift_auth_config(conf=None):
     """
-    def __init__(self):
-        conf = get_ngeo_config()
-        self.storage_url = get_storage_url(conf)
-        method = get_auth_method(conf)
-        if self.storage_url and method == 'swift':
-            self.manager = AuthTokenManager(
-                **get_swift_auth_config(conf)
-            )
-        elif method is not None:
-            raise NotImplementedError(
-                'Auth method %s is not implmented' % method
-            )
-        else:
-            self.manager = None
+    """
+    conf = conf or get_ngeo_config()
 
-    def process_view(self, request, view_func, view_args, view_kwargs):
-        # check if we actually need to process the request
-        if view_func != ows_view or self.manager is None:
-            return None
-
-        os.environ['SWIFT_AUTH_TOKEN'] = self.manager.get_auth_token()
-        os.environ['SWIFT_STORAGE_URL'] = self.storage_url
-
-        # needs to be done for seeding, so probably for OWS as-well
-        gdal.VSICurlClearCache()
-
-        return None
+    return {
+        'username': safe_get(conf, SWIFT_SECTION, 'username'),
+        'password': safe_get(conf, SWIFT_SECTION, 'password'),
+        'tenant_name': safe_get(conf, SWIFT_SECTION, 'password'),
+        'tenant_id': safe_get(conf, SWIFT_SECTION, 'tenant_id'),
+        'auth_url': safe_get(conf, SWIFT_SECTION, 'auth_url'),
+        'user_id': safe_get(conf, SWIFT_SECTION, 'user_id'),
+        'user_domain_name': safe_get(conf, SWIFT_SECTION, 'user_domain_name'),
+        'user_domain_id': safe_get(conf, SWIFT_SECTION, 'user_domain_id'),
+        'project_name': safe_get(conf, SWIFT_SECTION, 'project_name'),
+        'project_id': safe_get(conf, SWIFT_SECTION, 'project_id'),
+        'project_domain_name': safe_get(
+            conf, SWIFT_SECTION, 'project_domain_name'
+        ),
+        'project_domain_id': safe_get(conf, SWIFT_SECTION, 'project_domain_id'),
+        'insecure': False,
+        'timeout':  safe_get(conf, SWIFT_SECTION, 'timeout'),
+    }

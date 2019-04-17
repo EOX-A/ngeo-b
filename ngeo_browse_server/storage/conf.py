@@ -25,46 +25,26 @@
 # THE SOFTWARE.
 # ------------------------------------------------------------------------------
 
-import os
 
-from eoxserver.services.views import ows as ows_view
-from osgeo import gdal
-
-from ngeo_browse_server.config import get_ngeo_config
-from ngeo_browse_server.storage.conf import (
-    get_auth_method, get_swift_auth_config, get_storage_url
+from ngeo_browse_server.config import (
+    get_ngeo_config, safe_get
 )
-from ngeo_browse_server.storage.swift.auth import AuthTokenManager
 
 
-class AuthTokenMiddleware(object):
-    """ Django middleware class to handle auth token retrieval. Currently only
-        for swift.
-    """
-    def __init__(self):
-        conf = get_ngeo_config()
-        self.storage_url = get_storage_url(conf)
-        method = get_auth_method(conf)
-        if self.storage_url and method == 'swift':
-            self.manager = AuthTokenManager(
-                **get_swift_auth_config(conf)
-            )
-        elif method is not None:
-            raise NotImplementedError(
-                'Auth method %s is not implmented' % method
-            )
-        else:
-            self.manager = None
+STORAGE_SECTION = 'storage'
+AUTH_SECTION = 'storage.auth'
 
-    def process_view(self, request, view_func, view_args, view_kwargs):
-        # check if we actually need to process the request
-        if view_func != ows_view or self.manager is None:
-            return None
 
-        os.environ['SWIFT_AUTH_TOKEN'] = self.manager.get_auth_token()
-        os.environ['SWIFT_STORAGE_URL'] = self.storage_url
+def get_auth_method(conf=None):
+    conf = conf or get_ngeo_config()
+    return safe_get(conf, AUTH_SECTION, 'method', None)
 
-        # needs to be done for seeding, so probably for OWS as-well
-        gdal.VSICurlClearCache()
 
-        return None
+def get_storage_url(conf):
+    conf = conf or get_ngeo_config()
+    return safe_get(conf, STORAGE_SECTION, 'storage_url')
+
+
+def get_swift_container(conf):
+    conf = conf or get_ngeo_config()
+    return safe_get(conf, STORAGE_SECTION, 'container')

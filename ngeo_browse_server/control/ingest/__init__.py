@@ -28,7 +28,7 @@
 #-------------------------------------------------------------------------------
 
 import sys
-from os import remove, makedirs, rmdir
+from os import remove, makedirs, rmdir, environ
 from os.path import (
     exists, dirname, join, isdir, samefile, commonprefix, abspath, relpath,
     basename
@@ -87,10 +87,29 @@ from ngeo_browse_server.control.queries import (
 from ngeo_browse_server.control.ingest.preprocessing.preprocessor import (
     NGEOPreProcessor
 )
-
+from ngeo_browse_server.storage.swift.upload import upload_file
+from ngeo_browse_server.storage.swift.auth import AuthTokenManager
+from ngeo_browse_server.storage.conf import get_storage_url, get_swift_container
+from ngeo_browse_server.storage.swift.conf import get_swift_auth_config
 
 logger = logging.getLogger(__name__)
 report_logger = logging.getLogger("ngEO-ingest")
+
+
+
+
+
+
+manager = None
+def get_manager(config):
+    global manager
+    if not manager:
+        manager = AuthTokenManager(get_swift_auth_config(config))
+    return manager
+
+
+
+
 
 #===============================================================================
 # main functions
@@ -508,13 +527,29 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                     raise IngestionException("Processed browse image has %d bands."
                                              % result.num_bands)
 
+                storage_url = get_storage_url(config)
+                if storage_url:
+                    manager = get_manager(config)
+                    token = manager.get_auth_token()
+                    container = get_swift_container(config)
+
+                    upload_file(storage_url, container, output_filename, token)
+                    remove(output_filename)
+
+                    environ['SWIFT_AUTH_TOKEN'] = manager.get_auth_token()
+                    environ['SWIFT_STORAGE_URL'] = storage_url
+
+                    filename = basename(output_filename)
+                    output_filename = '/vsiswift/%s/%s' % (container, filename)
+
+                    gdal.VSICurlClearCache()
+
                 logger.info("Creating database models.")
                 extent, time_interval = create_browse(
                     parsed_browse, browse_report, browse_layer, coverage_id,
                     crs, replaced, result.footprint_geom, result.num_bands,
                     output_filename, seed_areas, config=config
                 )
-
 
     except:
         # save exception info to re-raise it
