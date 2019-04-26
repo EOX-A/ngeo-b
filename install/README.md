@@ -6,6 +6,12 @@
 docker build . -t ngeo-browse-server --add-host=browse:127.0.0.1
 ```
 
+## Run Browse Server
+
+```bash
+docker run -d -it --rm --name running-ngeo-browse-server -p 8080:80 -v "${PWD}/../ngeo_browse_server/":/usr/lib/python2.6/site-packages/ngeo_browse_server/ -v "${PWD}/logs/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/logs/ --tmpfs /tmp:rw,exec,nosuid,nodev -h browse --add-host=browse:127.0.0.1 ngeo-browse-server
+```
+
 ## Test Browse Server
 
 ```bash
