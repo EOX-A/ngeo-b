@@ -74,23 +74,25 @@ class Command(LogToConsoleMixIn, BaseCommand):
         reverse = kwargs['reverse']
 
         conf = get_ngeo_config()
-        storage_url = get_storage_url(conf)
-        method = get_auth_method(conf)
-
-        if method != 'swift':
-            raise CommandError('Auth method not set to swift')
-
-        if not storage_url:
-            raise CommandError('No storage URL given')
 
         if not reverse:
+            storage_url = get_storage_url(conf)
+            method = get_auth_method(conf)
+            if method != 'swift':
+                raise CommandError('Auth method not set to swift')
+
+            if not storage_url:
+                raise CommandError('No storage URL given')
+
             local_paths = backends.LocalPath.objects.exclude(
-                path__startswith='/vsicurl'
+                path__startswith='/vsiswift'
             )
-            new_base_dir = '/vsicurl'
+            new_base_dir = '/vsiswift'
+
         else:
+            # retrieve from object storage instead
             local_paths = backends.LocalPath.objects.filter(
-                path__startswith='/vsicurl'
+                path__startswith='/vsiswift'
             )
             new_base_dir = get_project_relative_path(
                 conf.get(INGEST_SECTION, "optimized_files_dir")
