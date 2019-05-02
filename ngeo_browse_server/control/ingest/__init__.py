@@ -533,14 +533,22 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                     token = manager.get_auth_token()
                     container = get_swift_container(config)
 
-                    upload_file(storage_url, container, output_filename, token)
+                    prefix = join(
+                        browse_layer.id, str(parsed_browse.start_time.year)
+                    )
+
+                    upload_file(
+                        storage_url, container, prefix, output_filename, token
+                    )
                     remove(output_filename)
 
                     environ['SWIFT_AUTH_TOKEN'] = manager.get_auth_token()
                     environ['SWIFT_STORAGE_URL'] = storage_url
 
                     filename = basename(output_filename)
-                    output_filename = '/vsiswift/%s/%s' % (container, filename)
+                    output_filename = '/vsiswift/%s/%s/%s' % (
+                        container, prefix, filename
+                    )
 
                     gdal.VSICurlClearCache()
 
