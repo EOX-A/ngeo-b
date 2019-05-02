@@ -40,11 +40,11 @@ def get_auth_method(conf=None):
     return safe_get(conf, AUTH_SECTION, 'method', None)
 
 
-def get_storage_url(conf):
+def get_storage_url(conf=None):
     conf = conf or get_ngeo_config()
     return safe_get(conf, STORAGE_SECTION, 'storage_url')
 
 
-def get_swift_container(conf):
+def get_swift_container(conf=None):
     conf = conf or get_ngeo_config()
     return safe_get(conf, STORAGE_SECTION, 'container')
