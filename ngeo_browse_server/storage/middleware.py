@@ -32,7 +32,7 @@ from osgeo import gdal
 
 from ngeo_browse_server.config import get_ngeo_config
 from ngeo_browse_server.storage.conf import (
-    get_auth_method, get_swift_auth_config, get_storage_url
+    get_auth_method, get_storage_url
 )
 from ngeo_browse_server.storage.swift.auth import AuthTokenManager
 
@@ -47,7 +47,7 @@ class AuthTokenMiddleware(object):
         method = get_auth_method(conf)
         if self.storage_url and method == 'swift':
             self.manager = AuthTokenManager(
-                **get_swift_auth_config(conf)
+                # **get_swift_auth_config(conf)
             )
         elif method is not None:
             raise NotImplementedError(
