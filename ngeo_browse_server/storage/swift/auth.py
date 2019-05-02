@@ -4,9 +4,9 @@ from datetime import datetime
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware, utc
 import requests
-
-
 import logging
+
+from ngeo_browse_server.storage.swift.conf import get_swift_auth_config
 logger = logging.getLogger(__name__)
 
 
@@ -51,9 +51,11 @@ def get_auth_token(auth_url, username, password, project_id):
 
 
 class AuthTokenManager(object):
-    def __init__(self, config):
+    def __init__(self, config=None):
         self.token = None
         self.expires = None
+
+        config = config or get_swift_auth_config()
 
         self.auth_url = config['auth_url']
         self.username = config['username']
