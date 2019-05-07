@@ -53,12 +53,16 @@ from ngeo_browse_server.control.testbase import (
     LoggingTestCaseMixIn, RegisterTestCaseMixIn, UnregisterTestCaseMixIn,
     StatusTestCaseMixIn, LogListMixIn, LogFileMixIn, ConfigMixIn,
     ComponentControlTestCaseMixIn, ConfigurationManagementMixIn,
-    GenerateReportMixIn, NotifyMixIn
+    GenerateReportMixIn, NotifyMixIn, SwiftMixIn
 )
 from ngeo_browse_server.control.ingest.config import (
     INGEST_SECTION
 )
 from ngeo_browse_server.control.control.notification import notify
+from ngeo_browse_server.storage.conf import (
+    STORAGE_SECTION, AUTH_SECTION
+)
+from ngeo_browse_server.storage.swift.conf import SWIFT_SECTION
 
 
 #==============================================================================
@@ -5003,3 +5007,55 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
     </bsi:ingestionResult>
 </bsi:ingestBrowseResponse>
 """
+
+
+#===============================================================================
+# OpenStack swift test cases
+#===============================================================================
+
+
+class IngestModelInGeotiffBrowseOnSwift(
+    IngestTestCaseMixIn, HttpTestCaseMixin, SwiftMixIn, TestCase
+):
+    storage_optimized_prefix = "TEST_MER_FRS/2012/"
+
+    storage_dir = "data/test_data"
+    request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.xml"
+
+    expected_ingested_browse_ids = ("MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced",)
+    expected_inserted_into_series = "TEST_MER_FRS"
+    expected_optimized_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_proc.tif']
+    expected_deleted_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.tif']
+    save_optimized_files = True
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+
+
+class SeedModelInGeotiffBrowseOnSwift(
+    SeedTestCaseMixIn, HttpMixIn, SwiftMixIn, LiveServerTestCase
+):
+    storage_optimized_prefix = "TEST_MER_FRS/2012/"
+
+    storage_dir = "data/test_data"
+    request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.xml"
+
+    expected_browse_type = "MER_FRS"
+    expected_tiles = {0: 1, 1: 1, 2: 2, 3: 4, 4: 9, 5: 16, 6: 42}

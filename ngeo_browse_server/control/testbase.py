@@ -73,6 +73,15 @@ from ngeo_browse_server.control.migration.package import (
     SEC_CACHE, BROWSE_LAYER_NAME, SEC_OPTIMIZED
 )
 from ngeo_browse_server.control.control.config import CTRL_SECTION
+from ngeo_browse_server.storage.conf import (
+    STORAGE_SECTION, AUTH_SECTION
+)
+from ngeo_browse_server.storage.swift.conf import SWIFT_SECTION
+from ngeo_browse_server.storage.conf import (
+    get_storage_url, get_swift_container
+)
+from ngeo_browse_server.storage.swift.auth import AuthTokenManager
+from ngeo_browse_server.storage.swift.upload import list_contents, delete_file
 
 
 logger = logging.getLogger(__name__)
@@ -311,6 +320,17 @@ class BaseTestCaseMixIn(object):
             shutil.rmtree(d)
         remove(self.seed_command)
 
+        if self.configuration.get((STORAGE_SECTION, 'storage_url')):
+            token = AuthTokenManager().get_auth_token()
+            storage_url = get_storage_url()
+            container = get_swift_container()
+            filenames = list_contents(
+                storage_url, container, self.storage_optimized_prefix, token
+            )
+            for filename in filenames:
+                delete_file(storage_url, container, filename, token)
+            # files = self.get_storage_file_list(self.storage_optimized_prefix)
+
         if exists(self.temp_status_config):
             remove(self.temp_status_config)
         remove(self.config_filename)
@@ -321,14 +341,23 @@ class BaseTestCaseMixIn(object):
         for model_cls in model_classes:
             self.model_counts.setdefault(model_cls.__name__, []).append(model_cls.objects.count())
 
+    # convenience function to get a list of files from a directory
     def get_file_list(self, path):
-        # convenience function to get a list of files from a directory
-
         files = []
         for _, _, filenames in walk(path):
             files.extend(filenames)
 
         return files
+
+    # convenience function to get a list of files on the configured storage
+    def get_storage_file_list(self, prefix):
+        token = AuthTokenManager().get_auth_token()
+        return [
+            basename(filename)
+            for filename in list_contents(
+                get_storage_url(), get_swift_container(), prefix, token
+            )
+        ]
 
 
 class HttpMixIn(object):
@@ -568,19 +597,26 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
         """ Check that the expected optimized files are created. """
 
         # check that all optimized files are being created
-        files = self.get_file_list(self.temp_optimized_files_dir)
 
-        if self.save_optimized_files:
-            save_dir = join(settings.PROJECT_DIR, "results/ingest/")
-            safe_makedirs(dirname(save_dir))
-            for path, _, filenames in walk(self.temp_optimized_files_dir):
-                for file_to_save in filenames:
-                    shutil.copy(join(path, file_to_save), save_dir)
+        if self.configuration.get((STORAGE_SECTION, 'storage_url')):
+            files = self.get_storage_file_list(self.storage_optimized_prefix)
+        else:
+            files = self.get_file_list(self.temp_optimized_files_dir)
+
+            if self.save_optimized_files:
+                save_dir = join(settings.PROJECT_DIR, "results/ingest/")
+                safe_makedirs(dirname(save_dir))
+                for path, _, filenames in walk(self.temp_optimized_files_dir):
+                    for file_to_save in filenames:
+                        shutil.copy(join(path, file_to_save), save_dir)
 
         # normalize files i.e. remove/add UUID
         for i in range(len(files)):
-            if self.expected_optimized_files[i] != files[i]:
-                files[i] = files[i][33:]
+            files = [
+                file_[33:]
+                for file_ in files
+                if file_ not in self.expected_optimized_files
+            ]
 
         self.assertItemsEqual(self.expected_optimized_files, files)
 
@@ -748,7 +784,8 @@ class SeedTestCaseMixIn(BaseTestCaseMixIn):
 
                     # delete the file when done
                     gdal.Unlink(vsimem_path)
-                    if any_filled: break;
+                    if any_filled:
+                        break
 
                 if not any_filled:
                     self.fail("All tiles are empty.")
@@ -1511,3 +1548,37 @@ class NotifyMixIn(BaseTestCaseMixIn):
             remove(self.temp_controller_server_config)
 
 
+class SwiftMixIn(object):
+    """ Mix in to provide configuration and potentially skipping of tests when
+        not all configuration settings are provided.
+    """
+
+    def setUp(self):
+        required_keys = [
+            "OS_STORAGE_URL",
+            "OS_USERNAME",
+            "OS_PASSWORD",
+            "OS_TENANT_NAME",
+            "OS_TENANT_ID",
+            "OS_REGION_NAME",
+            "OS_AUTH_URL",
+        ]
+
+        for key in required_keys:
+            if key not in environ:
+                self.fail("Missing env setting '%s'" % key)
+
+        super(SwiftMixIn, self).setUp()
+
+    @property
+    def configuration(self):
+        return {
+            (STORAGE_SECTION, 'storage_url'): environ.get("OS_STORAGE_URL"),
+            (SWIFT_SECTION, 'username'): environ.get("OS_USERNAME"),
+            (SWIFT_SECTION, 'password'): environ.get("OS_PASSWORD"),
+            (SWIFT_SECTION, 'tenant_name'): environ.get("OS_TENANT_NAME"),
+            (SWIFT_SECTION, 'tenant_id'): environ.get("OS_TENANT_ID"),
+            (SWIFT_SECTION, 'region_name'): environ.get("OS_REGION_NAME"),
+            (SWIFT_SECTION, 'auth_url'): environ.get("OS_AUTH_URL"),
+            (STORAGE_SECTION, 'container'): environ.get("OS_CONTAINER"),
+        }
