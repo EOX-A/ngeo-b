@@ -1,40 +1,9 @@
-#-------------------------------------------------------------------------------
-#
-# Project: ngEO Browse Server <http://ngeo.eox.at>
-# Authors: Fabian Schindler <fabian.schindler@eox.at>
-#
-#-------------------------------------------------------------------------------
-# Copyright (C) 2019 European Space Agency
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies of this Software or works derived from this Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
-#-------------------------------------------------------------------------------
-
-
 # Migration procedure
 
+## Steps to migrate ngEO_Browse_Server version <2.1.0 to 2.1.0
 
-#-------------------------------------------------------------------------------
-# Steps to migrate ngEO_Browse_Server version <2.1.0 to 2.1.0
-#-------------------------------------------------------------------------------
-# The steps assume a default installation and configuration as for
-# example provided via the `ngeo-install.sh` script.
-
+The steps assume a default installation and configuration as for
+example provided via the `ngeo-install.sh` script.
 
 To enable the cloud storage functionality, GDAL and all dependent packages need
 to be updated. The RPMs are available with the new installation script. In order
@@ -79,7 +48,9 @@ echo 'from eoxserver.core import models ; c = models.Component.objects.get(impl_
 This release is backwards compatible with previous setups of ngEO Browse Server,
 and all previous functionality is still available. With this release, though, it
 is possible to store the optimized files of ingested browses on an OpenStack
-Swift objectstorage.
+Swift object storage.
+
+## Migration to OpenStack Swift object storage
 
 This functionality is available for instances created with this release of the
 software, but also instances created with previous versions can be converted to
@@ -95,8 +66,7 @@ The next sections detail the options available:
   2) Convert an instance using an object storage back to the use of a loca disk
      storage
 
-
-# Create a new instance using an object storage or convert a new existing one
+### Create a new instance using an object storage or convert a new existing one
 
 
 When the instance was set up, the object storage can be configured. For this,
@@ -222,8 +192,7 @@ delete the contents of the `optimized` directory.
 Now the instance is confiugred for the object storage and all its contents are
 stored there, the migration procedure is finished.
 
-
-# Transferring files to a local storage instead of an object storage:
+#### Reverting back to a local storage instead of an object storage
 
 This is purely optional and for the case that an object storage is no longer
 needed!
