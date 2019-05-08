@@ -90,9 +90,9 @@ class SwiftFileManager(object):
             retries
         )
 
-    def delete_file(self, path, auth_token, retries=3):
+    def delete_file(self, path, retries=3):
         return self.retry(
-            upload_file,
+            delete_file,
             lambda: (
                 self.storage_url, self.container, path,
                 self.auth_manager.get_auth_token()
