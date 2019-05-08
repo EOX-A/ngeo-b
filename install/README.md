@@ -8,6 +8,21 @@ docker build . -t ngeo-browse-server --add-host=browse:127.0.0.1
 
 ## Test Browse Server
 
+ngEO Browse Server can be tested using the docker image built by the provided
+Dockerfile. This is done using the `docker run` command.
+
+Within the running docker container the Django test suite for ngEO browse server
+can be invoked by runnint the management command `test control`. If only a
+subset of tests shall be run, these tests can be listed.
+
+To test the OpenStack swift object storage functionality, specific environment
+variables have to be present, otherwise those tests will fail with an error case.
+The required environment variables are as follows: `OS_USERNAME`, `OS_PASSWORD`,
+`OS_TENANT_NAME`, `OS_TENANT_ID`, `OS_REGION_NAME`, `OS_AUTH_URL`,
+`OS_STORAGE_URL`, and `OS_CONTAINER`. They can be supplied to docker using the
+`-e` switch or the `--env-file` option with a path to the filename containing
+the evironment variables.
+
 ```bash
 docker run -it --rm --name test-ngeo-browse-server -p 8081:80 -v "${PWD}/../ngeo_browse_server/":/usr/lib/python2.6/site-packages/ngeo_browse_server/ -v "${PWD}/../ngeo-b_autotest/data/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/data/ -v "${PWD}/../ngeo-b_autotest/logs/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/logs/ --tmpfs /tmp:rw,exec,nosuid,nodev -h browse --add-host=browse:127.0.0.1 ngeo-browse-server /bin/bash -c "/etc/init.d/postgresql start && sleep 5 && /etc/init.d/memcached start && python /var/www/ngeo/ngeo_browse_server_instance/manage.py test control -v2"
 ```
