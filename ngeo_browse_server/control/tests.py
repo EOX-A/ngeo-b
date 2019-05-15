@@ -2564,8 +2564,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
             <bsi:status>failure</bsi:status>
             <bsi:error>
                 <bsi:exceptionCode>IngestionException</bsi:exceptionCode>
-                <bsi:exceptionMessage>`%s/empty.tif&#39; not recognised as a supported file format.
-</bsi:exceptionMessage>
+                <bsi:exceptionMessage>`%s/empty.tif&#39; not recognized as a supported file format.</bsi:exceptionMessage>
             </bsi:error>
         </bsi:briefRecord>
     </bsi:ingestionResult>
