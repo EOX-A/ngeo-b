@@ -401,11 +401,17 @@ class HttpTestCaseMixin(HttpMixIn):
         """ Check the status code of the response. """
         self.assertEqual(self.expected_status, self.response.status_code)
 
-
     def test_expected_response(self):
         """ Check that the response is equal to the provided one if present. """
         if self.expected_response is None:
             self.skipTest("No expected response given.")
+
+        if self.expected_response != self.response.content:
+            if '\n' in self.expected_response and '\n' in self.response.content:
+                self.assertEqual(
+                    self.expected_response.split('\n'),
+                    self.response.content.split('\n'),
+                )
 
         self.assertEqual(self.expected_response, self.response.content)
 
@@ -597,7 +603,6 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
         """ Check that the expected optimized files are created. """
 
         # check that all optimized files are being created
-
         if self.configuration.get((STORAGE_SECTION, 'storage_url')):
             files = self.get_storage_file_list(self.storage_optimized_prefix)
         else:
@@ -611,12 +616,10 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
                         shutil.copy(join(path, file_to_save), save_dir)
 
         # normalize files i.e. remove/add UUID
-        for i in range(len(files)):
-            files = [
-                file_[33:]
-                for file_ in files
-                if file_ not in self.expected_optimized_files
-            ]
+        files = [
+            file_[33:] if file_ not in self.expected_optimized_files else file_
+            for file_ in files
+        ]
 
         self.assertItemsEqual(self.expected_optimized_files, files)
 
