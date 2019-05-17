@@ -92,23 +92,10 @@ from ngeo_browse_server.storage.swift.auth import AuthTokenManager
 from ngeo_browse_server.storage.conf import get_storage_url, get_swift_container
 from ngeo_browse_server.storage.swift.conf import get_swift_auth_config
 
+from ngeo_browse_server.storage.swift.conf import get_file_manager
+
 logger = logging.getLogger(__name__)
 report_logger = logging.getLogger("ngEO-ingest")
-
-
-
-
-
-
-manager = None
-def get_manager(config):
-    global manager
-    if not manager:
-        manager = AuthTokenManager(get_swift_auth_config(config))
-    return manager
-
-
-
 
 
 #===============================================================================
@@ -206,6 +193,9 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
     else:
         makedirs(failure_dir)
 
+    # Create a file manager, either local or a remote storage one
+    manager = get_file_manager(config)
+
     # iterate over all browses in the browse report
     for parsed_browse in parsed_browse_report:
         # transaction management per browse
@@ -217,7 +207,7 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
                     result = ingest_browse(parsed_browse, browse_report,
                                            browse_layer, preprocessor, crs,
                                            success_dir, failure_dir,
-                                           seed_areas, config=config)
+                                           seed_areas, manager, config=config)
 
                     report_result.add(result)
                     succeded.append(parsed_browse)
@@ -322,7 +312,7 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
 
 
 def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
-                  success_dir, failure_dir, seed_areas, config=None):
+                  success_dir, failure_dir, seed_areas, manager, config=None):
     """ Ingests a single browse report, performs the preprocessing of the data
     file and adds the generated browse model to the browse report model. Returns
     a boolean value, indicating whether or not the browse has been inserted or
@@ -479,6 +469,22 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
             # A browse with that identifier does not exist, so create a new one
             logger.info("Creating new browse.")
 
+        replaced_with_remote = None
+        if replaced_filename.startswith('/vsiswift'):
+            # TODO: delete if everything went okay
+            replaced_filename_remote = replaced_filename
+            replaced_filename = None
+
+        merge_with_remote = None
+        if merge_with.startswith('/vsiswift'):
+            merge_with_remote = merge_with
+            # TODO: get local path
+            merge_with = "/tmp/merge_%s_%s" % (
+                uuid.uuid4().hex, basename(parsed_browse.file_name)
+            )
+
+            # TODO: fetch, merge and reupload
+
         # assert that the output file does not exist (unless it is a to-be
         # replaced file).
         if (exists(output_filename) and
@@ -527,30 +533,20 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                     raise IngestionException("Processed browse image has %d bands."
                                              % result.num_bands)
 
-                storage_url = get_storage_url(config)
-                if storage_url:
-                    manager = get_manager(config)
-                    token = manager.get_auth_token()
-                    container = get_swift_container(config)
-
+                if manager:
                     prefix = join(
                         browse_layer.id, str(parsed_browse.start_time.year)
                     )
 
-                    upload_file(
-                        storage_url, container, prefix, output_filename, token
-                    )
+                    manager.upload_file(prefix, output_filename)
                     remove(output_filename)
 
-                    environ['SWIFT_AUTH_TOKEN'] = manager.get_auth_token()
-                    environ['SWIFT_STORAGE_URL'] = storage_url
+                    manager.prepare_environment()
 
                     filename = basename(output_filename)
-                    output_filename = '/vsiswift/%s/%s/%s' % (
-                        container, prefix, filename
+                    output_filename = manager.get_vsi_filename(
+                        "%s/%s" % (prefix, filename)
                     )
-
-                    gdal.VSICurlClearCache()
 
                 logger.info("Creating database models.")
                 extent, time_interval = create_browse(
@@ -584,10 +580,34 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         raise exc_info[0], exc_info[1], exc_info[2]
 
     else:
+        if merge_with_remote:
+            try:
+                manager.delete_file(merge_with_remote)
+            except Exception as e:
+                logger.warn(
+                    "Unable to delete merged file on swift storate '%s'. "
+                    "Error was: '%s'"
+                    % (replaced_filename_remote, e)
+                )
+
+        if replaced_filename_remote:
+            try:
+                manager.delete_file(replaced_filename_remote)
+            except Exception as e:
+                logger.warn(
+                    "Unable to delete replaced file on swift storate '%s'. "
+                    "Error was: '%s'"
+                    % (replaced_filename_remote, e)
+                )
+
         # move the file to success folder, or delete it right away
         delete_on_success = True
-        try: delete_on_success = config.getboolean("control.ingest", "delete_on_success")
-        except: pass
+        try:
+            delete_on_success = config.getboolean(
+                "control.ingest", "delete_on_success"
+            )
+        except:
+            pass
 
         if not leave_original:
             if delete_on_success:

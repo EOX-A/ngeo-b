@@ -42,11 +42,7 @@ from ngeo_browse_server.control.management.commands import LogToConsoleMixIn
 from ngeo_browse_server.config.models import BrowseLayer, Browse
 from ngeo_browse_server.mapcache.tasks import seed_mapcache
 from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
-from ngeo_browse_server.storage.conf import (
-    get_auth_method, get_storage_url, get_swift_container
-)
-from ngeo_browse_server.storage.swift.upload import SwiftFileManager
-from ngeo_browse_server.storage.swift.auth import AuthTokenManager
+from ngeo_browse_server.storage import get_file_manager
 
 logger = logging.getLogger(__name__)
 
@@ -179,25 +175,19 @@ class Command(LogToConsoleMixIn, BaseCommand):
 
                     paths_to_delete.append(filename)
 
-        client = None
-        storage_url = get_storage_url()
-        if storage_url:
-            container = get_swift_container()
-            client = SwiftFileManager(
-                storage_url, container, AuthTokenManager()
-            )
+        manager = get_file_manager()
 
         # loop through optimized browse images and delete them
         # This is done at this point to make sure a rollback is possible
         # if there is an error while deleting the browses and coverages
         for file_path in paths_to_delete:
-            if file_path.startswith('/vsi') and client:
+            if manager and file_path.startswith('/vsi'):
                 # remove '', 'vsiswift', and <container>
                 path = "/".join(file_path.split('/')[3:])
-                client.delete_file(path)
+                manager.delete_file(path)
                 logger.info(
                     "Optimized browse image deleted: %s/%s/%s" % (
-                        client.storage_url, client.container, path
+                        manager.storage_url, manager.container, path
                     )
                 )
             elif exists(file_path):
