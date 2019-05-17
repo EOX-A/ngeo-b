@@ -1,0 +1,1 @@
+from ngeo_browse_server.storage.util import get_file_manager

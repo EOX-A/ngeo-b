@@ -35,9 +35,9 @@ STORAGE_SECTION = 'storage'
 AUTH_SECTION = 'storage.auth'
 
 
-def get_auth_method(conf=None):
+def get_storage_method(conf=None):
     conf = conf or get_ngeo_config()
-    return safe_get(conf, AUTH_SECTION, 'method', None)
+    return safe_get(conf, STORAGE_SECTION, 'method', 'local')
 
 
 def get_storage_url(conf=None):
@@ -48,3 +48,8 @@ def get_storage_url(conf=None):
 def get_swift_container(conf=None):
     conf = conf or get_ngeo_config()
     return safe_get(conf, STORAGE_SECTION, 'container')
+
+
+def get_auth_method(conf=None):
+    conf = conf or get_ngeo_config()
+    return safe_get(conf, AUTH_SECTION, 'method', None)
