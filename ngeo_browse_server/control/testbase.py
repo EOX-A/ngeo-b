@@ -77,11 +77,7 @@ from ngeo_browse_server.storage.conf import (
     STORAGE_SECTION, AUTH_SECTION
 )
 from ngeo_browse_server.storage.swift.conf import SWIFT_SECTION
-from ngeo_browse_server.storage.conf import (
-    get_storage_url, get_swift_container
-)
-from ngeo_browse_server.storage.swift.auth import AuthTokenManager
-from ngeo_browse_server.storage.swift.upload import list_contents, delete_file
+from ngeo_browse_server.storage import get_file_manager
 
 
 logger = logging.getLogger(__name__)
@@ -320,15 +316,11 @@ class BaseTestCaseMixIn(object):
             shutil.rmtree(d)
         remove(self.seed_command)
 
-        if self.configuration.get((STORAGE_SECTION, 'storage_url')):
-            token = AuthTokenManager().get_auth_token()
-            storage_url = get_storage_url()
-            container = get_swift_container()
-            filenames = list_contents(
-                storage_url, container, self.storage_optimized_prefix, token
-            )
+        if self.configuration.get((STORAGE_SECTION, 'method')):
+            manager = get_file_manager()
+            filenames = manager.list_contents(self.storage_optimized_prefix)
             for filename in filenames:
-                delete_file(storage_url, container, filename, token)
+                manager.delete_file(filename)
             # files = self.get_storage_file_list(self.storage_optimized_prefix)
 
         if exists(self.temp_status_config):
@@ -351,12 +343,10 @@ class BaseTestCaseMixIn(object):
 
     # convenience function to get a list of files on the configured storage
     def get_storage_file_list(self, prefix):
-        token = AuthTokenManager().get_auth_token()
+        manager = get_file_manager()
         return [
             basename(filename)
-            for filename in list_contents(
-                get_storage_url(), get_swift_container(), prefix, token
-            )
+            for filename in manager.list_contents(prefix)
         ]
 
 
@@ -603,7 +593,7 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
         """ Check that the expected optimized files are created. """
 
         # check that all optimized files are being created
-        if self.configuration.get((STORAGE_SECTION, 'storage_url')):
+        if self.configuration.get((STORAGE_SECTION, 'method')):
             files = self.get_storage_file_list(self.storage_optimized_prefix)
         else:
             files = self.get_file_list(self.temp_optimized_files_dir)
@@ -1558,7 +1548,6 @@ class SwiftMixIn(object):
 
     def setUp(self):
         required_keys = [
-            "OS_STORAGE_URL",
             "OS_USERNAME",
             "OS_PASSWORD",
             "OS_TENANT_NAME",
@@ -1576,7 +1565,7 @@ class SwiftMixIn(object):
     @property
     def configuration(self):
         return {
-            (STORAGE_SECTION, 'storage_url'): environ.get("OS_STORAGE_URL"),
+            (STORAGE_SECTION, 'method'): 'swift',
             (SWIFT_SECTION, 'username'): environ.get("OS_USERNAME"),
             (SWIFT_SECTION, 'password'): environ.get("OS_PASSWORD"),
             (SWIFT_SECTION, 'tenant_name'): environ.get("OS_TENANT_NAME"),
