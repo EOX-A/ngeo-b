@@ -35,7 +35,9 @@ from eoxserver.backends import models as backends
 
 from ngeo_browse_server.config import get_ngeo_config
 from ngeo_browse_server.control.management.commands import LogToConsoleMixIn
-from ngeo_browse_server.storage.conf import get_auth_method, get_storage_url
+from ngeo_browse_server.storage.conf import (
+    get_auth_method, get_storage_method, get_swift_container
+)
 from ngeo_browse_server.control.ingest.config import (
     INGEST_SECTION, get_project_relative_path
 )
@@ -54,7 +56,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
         ),
         make_option('--reverse', action="store_true",
             dest='reverse', default=False,
-            help=("Optional. Do the rervse: use local paths instead of on the "
+            help=("Optional. Do the reverse: use local paths instead of on the "
                   "object storage.")
         ),
     )
@@ -76,18 +78,19 @@ class Command(LogToConsoleMixIn, BaseCommand):
         conf = get_ngeo_config()
 
         if not reverse:
-            storage_url = get_storage_url(conf)
-            method = get_auth_method(conf)
-            if method != 'swift':
+            storage_method = get_storage_method(conf)
+            container = get_swift_container(conf)
+            auth_method = get_auth_method(conf)
+            if auth_method != 'swift':
                 raise CommandError('Auth method not set to swift')
 
-            if not storage_url:
-                raise CommandError('No storage URL given')
+            if storage_method != 'swift':
+                raise CommandError('Storage method not set to swift')
 
             local_paths = backends.LocalPath.objects.exclude(
                 path__startswith='/vsiswift'
             )
-            new_base_dir = '/vsiswift'
+            new_base_dir = '/vsiswift/%s' % container
 
         else:
             # retrieve from object storage instead

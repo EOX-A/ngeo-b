@@ -106,14 +106,13 @@ auth_url = <auth-url>
 
 #### Add new middleware
 
-Additionally, this line needs to be added to the `MIDDLEWARE_CLASSES` option in
-the `settings.py` configuration file:
+Additionally, the middle line needs to be added to the `MIDDLEWARE_CLASSES`
+option in the `settings.py` configuration file:
 
 ```python
-    MIDDLEWARE_CLASSES = (
-        # ...
-        'ngeo_browse_server.storage.middleware.AuthTokenMiddleware',
-    )
+MIDDLEWARE_CLASSES = (
+    'ngeo_browse_server.storage.middleware.AuthTokenMiddleware',
+)
 ```
 
 #### Restart Browse Server
@@ -178,13 +177,12 @@ When the `swift` client is installed and the environment is set up, then the
 contents of the `optimized` directory can be uploaded to an object storage container:
 
 ```bash
-cd /var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/data/optimized/  # Check 'optimized_files_dir' in 'control.ingest' section of configuration
-
 export BUCKET_NAME=<container-name>
 
 scl enable python27 'swift post $BUCKET_NAME'  # create container
 scl enable python27 'swift stat $BUCKET_NAME'  # check that container was created
 
+cd /var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/data/optimized/  # Check 'optimized_files_dir' in 'control.ingest' section of configuration
 scl enable python27 'swift upload -c --skip-identical $BUCKET_NAME *'  # perform upload
 
 scl enable python27 'swift list --lh $BUCKET_NAME'  # Check that everything was uploaded

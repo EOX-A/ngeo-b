@@ -49,7 +49,6 @@ The required environment variables are:
     `OS_TENANT_ID`
     `OS_REGION_NAME`
     `OS_AUTH_URL`
-    `OS_STORAGE_URL`
     `OS_CONTAINER`
 
 They can be supplied to docker using the
