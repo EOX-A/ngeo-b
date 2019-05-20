@@ -169,7 +169,7 @@ export OS_IDENTITY_API_VERSION=3
 export OS_REGION_NAME="SERCO-DIAS1"
 ```
 
-##### Upload optimized files to object storage bucket
+##### Upload optimized files to object storage container
 
 Before starting make sure that any ingestion is stopped.
 
@@ -177,15 +177,15 @@ When the `swift` client is installed and the environment is set up, then the
 contents of the `optimized` directory can be uploaded to an object storage container:
 
 ```bash
-export BUCKET_NAME=<container-name>
+export OS_CONTAINER=<container-name>
 
-scl enable python27 'swift post $BUCKET_NAME'  # create container
-scl enable python27 'swift stat $BUCKET_NAME'  # check that container was created
+scl enable python27 'swift post $OS_CONTAINER'  # create container
+scl enable python27 'swift stat $OS_CONTAINER'  # check that container was created
 
 cd /var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/data/optimized/  # Check 'optimized_files_dir' in 'control.ingest' section of configuration
-scl enable python27 'swift upload -c --skip-identical $BUCKET_NAME *'  # perform upload
+scl enable python27 'swift upload -c --skip-identical $OS_CONTAINER *'  # perform upload
 
-scl enable python27 'swift list --lh $BUCKET_NAME'  # Check that everything was uploaded
+scl enable python27 'swift list --lh $OS_CONTAINER'  # Check that everything was uploaded
 ```
 
 ##### Adjust paths in database
@@ -234,7 +234,7 @@ setup is complete, the optimized files can be downloaded using the following
 command:
 
 ```bash
-scl enable python27 'swift download $BUCKET_NAME -a -D /var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/data/optimized/'
+scl enable python27 'swift download $OS_CONTAINER -a -D /var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/data/optimized/'
 ```
 
 Now the configuration can be reversed by deleting or commenting out the
@@ -283,6 +283,6 @@ To finalize the reversion of usage of the object storage, the object storage
 container can be deleted, unless it is used elsewhere:
 
 ```bash
-scl enable python27 'swift delete $BUCKET_NAME'
+scl enable python27 'swift delete $OS_CONTAINER'
 ```
 
