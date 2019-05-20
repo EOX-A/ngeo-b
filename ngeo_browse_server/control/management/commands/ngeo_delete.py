@@ -181,7 +181,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
         # This is done at this point to make sure a rollback is possible
         # if there is an error while deleting the browses and coverages
         for file_path in paths_to_delete:
-            if manager and file_path.startswith('/vsi'):
+            if manager and file_path and file_path.startswith('/vsi'):
                 # remove '', 'vsiswift', and <container>
                 path = "/".join(file_path.split('/')[3:])
                 manager.delete_file(path)
