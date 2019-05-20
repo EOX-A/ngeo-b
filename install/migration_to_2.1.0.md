@@ -72,43 +72,59 @@ The next sections detail the options available:
   2) Convert an instance using an object storage back to the use of a local disk
      storage
 
-### Create a new instance using an object storage or convert an existing one
+### Create a new instance using an object storage or convert a new existing one
 
-When a new instance is set up, the object storage can be configured. For this,
-the `ngeo.conf` file has to be adjusted to include the new sections and settings.
-The deciding factor in the usage of the object storage is the `storage_url`
-setting. If not present, all subsequent configurations are ignored.
+In the following steps, the `swift` command line utility is required to interact
+with the object storage. It is obtained by installing the python package 
+`python-swiftclient`. It requires Python 2.7 or greater.
+
+If the swift tool shall be installed in the same machine as ngEO-Browse Server
+Python 2.7 needs to be installed:
+
+```bash
+yum install -y centos-release-scl
+yum install -y python27
+```
+
+Now the tool can be installed using the `pip` tool:
+```bash
+# within the ngEO Browse Server machine we need to use the SCL
+scl enable python27 'pip install python_swiftclient python_keystoneclient'
+```
+
+When the instance was set up, the object storage can be configured. For this,
+the ngeo.conf file has to be adjusted to include the new sections and settings.
+The deciding factor in the usage of the object storage is the `storage.method`
+setting. If it is not set to 'swift' then all subsequent configurations are
+ignored.
 
 Currently only OpenStack swift is supported.
 
-#### Add `storage` sections to configuration
-
-To initiate the usage of object storage, these relevant sections need to be
-added to the `ngeo.conf` configuration file:
-
+To initiate the usage of the object storage, the relevant sections need to be
+filled out in the ngeo.conf configuration file:
 ```
-[storage]
-storage_url = <storage-url>
-container = <container-name>
+    [storage]
+    method = swift
+    container = <container-name>
 
-[storage.auth]
-method = swift
+    [storage.auth]
+    method = swift
 
-[storage.auth.swift]
-username = <username>
-password = <password>
-tenant_name = <tenant-name>
-tenant_id = <tenant-id>
-region_name = <region-name>
-auth_url = <auth-url>
+    [storage.auth.swift]
+    username = <username>
+    password = <password>
+    tenant_name = <tenant-name>
+    tenant_id = <tenant-id>
+    region_name = <region-name>
+    auth_url = <auth-url>
 ```
 
-#### Add new middleware
+Add the appropriate middleware to the settings.py file:
 
 Additionally, this line needs to be added to the `MIDDLEWARE_CLASSES` option in
 the `settings.py` configuration file:
 
-```
+```python
     MIDDLEWARE_CLASSES = (
         # ...
         'ngeo_browse_server.storage.middleware.AuthTokenMiddleware',
@@ -131,24 +147,9 @@ new ingest will upload its optimized files to that configured container.
 In cases when an existing instance is converted to the use of an object storage,
 this configuration alone is not enough, as both the already existing optimized
 files need to be transferred to the container, but also the new storage locations
-need to be taken into account in the database for the stored browses.
+need to be taken into account for the stored browses.
 
-##### Install swift tools
-
-The next step is to move optimized files to an object storage container. This is best done
-by using the `python-swiftclient` package. It requires Python version 2.7 or greater
-and can be installed using the `pip` tool:
-
-```bash
-yum install -y centos-release-scl
-yum install -y python27
-scl enable python27 bash
-pip install python-swiftclient python-keystoneclient
-```
-
-##### Configure swift tools
-
-As the swift tool provides various configuration switches it is best used by setting
+As this tool provides various configuration switches it is best used by setting
 environment variables to help keep the commands short:
 
 ```bash
@@ -173,12 +174,12 @@ cd /var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/data/op
 
 export BUCKET_NAME=<container-name>
 
-swift post $BUCKET_NAME  # create container
-swift stat $BUCKET_NAME  # check that container was created
+scl enable python27 'swift post $BUCKET_NAME'  # create container
+scl enable python27 'swift stat $BUCKET_NAME'  # check that container was created
 
-swift upload -c --skip-identical $BUCKET_NAME *  # perform upload
+scl enable python27 'swift upload -c --skip-identical $BUCKET_NAME *'  # perform upload
 
-swift list --lh $BUCKET_NAME  # Check that everything was uploaded
+scl enable python27 'swift list --lh $BUCKET_NAME'  # Check that everything was uploaded
 ```
 
 ##### Adjust paths in database
@@ -227,7 +228,7 @@ setup is complete, the optimized files can be downloaded using the following
 command:
 
 ```bash
-swift download $BUCKET_NAME -a -D /var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/data/optimized/
+scl enable python27 'swift download $BUCKET_NAME -a -D /var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/data/optimized/'
 ```
 
 Now the configuration can be reversed by deleting or commenting out the
@@ -235,7 +236,7 @@ configuration sections described in the last section:
 
 ```
 # [storage]
-# storage_url = <storage-url>
+# method = swift
 # container = <container-name>
 
 # [storage.auth]
@@ -276,6 +277,6 @@ To finalize the reversion of usage of the object storage, the object storage
 container can be deleted, unless it is used elsewhere:
 
 ```bash
-swift delete $BUCKET_NAME
+scl enable python27 'swift delete $BUCKET_NAME'
 ```
 
