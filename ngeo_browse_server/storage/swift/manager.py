@@ -1,15 +1,17 @@
 import os
-
 from os.path import basename, join
 import shutil
+import logging
 
 from osgeo import gdal
 import requests
-# from urlparse import urljoin
+
+logger = logging.getLogger(__name__)
 
 
 def upload_file(storage_url, container, prefix, file_, auth_token,
                 filename=None, replace=False):
+
     if isinstance(file_, basestring):
         file_ = open(file_)
 
@@ -27,6 +29,7 @@ def upload_file(storage_url, container, prefix, file_, auth_token,
         else:
             raise Exception("File at path '%s' already exists" % path)
 
+    logger.debug("Performing upload of file '%s' to '%s'" % (filename, url))
     resp = requests.put(url, data=file_, headers=headers)
     if resp.status_code != 201:
         raise Exception(
@@ -39,15 +42,22 @@ def upload_file(storage_url, container, prefix, file_, auth_token,
 def delete_file(storage_url, container, path, auth_token):
     headers = {"X-Auth-Token": auth_token}
     url = "%s/%s/%s" % (storage_url, container, path)
+
+    logger.debug("Performing deletion of file '%s'" % url)
     resp = requests.delete(url, headers=headers)
 
     if resp.status_code >= 300:
-        raise Exception("Failed to delete file '%s'" % path)
+        raise Exception(
+            "Failed to delete file '%s'. Error was %s" % (path, resp.text)
+        )
 
 
 def list_contents(storage_url, container, prefix_path, auth_token):
     headers = {"X-Auth-Token": auth_token}
     url = "%s/%s" % (storage_url, container)
+
+    logger.debug("Listing contents at '%s'" % url)
+
     resp = requests.get(url, params={
         "prefix": prefix_path,
         "format": "json",
@@ -67,6 +77,9 @@ def list_contents(storage_url, container, prefix_path, auth_token):
 def download_file(storage_url, container, path, local_path, auth_token):
     headers = {"X-Auth-Token": auth_token}
     url = "%s/%s/%s" % (storage_url, container, path)
+
+    logger.debug("Downloading file from '%s'" % url)
+
     resp = requests.get(url, headers=headers, stream=True)
 
     if resp.status_code != 200:
@@ -118,7 +131,7 @@ class SwiftFileManager(object):
 
     def delete_file(self, path):
         if path.startswith('/vsiswift'):
-            path = '/'.join(path.split('/')[2:])
+            path = '/'.join(path.split('/')[3:])
 
         return self.retry(
             delete_file,
@@ -143,7 +156,7 @@ class SwiftFileManager(object):
 
     def download_file(self, path, local_path):
         if path.startswith('/vsiswift'):
-            path = '/'.join(path.split('/')[2:])
+            path = '/'.join(path.split('/')[3:])
 
         return self.retry(
             download_file,

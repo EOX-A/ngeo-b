@@ -12,7 +12,7 @@ def get_file_manager(config=None):
     config = config or get_ngeo_config()
 
     storage_method = get_storage_method(config)
-    if not storage_method:
+    if storage_method == 'local':
         return None
     elif storage_method == 'swift':
         return SwiftFileManager(

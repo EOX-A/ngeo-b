@@ -87,12 +87,8 @@ from ngeo_browse_server.control.queries import (
 from ngeo_browse_server.control.ingest.preprocessing.preprocessor import (
     NGEOPreProcessor
 )
-from ngeo_browse_server.storage.swift.upload import upload_file
-from ngeo_browse_server.storage.swift.auth import AuthTokenManager
-from ngeo_browse_server.storage.conf import get_storage_url, get_swift_container
-from ngeo_browse_server.storage.swift.conf import get_swift_auth_config
+from ngeo_browse_server.storage import get_file_manager
 
-from ngeo_browse_server.storage.swift.conf import get_file_manager
 
 logger = logging.getLogger(__name__)
 report_logger = logging.getLogger("ngEO-ingest")
@@ -469,21 +465,20 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
             # A browse with that identifier does not exist, so create a new one
             logger.info("Creating new browse.")
 
-        replaced_with_remote = None
-        if replaced_filename.startswith('/vsiswift'):
+        replaced_filename_remote = None
+        if replaced_filename and replaced_filename.startswith('/vsiswift'):
             # TODO: delete if everything went okay
             replaced_filename_remote = replaced_filename
             replaced_filename = None
 
         merge_with_remote = None
-        if merge_with.startswith('/vsiswift'):
+        if merge_with and merge_with.startswith('/vsiswift'):
             merge_with_remote = merge_with
             # TODO: get local path
             merge_with = "/tmp/merge_%s_%s" % (
                 uuid.uuid4().hex, basename(parsed_browse.file_name)
             )
-
-            # TODO: fetch, merge and reupload
+            manager.download_file(merge_with_remote, merge_with)
 
         # assert that the output file does not exist (unless it is a to-be
         # replaced file).
@@ -585,7 +580,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                 manager.delete_file(merge_with_remote)
             except Exception as e:
                 logger.warn(
-                    "Unable to delete merged file on swift storate '%s'. "
+                    "Unable to delete merged file on swift storage '%s'. "
                     "Error was: '%s'"
                     % (replaced_filename_remote, e)
                 )
@@ -595,7 +590,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                 manager.delete_file(replaced_filename_remote)
             except Exception as e:
                 logger.warn(
-                    "Unable to delete replaced file on swift storate '%s'. "
+                    "Unable to delete replaced file on swift storage '%s'. "
                     "Error was: '%s'"
                     % (replaced_filename_remote, e)
                 )

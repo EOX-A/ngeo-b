@@ -53,6 +53,9 @@ def get_swift_auth_config(conf=None):
             conf, SWIFT_SECTION, 'project_domain_name'
         ),
         'project_domain_id': safe_get(conf, SWIFT_SECTION, 'project_domain_id'),
+
+        'region_name': safe_get(conf, SWIFT_SECTION, 'region_name'),
+        'region_id': safe_get(conf, SWIFT_SECTION, 'region_id'),
         'insecure': False,
         'timeout':  safe_get(conf, SWIFT_SECTION, 'timeout'),
     }
