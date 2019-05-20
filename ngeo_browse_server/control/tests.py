@@ -5014,7 +5014,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 
 class IngestModelInGeotiffBrowseOnSwift(
-    IngestTestCaseMixIn, HttpTestCaseMixin, SwiftMixIn, TestCase
+    SwiftMixIn, IngestTestCaseMixIn, HttpTestCaseMixin, TestCase
 ):
     storage_optimized_prefix = "TEST_MER_FRS/2012/"
 
@@ -5049,7 +5049,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 
 
 class SeedModelInGeotiffBrowseOnSwift(
-    SeedTestCaseMixIn, HttpMixIn, SwiftMixIn, LiveServerTestCase
+    SwiftMixIn, SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase
 ):
     storage_optimized_prefix = "TEST_MER_FRS/2012/"
 
