@@ -379,6 +379,10 @@ EOF
         # Collect static files
         python manage.py collectstatic --noinput
 
+        # disable DatasetMetadataFileReader component, as it does not work with
+        # newer versions of GDAL
+        echo 'from eoxserver.core import models ; c = models.Component.objects.get(impl_id="resources.coverages.metadata.DatasetMetadataFileReader") ; c.enabled = False; c.save(); print"done"' | python manage.py shell
+
         # Make the instance read- and editable by apache
         chown -R apache:apache .
 
