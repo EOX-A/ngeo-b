@@ -40,16 +40,21 @@ can be invoked by running the management command `test control`. If only a
 subset of tests shall be run, these tests can be listed.
 
 To test the OpenStack swift object storage functionality, specific environment
-variables have to be present, otherwise those tests will fail with an error case.
+variables have to be present, otherwise those tests will fail with an error.
 The required environment variables are:
 
     `OS_USERNAME`
     `OS_PASSWORD`
-    `OS_TENANT_NAME`
     `OS_TENANT_ID`
     `OS_REGION_NAME`
     `OS_AUTH_URL`
     `OS_CONTAINER`
+
+Make sure that `OS_CONTAINER` points to an existing empty container.
+
+Please see the documentation in the
+[`ngeo.conf`](ngeo_browse_server/project_template/project_name/conf/ngeo.conf)
+file for details.
 
 They can be supplied to docker using the
 `-e` switch or the `--env-file` option with a path to the filename containing

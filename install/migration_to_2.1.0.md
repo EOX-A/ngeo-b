@@ -32,7 +32,8 @@ yum install -y \
     mapcache-1.2.1-4.el6.x86_64.rpm \
     mapserver-6.2.2-2.el6.x86_64.rpm \
     mapserver-python-6.2.2-2.el6.x86_64.rpm \
-    python2-gdal-2.3.2-8.el6.x86_64.rpm
+    python2-gdal-2.3.2-8.el6.x86_64.rpm \
+    ngeo...rpm
 ```
 
 Install new dependencies:
@@ -98,11 +99,49 @@ method = swift
 [storage.auth.swift]
 username = <username>
 password = <password>
-tenant_name = <tenant-name>
 tenant_id = <tenant-id>
 region_name = <region-name>
 auth_url = <auth-url>
 ```
+
+The `[storage]` section is optional and the `storage.method` option defaults to
+`local`, meaning that optimized files are stored in a local directory. The
+other possible value is `swift`, meaning that the optimized files
+are uploaded to a swift object storage. When this option is used, the following
+options must be set as-well `storage.container`, `storage.auth.method`,
+`storage.auth.swift.auth_url`, `storage.auth.swift.username`,
+`storage.auth.swift.password`, `storage.auth.swift.tenant_id`, and
+`storage.auth.swift.region_name` (has preference) or
+`storage.auth.swift.region_id`.
+
+`storage.container` is mandatory, when `storage.method` is set to `swift`.
+Defines the container to which the optimized files are uploaded.
+
+The `[storage.auth]` section is mandatory, when `storage.method` is set to
+`swift`. The `storage.auth.method` option must be set to `swift`.
+Defines how the authorization token is acquired.
+
+The `[storage.auth.swift]` section defines various options that are used to
+retrieve authorization tokens and storage URL information on an OpenStack
+swift object storage. The concepts are explained in detail here:
+https://docs.openstack.org/keystone/pike/admin/identity-concepts.html
+
+`storage.auth.swift.auth_url` is mandatory, when `storage.auth.method` is set
+to `swift`. This defines the base URL to which token retrieval requests are
+sent to.
+
+`storage.auth.swift.username` and `storage.auth.swift.password` are mandatory,
+when `storage.auth.method` is set to `swift`. Defines the username/password
+tuple for the login on the keystone service.
+
+`storage.auth.swift.tenant_id` is mandatory, when `storage.auth.method` is set
+to `swift`. A login is done on a specific tenant, so the username/password
+combination must be enabled on that tenant.
+
+`storage.auth.swift.region_name` or `storage.auth.swift.region_id` is
+mandatory, when `storage.auth.method` is set to `swift`. This defines the
+region used for later storage (to get the storage URL from). Either
+`region_name` or `region_id` must be specified.
 
 #### Add new middleware
 
