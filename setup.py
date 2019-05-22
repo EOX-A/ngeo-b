@@ -73,6 +73,7 @@ setup(
         'django>=1.4.1',
         'eoxserver>=0.3.5',
         'pytz',
+        'requests',
     ],
 
     # Metadata
