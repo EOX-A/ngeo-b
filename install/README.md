@@ -1,21 +1,51 @@
 # Usage with docker
 
+## Prepare environment
+
+Clone Browse Server:
+
+```bash
+git clone git@github.com:EOX-A/ngeo-b.git
+cd ngeo-b/
+git checkout branch-2-0
+git submodule init
+git submodule update
+cd install
+```
+
 ## Build docker image
 
 ```bash
-docker build . -t ngeo-browse-server --add-host=browse:127.0.0.1
+docker build . -t browse-server --add-host=browse:127.0.0.1
 ```
 
 ## Run Browse Server
 
 ```bash
-docker run -d -it --rm --name running-ngeo-browse-server -p 8080:80 -v "${PWD}/../ngeo_browse_server/":/usr/lib/python2.6/site-packages/ngeo_browse_server/ -v "${PWD}/logs/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/logs/ --tmpfs /tmp:rw,exec,nosuid,nodev -h browse --add-host=browse:127.0.0.1 ngeo-browse-server
+docker run -d -it --rm --name running-browse-server -p 8080:80 \
+    -v "${PWD}/../ngeo_browse_server/":/usr/lib/python2.6/site-packages/ngeo_browse_server/ \
+    -v "${PWD}/logs/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/logs/ \
+    --tmpfs /tmp:rw,exec,nosuid,nodev -h browse --add-host=browse:127.0.0.1 \
+    browse-server
 ```
 
 ## Test Browse Server
 
+The Browse Server can be tested using the docker image built by the provided
+Dockerfile. This is done using the `docker run` command.
+
+Within the running docker container the Django test suite for the Browse Server
+can be invoked by running the management command `test control`. If only a
+subset of tests shall be run, these tests can be listed.
+
 ```bash
-docker run -it --rm --name test-ngeo-browse-server -p 8081:80 -v "${PWD}/../ngeo_browse_server/":/usr/lib/python2.6/site-packages/ngeo_browse_server/ -v "${PWD}/../ngeo-b_autotest/data/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/data/ -v "${PWD}/../ngeo-b_autotest/logs/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/logs/ --tmpfs /tmp:rw,exec,nosuid,nodev -h browse --add-host=browse:127.0.0.1 ngeo-browse-server /bin/bash -c "/etc/init.d/postgresql start && sleep 5 && /etc/init.d/memcached start && python /var/www/ngeo/ngeo_browse_server_instance/manage.py test control -v2"
+docker run -it --rm --name test-browse-server -p 8081:80 \
+    -v "${PWD}/../ngeo_browse_server/":/usr/lib/python2.6/site-packages/ngeo_browse_server/ \
+    -v "${PWD}/../ngeo-b_autotest/data/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/data/ \
+    -v "${PWD}/../ngeo-b_autotest/logs/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/logs/ \
+    --tmpfs /tmp:rw,exec,nosuid,nodev -h browse --add-host=browse:127.0.0.1 \
+    browse-server \
+    /bin/bash -c "/etc/init.d/postgresql start && sleep 5 && /etc/init.d/memcached start && python /var/www/ngeo/ngeo_browse_server_instance/manage.py test control -v2"
 ```
 
 ## Build Browse Server
@@ -52,9 +82,11 @@ git tag -a release-2.0.33 -m "Tagging release 2.0.33."
 git push --tags
 
 # Build RPMs
-cd install/
-docker run -it --rm --name build-ngeo-browse-server -p 8081:80 -v "${PWD}/../":/ngeo-b/ --tmpfs /tmp:rw,exec,nosuid,nodev -h browse --add-host=browse:127.0.0.1 ngeo-browse-server /bin/bash -c "yum update -y && yum install -y rpmdevtools && cd /ngeo-b/ && python setup.py bdist_rpm"
-cd -
+docker run -it --rm --name build-browse-server \
+    -v "${PWD}/../":/ngeo-b/ \
+    --tmpfs /tmp:rw,exec,nosuid,nodev -h browse --add-host=browse:127.0.0.1 \
+    browse-server \
+    /bin/bash -c "yum update && yum install -y rpmdevtools && cd /ngeo-b/ && python setup.py bdist_rpm"
 
 # Upload packages to yum repository
 scp dist/*rpm packages@packages.eox.at:
