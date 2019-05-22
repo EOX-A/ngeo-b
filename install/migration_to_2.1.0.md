@@ -5,6 +5,8 @@
 The steps assume a default installation and configuration as for
 example provided via the `ngeo-install.sh` script.
 
+### Update GDAL and dependencies
+
 To enable the cloud storage functionality, GDAL and all dependent packages need
 to be updated. The RPMs are available with the new installation script. In order
 to delete the old versions of GDAL and dependencies, the following command needs
@@ -32,20 +34,35 @@ yum install -y \
     mapcache-1.2.1-4.el6.x86_64.rpm \
     mapserver-6.2.2-2.el6.x86_64.rpm \
     mapserver-python-6.2.2-2.el6.x86_64.rpm \
-    python2-gdal-2.3.2-8.el6.x86_64.rpm \
-    ngeo...rpm
+    python2-gdal-2.3.2-8.el6.x86_64.rpm
 ```
 
-Install new dependencies:
+### Install new dependency
 
 ```bash
 yum install -y \
     python-requests
 ```
 
+### Upgrade Browse Server
+
+Now it's time to upgrade the Browse Server itself:
+
+```bash
+if ls ngEO_Browse_Server-2.1*.noarch.rpm 1> /dev/null 2>&1; then
+    file=`ls -r ngEO_Browse_Server-2.1*.noarch.rpm | head -1`
+    echo "Installing local Browse Server 2.1 RPM ${file}"
+    yum install -y ${file}
+else
+    echo "No Browse Server 2.1 RPM package found."
+fi
+```
+
 With the new libraries installed, the object storage functionality is available.
 
-As the `DatasetMetadataFileReader` has issues with recent Django versions it
+### Disable DatasetMetadataFileReader
+
+As the `DatasetMetadataFileReader` has issues with recent GDAL versions it
 needs to be disabled.
 
 ```bash
