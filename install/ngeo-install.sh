@@ -196,27 +196,6 @@ EOF
     # Apply available upgrades
     yum update -y
 
-    echo "Performing installation step 120"
-    # Install packages
-    # Local packages
-    cd "local_packages"
-    yum install -y Django14-1.4.21-1.el6.noarch.rpm \
-                   geos-3.3.8-2.el6.x86_64.rpm \
-                   libspatialite-2.4.0-0.6_0.RC4.el6.x86_64.rpm \
-                   libtiff4-4.0.3-1.el6.x86_64.rpm \
-                   postgis-1.5.8-1.el6.x86_64.rpm \
-                   proj-4.8.0-3.el6.x86_64.rpm \
-                   proj-epsg-4.8.0-3.el6.x86_64.rpm \
-                   gdal-2.3.2-8.el6.x86_64.rpm \
-                   python2-gdal-2.3.2-8.el6.x86_64.rpm \
-                   gdal-libs-2.3.2-8.el6.x86_64.rpm \
-                   mapserver-6.2.2-2.el6.x86_64.rpm \
-                   mapserver-python-6.2.2-2.el6.x86_64.rpm \
-                   EOxServer-0.3.7-1.x86_64.rpm \
-                   mapcache-1.2.1-4.el6.x86_64.rpm
-    cd -
-
-
     #------------------------
     # Component installation
     #------------------------
@@ -259,11 +238,36 @@ EOF
         sed -e 's/^\[epel\]$/&\nexclude=openjpeg2/' -i /etc/yum.repos.d/epel.repo
     fi
 
+    yum update -y
+
+
     echo "Performing installation step 170"
     # Re-install libxml2 from eox repository
     rpm -e --justdb --nodeps libxml2
     # Install packages
-    yum install -y libxml2 libxml2-python python-requests libgeotiff-libtiff4
+    yum install -y libxml2
+
+
+    echo "Performing installation step 120"
+    # Install packages
+    # Local packages
+    cd "local_packages"
+    yum install -y libtiff4-4.0.3-1.el6.x86_64.rpm
+    yum install -y libxml2-python python-requests libgeotiff-libtiff4
+    yum install -y Django14-1.4.21-1.el6.noarch.rpm \
+                   geos-3.3.8-2.el6.x86_64.rpm \
+                   libspatialite-2.4.0-0.6_0.RC4.el6.x86_64.rpm \
+                   postgis-1.5.8-1.el6.x86_64.rpm \
+                   proj-4.8.0-3.el6.x86_64.rpm \
+                   proj-epsg-4.8.0-3.el6.x86_64.rpm \
+                   gdal-2.3.2-8.el6.x86_64.rpm \
+                   python2-gdal-2.3.2-8.el6.x86_64.rpm \
+                   gdal-libs-2.3.2-8.el6.x86_64.rpm \
+                   mapserver-6.2.2-2.el6.x86_64.rpm \
+                   mapserver-python-6.2.2-2.el6.x86_64.rpm \
+                   EOxServer-0.3.7-1.x86_64.rpm \
+                   mapcache-1.2.1-4.el6.x86_64.rpm
+    cd -
 
 
     # allow installation of local RPMs if available
