@@ -52,7 +52,7 @@
 # Configuration section
 # ------------------------------------------------------------------------------
 
-# Subsystem name 
+# Subsystem name
 SUBSYSTEM="ngEO Browse Server"
 
 # Enable/disable testing repositories, debug logging, etc.
@@ -194,12 +194,28 @@ EOF
 
     echo "Performing installation step 110"
     # Apply available upgrades
+    yum update -y
 
-
+    echo "Performing installation step 120"
+    # Install packages
+    # Local packages
     cd "local_packages"
+    yum install -y Django14-1.4.21-1.el6.noarch.rpm \
+                   geos-3.3.8-2.el6.x86_64.rpm \
+                   libspatialite-2.4.0-0.6_0.RC4.el6.x86_64.rpm \
+                   libtiff4-4.0.3-1.el6.x86_64.rpm \
+                   postgis-1.5.8-1.el6.x86_64.rpm \
+                   proj-4.8.0-3.el6.x86_64.rpm \
+                   proj-epsg-4.8.0-3.el6.x86_64.rpm \
+                   gdal-2.3.2-8.el6.x86_64.rpm \
+                   python2-gdal-2.3.2-8.el6.x86_64.rpm \
+                   gdal-libs-2.3.2-8.el6.x86_64.rpm \
+                   mapserver-6.2.2-2.el6.x86_64.rpm \
+                   mapserver-python-6.2.2-2.el6.x86_64.rpm \
+                   EOxServer-0.3.7-1.x86_64.rpm \
+                   mapcache-1.2.1-4.el6.x86_64.rpm
+    cd -
 
-
-    yum install -y libtiff4-4.0.3-1.el6.x86_64.rpm
 
     #------------------------
     # Component installation
@@ -243,82 +259,14 @@ EOF
         sed -e 's/^\[epel\]$/&\nexclude=openjpeg2/' -i /etc/yum.repos.d/epel.repo
     fi
 
-
-
-    yum update -y
-
-    echo "Performing installation step 120"
-
-
-
-    yum install -y proj-4.8.0-3.el6.x86_64.rpm \
-                   proj-epsg-4.8.0-3.el6.x86_64.rpm
-
-    yum install -y libgeotiff-libtiff4
-
-
-    # Install packages
-    # Local packages
-    
-    yum install -y Django14-1.4.21-1.el6.noarch.rpm \
-                   geos-3.3.8-2.el6.x86_64.rpm \
-                   libspatialite-2.4.0-0.6_0.RC4.el6.x86_64.rpm \
-                   postgis-1.5.8-1.el6.x86_64.rpm \
-                   gdal-2.3.2-8.el6.x86_64.rpm \
-                   python2-gdal-2.3.2-8.el6.x86_64.rpm \
-                   gdal-libs-2.3.2-8.el6.x86_64.rpm \
-                   gdal-devel-2.3.2-8.el6.x86_64.rpm \
-                   mapserver-7.2.2-1.git7fe9b2b.el6.x86_64.rpm \
-                   mapserver-libs-7.2.2-1.git7fe9b2b.el6.x86_64.rpm \
-                   python-mapserver-7.2.2-1.git7fe9b2b.el6.x86_64.rpm  \
-                   mapcache-1.4.2-0.el6.x86_64.rpm \
-                   EOxServer-0.3.7-1.x86_64.rpm
-
-
-#gdal-debuginfo-2.3.2-8.el6.x86_64.rpm \
-
-                   #mapcache-1.4.2-0.el6.x86_64.rpm \
-
-
-
-
-
-
-
-
-
-yum list '*gdal*'
-
-
-
-
-
-
-
     echo "Performing installation step 170"
     # Re-install libxml2 from eox repository
     rpm -e --justdb --nodeps libxml2
     # Install packages
-    yum install -y libxml2 libxml2-python python-requests
-
-
-
-    #pip install python-keystoneclient python-swiftclient
-
-
-    # yum install -y --nogpgcheck libtiff4
-
-                   #  gdal-eox-libtiff4 gdal-eox-libtiff4-python \
-                   # gdal-eox-driver-openjpeg2 
+    yum install -y libxml2 libxml2-python python-requests libgeotiff-libtiff4
 
 
     # allow installation of local RPMs if available
-    # if [ -f mapcache-*.rpm ] ; then
-    #     echo "Installing local mapcache RPM `ls mapcache-*.rpm`"
-    #     yum install -y mapcache-*.rpm
-    # else
-    #     yum install -y mapcache
-    # fi
     if ls ngEO_Browse_Server-*.noarch.rpm 1> /dev/null 2>&1; then
         file=`ls -r ngEO_Browse_Server-*.noarch.rpm | head -1`
         echo "Installing local ngEO_Browse_Server RPM ${file}"
@@ -326,11 +274,6 @@ yum list '*gdal*'
     else
         yum install -y ngEO_Browse_Server
     fi
-
-
-
-cd -
-
 
 
     echo "Performing installation step 180"
