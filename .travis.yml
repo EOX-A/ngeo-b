@@ -1,15 +1,20 @@
 language: python
 
 services:
-  - docker
+- docker
 
 before_install:
 - cd install
 - docker build . -t browse-server --add-host=browse:127.0.0.1
-- docker run -it --rm --name test-browse-server -p 8081:80 \
-    -v "`pwd`/../ngeo_browse_server/":/usr/lib/python2.6/site-packages/ngeo_browse_server/ \
-    -v "`pwd`/../ngeo-b_autotest/data/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/data/ \
-    -v "`pwd`/../ngeo-b_autotest/logs/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/logs/ \
-    --tmpfs /tmp:rw,exec,nosuid,nodev -h browse --add-host=browse:127.0.0.1 \
-    browse-server \
+- >
+  docker run -it --rm --name test-browse-server -p 8081:80
+    -v "${PWD}/../ngeo_browse_server/":/usr/lib/python2.6/site-packages/ngeo_browse_server/
+    -v "${PWD}/../ngeo-b_autotest/data/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/data/
+    -v "${PWD}/../ngeo-b_autotest/logs/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/logs/
+    --tmpfs /tmp:rw,exec,nosuid,nodev -h browse --add-host=browse:127.0.0.1
+    browse-server
     /bin/bash -c "/etc/init.d/postgresql start && sleep 5 && /etc/init.d/memcached start && python /var/www/ngeo/ngeo_browse_server_instance/manage.py test control -v2"
+
+notifications:
+  slack:
+    secure: axWg6MRTsvJByFcSG84Birbc3bNFWXnmmA45Rp/4IyBVklI3ytk0WmVx3Qqlf/vz2xfZHdRde4Je/Y+0ufioRY1e3fEl3J/IbcG1CeUcNPn5ghCmn8rJe+ptsFZQYY4uLsX9mWd74Q7xP12kxPQkRKHvpswYtmOhiYxZNEltcIk=
