@@ -1550,7 +1550,6 @@ class SwiftMixIn(object):
         required_keys = [
             "OS_USERNAME",
             "OS_PASSWORD",
-            "OS_TENANT_NAME",
             "OS_TENANT_ID",
             "OS_REGION_NAME",
             "OS_AUTH_URL",
@@ -1568,7 +1567,6 @@ class SwiftMixIn(object):
             (STORAGE_SECTION, 'method'): 'swift',
             (SWIFT_SECTION, 'username'): environ.get("OS_USERNAME"),
             (SWIFT_SECTION, 'password'): environ.get("OS_PASSWORD"),
-            (SWIFT_SECTION, 'tenant_name'): environ.get("OS_TENANT_NAME"),
             (SWIFT_SECTION, 'tenant_id'): environ.get("OS_TENANT_ID"),
             (SWIFT_SECTION, 'region_name'): environ.get("OS_REGION_NAME"),
             (SWIFT_SECTION, 'auth_url'): environ.get("OS_AUTH_URL"),
