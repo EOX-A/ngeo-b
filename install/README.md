@@ -59,7 +59,7 @@ The required environment variables are:
 Make sure that `OS_CONTAINER` points to an existing empty container.
 
 Please see the documentation in the
-[`ngeo.conf`](ngeo_browse_server/project_template/project_name/conf/ngeo.conf)
+[`ngeo.conf`](../ngeo_browse_server/project_template/project_name/conf/ngeo.conf)
 file for details.
 
 They can be supplied to docker using the
