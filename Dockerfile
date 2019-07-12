@@ -35,8 +35,11 @@ ENV HOSTNAME="localhost"
 
 USER root
 ADD install/local_packages/* local_packages/
-ADD ngeo_browse_server/* ngeo-b/
-ADD install/ngeo-install.sh \
+ADD ngeo_browse_server/* ngeo_browse_server/
+ADD tools/* tools/
+ADD setup.py \
+    README.rst \
+    install/ngeo-install.sh \
     install/ngeo \
     /
 RUN ./ngeo-install.sh install
