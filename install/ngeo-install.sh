@@ -200,32 +200,6 @@ EOF
     # Apply available upgrades
     yum update -y
 
-    echo "Performing installation step 120"
-    # Install packages
-    # Local packages
-    cd "local_packages"
-    yum install -y Django14-1.4.21-1.el6.noarch.rpm \
-                   geos-3.3.8-2.el6.x86_64.rpm \
-                   libspatialite-2.4.0-0.6_0.RC4.el6.x86_64.rpm \
-                   libtiff4-4.0.3-1.el6.x86_64.rpm \
-                   libgeotiff-libtiff4-1.4.0-1.el6.x86_64.rpm \
-                   postgis-1.5.8-1.el6.x86_64.rpm \
-                   proj-4.8.0-3.el6.x86_64.rpm \
-                   proj-epsg-4.8.0-3.el6.x86_64.rpm \
-                   libxml2-2.7.6-21.el6_8.1_eox.1.x86_64.rpm \
-                   libxml2-python-2.7.6-21.el6_8.1_eox.1.x86_64.rpm \
-                   gdal-eox-driver-openjpeg2-1.9.2-2.el6.x86_64.rpm \
-                   gdal-eox-libtiff4-1.9.2-3.el6.x86_64.rpm \
-                   gdal-eox-libtiff4-libs-1.9.2-3.el6.x86_64.rpm \
-                   gdal-eox-libtiff4-python-1.9.2-3.el6.x86_64.rpm \
-                   python-pyspatialite-eox-2.6.2-1.x86_64.rpm \
-                   mapserver-6.2.2-2.el6.x86_64.rpm \
-                   mapserver-python-6.2.2-2.el6.x86_64.rpm \
-                   EOxServer-0.3.7-1.x86_64.rpm \
-                   mapcache-1.2.1-4.el6.x86_64.rpm
-    cd -
-
-
     #------------------------
     # Component installation
     #------------------------
@@ -245,7 +219,39 @@ EOF
         sed -e 's/^\[epel\]$/&\nexclude=openjpeg2/' -i /etc/yum.repos.d/epel.repo
     fi
 
+    yum update -y
+
+
     echo "Performing installation step 170"
+    # Re-install libxml2 from eox repository
+    rpm -e --justdb --nodeps libxml2
+    # Install packages
+    yum install -y libxml2
+
+
+    echo "Performing installation step 120"
+    # Install packages
+    # Local packages
+    cd "local_packages"
+    yum install -y libtiff4-4.0.3-1.el6.x86_64.rpm
+    yum install -y libxml2-python python-requests libgeotiff-libtiff4
+    yum install -y Django14-1.4.21-1.el6.noarch.rpm \
+                   geos-3.3.8-2.el6.x86_64.rpm \
+                   libspatialite-2.4.0-0.6_0.RC4.el6.x86_64.rpm \
+                   postgis-1.5.8-1.el6.x86_64.rpm \
+                   proj-4.8.0-3.el6.x86_64.rpm \
+                   proj-epsg-4.8.0-3.el6.x86_64.rpm \
+                   gdal-2.3.2-8.el6.x86_64.rpm \
+                   python2-gdal-2.3.2-8.el6.x86_64.rpm \
+                   gdal-libs-2.3.2-8.el6.x86_64.rpm \
+                   mapserver-6.2.2-2.el6.x86_64.rpm \
+                   mapserver-python-6.2.2-2.el6.x86_64.rpm \
+                   EOxServer-0.3.7-1.x86_64.rpm \
+                   mapcache-1.2.1-4.el6.x86_64.rpm
+    cd -
+
+
+    # allow installation of local RPMs if available
     if ls ngEO_Browse_Server-*.noarch.rpm 1> /dev/null 2>&1; then
         file=`ls -r ngEO_Browse_Server-*.noarch.rpm | head -1`
         echo "Installing local ngEO_Browse_Server RPM ${file}"
@@ -356,6 +362,10 @@ EOF
 
         # Collect static files
         python manage.py collectstatic --noinput
+
+        # disable DatasetMetadataFileReader component, as it does not work with
+        # newer versions of GDAL
+        echo 'from eoxserver.core import models ; c = models.Component.objects.get(impl_id="resources.coverages.metadata.DatasetMetadataFileReader") ; c.enabled = False; c.save(); print"done"' | python manage.py shell
 
         # Make the instance read- and editable by apache
         chown -R apache:apache .
