@@ -196,10 +196,6 @@ EOF
 
     echo "Performing installation step 100"
 
-    echo "Performing installation step 110"
-    # Apply available upgrades
-    yum update -y
-
     #------------------------
     # Component installation
     #------------------------
@@ -219,15 +215,9 @@ EOF
         sed -e 's/^\[epel\]$/&\nexclude=openjpeg2/' -i /etc/yum.repos.d/epel.repo
     fi
 
+    echo "Performing installation step 110"
+    # Apply available upgrades
     yum update -y
-
-
-    echo "Performing installation step 170"
-    # Re-install libxml2 from eox repository
-    rpm -e --justdb --nodeps libxml2
-    # Install packages
-    yum install -y libxml2
-
 
     echo "Performing installation step 120"
     # Install packages
@@ -255,7 +245,7 @@ EOF
     cd -
 
 
-    # allow installation of local RPMs if available
+    echo "Performing installation step 170"
     if ls ngEO_Browse_Server-*.noarch.rpm 1> /dev/null 2>&1; then
         file=`ls -r ngEO_Browse_Server-*.noarch.rpm | head -1`
         echo "Installing local ngEO_Browse_Server RPM ${file}"
