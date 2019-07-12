@@ -261,7 +261,7 @@ EOF
     # Configure PostgreSQL/PostGIS database
 
     ## Write database configuration script
-    mkdir -p /tmppostgres
+    mkdir -p -m 0775 /tmppostgres
     TMPFILE=`mktemp -p /tmppostgres`
     cat << EOF > "$TMPFILE"
 #!/bin/sh -e
