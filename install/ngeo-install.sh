@@ -251,9 +251,7 @@ EOF
         echo "Installing local ngEO_Browse_Server RPM ${file}"
         yum install -y ${file}
     elif [ -d "/ngeo_browse_server/" ] && [ -f "setup.py" ]; then
-        cd /ngeo_browse_server/
         python setup.py install
-        cd -
     else
         echo "Aborting, no ngEO_Browse_Server RPM found for installation."
         exit 1
