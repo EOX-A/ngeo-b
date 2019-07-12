@@ -226,8 +226,7 @@ EOF
     yum install -y libtiff4-4.0.3-1.el6.x86_64.rpm \
                    libgeotiff-libtiff4-1.4.0-1.el6.x86_64.rpm \
                    libxml2-2.7.6-21.el6_8.1_eox.1.x86_64.rpm \
-                   libxml2-python-2.7.6-21.el6_8.1_eox.1.x86_64.rpm \
-                   python-pyspatialite-eox-2.6.2-1.x86_64.rpm
+                   libxml2-python-2.7.6-21.el6_8.1_eox.1.x86_64.rpm
     yum install -y python-requests
     yum install -y Django14-1.4.21-1.el6.noarch.rpm \
                    geos-3.3.8-2.el6.x86_64.rpm \
@@ -237,6 +236,7 @@ EOF
                    proj-epsg-4.8.0-3.el6.x86_64.rpm \
                    gdal-2.3.2-8.el6.x86_64.rpm \
                    python2-gdal-2.3.2-8.el6.x86_64.rpm \
+                   python-pyspatialite-eox-2.6.2-1.x86_64.rpm \
                    gdal-libs-2.3.2-8.el6.x86_64.rpm \
                    mapserver-6.2.2-2.el6.x86_64.rpm \
                    mapserver-python-6.2.2-2.el6.x86_64.rpm \
