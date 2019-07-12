@@ -10,7 +10,6 @@ cd ngeo-b/
 git checkout branch-2-1
 git submodule init
 git submodule update
-cd install
 ```
 
 ## Build docker image
@@ -23,7 +22,7 @@ docker build . -t browse-server --add-host=browse:127.0.0.1
 
 ```bash
 docker run -d -it --rm --name running-browse-server -p 8080:80 \
-    -v "${PWD}/../ngeo_browse_server/":/usr/lib/python2.6/site-packages/ngeo_browse_server/ \
+    -v "${PWD}/ngeo_browse_server/":/usr/lib/python2.6/site-packages/ngeo_browse_server/ \
     -v "${PWD}/logs/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/logs/ \
     --tmpfs /tmp:rw,exec,nosuid,nodev -h browse --add-host=browse:127.0.0.1 \
     browse-server
@@ -61,9 +60,9 @@ the environment variables.
 
 ```bash
 docker run -it --rm --name test-browse-server -p 8081:80 \
-    -v "${PWD}/../ngeo_browse_server/":/usr/lib/python2.6/site-packages/ngeo_browse_server/ \
-    -v "${PWD}/../ngeo-b_autotest/data/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/data/ \
-    -v "${PWD}/../ngeo-b_autotest/logs/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/logs/ \
+    -v "${PWD}/ngeo_browse_server/":/usr/lib/python2.6/site-packages/ngeo_browse_server/ \
+    -v "${PWD}/ngeo-b_autotest/data/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/data/ \
+    -v "${PWD}/ngeo-b_autotest/logs/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/logs/ \
     --tmpfs /tmp:rw,exec,nosuid,nodev -h browse --add-host=browse:127.0.0.1 \
     browse-server \
     /bin/bash -c "/etc/init.d/postgresql start && sleep 5 && /etc/init.d/memcached start && python /var/www/ngeo/ngeo_browse_server_instance/manage.py test control -v2"
@@ -104,7 +103,7 @@ git push --tags
 
 # Build RPMs
 docker run -it --rm --name build-browse-server \
-    -v "${PWD}/../":/ngeo-b/ \
+    -v "${PWD}/":/ngeo-b/ \
     --tmpfs /tmp:rw,exec,nosuid,nodev -h browse --add-host=browse:127.0.0.1 \
     browse-server \
     /bin/bash -c "yum update && yum install -y rpmdevtools && cd /ngeo-b/ && python setup.py bdist_rpm"

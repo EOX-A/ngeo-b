@@ -34,11 +34,13 @@ LABEL name="ngEO Browse Server" \
 ENV HOSTNAME="localhost"
 
 USER root
-ADD install/local_packages/* local_packages/
-ADD ngeo_browse_server/* ngeo_browse_server/
-ADD tools/* tools/
+ADD install/local_packages /local_packages
+ADD ngeo_browse_server /ngeo_browse_server
+ADD tools /tools
 ADD setup.py \
+    setup.cfg \
     README.rst \
+    MANIFEST.in \
     install/ngeo-install.sh \
     install/ngeo \
     /
