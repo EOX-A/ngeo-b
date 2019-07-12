@@ -233,8 +233,12 @@ EOF
     # Install packages
     # Local packages
     cd "local_packages"
-    yum install -y libtiff4-4.0.3-1.el6.x86_64.rpm
-    yum install -y libxml2-python python-requests libgeotiff-libtiff4
+    yum install -y libtiff4-4.0.3-1.el6.x86_64.rpm \
+                   libgeotiff-libtiff4-1.4.0-1.el6.x86_64.rpm \
+                   libxml2-2.7.6-21.el6_8.1_eox.1.x86_64.rpm \
+                   libxml2-python-2.7.6-21.el6_8.1_eox.1.x86_64.rpm \
+                   python-pyspatialite-eox-2.6.2-1.x86_64.rpm
+    yum install -y python-requests
     yum install -y Django14-1.4.21-1.el6.noarch.rpm \
                    geos-3.3.8-2.el6.x86_64.rpm \
                    libspatialite-2.4.0-0.6_0.RC4.el6.x86_64.rpm \
