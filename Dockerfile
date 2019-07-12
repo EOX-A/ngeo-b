@@ -34,9 +34,10 @@ LABEL name="ngEO Browse Server" \
 ENV HOSTNAME="localhost"
 
 USER root
-ADD local_packages/* local_packages/
-ADD ngeo-install.sh \
-    ngeo \
+ADD install/local_packages/* local_packages/
+ADD ngeo_browse_server/* ngeo-b/
+ADD install/ngeo-install.sh \
+    install/ngeo \
     /
 RUN ./ngeo-install.sh install
 
