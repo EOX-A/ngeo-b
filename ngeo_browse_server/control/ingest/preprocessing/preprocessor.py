@@ -73,8 +73,8 @@ def _process_proxy(preprocessor, return_dict, *args, **kwargs):
 
 class NGEOPreProcessor(WMSPreProcessor):
 
-    def __init__(self, format_selection, overviews=True, overviews_self=False,
-                 crs=None, bands=None, bandmode=RGB, footprint_alpha=False,
+    def __init__(self, format_selection, overviews=True, overviews_self=False, crs=None, bands=None,
+                 bandmode=RGB, footprint_alpha=False, color_to_alpha=False,
                  color_index=False, palette_file=None, no_data_value=None,
                  overview_resampling=None, overview_levels=None,
                  overview_minsize=None, radiometric_interval_min=None,
@@ -97,6 +97,7 @@ class NGEOPreProcessor(WMSPreProcessor):
         self.bands = bands
         self.bandmode = bandmode
         self.footprint_alpha = footprint_alpha
+        self.color_to_alpha = color_to_alpha
         self.color_index = color_index
         self.palette_file = palette_file
         self.no_data_value = no_data_value
@@ -264,6 +265,11 @@ class NGEOPreProcessor(WMSPreProcessor):
             opt = AlphaBandOptimization()
             opt(ds, footprint_wkt)
             ds.FlushCache()
+
+        if isinstance(self.color_to_alpha, (int) and self.color_to_alpha != -99999:
+            logger.debug("Applying optimization 'ColorToAlphaOptimization'.")
+            opt = ColorToAlphaOptimization()
+            opt(ds, self.color_to_alpha)
 
         temp_output_filename = join(
             self.temporary_directory or tempfile.gettempdir(),

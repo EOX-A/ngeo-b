@@ -269,6 +269,10 @@ class IngestConfigurator(ngEOConfigConfigurator):
             "the images area of interest.", "false"
         ),
         Parameter(
+            int, "color_to_alpha", "",
+            "If set to a valid number, the areas with values of all three bands equal to color and similar to it by +-15 will get burned to alpha channel as transparent.", -99999
+        ),        
+        Parameter(
             int, "sieve_max_threshold", "",
             "Sets the maximum threshold for the sieve algorithm. See "
             "`http://www.gdal.org/gdal__alg_8h.html#a33309c0a316b223bd33ae5753cc7f616` "
