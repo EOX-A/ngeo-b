@@ -179,7 +179,7 @@ class NGEOPreProcessor(WMSPreProcessor):
             opt = AlphaBandOptimization()
             opt(ds, footprint_wkt)
 
-        if isinstance(self.color_to_alpha, (int) and self.color_to_alpha != -99999:
+        if isinstance(self.color_to_alpha, int) and self.color_to_alpha != -99999:
             logger.debug("Applying optimization 'ColorToAlphaOptimization'.")
             opt = ColorToAlphaOptimization()
             opt(ds, self.color_to_alpha)
