@@ -264,8 +264,12 @@ class IngestConfigurator(ngEOConfigConfigurator):
         ),
         Parameter(
             int, "color_to_alpha", "",
-            "If set to a valid number, the areas with values of all three bands equal to color and similar to it by +-15 will get burned to alpha channel as transparent.", -99999
-        ),        
+            "If set to an integer, the areas with values of all three bands equal to color and similar to it by +-15 or 'color_to_alpha_margin' will get burned to alpha channel as transparent.", -99999
+        ),
+        Parameter(
+            int, "color_to_alpha_margin", "",
+            "If set to an integer, sets a +-margin around color_to_alpha value.", -99999
+        ),
         Parameter(
             int, "sieve_max_threshold", "",
             "Sets the maximum threshold for the sieve algorithm. See "
