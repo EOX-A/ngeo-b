@@ -269,11 +269,11 @@ class NGEOPreProcessor(WMSPreProcessor):
 
         if isinstance(self.color_to_alpha, int) and self.color_to_alpha != -99999:
             logger.debug("Applying optimization 'ColorToAlphaOptimization'.")
-            opts = {'ds': ds, 'color_to_alpha': self.color_to_alpha}
+            opts = {'src_ds': ds, 'color_to_alpha': self.color_to_alpha}
             if isinstance(self.color_to_alpha_margin, int) and self.color_to_alpha != -99999:
                 opts.update({'color_to_alpha_margin': self.color_to_alpha_margin})
             opt = ColorToAlphaOptimization()
-            opt(opts)
+            opt(**opts)
 
         temp_output_filename = join(
             self.temporary_directory or tempfile.gettempdir(),
