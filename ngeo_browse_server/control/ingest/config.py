@@ -179,6 +179,12 @@ def get_optimization_config(config=None):
         pass
 
     try:
+        values["color_to_alpha_margin"] = config.getint(
+            INGEST_SECTION, "color_to_alpha_margin")
+    except:
+        pass
+
+    try:
         values["sieve_max_threshold"] = config.getint(
             INGEST_SECTION, "sieve_max_threshold")
     except:
