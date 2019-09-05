@@ -77,7 +77,7 @@ class NGEOPreProcessor(WMSPreProcessor):
         self.bandmode = bandmode
         self.footprint_alpha = footprint_alpha
         self.color_to_alpha = color_to_alpha
-        self.color_to_alpha_margin = color_to_alpha_margin,
+        self.color_to_alpha_margin = color_to_alpha_margin
         self.color_index = color_index
         self.palette_file = palette_file
         self.no_data_value = no_data_value
@@ -183,7 +183,7 @@ class NGEOPreProcessor(WMSPreProcessor):
         if isinstance(self.color_to_alpha, int) and self.color_to_alpha != -99999:
             logger.debug("Applying optimization 'ColorToAlphaOptimization'.")
             opts = {'src_ds': ds, 'color_to_alpha': self.color_to_alpha}
-            if isinstance(self.color_to_alpha_margin, int) and self.color_to_alpha != -99999:
+            if isinstance(self.color_to_alpha_margin, int) and self.color_to_alpha_margin != -99999:
                 opts.update({'color_to_alpha_margin': self.color_to_alpha_margin})
             opt = ColorToAlphaOptimization()
             opt(**opts)
