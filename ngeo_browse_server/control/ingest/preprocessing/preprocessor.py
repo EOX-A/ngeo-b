@@ -74,7 +74,7 @@ def _process_proxy(preprocessor, return_dict, *args, **kwargs):
 class NGEOPreProcessor(WMSPreProcessor):
 
     def __init__(self, format_selection, overviews=True, overviews_self=False, crs=None, bands=None,
-                 bandmode=RGB, footprint_alpha=False, color_to_alpha=False, color_to_alpha_margin = False,
+                 bandmode=RGB, footprint_alpha=False, color_to_alpha=False, color_to_alpha_margin=False,
                  color_index=False, palette_file=None, no_data_value=None,
                  overview_resampling=None, overview_levels=None,
                  overview_minsize=None, radiometric_interval_min=None,
@@ -267,10 +267,10 @@ class NGEOPreProcessor(WMSPreProcessor):
             opt(ds, footprint_wkt)
             ds.FlushCache()
 
-        if isinstance(self.color_to_alpha, int) and self.color_to_alpha != -99999:
+        if not isinstance(self.color_to_alpha, bool) and isinstance(self.color_to_alpha, int) and self.color_to_alpha != -99999:
             logger.debug("Applying optimization 'ColorToAlphaOptimization'.")
             opts = {'src_ds': ds, 'color_to_alpha': self.color_to_alpha}
-            if isinstance(self.color_to_alpha_margin, int) and self.color_to_alpha_margin != -99999:
+            if not isinstance(self.color_to_alpha_margin, bool) and isinstance(self.color_to_alpha_margin, int) and self.color_to_alpha_margin != -99999:
                 opts.update({'color_to_alpha_margin': self.color_to_alpha_margin})
             opt = ColorToAlphaOptimization()
             opt(**opts)
