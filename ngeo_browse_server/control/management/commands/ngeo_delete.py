@@ -65,13 +65,19 @@ class Command(LogToConsoleMixIn, BaseCommand):
         make_option('--end',
             dest='end',
             help=("The end date and time in ISO 8601 format.")
+        ),
+        make_option('--id',
+            dest='coverage_id',
+            help=("String coverage_id of browse to be deleted. Usually created as browse_layer_id + _ + browse_identifier")
         )
     )
     
     args = ("--layer=<layer-id> | --browse-type=<browse-type> "
-            "[--start=<start-date-time>] [--end=<end-date-time>] " )
+            "[--start=<start-date-time>] [--end=<end-date-time>]"
+            "[--id=<coverage-identifier>]")
     help = ("Deletes the browses specified by either the layer ID, "
-            "its browse type and optionally start and or end time."
+            "its browse type. Optionally also by browse_identifier "
+            "or start and or end time."
             "Only browses that are completely contained in the time interval"
             "are actually deleted.")
 
@@ -97,7 +103,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
         
         start = kwargs.get("start")
         end = kwargs.get("end")
-        
+        coverage_id = kwargs.get("coverage_id")
         # parse start/end if given
         if start: 
             start = getDateTime(start)
@@ -105,12 +111,12 @@ class Command(LogToConsoleMixIn, BaseCommand):
             end = getDateTime(end)
         
         
-        self._handle(start, end, browse_layer_id, browse_type)
+        self._handle(start, end, coverage_id, browse_layer_id, browse_type)
 
         logger.info("Successfully finished browse deletion from command line.")
 
 
-    def _handle(self, start, end, browse_layer_id, browse_type):
+    def _handle(self, start, end, coverage_id, browse_layer_id, browse_type):
         from ngeo_browse_server.control.queries import remove_browse
         
         # query the browse layer
@@ -131,15 +137,20 @@ class Command(LogToConsoleMixIn, BaseCommand):
         
         
         # get all browses of browse layer
-        browses_qs = Browse.objects.all().filter(browse_layer=browse_layer_model);
-        
-        # apply start/end filter
-        if start and not end:
-            browses_qs = browses_qs.filter(start_time__gte=start)
-        elif end and not start:
-            browses_qs = browses_qs.filter(end_time__lte=end)
-        elif start and end:
-            browses_qs = browses_qs.filter(start_time__gte=start, end_time__lte=end)
+        browses_qs = Browse.objects.all().filter(browse_layer=browse_layer_model)
+
+        # apply coverage_id filter
+        # then time filter should not be applicable
+        if coverage_id:
+            browses_qs = browses_qs.filter(coverage_id=coverage_id)
+        else:
+            # apply start/end filter
+            if start and not end:
+                browses_qs = browses_qs.filter(start_time__gte=start)
+            elif end and not start:
+                browses_qs = browses_qs.filter(end_time__lte=end)
+            elif start and end:
+                browses_qs = browses_qs.filter(start_time__gte=start, end_time__lte=end)
             
         paths_to_delete = []
         seed_areas = []
