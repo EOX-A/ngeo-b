@@ -69,12 +69,18 @@ class Command(LogToConsoleMixIn, BaseCommand):
         make_option('--id',
             dest='coverage_id',
             help=("String coverage_id of browse to be deleted. Usually created as browse_layer_id + _ + browse_identifier")
+        ),
+        make_option('--summary',
+            dest='return_summary',
+            action="store_true",
+            help=("If option is used, a summary results object will be returned.")
         )
     )
     
     args = ("--layer=<layer-id> | --browse-type=<browse-type> "
             "[--start=<start-date-time>] [--end=<end-date-time>]"
-            "[--id=<coverage-identifier>]")
+            "[--id=<coverage-identifier>]"
+            "[--summary=<return-summary>]")
     help = ("Deletes the browses specified by either the layer ID, "
             "its browse type. Optionally also by browse_identifier "
             "or start and or end time."
@@ -88,7 +94,10 @@ class Command(LogToConsoleMixIn, BaseCommand):
         # parse command arguments
         self.verbosity = int(kwargs.get("verbosity", 1))
         traceback = kwargs.get("traceback", False)
-        self.set_up_logging(["ngeo_browse_server"], self.verbosity, traceback)
+
+        # in case this function is used repeatedly, add logger handle only during first run
+        if len([handler for handler in logging.getLogger("ngeo_browse_server").handlers if not isinstance(handler, logging.StreamHandler)]) > 0:
+            self.set_up_logging(["ngeo_browse_server"], self.verbosity, traceback)
 
         logger.info("Starting browse deletion from command line.")
 
@@ -104,21 +113,26 @@ class Command(LogToConsoleMixIn, BaseCommand):
         start = kwargs.get("start")
         end = kwargs.get("end")
         coverage_id = kwargs.get("coverage_id")
+        return_summary = kwargs.get("return_summary")
         # parse start/end if given
         if start: 
             start = getDateTime(start)
         if end:
             end = getDateTime(end)
         
-        
-        self._handle(start, end, coverage_id, browse_layer_id, browse_type)
-
+        summary = self._handle(start, end, coverage_id, browse_layer_id, browse_type, return_summary)
         logger.info("Successfully finished browse deletion from command line.")
+        if return_summary:
+            return summary
 
 
-    def _handle(self, start, end, coverage_id, browse_layer_id, browse_type):
+    def _handle(self, start, end, coverage_id, browse_layer_id, browse_type, return_summary):
         from ngeo_browse_server.control.queries import remove_browse
-        
+        summary = {
+          "browses_found": 0,
+          "files_deleted": 0,
+          "deleted": [],
+        }
         # query the browse layer
         if browse_layer_id:
             try:
@@ -134,14 +148,15 @@ class Command(LogToConsoleMixIn, BaseCommand):
                              "not exist" % browse_type)
                 raise CommandError("Browse layer with browse type'%s' does "
                                    "not exist" % browse_type)
-        
-        
+
         # get all browses of browse layer
         browses_qs = Browse.objects.all().filter(browse_layer=browse_layer_model)
 
-        # apply coverage_id filter
+        # apply coverage_id filter for string or list of strings
         # then time filter should not be applicable
-        if coverage_id:
+        if isinstance(coverage_id, list):
+            browses_qs = browses_qs.filter(coverage_id__in=coverage_id)
+        elif isinstance(coverage_id, (str, unicode)):
             browses_qs = browses_qs.filter(coverage_id=coverage_id)
         else:
             # apply start/end filter
@@ -154,7 +169,8 @@ class Command(LogToConsoleMixIn, BaseCommand):
             
         paths_to_delete = []
         seed_areas = []
-        
+        ids_deleted = []
+        summary["browses_found"] = browses_qs.count()
         
         with transaction.commit_on_success():
             with transaction.commit_on_success(using="mapcache"):
@@ -166,16 +182,16 @@ class Command(LogToConsoleMixIn, BaseCommand):
                     
                     _, filename = remove_browse(browse_model, browse_layer_model, 
                                                 browse_model.coverage_id, seed_areas)
-                    
                     paths_to_delete.append(filename)
-        
+                    ids_deleted.append(browse_model.coverage_id)
         # loop through optimized browse images and delete them
         # This is done at this point to make sure a rollback is possible
         # if there is an error while deleting the browses and coverages
         for file_path in paths_to_delete:
             if exists(file_path):
                 remove(file_path)
-                logger.info("Optimized browse image deleted: %s" % file_path) 
+                summary["files_deleted"] += 1
+                logger.info("Optimized browse image deleted: %s" % file_path)
             else:
                 logger.warning("Optimized browse image to be deleted not found "
                                "in path: %s" % file_path)
@@ -200,7 +216,8 @@ class Command(LogToConsoleMixIn, BaseCommand):
                 
             except Exception, e:
                 logger.warn("Seeding failed: %s" % str(e))
-        
+        summary["ids_deleted"] = ids_deleted
+        return summary
         # TODO: 
         #   - think about what to do with brows report
         #   - think about what to do with cache
