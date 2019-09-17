@@ -115,7 +115,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
         coverage_id = kwargs.get("coverage_id")
         return_summary = kwargs.get("return_summary")
         # parse start/end if given
-        if start: 
+        if start:
             start = getDateTime(start)
         if end:
             end = getDateTime(end)
@@ -131,7 +131,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
         summary = {
           "browses_found": 0,
           "files_deleted": 0,
-          "deleted": [],
+          "deleted": {},
         }
         # query the browse layer
         if browse_layer_id:
@@ -169,7 +169,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
             
         paths_to_delete = []
         seed_areas = []
-        ids_deleted = []
+        deleted = {}
         summary["browses_found"] = browses_qs.count()
         
         with transaction.commit_on_success():
@@ -183,7 +183,10 @@ class Command(LogToConsoleMixIn, BaseCommand):
                     _, filename = remove_browse(browse_model, browse_layer_model, 
                                                 browse_model.coverage_id, seed_areas)
                     paths_to_delete.append(filename)
-                    ids_deleted.append(browse_model.coverage_id)
+                    deleted[browse_model.coverage_id] = {
+                        "start": browse_model.start_time,
+                        "end": browse_model.end_time,
+                    }
         # loop through optimized browse images and delete them
         # This is done at this point to make sure a rollback is possible
         # if there is an error while deleting the browses and coverages
@@ -195,11 +198,9 @@ class Command(LogToConsoleMixIn, BaseCommand):
             else:
                 logger.warning("Optimized browse image to be deleted not found "
                                "in path: %s" % file_path)
-        
-        
+
         for minx, miny, maxx, maxy, start_time, end_time in seed_areas:
             try:
-                
                 # seed MapCache synchronously
                 # TODO: maybe replace this with an async solution
                 seed_mapcache(tileset=browse_layer_model.id, 
@@ -216,7 +217,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
                 
             except Exception, e:
                 logger.warn("Seeding failed: %s" % str(e))
-        summary["ids_deleted"] = ids_deleted
+        summary["deleted"] = deleted
         return summary
         # TODO: 
         #   - think about what to do with brows report
