@@ -146,6 +146,8 @@ class BaseTestCaseMixIn(object):
         (INGEST_SECTION, "overview_minsize"): "256",
         (INGEST_SECTION, "color_index"): "false",
         (INGEST_SECTION, "footprint_alpha"): "true",
+        (INGEST_SECTION, "color_to_alpha"): "-99999",
+        (INGEST_SECTION, "color_to_alpha_margin"): "-99999",
         (INGEST_SECTION, "delete_on_success"): "true",
         (INGEST_SECTION, "leave_original"): "false",
         (INGEST_SECTION, "strategy"): "replace",
