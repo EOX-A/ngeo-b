@@ -27,15 +27,11 @@
 
 import logging
 from optparse import make_option
-
 from django.core.management.base import BaseCommand, CommandError
-from ngeo_browse_server.config.models import BrowseLayer, Browse
-
 from eoxserver.core.system import System
 from eoxserver.core.util.timetools import getDateTime
-
+from ngeo_browse_server.config.models import BrowseLayer, Browse
 from ngeo_browse_server.control.management.commands import LogToConsoleMixIn
-
 
 logger = logging.getLogger(__name__)
 
@@ -81,13 +77,26 @@ class Command(LogToConsoleMixIn, BaseCommand):
             start = getDateTime(start)
         if end:
             end = getDateTime(end)
-        logger.info("Starting querying for intersecting time intervals.")
+        logger.debug("Starting querying for intersecting time intervals.")
         results = self.handle_query(start, end, browse_type)
-        logger.info("Finished querying for intersecting time intervals. Returning result.")
+        logger.debug("Finished querying for intersecting time intervals. Returning result.")
         return results
 
+    def wasMerged(self, t1start, t1end, t2start, t2end):
+        """
+        Two browses were merged if their time intervals intersect
+        or one of them has a single timestamp and is intesecting the other.
+        Continuous intervals (t1e == t2s) are not merged.
+        """
+        intersects = (
+            (t1start == t1end or t2start == t2end) and (t2start <= t1end and t2end >= t1start)
+        ) or (
+            t2start < t1end and t2end > t1start
+        )
+        return intersects
 
     def handle_query(self, start, end, browse_type):
+        logger.info('start ' + start.strftime("%Y%m%dT%H%M%S") + ' end ' + end.strftime("%Y%m%dT%H%M%S"))
         try:
             browse_layer_model = BrowseLayer.objects.get(browse_type=browse_type)
         except BrowseLayer.DoesNotExist:
@@ -108,15 +117,16 @@ class Command(LogToConsoleMixIn, BaseCommand):
         new_end = end
         if len(browses_qs) > 0:
             for i in range(len(browses_qs)):
-                # find first intersection
-                if browses_qs[i]['start_time'] <= end and browses_qs[i]['end_time'] >= start:
+                # find first intersection of given interval and database results
+                if self.wasMerged(start, end, browses_qs[i]['start_time'], browses_qs[i]['end_time']):
                     # find merged_start_time
                     repeat = True
                     current_index = i  # do not modify for loop iterator
                     while repeat:
                         # search backward until no intersect
                         if current_index > 0:
-                            if browses_qs[current_index]['start_time'] <= browses_qs[current_index - 1]['end_time']:
+                            if self.wasMerged(browses_qs[current_index]['start_time'], browses_qs[current_index]['end_time'],
+                            browses_qs[current_index - 1]['start_time'], browses_qs[current_index - 1]['end_time']):
                                 # still found intersection, move one left in list
                                 current_index -= 1
                             else:
@@ -133,7 +143,8 @@ class Command(LogToConsoleMixIn, BaseCommand):
                     while repeat:
                         # search forward until no intersect
                         if current_index < len(browses_qs) - 1:
-                            if browses_qs[current_index]['end_time'] >= browses_qs[current_index + 1]['start_time']:
+                            if self.wasMerged(browses_qs[current_index]['start_time'], browses_qs[current_index]['end_time'],
+                             browses_qs[current_index + 1]['start_time'], browses_qs[current_index + 1]['end_time']):
                                 # still found intersection, move one right in list
                                 current_index += 1
                             else:
