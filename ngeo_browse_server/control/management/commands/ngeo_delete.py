@@ -179,11 +179,11 @@ class Command(LogToConsoleMixIn, BaseCommand):
                                "s" if browses_qs.count() > 1 else ""))
                 # go through all browses to be deleted
                 for browse_model in browses_qs:
-                    
-                    _, filename = remove_browse(browse_model, browse_layer_model, 
-                                                browse_model.coverage_id, seed_areas)
+                    # reference to ID is lost after remove_browse completes
+                    save_id = browse_model.coverage_id 
+                    _, filename = remove_browse(browse_model, browse_layer_model, browse_model.coverage_id, seed_areas)
                     paths_to_delete.append(filename)
-                    deleted[browse_model.coverage_id] = {
+                    deleted[save_id] = {
                         "start": browse_model.start_time,
                         "end": browse_model.end_time,
                     }
