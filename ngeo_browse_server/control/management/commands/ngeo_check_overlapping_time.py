@@ -32,6 +32,7 @@ from eoxserver.core.system import System
 from eoxserver.core.util.timetools import getDateTime
 from ngeo_browse_server.config.models import BrowseLayer, Browse
 from ngeo_browse_server.control.management.commands import LogToConsoleMixIn
+import traceback
 
 logger = logging.getLogger(__name__)
 
@@ -64,10 +65,10 @@ class Command(LogToConsoleMixIn, BaseCommand):
         System.init()
         # parse command arguments
         self.verbosity = int(kwargs.get("verbosity", 1))
-        traceback = kwargs.get("traceback", False)
+        traceback_conf = kwargs.get("traceback", False)
         # in case this function is used repeatedly, add logger handle only during first run
         if len([handler for handler in logging.getLogger("ngeo_browse_server").handlers if not isinstance(handler, logging.StreamHandler)]) > 0:
-            self.set_up_logging(["ngeo_browse_server"], self.verbosity, traceback)
+            self.set_up_logging(["ngeo_browse_server"], self.verbosity, traceback_conf)
 
         browse_type = kwargs.get("browse_type")
         start = kwargs.get("start")
@@ -77,9 +78,9 @@ class Command(LogToConsoleMixIn, BaseCommand):
             start = getDateTime(start)
         if end:
             end = getDateTime(end)
-        logger.debug("Starting querying for intersecting time intervals.")
+        logger.info("Starting querying for intersecting time intervals.")
         results = self.handle_query(start, end, browse_type)
-        logger.debug("Finished querying for intersecting time intervals. Returning result.")
+        logger.info("Finished querying for intersecting time intervals.")
         return results
 
     def wasMerged(self, t1start, t1end, t2start, t2end):
@@ -96,7 +97,6 @@ class Command(LogToConsoleMixIn, BaseCommand):
         return intersects
 
     def handle_query(self, start, end, browse_type):
-        logger.info('start ' + start.strftime("%Y%m%dT%H%M%S") + ' end ' + end.strftime("%Y%m%dT%H%M%S"))
         try:
             browse_layer_model = BrowseLayer.objects.get(browse_type=browse_type)
         except BrowseLayer.DoesNotExist:
@@ -105,6 +105,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
             raise CommandError("Browse layer with browse type'%s' does "
                                "not exist" % browse_type)
         # get sorted distinct time entries by start_time, end_time
+        logger.debug("Starting query for unique and sorted browses.")
         browses_qs = Browse.objects.all().filter(browse_layer=browse_layer_model
         ).values(
             'start_time', 'end_time'
@@ -116,47 +117,59 @@ class Command(LogToConsoleMixIn, BaseCommand):
         new_start = start
         new_end = end
         if len(browses_qs) > 0:
-            for i in range(len(browses_qs)):
-                # find first intersection of given interval and database results
-                if self.wasMerged(start, end, browses_qs[i]['start_time'], browses_qs[i]['end_time']):
-                    # find merged_start_time
-                    repeat = True
-                    current_index = i  # do not modify for loop iterator
-                    while repeat:
-                        # search backward until no intersect
-                        if current_index > 0:
-                            if self.wasMerged(browses_qs[current_index]['start_time'], browses_qs[current_index]['end_time'],
-                            browses_qs[current_index - 1]['start_time'], browses_qs[current_index - 1]['end_time']):
-                                # still found intersection, move one left in list
-                                current_index -= 1
+            try:
+                logger.info("Finding first time intersection of given interval and query results.")
+                for i in range(len(browses_qs)):
+                    # find first intersection of given interval and database results
+                    if self.wasMerged(start, end, browses_qs[i]['start_time'], browses_qs[i]['end_time']):
+                        logger.debug("Intersection found at query result with start_time %s end_time %s" % (browses_qs[i]['start_time'], browses_qs[i]['end_time']))
+                        # find merged_start_time
+                        repeat = True
+                        current_index = i  # do not modify for loop iterator
+                        while repeat:
+                            # search backward until no intersect
+                            if current_index > 0:
+                                if self.wasMerged(browses_qs[current_index]['start_time'], browses_qs[current_index]['end_time'],
+                                browses_qs[current_index - 1]['start_time'], browses_qs[current_index - 1]['end_time']):
+                                    # still found intersection, move one left in list
+                                    current_index -= 1
+                                else:
+                                    # no intersection, save start_time
+                                    logger.debug("No other intersection found, saving the current start_time %s as new_start" % browses_qs[i]['start_time'])
+                                    new_start = browses_qs[current_index]['start_time']
+                                    repeat = False
                             else:
-                                # no intersection, save start_time
+                                # reached start of list
+                                logger.debug("Reached start of list, saving the current start_time %s as new_start" % browses_qs[i]['start_time'])
                                 new_start = browses_qs[current_index]['start_time']
                                 repeat = False
-                        else:
-                            # reached start of list
-                            new_start = browses_qs[current_index]['start_time']
-                            repeat = False
-                    # find merged_end_time
-                    repeat = True
-                    current_index = i
-                    while repeat:
-                        # search forward until no intersect
-                        if current_index < len(browses_qs) - 1:
-                            if self.wasMerged(browses_qs[current_index]['start_time'], browses_qs[current_index]['end_time'],
-                             browses_qs[current_index + 1]['start_time'], browses_qs[current_index + 1]['end_time']):
-                                # still found intersection, move one right in list
-                                current_index += 1
+                        # find merged_end_time
+                        repeat = True
+                        current_index = i
+                        while repeat:
+                            # search forward until no intersect
+                            if current_index < len(browses_qs) - 1:
+                                if self.wasMerged(browses_qs[current_index]['start_time'], browses_qs[current_index]['end_time'],
+                                 browses_qs[current_index + 1]['start_time'], browses_qs[current_index + 1]['end_time']):
+                                    # still found intersection, move one right in list
+                                    current_index += 1
+                                else:
+                                    # no intersection, save end_time
+                                    logger.debug("No other intersection found, saving the current end_time %s as new_end" % browses_qs[i]['end_time'])
+                                    new_end = browses_qs[current_index]['end_time']
+                                    repeat = False
                             else:
-                                # no intersection, save end_time
+                                # reached end of list
+                                logger.debug("Reached end of list, saving the current end_time %s as new_end" % browses_qs[i]['end_time'])
                                 new_end = browses_qs[current_index]['end_time']
                                 repeat = False
-                        else:
-                            # reached end of list
-                            new_end = browses_qs[current_index]['end_time']
-                            repeat = False
-                    if repeat is False:
-                        break  # go outside of for loop, work done
+                        if repeat is False:
+                            logger.debug("Finding intersections done, leaving for loop.")
+                            break  # go outside of for loop, work done
+            except Exception as e:
+                logger.error("Failure during checking of time interval intersection")
+                logger.error("Exception was '%s': %s" % (type(e).__name__, str(e)))
+                logger.debug(traceback.format_exc() + "\n")
         else:
             raise CommandError("Browse layer with browse type '%s' is empty" % browse_type)
         results = {
