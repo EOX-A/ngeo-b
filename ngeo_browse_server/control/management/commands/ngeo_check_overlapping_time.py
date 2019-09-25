@@ -80,7 +80,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
             end = getDateTime(end)
         logger.info("Starting querying for intersecting time intervals.")
         results = self.handle_query(start, end, browse_type)
-        logger.info("Finished querying for intersecting time intervals.")
+        logger.info("Finished querying for intersecting time intervals. Returning merged_start %s merged_end %s" % (results["merged_start"], results["merged_end"]))
         return results
 
     def wasMerged(self, t1start, t1end, t2start, t2end):
@@ -118,7 +118,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
         new_end = end
         if len(browses_qs) > 0:
             try:
-                logger.info("Finding first time intersection of given interval and query results.")
+                logger.debug("Finding first time intersection of given interval and query results.")
                 for i in range(len(browses_qs)):
                     # find first intersection of given interval and database results
                     if self.wasMerged(start, end, browses_qs[i]['start_time'], browses_qs[i]['end_time']):
