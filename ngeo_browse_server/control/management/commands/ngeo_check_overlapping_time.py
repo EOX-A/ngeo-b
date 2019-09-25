@@ -80,7 +80,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
             end = getDateTime(end)
         logger.info("Starting querying for intersecting time intervals.")
         results = self.handle_query(start, end, browse_type)
-        logger.info("Finished querying for intersecting time intervals. Returning merged_start %s merged_end %s" % (results["merged_start"], results["merged_end"]))
+        logger.info("Finished querying for intersecting time intervals. Returning merged_start %s merged_end %s" % (results["merged_start"].strftime("%Y%m%dT%H%M%S"), results["merged_end"].strftime("%Y%m%dT%H%M%S")))
         return results
 
     def wasMerged(self, t1start, t1end, t2start, t2end):
