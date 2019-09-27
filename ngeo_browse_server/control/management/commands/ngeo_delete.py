@@ -120,13 +120,13 @@ class Command(LogToConsoleMixIn, BaseCommand):
         if end:
             end = getDateTime(end)
         
-        summary = self._handle(start, end, coverage_id, browse_layer_id, browse_type, return_summary)
+        summary = self._handle(start, end, coverage_id, browse_layer_id, browse_type)
         logger.info("Successfully finished browse deletion from command line.")
         if return_summary:
             return summary
 
 
-    def _handle(self, start, end, coverage_id, browse_layer_id, browse_type, return_summary):
+    def _handle(self, start, end, coverage_id, browse_layer_id, browse_type):
         from ngeo_browse_server.control.queries import remove_browse
         summary = {
           "browses_found": 0,
