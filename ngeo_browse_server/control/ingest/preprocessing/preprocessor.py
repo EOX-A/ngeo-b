@@ -58,7 +58,7 @@ RGB = range(3)
 class NGEOPreProcessor(WMSPreProcessor):
 
     def __init__(self, format_selection, overviews=True, crs=None, bands=None,
-                 bandmode=RGB, footprint_alpha=False, color_to_alpha=False, color_to_alpha_margin = False,
+                 bandmode=RGB, footprint_alpha=False,
                  color_index=False, palette_file=None, no_data_value=None,
                  overview_resampling=None, overview_levels=None,
                  overview_minsize=None, radiometric_interval_min=None,
@@ -76,8 +76,6 @@ class NGEOPreProcessor(WMSPreProcessor):
         self.bands = bands
         self.bandmode = bandmode
         self.footprint_alpha = footprint_alpha
-        self.color_to_alpha = color_to_alpha
-        self.color_to_alpha_margin = color_to_alpha_margin,
         self.color_index = color_index
         self.palette_file = palette_file
         self.no_data_value = no_data_value
@@ -179,14 +177,6 @@ class NGEOPreProcessor(WMSPreProcessor):
             logger.debug("Applying optimization 'AlphaBandOptimization'.")
             opt = AlphaBandOptimization()
             opt(ds, footprint_wkt)
-
-        if isinstance(self.color_to_alpha, int) and self.color_to_alpha != -99999:
-            logger.debug("Applying optimization 'ColorToAlphaOptimization'.")
-            opts = {'ds': ds, 'color_to_alpha': self.color_to_alpha}
-            if isinstance(self.color_to_alpha_margin, int) and self.color_to_alpha != -99999:
-                opts.update({'color_to_alpha_margin': self.color_to_alpha_margin})
-            opt = ColorToAlphaOptimization()
-            opt(opts)
 
         output_filename = self.generate_filename(output_filename)
 
