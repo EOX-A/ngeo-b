@@ -126,6 +126,13 @@ def get_format_config(config=None):
     except:
         pass
 
+    value = safe_get(config, INGEST_SECTION, "creation_options")
+    if value:
+        values["creation_options"] = dict(
+            v.strip().partition("=")[0::2]
+            for v in value.split(",")
+        )
+
     return values
 
 

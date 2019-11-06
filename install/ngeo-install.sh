@@ -260,7 +260,7 @@ EOF
     yum install -y --nogpgcheck libtiff4
     yum install -y libxml2-python gdal-eox-libtiff4 gdal-eox-libtiff4-python \
                    gdal-eox-driver-openjpeg2 mapserver mapserver-python \
-                   EOxServer
+                   EOxServer patch
 
 
     # allow installation of local RPMs if available
@@ -277,6 +277,13 @@ EOF
     else
         yum install -y ngEO_Browse_Server
     fi
+
+
+    echo "Patching EOxServer"
+    cd /usr/lib64/python2.6/site-packages/
+    patch -p 0 -N < /patches/improve_footprint-generation.patch
+    patch -p 0 -N < /patches/improve_overview-optimization.patch
+    cd -
 
 
     echo "Performing installation step 180"
@@ -357,6 +364,7 @@ EOF
         sed -e "s/^config_file=$/config_file=$MAPCACHE_DIR_ESCAPED\/$MAPCACHE_CONF/" -i ngeo_browse_server_instance/conf/ngeo.conf
         sed -e "s/^storage_dir=data\/storage$/storage_dir=$NGEOB_INSTALL_DIR_ESCAPED\/store/" -i ngeo_browse_server_instance/conf/ngeo.conf
         sed -e "s/^instance_id = $/instance_id = $NGEOB_INSTANCE_ID/" -i ngeo_browse_server_instance/conf/ngeo.conf
+        sed -e 's/^\[control\.ingest\]$/[control.ingest]\n\ncreation_options = "COPY_SRC_OVERVIEWS=YES"/' -i ngeo_browse_server_instance/conf/ngeo.conf
 
         # Configure logging
         if "$TESTING" ; then

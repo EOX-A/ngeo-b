@@ -129,6 +129,8 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
     # create the required preprocessor/format selection
     format_selection = get_format_selection("GTiff",
                                             **get_format_config(config))
+    logger.info("Format config %s" % get_format_config(config))
+
     if do_preprocessing:
         # add config parameters and custom params
         params = get_optimization_config(config)
