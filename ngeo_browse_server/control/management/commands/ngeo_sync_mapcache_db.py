@@ -129,7 +129,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
                 ).order_by(
                     'start_time', 'end_time'
                 )
-                logger.info("Number browses: %s" % len(browses_qs))
+                logger.info("Finished query for browses")
 
                 logger.debug("Starting query for unique times")
                 # optimization for when there are a lot of equal time entries
@@ -143,8 +143,6 @@ class Command(LogToConsoleMixIn, BaseCommand):
                 ).order_by(
                     'start_time', 'end_time'
                 )
-                logger.info("Number unique times: %s" % len(unique_times_qs))
-
                 logger.info("Iterating through unique times")
                 time_intervals = []
                 i = 1
