@@ -127,6 +127,7 @@ class NGEOPreProcessor(WMSPreProcessor):
 
             try:
                 new_ds = optimization(ds)
+                new_ds.FlushCache()
 
                 if new_ds is not ds:
                     # cleanup afterwards
