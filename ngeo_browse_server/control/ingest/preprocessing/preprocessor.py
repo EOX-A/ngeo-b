@@ -177,6 +177,7 @@ class NGEOPreProcessor(WMSPreProcessor):
             logger.debug("Applying optimization 'AlphaBandOptimization'.")
             opt = AlphaBandOptimization()
             opt(ds, footprint_wkt)
+            ds.FlushCache()
 
         output_filename = self.generate_filename(output_filename)
 

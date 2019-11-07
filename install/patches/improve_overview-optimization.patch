@@ -20,7 +20,7 @@ index 29e9d29f..fe1e0f22 100644
  #===============================================================================
  # PreProcess result
 diff --git eoxserver/processing/preprocessing/optimization.py eoxserver/processing/preprocessing/optimization.py
-index da384c32..47804af6 100644
+index da384c32..90ad1ada 100644
 --- eoxserver/processing/preprocessing/optimization.py
 +++ eoxserver/processing/preprocessing/optimization.py
 @@ -30,6 +30,9 @@ import logging
@@ -59,7 +59,7 @@ index da384c32..47804af6 100644
              level = 1
              levels = []
  
-@@ -361,20 +364,32 @@ class OverviewOptimization(DatasetPostOptimization):
+@@ -361,20 +364,33 @@ class OverviewOptimization(DatasetPostOptimization):
          logger.info("Building overview levels %s with resampling method '%s'."
                      % (", ".join(map(str, levels)), self.resampling))
  
@@ -92,6 +92,7 @@ index da384c32..47804af6 100644
 +            options=["COPY_SRC_OVERVIEWS=YES", ]
 +        )
 +
++        dst_ds.FlushCache()
 +        return dst_ds
  
  
