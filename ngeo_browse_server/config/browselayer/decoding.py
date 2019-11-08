@@ -95,6 +95,7 @@ def decode_browse_layers(browse_layers_elem, config=None):
             browse_layer_elem.find(ns_cfg("grid")).text,
             browse_layer_elem.find(ns_cfg("browseAccessPolicy")).text,
             browse_layer_elem.find(ns_cfg("containsVerticalCurtains")).text == "true",
+            float(browse_layer_elem.find(ns_cfg("shortenIngestedInterval")).text),
             int(browse_layer_elem.find(ns_cfg("highestMapLevel")).text),
             int(browse_layer_elem.find(ns_cfg("lowestMapLevel")).text),
             browse_layer_elem.find(ns_cfg("hostingBrowseServerName")).text,
@@ -113,6 +114,7 @@ browse_layer_decoder = XMLDecoder({
     "browse_access_policy": "cfg:browseAccessPolicy/text()",
     "related_dataset_ids": ("cfg:relatedDatasetIds/cfg:datasetId/text()", str, "*"),
     "contains_vertical_curtains": ("cfg:containsVerticalCurtains", lambda v: v == "true"),
+    "shorten_ingested_interval": ("cfg:shortenIngestedInterval/text()", (float, int)),  # tuple, so that 0 or 100 is still parsed
     "r_band": ("cfg:rgbBands/text()", lambda v: int(v.split(",")[0])),
     "g_band": ("cfg:rgbBands/text()", lambda v: int(v.split(",")[1])),
     "b_band": ("cfg:rgbBands/text()", lambda v: int(v.split(",")[2])),

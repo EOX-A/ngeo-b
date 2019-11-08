@@ -350,6 +350,17 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
     except:
         pass
 
+    # shorten browse time by percentage of interval if configured
+    shorten_ingested_interval = browse_layer.shorten_ingested_interval
+    if shorten_ingested_interval != 0.0:
+        delta = (parsed_browse.end_time - parsed_browse.start_time)
+        parsed_browse.start_time = parsed_browse.start_time + (shorten_ingested_interval / 200.0) * delta
+        if shorten_ingested_interval == 100.0:
+            # to be sure that no micro-second rounding happens
+            parsed_browse.end_time = parsed_browse.start_time
+        else:
+            parsed_browse.end_time = parsed_browse.end_time - (shorten_ingested_interval / 200.0) * delta
+
     # get the input and output filenames
     storage_path = get_storage_path()
     # if file_name is a URL download browse first and store it locally

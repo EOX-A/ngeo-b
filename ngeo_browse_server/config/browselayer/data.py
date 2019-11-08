@@ -31,12 +31,13 @@
 class BrowseLayer(object):
     def __init__(self, browse_layer_identifier, browse_type, title, grid,
                  browse_access_policy, contains_vertical_curtains,
-                 highest_map_level, lowest_map_level,
-                 hosting_browse_server_name, related_dataset_ids,
-                 description="", r_band=None, g_band=None, b_band=None,
-                 radiometric_interval_min=None, radiometric_interval_max=None,
-                 strategy=None, harvesting_source=None,
-                 timedimension_default=None, tile_query_limit=None):
+                 shorten_ingested_interval, highest_map_level,
+                 lowest_map_level, hosting_browse_server_name,
+                 related_dataset_ids, description="", r_band=None, g_band=None,
+                 b_band=None, radiometric_interval_min=None,
+                 radiometric_interval_max=None, strategy=None,
+                 harvesting_source=None, timedimension_default=None,
+                 tile_query_limit=None):
         self._browse_layer_identifier = browse_layer_identifier
         self._browse_type = browse_type
         self._title = title
@@ -46,6 +47,7 @@ class BrowseLayer(object):
         self._hosting_browse_server_name = hosting_browse_server_name
         self._related_dataset_ids = related_dataset_ids
         self._contains_vertical_curtains = contains_vertical_curtains
+        self._shorten_ingested_interval = shorten_ingested_interval
         self._r_band = r_band
         self._g_band = g_band
         self._b_band = b_band
@@ -67,6 +69,7 @@ class BrowseLayer(object):
     hosting_browse_server_name = property(lambda self: self._hosting_browse_server_name)
     related_dataset_ids = property(lambda self: self._related_dataset_ids)
     contains_vertical_curtains = property(lambda self: self._contains_vertical_curtains)
+    shorten_ingested_interval = property(lambda self: self._shorten_ingested_interval)
     r_band = property(lambda self: self._r_band)
     g_band = property(lambda self: self._g_band)
     b_band = property(lambda self: self._b_band)
@@ -89,6 +92,7 @@ class BrowseLayer(object):
             "grid": self.grid,
             "browse_access_policy": self.browse_access_policy,
             "contains_vertical_curtains": self.contains_vertical_curtains,
+            "shorten_ingested_interval": self.shorten_ingested_interval,
             "r_band": self.r_band,
             "g_band": self.g_band,
             "b_band": self.b_band,
@@ -112,6 +116,7 @@ class BrowseLayer(object):
             related_dataset_ids=[rel_ds.dataset_id
                                  for rel_ds in model.related_datasets.all()],
             contains_vertical_curtains=model.contains_vertical_curtains,
+            shorten_ingested_interval=model.shorten_ingested_interval,
             r_band=model.r_band, g_band=model.g_band, b_band=model.b_band,
             radiometric_interval_min=model.radiometric_interval_min,
             radiometric_interval_max=model.radiometric_interval_max,

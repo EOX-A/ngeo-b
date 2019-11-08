@@ -578,7 +578,8 @@ def update_browse_layer(browse_layer, config=None):
     immutable_values = (
         "id", "browse_type", "contains_vertical_curtains", "r_band", "g_band",
         "b_band", "radiometric_interval_min", "radiometric_interval_max",
-        "grid", "lowest_map_level", "highest_map_level", "harvesting_source"
+        "grid", "lowest_map_level", "highest_map_level", "harvesting_source",
+        "shorten_ingested_interval"
     )
     for key in immutable_values:
         if getattr(browse_layer_model, key) != getattr(browse_layer, key):

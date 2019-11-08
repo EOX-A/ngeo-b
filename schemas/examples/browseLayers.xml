@@ -9,6 +9,7 @@
             <cfg:datasetId>SAR</cfg:datasetId>
         </cfg:relatedDatasetIds>
         <cfg:containsVerticalCurtains>false</cfg:containsVerticalCurtains>
+        <cfg:shortenIngestedInterval>0.0</cfg:shortenIngestedIntervalPercent>        
         <cfg:rgbBands>1,2,3</cfg:rgbBands>
         <cfg:radiometricInterval>
             <cfg:min>0</cfg:min>
