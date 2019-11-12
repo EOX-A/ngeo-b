@@ -4549,6 +4549,7 @@ class AddBrowseLayerTestCase(ConfigurationManagementMixIn, TestCase):
           <datasetId>ENVISAT_ASA_WS__0P</datasetId>
         </relatedDatasetIds>
         <containsVerticalCurtains>false</containsVerticalCurtains>
+        <shortenIngestedInterval>0.0</shortenIngestedInterval>
         <rgbBands>1,2,3</rgbBands>
         <grid>urn:ogc:def:wkss:OGC:1.0:GoogleMapsCompatible</grid>
         <radiometricInterval>
@@ -4597,6 +4598,7 @@ class AddBrowseLayerDefaultTileAndTimeTestCase(ConfigurationManagementMixIn, Tes
           <datasetId>ENVISAT_ASA_WS__0P</datasetId>
         </relatedDatasetIds>
         <containsVerticalCurtains>false</containsVerticalCurtains>
+        <shortenIngestedInterval>0.0</shortenIngestedInterval>
         <rgbBands>1,2,3</rgbBands>
         <grid>urn:ogc:def:wkss:OGC:1.0:GoogleMapsCompatible</grid>
         <radiometricInterval>
@@ -4643,6 +4645,7 @@ class AddBrowseLayerDefaultTileAndTimeDefaultTestCase(ConfigurationManagementMix
           <datasetId>ENVISAT_ASA_WS__0P</datasetId>
         </relatedDatasetIds>
         <containsVerticalCurtains>false</containsVerticalCurtains>
+        <shortenIngestedInterval>0.0</shortenIngestedInterval>
         <rgbBands>1,2,3</rgbBands>
         <grid>urn:ogc:def:wkss:OGC:1.0:GoogleMapsCompatible</grid>
         <radiometricInterval>
@@ -4701,6 +4704,7 @@ class DisableBrowseLayerTestCase(ConfigurationManagementMixIn, TestCase):
           <datasetId>ENVISAT_ASA_WS__0P</datasetId>
         </relatedDatasetIds>
         <containsVerticalCurtains>false</containsVerticalCurtains>
+        <shortenIngestedInterval>0.0</shortenIngestedInterval>
         <rgbBands>1,2,3</rgbBands>
         <grid>urn:ogc:def:wkss:OGC:1.0:GoogleMapsCompatible</grid>
         <radiometricInterval>
