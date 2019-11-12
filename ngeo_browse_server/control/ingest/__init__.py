@@ -37,7 +37,7 @@ import shutil
 from numpy import arange
 import logging
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 import string
 import uuid
 from urllib2 import urlopen, URLError, HTTPError
@@ -351,15 +351,17 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         pass
 
     # shorten browse time by percentage of interval if configured
-    shorten_ingested_interval = browse_layer.shorten_ingested_interval
-    if shorten_ingested_interval != 0.0:
-        delta = (parsed_browse.end_time - parsed_browse.start_time)
-        parsed_browse.start_time = parsed_browse.start_time + (shorten_ingested_interval / 200.0) * delta
-        if shorten_ingested_interval == 100.0:
-            # to be sure that no micro-second rounding happens
+    shorten_ingested_interval_percent = browse_layer.shorten_ingested_interval
+    if shorten_ingested_interval_percent != 0.0:
+        delta = parsed_browse.end_time - parsed_browse.start_time
+        parsed_browse.start_time += delta * shorten_ingested_interval_percent / 200.0
+        parsed_browse.start_time -= timedelta(microseconds=parsed_browse.start_time.microseconds)
+        if shorten_ingested_interval_percent == 100.0:
+            # to be sure that no wierd micro-second rounding happens
             parsed_browse.end_time = parsed_browse.start_time
         else:
-            parsed_browse.end_time = parsed_browse.end_time - (shorten_ingested_interval / 200.0) * delta
+            parsed_browse.end_time -= (shorten_ingested_interval_percent / 200.0) * delta
+            parsed_browse.end_time -= timedelta(microseconds=parsed_browse.end_time.microseconds)
 
     # get the input and output filenames
     storage_path = get_storage_path()
