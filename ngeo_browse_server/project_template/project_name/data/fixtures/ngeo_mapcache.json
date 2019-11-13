@@ -33,5 +33,15 @@
         "pk": "TEST_GOOGLE_MERCATOR", 
         "model": "mapcache.source", 
         "fields": {}
-    }
+    },
+    {
+        "pk": "TEST_INTERVAL_100",
+        "model": "mapcache.source",
+        "fields": {}
+    },
+    {
+        "pk": "TEST_INTERVAL_30",
+        "model": "mapcache.source",
+        "fields": {}
+    },
 ]

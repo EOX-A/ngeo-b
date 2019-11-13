@@ -139,5 +139,45 @@
             "lowest_map_level": 0, 
             "highest_map_level": 6
         }
-    }
+    },
+    {
+        "pk": "TEST_INTERVAL_100", 
+        "model": "config.browselayer", 
+        "fields": {
+            "browse_type": "TEST_INTERVAL_100", 
+            "title": "TESTTITLE_TEST_INTERVAL_100", 
+            "description": "", 
+            "browse_access_policy": "OPEN", 
+            "contains_vertical_curtains": false, 
+            "shorten_ingested_interval": 100.0, 
+            "r_band": null, 
+            "g_band": null, 
+            "b_band": null, 
+            "radiometric_interval_min": null, 
+            "radiometric_interval_max": null, 
+            "grid": "urn:ogc:def:wkss:OGC:1.0:GoogleCRS84Quad", 
+            "lowest_map_level": 0, 
+            "highest_map_level": 6
+        }
+    },
+    {
+        "pk": "TEST_INTERVAL_30", 
+        "model": "config.browselayer", 
+        "fields": {
+            "browse_type": "TEST_INTERVAL_30", 
+            "title": "TESTTITLE_TEST_INTERVAL_30", 
+            "description": "", 
+            "browse_access_policy": "OPEN", 
+            "contains_vertical_curtains": false, 
+            "shorten_ingested_interval": 30.0, 
+            "r_band": null, 
+            "g_band": null, 
+            "b_band": null, 
+            "radiometric_interval_min": null, 
+            "radiometric_interval_max": null, 
+            "grid": "urn:ogc:def:wkss:OGC:1.0:GoogleCRS84Quad", 
+            "lowest_map_level": 0, 
+            "highest_map_level": 6
+        }
+    },
 ]

@@ -4675,7 +4675,7 @@ class AddDefaultBrowseLayersTestCase(ConfigurationManagementMixIn, TestCase):
     expected_layers = [
         "TEST_SAR", "TEST_OPTICAL", "TEST_ASA_WSM", "TEST_MER_FRS",
         "TEST_MER_FRS_FULL", "TEST_MER_FRS_FULL_NO_BANDS",
-        "TEST_GOOGLE_MERCATOR"
+        "TEST_GOOGLE_MERCATOR", "TEST_INTERVAL_100", "TEST_INTERVAL_30"
     ]
 
     request_file = "layer_management/synchronizeConfiguration_defaultLayers.xml"
