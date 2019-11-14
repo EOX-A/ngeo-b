@@ -144,7 +144,7 @@
         "pk": "TEST_INTERVAL_100", 
         "model": "config.browselayer", 
         "fields": {
-            "browse_type": "TEST_INTERVAL_100", 
+            "browse_type": "INTERVAL_100", 
             "title": "TESTTITLE_TEST_INTERVAL_100", 
             "description": "", 
             "browse_access_policy": "OPEN", 
@@ -164,7 +164,7 @@
         "pk": "TEST_INTERVAL_30", 
         "model": "config.browselayer", 
         "fields": {
-            "browse_type": "TEST_INTERVAL_30", 
+            "browse_type": "INTERVAL_30", 
             "title": "TESTTITLE_TEST_INTERVAL_30", 
             "description": "", 
             "browse_access_policy": "OPEN", 

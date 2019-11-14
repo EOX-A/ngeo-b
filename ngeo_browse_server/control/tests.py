@@ -30,13 +30,14 @@
 from os.path import join
 from textwrap import dedent
 import logging
-from datetime import date
+from datetime import date, datetime
 from time import sleep
 
 from lxml import etree
 from django.conf import settings
 from django.test import TestCase, TransactionTestCase, LiveServerTestCase
 from django.utils.dateparse import parse_datetime
+from django.utils.timezone import utc
 
 from eoxserver.resources.coverages import models as eoxs_models
 
@@ -44,15 +45,15 @@ from ngeo_browse_server import get_version
 from ngeo_browse_server.config import models
 from ngeo_browse_server.control.testbase import (
     BaseTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, CliMixIn, CliFailureMixIn,
-    IngestTestCaseMixIn, SeedTestCaseMixIn, IngestReplaceTestCaseMixIn,
-    IngestMergeTestCaseMixIn, OverviewMixIn, CompressionMixIn, BandCountMixIn,
-    HasColorTableMixIn, ExtentMixIn, SizeMixIn, ProjectionMixIn,
-    StatisticsMixIn, WMSRasterMixIn, IngestFailureTestCaseMixIn,
-    DeleteTestCaseMixIn, ExportTestCaseMixIn, ImportTestCaseMixIn,
-    ImportReplaceTestCaseMixin, SeedMergeTestCaseMixIn, HttpMultipleMixIn,
-    LoggingTestCaseMixIn, RegisterTestCaseMixIn, UnregisterTestCaseMixIn,
-    StatusTestCaseMixIn, LogListMixIn, LogFileMixIn, ConfigMixIn,
-    ComponentControlTestCaseMixIn, ConfigurationManagementMixIn,
+    IngestTestCaseMixIn, IngestIntervalShortenTestCaseMixIn, SeedTestCaseMixIn,
+    IngestReplaceTestCaseMixIn, IngestMergeTestCaseMixIn, OverviewMixIn,
+    CompressionMixIn, BandCountMixIn, HasColorTableMixIn, ExtentMixIn,
+    SizeMixIn, ProjectionMixIn, StatisticsMixIn, WMSRasterMixIn,
+    IngestFailureTestCaseMixIn, DeleteTestCaseMixIn, ExportTestCaseMixIn,
+    ImportTestCaseMixIn, ImportReplaceTestCaseMixin, SeedMergeTestCaseMixIn,
+    HttpMultipleMixIn, LoggingTestCaseMixIn, RegisterTestCaseMixIn,
+    UnregisterTestCaseMixIn, StatusTestCaseMixIn, LogListMixIn, LogFileMixIn,
+    ConfigMixIn, ComponentControlTestCaseMixIn, ConfigurationManagementMixIn,
     GenerateReportMixIn, NotifyMixIn, SwiftMixIn
 )
 from ngeo_browse_server.control.ingest.config import (
@@ -684,6 +685,103 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 </bsi:ingestBrowseResponse>
 """
 
+#===============================================================================
+# Checking ingested times when shortening
+#===============================================================================
+
+class IngestWithShortenedInterval100(IngestTestCaseMixIn, IngestIntervalShortenTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    storage_dir = "data/reference_test_data"
+    request_file = "reference_test_data/browseReport_ASA_IM__0P_20100731_103315_shorten-100.xml"
+
+    expected_ingested_browse_ids = ("b_id_shorten_100",)
+    expected_inserted_into_series = "TEST_INTERVAL_100"
+    expected_optimized_files = ['ASA_IM__0P_20100731_103315_proc.tif']
+    expected_deleted_files = ['ASA_IM__0P_20100731_103315.jpg']
+
+    expected_ingested_browse_start = datetime(2010, 7, 31, 10, 33, 30, 500000, utc)
+    expected_ingested_browse_end = datetime(2010, 7, 31, 10, 33, 30, 500000, utc)
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>b_id_shorten_100</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+
+class IngestWithShortenedInterval30(IngestTestCaseMixIn, IngestIntervalShortenTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    storage_dir = "data/reference_test_data"
+    request_file = "reference_test_data/browseReport_ASA_IM__0P_20100731_103315_shorten-30.xml"
+
+    expected_ingested_browse_ids = ("b_id_shorten_30",)
+    expected_inserted_into_series = "TEST_INTERVAL_30"
+    expected_optimized_files = ['ASA_IM__0P_20100731_103315_proc.tif']
+    expected_deleted_files = ['ASA_IM__0P_20100731_103315.jpg']
+
+    expected_ingested_browse_start = datetime(2010, 7, 31, 10, 33, 19, 650000, utc)
+    expected_ingested_browse_end = datetime(2010, 7, 31, 10, 33, 41, 350000, utc)
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>b_id_shorten_30</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+
+class IngestWithShortenedInterval0(IngestTestCaseMixIn, IngestIntervalShortenTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    request_file = "reference_test_data/browseReport_ASA_IM__0P_20100731_103315_shorten-0.xml"
+
+    expected_ingested_browse_ids = ("b_id_shorten_0",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['ASA_IM__0P_20100731_103315_proc.tif']
+    expected_deleted_files = ['ASA_IM__0P_20100731_103315.jpg']
+
+    expected_ingested_browse_start = datetime(2010, 7, 31, 10, 33, 15, 0, utc)
+    expected_ingested_browse_end = datetime(2010, 7, 31, 10, 33, 46, 0, utc)
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>b_id_shorten_0</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
 
 #===============================================================================
 # Ingest into layer OPTICAL
