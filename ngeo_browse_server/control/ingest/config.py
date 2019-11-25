@@ -148,6 +148,12 @@ def get_optimization_config(config=None):
         values["overviews"] = config.getboolean(INGEST_SECTION, "overviews")
     except:
         pass
+    try:
+        values["overviews_self"] = config.getboolean(
+            INGEST_SECTION, "overviews_self"
+        )
+    except:
+        pass
 
     values["overview_levels"] = safe_get(
         config, INGEST_SECTION, "overview_levels")

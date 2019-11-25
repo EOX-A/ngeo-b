@@ -1338,7 +1338,7 @@ class SeedConsecutiveSeconds(SeedTestCaseMixIn, LoggingTestCaseMixIn, HttpMultip
 
     expected_logs = {
         logging.DEBUG: 26,
-        logging.INFO: 32,
+        logging.INFO: 34,
         logging.WARN: 0,
         logging.ERROR: 0,
         logging.CRITICAL: 0
@@ -1425,7 +1425,7 @@ class SeedMergeAndReplaceNoDuration(SeedTestCaseMixIn, LoggingTestCaseMixIn, Htt
 
     expected_logs = {
         logging.DEBUG: 46,
-        logging.INFO: 64,
+        logging.INFO: 67,
         logging.WARN: 0,
         logging.ERROR: 0,
         logging.CRITICAL: 0
@@ -2609,6 +2609,32 @@ class IngestRasterNoOverviews(BaseTestCaseMixIn, HttpMixIn, OverviewMixIn, TestC
     expected_overview_count = 0
 
 
+class IngestRasterSelfOverviewsAutomatic(BaseTestCaseMixIn, HttpMixIn, OverviewMixIn, TestCase):
+    request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
+    raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "2010", "ASA_IM__0P_20100722_213840_proc.tif"))
+
+    configuration = {
+        (INGEST_SECTION, "overviews"): "false",
+        (INGEST_SECTION, "overviews_self"): "true",
+        (INGEST_SECTION, "overview_minsize"): "100"
+    }
+
+    expected_overview_count = 4
+
+
+class IngestRasterSelfOverviewsFixed(BaseTestCaseMixIn, HttpMixIn, OverviewMixIn, TestCase):
+    request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
+    raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "2010", "ASA_IM__0P_20100722_213840_proc.tif"))
+
+    configuration = {
+        (INGEST_SECTION, "overviews"): "false",
+        (INGEST_SECTION, "overviews_self"): "true",
+        (INGEST_SECTION, "overview_levels"): "2,4"
+    }
+
+    expected_overview_count = 2
+
+
 class IngestRasterCompression(BaseTestCaseMixIn, HttpMixIn, CompressionMixIn, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "2010", "ASA_IM__0P_20100722_213840_proc.tif"))
@@ -3130,7 +3156,7 @@ class DeleteMergedNoDuration(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, L
 
     expected_logs = {
         logging.DEBUG: 48,
-        logging.INFO: 89,
+        logging.INFO: 92,
         logging.WARN: 0,
         logging.ERROR: 0,
         logging.CRITICAL: 0
@@ -3349,7 +3375,7 @@ class DebugLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCase
 
     expected_logs = {
         logging.DEBUG: 12,
-        logging.INFO: 15,
+        logging.INFO: 16,
         logging.WARN: 0,
         logging.ERROR: 0,
         logging.CRITICAL: 0
@@ -3406,7 +3432,7 @@ class InfoLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCaseM
 
     expected_logs = {
         logging.DEBUG: 0,
-        logging.INFO: 15,
+        logging.INFO: 16,
         logging.WARN: 0,
         logging.ERROR: 0,
         logging.CRITICAL: 0

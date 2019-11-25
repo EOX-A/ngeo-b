@@ -282,7 +282,6 @@ EOF
     echo "Patching EOxServer"
     cd /usr/lib64/python2.6/site-packages/
     patch -p 0 -N < /patches/improve_footprint-generation.patch
-    patch -p 0 -N < /patches/improve_overview-optimization.patch
     cd -
 
 
@@ -364,7 +363,6 @@ EOF
         sed -e "s/^config_file=$/config_file=$MAPCACHE_DIR_ESCAPED\/$MAPCACHE_CONF/" -i ngeo_browse_server_instance/conf/ngeo.conf
         sed -e "s/^storage_dir=data\/storage$/storage_dir=$NGEOB_INSTALL_DIR_ESCAPED\/store/" -i ngeo_browse_server_instance/conf/ngeo.conf
         sed -e "s/^instance_id = $/instance_id = $NGEOB_INSTANCE_ID/" -i ngeo_browse_server_instance/conf/ngeo.conf
-        sed -e "s/^\[control\.ingest\]$/[control.ingest]\n\ncreation_options = COPY_SRC_OVERVIEWS=YES/" -i ngeo_browse_server_instance/conf/ngeo.conf
 
         # Configure logging
         if "$TESTING" ; then
