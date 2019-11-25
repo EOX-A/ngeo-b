@@ -260,7 +260,7 @@ EOF
     yum install -y --nogpgcheck libtiff4
     yum install -y libxml2-python gdal-eox-libtiff4 gdal-eox-libtiff4-python \
                    gdal-eox-driver-openjpeg2 mapserver mapserver-python \
-                   EOxServer
+                   EOxServer patch
 
 
     # allow installation of local RPMs if available
@@ -277,6 +277,12 @@ EOF
     else
         yum install -y ngEO_Browse_Server
     fi
+
+
+    echo "Patching EOxServer"
+    cd /usr/lib64/python2.6/site-packages/
+    patch -p 0 -N < /patches/improve_footprint-generation.patch
+    cd -
 
 
     echo "Performing installation step 180"

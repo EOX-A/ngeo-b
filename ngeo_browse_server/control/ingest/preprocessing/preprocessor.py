@@ -27,6 +27,10 @@
 #-------------------------------------------------------------------------------
 
 import logging
+from uuid import uuid4
+import tempfile
+from os.path import join
+from os import (remove, rename)
 
 from django.contrib.gis.geos import (
     GEOSGeometry, MultiPolygon, Polygon, LinearRing,
@@ -57,8 +61,8 @@ RGB = range(3)
 
 class NGEOPreProcessor(WMSPreProcessor):
 
-    def __init__(self, format_selection, overviews=True, crs=None, bands=None,
-                 bandmode=RGB, footprint_alpha=False,
+    def __init__(self, format_selection, overviews=True, overviews_self=False,
+                 crs=None, bands=None, bandmode=RGB, footprint_alpha=False,
                  color_index=False, palette_file=None, no_data_value=None,
                  overview_resampling=None, overview_levels=None,
                  overview_minsize=None, radiometric_interval_min=None,
@@ -66,7 +70,11 @@ class NGEOPreProcessor(WMSPreProcessor):
                  simplification_factor=None, temporary_directory=None):
 
         self.format_selection = format_selection
-        self.overviews = overviews
+        self.overviews_self = overviews_self  # Don't use EOxServer one
+        if overviews_self:
+            self.overviews = False
+        else:
+            self.overviews = overviews
         self.overview_resampling = overview_resampling
         self.overview_levels = overview_levels
         self.overview_minsize = overview_minsize
@@ -127,6 +135,7 @@ class NGEOPreProcessor(WMSPreProcessor):
 
             try:
                 new_ds = optimization(ds)
+                new_ds.FlushCache()
 
                 if new_ds is not ds:
                     # cleanup afterwards
@@ -177,6 +186,7 @@ class NGEOPreProcessor(WMSPreProcessor):
             logger.debug("Applying optimization 'AlphaBandOptimization'.")
             opt = AlphaBandOptimization()
             opt(ds, footprint_wkt)
+            ds.FlushCache()
 
         output_filename = self.generate_filename(output_filename)
 
@@ -236,6 +246,69 @@ class NGEOPreProcessor(WMSPreProcessor):
                          % type(optimization).__name__)
             optimization(final_ds)
 
+        num_bands = final_ds.RasterCount
+
+        if self.overviews_self:
+            logger.debug("Applying OverviewOptimization ourselves")
+            levels = self.overview_levels
+
+            # calculate the overviews automatically.
+            if not levels:
+                desired_size = abs(self.overview_minsize or 256)
+                size = max(final_ds.RasterXSize, final_ds.RasterYSize)
+                level = 1
+                levels = []
+
+                while size > desired_size:
+                    size /= 2
+                    level *= 2
+                    levels.append(level)
+
+            logger.debug(
+                "Building overview levels %s with resampling method '%s'."
+                % (", ".join(map(str, levels)), self.overview_resampling)
+            )
+
+            final_ds.FlushCache()
+            filename = final_ds.GetFileList()[0]
+            final_filename = filename
+            driver = final_ds.GetDriver()
+
+            # finally close the dataset and write it to the disc
+            final_ds = None
+
+            # re-build overviews
+            # use .ovr trick to accommodate very large images (>65536 pixels)
+            for level in levels:
+                try:
+                    input_ds = gdal.Open(filename, gdal.GA_ReadOnly)
+                    input_ds.BuildOverviews(self.overview_resampling, [2])
+                    filename = '%s.ovr' % filename
+                    input_ds = None
+                except RuntimeError:
+                    logger.warning(
+                        "Overview building failed for level '%s'." % level
+                    )
+
+            tmp_filename = join(tempfile.gettempdir(), '%s.tif' % uuid4().hex)
+            tmp_ds = driver.CreateCopy(
+                tmp_filename,
+                gdal.Open(final_filename, gdal.GA_ReadOnly),
+                options=self.format_selection.creation_options + [
+                    "COPY_SRC_OVERVIEWS=YES",
+                ]
+            )
+            tmp_ds = None
+            filename = final_filename
+            for level in levels:
+                filename = '%s.ovr' % filename
+                remove(filename)
+            rename(tmp_filename, final_filename)
+
+        else:
+            # finally close the dataset and write it to the disc
+            final_ds = None
+
         # generate metadata if requested
         footprint = None
         if generate_metadata:
@@ -265,11 +338,6 @@ class NGEOPreProcessor(WMSPreProcessor):
                 footprint = footprint.union(GEOSGeometry(original_footprint))
 
             logger.debug("Calculated Footprint: '%s'" % footprint.wkt)
-
-        num_bands = final_ds.RasterCount
-
-        # finally close the dataset and write it to the disc
-        final_ds = None
 
         return PreProcessResult(output_filename, footprint, num_bands)
 

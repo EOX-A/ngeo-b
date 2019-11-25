@@ -35,6 +35,7 @@ ENV HOSTNAME="localhost"
 
 USER root
 ADD local_packages/* local_packages/
+Add patches/* patches/
 ADD ngeo-install.sh \
     ngeo \
     /

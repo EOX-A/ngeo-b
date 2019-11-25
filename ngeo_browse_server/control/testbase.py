@@ -141,6 +141,7 @@ class BaseTestCaseMixIn(object):
         (INGEST_SECTION, "zlevel"): "6",
         (INGEST_SECTION, "tiling"): "true",
         (INGEST_SECTION, "overviews"): "true",
+        (INGEST_SECTION, "overviews_self"): "false",
         (INGEST_SECTION, "overview_resampling"): "NEAREST",
         (INGEST_SECTION, "overview_levels"): None,
         (INGEST_SECTION, "overview_minsize"): "256",
@@ -569,6 +570,7 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
 
         # check that all optimized files are being created
         files = self.get_file_list(self.temp_optimized_files_dir)
+        logger.info("Found %i optimized files." % len(files))
 
         if self.save_optimized_files:
             save_dir = join(settings.PROJECT_DIR, "results/ingest/")
