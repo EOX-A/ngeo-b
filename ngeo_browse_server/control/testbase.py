@@ -666,6 +666,32 @@ class IngestTestCaseMixIn(BaseInsertTestCaseMixIn):
         self.assertEqual(browse_report_file_mod + self.before_test_files, len(files))
 
 
+class IngestIntervalShortenTestCaseMixIn(BaseTestCaseMixIn):
+    """ Mixin for test cases for shortening of resulting ingested time interval.
+    """
+    expected_ingested_browse_start = None
+    expected_ingested_browse_end = None
+
+    def test_expected_time_interval_of_inserted_browse(self):
+        """ Check that the browses are inserted with expected start/end timestamps. """
+        System.init()
+        if not self.expected_ingested_browse_start or not self.expected_ingested_browse_end:
+            self.skipTest("No expected starttime and endtime.")
+        else:
+            expected_ingested_browse_start = self.expected_ingested_browse_start
+            expected_ingested_browse_end = self.expected_ingested_browse_end
+            # import pdb; pdb.set_trace()
+            
+            self.assertTrue(
+                models.Browse.objects
+                .exclude(start_time__gt=expected_ingested_browse_start)
+                .exclude(start_time__lt=expected_ingested_browse_start)
+                .exclude(end_time__gt=expected_ingested_browse_end)
+                .exclude(end_time__lt=expected_ingested_browse_end)
+                .exists()
+            )
+
+
 class ImportTestCaseMixIn(BaseInsertTestCaseMixIn):
     """ Test case mixin for import tests.
     """

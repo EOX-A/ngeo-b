@@ -37,7 +37,7 @@ import shutil
 from numpy import arange
 import logging
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta as dt_timedelta
 import string
 import uuid
 from urllib2 import urlopen, URLError, HTTPError
@@ -351,6 +351,23 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         leave_original = config.getboolean("control.ingest", "leave_original")
     except:
         pass
+
+    # shorten browse time by percentage of interval if configured
+    shorten_ingested_interval_percent = browse_layer.shorten_ingested_interval
+    if shorten_ingested_interval_percent != 0.0:
+        delta = parsed_browse.end_time - parsed_browse.start_time
+        
+        # because python 2.6 does not have timedelta.total_seconds()
+        delta_in_seconds = (delta.microseconds + (delta.seconds + delta.days * 24 * 3600) * 10**6) / float(10**6)
+        delta_add_subtract = dt_timedelta(seconds=(delta_in_seconds * shorten_ingested_interval_percent / 200.0))
+        updated_start_time = parsed_browse.start_time + delta_add_subtract
+        parsed_browse.set_start_time(updated_start_time)
+        if shorten_ingested_interval_percent == 100.0:
+            # to be sure that no wierd micro-second rounding happens
+            parsed_browse.set_end_time(updated_start_time)
+        else:
+            updated_end_time = parsed_browse.end_time - delta_add_subtract
+            parsed_browse.set_end_time(updated_end_time)
 
     # get the input and output filenames
     storage_path = get_storage_path()

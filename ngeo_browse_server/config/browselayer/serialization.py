@@ -63,6 +63,7 @@ def serialize_browse_layers(browse_layers, stream=None, pretty_print=False):
         for rel_ds_id in browse_layer.related_dataset_ids:
             SubElement(rel_ds_elem, ns_cfg("datasetId")).text = rel_ds_id
         SubElement(bl_elem, ns_cfg("containsVerticalCurtains")).text = "true" if browse_layer.contains_vertical_curtains else "false"
+        SubElement(bl_elem, ns_cfg("shortenIngestedInterval")).text = str(browse_layer.shorten_ingested_interval)
         if has_rgb:
             SubElement(bl_elem, ns_cfg("rgbBands")).text = ",".join(map(str, rgb))
         

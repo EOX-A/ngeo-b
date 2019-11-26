@@ -36,7 +36,7 @@ configuration, mainly Browse Layers and Browses.
 import re
 
 from django.db import models
-from django.core.validators import RegexValidator
+from django.core.validators import RegexValidator, MaxValueValidator, MinValueValidator
 from django.core.exceptions import ValidationError
 
 from eoxserver.resources.coverages.models import NCNameValidator
@@ -79,6 +79,7 @@ class BrowseLayer(models.Model):
         )
     )
     contains_vertical_curtains = models.BooleanField(default=False) # TODO: Fixed to False as vertical curtains are not supported for now.
+    shorten_ingested_interval = models.FloatField(default=0.0, validators=[MaxValueValidator(float(100.0)), MinValueValidator(float(0.0))])
     r_band = models.IntegerField(null=True, blank=True, default=None)
     g_band = models.IntegerField(null=True, blank=True, default=None)
     b_band = models.IntegerField(null=True, blank=True, default=None)

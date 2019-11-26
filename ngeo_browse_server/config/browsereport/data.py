@@ -67,6 +67,12 @@ class Browse(object):
             "end_time": self.end_time
         }
 
+    # need setter for mutating times when shortening time interval in ingestion
+    def set_start_time(self, x):
+        self._start_time = x
+
+    def set_end_time(self, x):
+        self._end_time = x
 
 class RectifiedBrowse(Browse):
     def __init__(self, coord_list, *args, **kwargs):
