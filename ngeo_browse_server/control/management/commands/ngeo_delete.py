@@ -42,7 +42,7 @@ from ngeo_browse_server.control.management.commands import LogToConsoleMixIn
 from ngeo_browse_server.config.models import BrowseLayer, Browse
 from ngeo_browse_server.mapcache.tasks import seed_mapcache
 from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
-
+from ngeo_browse_server.storage import get_file_manager
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +109,9 @@ class Command(LogToConsoleMixIn, BaseCommand):
         if end:
             end = getDateTime(end)
 
-        self._handle(start, end, browse_layer_id, browse_type)
+        with transaction.commit_on_success():
+            with transaction.commit_on_success(using="mapcache"):
+                self._handle(start, end, browse_layer_id, browse_type)
 
         logger.info("Successfully finished browse deletion from command line.")
 
@@ -173,11 +175,22 @@ class Command(LogToConsoleMixIn, BaseCommand):
 
                     paths_to_delete.append(filename)
 
+        manager = get_file_manager()
+
         # loop through optimized browse images and delete them
         # This is done at this point to make sure a rollback is possible
         # if there is an error while deleting the browses and coverages
         for file_path in paths_to_delete:
-            if exists(file_path):
+            if manager and file_path and file_path.startswith('/vsi'):
+                # remove '', 'vsiswift', and <container>
+                path = "/".join(file_path.split('/')[3:])
+                manager.delete_file(path)
+                logger.info(
+                    "Optimized browse image deleted: %s/%s/%s" % (
+                        manager.storage_url, manager.container, path
+                    )
+                )
+            elif exists(file_path):
                 remove(file_path)
                 logger.info("Optimized browse image deleted: %s" % file_path)
             else:

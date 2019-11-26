@@ -53,12 +53,16 @@ from ngeo_browse_server.control.testbase import (
     LoggingTestCaseMixIn, RegisterTestCaseMixIn, UnregisterTestCaseMixIn,
     StatusTestCaseMixIn, LogListMixIn, LogFileMixIn, ConfigMixIn,
     ComponentControlTestCaseMixIn, ConfigurationManagementMixIn,
-    GenerateReportMixIn, NotifyMixIn
+    GenerateReportMixIn, NotifyMixIn, SwiftMixIn
 )
 from ngeo_browse_server.control.ingest.config import (
     INGEST_SECTION
 )
 from ngeo_browse_server.control.control.notification import notify
+from ngeo_browse_server.storage.conf import (
+    STORAGE_SECTION, AUTH_SECTION
+)
+from ngeo_browse_server.storage.swift.conf import SWIFT_SECTION
 
 
 #==============================================================================
@@ -2560,8 +2564,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
             <bsi:status>failure</bsi:status>
             <bsi:error>
                 <bsi:exceptionCode>IngestionException</bsi:exceptionCode>
-                <bsi:exceptionMessage>`%s/empty.tif&#39; not recognised as a supported file format.
-</bsi:exceptionMessage>
+                <bsi:exceptionMessage>`%s/empty.tif&#39; not recognized as a supported file format.</bsi:exceptionMessage>
             </bsi:error>
         </bsi:briefRecord>
     </bsi:ingestionResult>
@@ -2667,9 +2670,9 @@ class IngestRasterExtent(BaseTestCaseMixIn, HttpMixIn, ExtentMixIn, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "2010", "ASA_IM__0P_20100722_213840_proc.tif"))
 
-    expected_extent = (-2.79,
+    expected_extent = (-2.7899999999999654,
                        49.461072913650007,
-                       -0.029483356685714668,
+                       -0.029483356685680473,
                        53.079999999999998)
 
 
@@ -2696,26 +2699,26 @@ class IngestRasterStatistics(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, Test
     expected_statistics = [{
         "min": 0.0,
         "max": 255.0,
-        "mean": 64.246238253058323,
-        "stddev": 76.142837880325871,
-        "checksum": 10724
+        "mean": 64.246135285783737,
+        "stddev": 76.142851276950466,
+        "checksum": 10748
     }, {
         "min": 0.0,
         "max": 255.0,
-        "mean": 64.246238253058323,
-        "stddev": 76.142837880325871,
-        "checksum": 10724
+        "mean": 64.246135285783737,
+        "stddev": 76.142851276950466,
+        "checksum": 10748
     }, {
         "min": 0.0,
         "max": 255.0,
-        "mean": 64.246238253058323,
-        "stddev": 76.142837880325871,
-        "checksum": 10724
+        "mean": 64.246135285783737,
+        "stddev": 76.142851276950466,
+        "checksum": 10748
     }, {
         "min": 0.0,
         "max": 255.0,
         "mean": 138.47198216408577,
-        "stddev": 127.02702707452059,
+        "stddev": 127.02702707452057,
         "checksum": 44673
     }]
 
@@ -2732,10 +2735,10 @@ class IngestRasterStatisticsMultipleBands(BaseTestCaseMixIn, HttpMixIn, Statisti
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_MER_FRS_FULL", "2012", "MER_FRS_1PNPDE20060816_090929_000001972050_00222_23322_0058_uint16_reduced_compressed_proc.tif"))
 
     expected_statistics = [
-        {'max': 255.0, 'checksum': 30191, 'mean': 15.659451199310894, 'stddev': 22.103667727281124, 'min': 0.0},
-        {'max': 255.0, 'checksum': 35428, 'mean': 13.540062615955472, 'stddev': 21.258531872828733, 'min': 0.0},
-        {'max': 255.0, 'checksum': 16276, 'mean': 13.158705771269547, 'stddev': 21.48301977479764, 'min': 0.0},
-        {'max': 255.0, 'checksum': 20088, 'mean': 165.28028094354624, 'stddev': 121.77397247288403, 'min': 0.0}
+        {'max': 255.0, 'checksum': 30191, 'mean': 15.659451199310894, 'stddev': 22.103667727281127, 'min': 0.0},
+        {'max': 255.0, 'checksum': 35428, 'mean': 13.540062615955472, 'stddev': 21.25853187282873, 'min': 0.0},
+        {'max': 255.0, 'checksum': 16276, 'mean': 13.158705771269547, 'stddev': 21.483019774797643, 'min': 0.0},
+        {'max': 255.0, 'checksum': 20097, 'mean': 165.28133696660481, 'stddev': 121.77364483752575, 'min': 0.0}
     ]
 
 
@@ -2747,9 +2750,9 @@ class IngestRasterStatisticsMultipleBandsNoDefinition(BaseTestCaseMixIn, HttpMix
 
     expected_statistics = [
         {'max': 255.0, 'checksum': 33522, 'mean': 17.049554399681952, 'stddev': 22.625493105759691, 'min': 0.0},
-        {'max': 255.0, 'checksum': 30191, 'mean': 15.659451199310894, 'stddev': 22.103667727281124, 'min': 0.0},
+        {'max': 255.0, 'checksum': 30191, 'mean': 15.659451199310894, 'stddev': 22.103667727281127, 'min': 0.0},
         {'max': 255.0, 'checksum': 6918, 'mean': 14.176099092234296, 'stddev': 21.602771443516307, 'min': 0.0},
-        {'max': 255.0, 'checksum': 20088, 'mean': 165.28028094354624, 'stddev': 121.77397247288403, 'min': 0.0}
+        {'max': 255.0, 'checksum': 20097, 'mean': 165.28133696660481, 'stddev': 121.77364483752575, 'min': 0.0}
     ]
 
 
@@ -2778,7 +2781,7 @@ class IngestModelInGeoTiffWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixI
     save_to_file = "results/wms/IngestModelInGeoTiffWMSRaster.png"
 
     expected_statistics = [
-        {'max': 231.0, 'checksum': 12342, 'mean': 41.841900000000003, 'stddev': 39.020467762316734, 'min': 0.0},
+        {'max': 231.0, 'checksum': 12342, 'mean': 41.841900000000003, 'stddev': 39.020467762316741, 'min': 0.0},
         {'max': 230.0, 'checksum': 11877, 'mean': 41.055500000000002, 'stddev': 37.848759817859289, 'min': 0.0},
         {'max': 231.0, 'checksum': 14532, 'mean': 43.339399999999998, 'stddev': 36.393048891787018, 'min': 0.0}
     ]
@@ -2805,7 +2808,7 @@ class IngestRectifiedWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
     save_to_file = "results/wms/IngestRectifiedWMSRaster.png"
 
     expected_statistics = [
-        {'max': 231.0, 'checksum': 12342, 'mean': 41.841900000000003, 'stddev': 39.020467762316734, 'min': 0.0},
+        {'max': 231.0, 'checksum': 12342, 'mean': 41.841900000000003, 'stddev': 39.020467762316741, 'min': 0.0},
         {'max': 230.0, 'checksum': 11877, 'mean': 41.055500000000002, 'stddev': 37.848759817859289, 'min': 0.0},
         {'max': 231.0, 'checksum': 14532, 'mean': 43.339399999999998, 'stddev': 36.393048891787018, 'min': 0.0}
     ]
@@ -2833,7 +2836,7 @@ class IngestRectifiedFlippedWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMi
 
     expected_statistics = [
         {'max': 236.0, 'checksum': 12258, 'mean': 42.077199999999998, 'stddev': 39.260998970479598, 'min': 0.0},
-        {'max': 235.0, 'checksum': 12140, 'mean': 41.281799999999997, 'stddev': 38.084679186780612, 'min': 0.0},
+        {'max': 235.0, 'checksum': 12140, 'mean': 41.281799999999997, 'stddev': 38.084679186780605, 'min': 0.0},
         {'max': 228.0, 'checksum': 13407, 'mean': 43.543700000000001, 'stddev': 36.527133617490435, 'min': 0.0}
     ]
 
@@ -2860,9 +2863,9 @@ class IngestFootprintWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WM
     expected_statistics = [{
         "min": 0.0,
         "max": 248.0,
-        "mean": 65.092399999999998,
-        "stddev": 72.434486691354422,
-        "checksum": 60675
+        "mean": 65.0916,
+        "stddev": 72.433691121190279,
+        "checksum": 60733
     }] * 3
 
 
@@ -2884,7 +2887,7 @@ class IngestRegularGridWMSRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, 
                    )
 
     expected_statistics = [
-        {'max': 191.0, 'checksum': 13092, 'mean': 29.900400000000001, 'stddev': 32.331215254611138, 'min': 0.0}
+        {'max': 191.0, 'checksum': 12922, 'mean': 29.927499999999998, 'stddev': 32.363912676776273, 'min': 0.0}
     ] * 3
 
 class IngestFootprintCrossesDatelineRaster(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
@@ -2905,9 +2908,9 @@ class IngestFootprintCrossesDatelineRaster(BaseTestCaseMixIn, HttpMixIn, Statist
                    )
 
     expected_statistics = [
-        {'checksum': 23626, 'max': 250.0, 'mean': 149.62190000000001, 'min': 0.0, 'stddev': 116.22100300887959},
-        {'checksum': 18277, 'max': 249.0, 'mean': 148.57599999999999, 'min': 0.0, 'stddev': 115.43073084755206},
-        {'checksum': 2630, 'max': 242.0, 'mean': 141.36770000000001, 'min': 0.0, 'stddev': 109.90778906296859}
+        {'checksum': 23623, 'max': 250.0, 'mean': 149.6216, 'min': 0.0, 'stddev': 116.22108936608709},
+        {'checksum': 18264, 'max': 249.0, 'mean': 148.57640000000001, 'min': 0.0, 'stddev': 115.43111956071465},
+        {'checksum': 2685, 'max': 242.0, 'mean': 141.3663, 'min': 0.0, 'stddev': 109.90711316520874}
     ]
 
 class IngestFootprintCrossesDatelineRasterSecond(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
@@ -2929,9 +2932,9 @@ class IngestFootprintCrossesDatelineRasterSecond(BaseTestCaseMixIn, HttpMixIn, S
                    )
 
     expected_statistics = [
-        {'checksum': 23626, 'max': 250.0, 'mean': 149.62190000000001, 'min': 0.0, 'stddev': 116.22100300887959},
-        {'checksum': 18277, 'max': 249.0, 'mean': 148.57599999999999, 'min': 0.0, 'stddev': 115.43073084755206},
-        {'checksum': 2630, 'max': 242.0, 'mean': 141.36770000000001, 'min': 0.0, 'stddev': 109.90778906296859}
+        {'checksum': 23623, 'max': 250.0, 'mean': 149.6216, 'min': 0.0, 'stddev': 116.22108936608709},
+        {'checksum': 18264, 'max': 249.0, 'mean': 148.57640000000001, 'min': 0.0, 'stddev': 115.43111956071465},
+        {'checksum': 2685, 'max': 242.0, 'mean': 141.3663, 'min': 0.0, 'stddev': 109.90711316520874}
     ]
 
 class IngestFootprintCrossesDatelineRasterThird(BaseTestCaseMixIn, HttpMixIn, StatisticsMixIn, WMSRasterMixIn, TestCase):
@@ -2953,9 +2956,9 @@ class IngestFootprintCrossesDatelineRasterThird(BaseTestCaseMixIn, HttpMixIn, St
                    )
 
     expected_statistics = [
-        {'checksum': 40705, 'max': 255.0, 'mean': 2.4149029999999998, 'min': 0.0, 'stddev': 22.68776704527334},
-        {'checksum': 64942, 'max': 255.0, 'mean': 2.5240960000000001, 'min': 0.0, 'stddev': 22.587629764603104},
-        {'checksum': 56547, 'max': 255.0, 'mean': 2.5835344999999998, 'min': 0.0, 'stddev': 22.342400743593107}
+        {'checksum': 40778, 'max': 255.0, 'mean': 2.4147979999999998, 'min': 0.0, 'stddev': 22.687226816409186},
+        {'checksum': 64822, 'max': 255.0, 'mean': 2.5239919999999998, 'min': 0.0, 'stddev': 22.587169485881493},
+        {'checksum': 56430, 'max': 255.0, 'mean': 2.5834394999999999, 'min': 0.0, 'stddev': 22.342070357284257}
     ]
 
 
@@ -5003,3 +5006,130 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
     </bsi:ingestionResult>
 </bsi:ingestBrowseResponse>
 """
+
+
+#===============================================================================
+# OpenStack swift test cases
+#===============================================================================
+
+
+class IngestModelInGeotiffBrowseOnSwift(
+    SwiftMixIn, IngestTestCaseMixIn, HttpTestCaseMixin, TestCase
+):
+    storage_optimized_prefix = "TEST_MER_FRS/2012/"
+
+    storage_dir = "data/test_data"
+    request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.xml"
+
+    expected_ingested_browse_ids = ("MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced",)
+    expected_inserted_into_series = "TEST_MER_FRS"
+    expected_optimized_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced_proc.tif']
+    expected_deleted_files = ['MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.tif']
+    save_optimized_files = True
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+
+
+class SeedModelInGeotiffBrowseOnSwift(
+    SwiftMixIn, SeedTestCaseMixIn, HttpMixIn, LiveServerTestCase
+):
+    storage_optimized_prefix = "TEST_MER_FRS/2012/"
+
+    storage_dir = "data/test_data"
+    request_file = "test_data/MER_FRS_1PNPDE20060822_092058_000001972050_00308_23408_0077_RGB_reduced.xml"
+
+    expected_browse_type = "MER_FRS"
+    expected_tiles = {0: 1, 1: 1, 2: 2, 3: 4, 4: 9, 5: 16, 6: 42}
+
+
+
+
+#==============================================================================
+# Ingest a browse report which includes a replacement of a previous browse
+#==============================================================================
+
+class IngestFootprintBrowseReplaceOnSwift(SwiftMixIn, IngestReplaceTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    request_before_test_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327.xml"
+    request_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_new.xml"
+
+    storage_optimized_prefix = "TEST_SAR/2010/"
+
+    expected_num_replaced = 1
+
+    expected_ingested_browse_ids = ("b_id_3",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['ASA_IM__0P_20100807_101327_new_proc.tif']
+    expected_deleted_files = ['ASA_IM__0P_20100807_101327_new.jpg']
+    expected_deleted_optimized_files = ['ASA_IM__0P_20100807_101327.tif']
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>0</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>1</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>b_id_3</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+class IngestFootprintBrowseMergeOnSwift(SwiftMixIn, IngestMergeTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    request_before_test_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327.xml"
+    request_file = "reference_test_data/browseReport_ASA_IM__0P_20100807_101327_new_merge.xml"
+
+    storage_optimized_prefix = "TEST_SAR/2010/"
+
+    expected_num_replaced = 0
+
+    expected_ingested_browse_ids = ("b_id_3",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['ASA_IM__0P_20100807_101327_new_proc.tif']
+    expected_deleted_files = ['ASA_IM__0P_20100807_101327_new.jpg']
+    expected_deleted_optimized_files = ['ASA_IM__0P_20100807_101327.tif']
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>b_id_3</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+
