@@ -598,7 +598,6 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
             files = self.get_storage_file_list(self.storage_optimized_prefix)
         else:
             files = self.get_file_list(self.temp_optimized_files_dir)
-        logger.info("Found %i optimized files." % len(files))
 
             if self.save_optimized_files:
                 save_dir = join(settings.PROJECT_DIR, "results/ingest/")
@@ -606,6 +605,8 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
                 for path, _, filenames in walk(self.temp_optimized_files_dir):
                     for file_to_save in filenames:
                         shutil.copy(join(path, file_to_save), save_dir)
+
+        logger.info("Found %i optimized files." % len(files))
 
         # normalize files i.e. remove/add UUID
         files = [
