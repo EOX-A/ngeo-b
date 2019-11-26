@@ -35,6 +35,7 @@ ENV HOSTNAME="localhost"
 
 USER root
 ADD install/local_packages /local_packages
+ADD install/patches /patches
 ADD ngeo_browse_server /ngeo_browse_server
 ADD tools /tools
 ADD setup.py \

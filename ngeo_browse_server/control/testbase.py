@@ -147,6 +147,7 @@ class BaseTestCaseMixIn(object):
         (INGEST_SECTION, "zlevel"): "6",
         (INGEST_SECTION, "tiling"): "true",
         (INGEST_SECTION, "overviews"): "true",
+        (INGEST_SECTION, "overviews_self"): "false",
         (INGEST_SECTION, "overview_resampling"): "NEAREST",
         (INGEST_SECTION, "overview_levels"): None,
         (INGEST_SECTION, "overview_minsize"): "256",
@@ -605,6 +606,8 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
                 for path, _, filenames in walk(self.temp_optimized_files_dir):
                     for file_to_save in filenames:
                         shutil.copy(join(path, file_to_save), save_dir)
+
+        logger.info("Found %i optimized files." % len(files))
 
         # normalize files i.e. remove/add UUID
         files = [

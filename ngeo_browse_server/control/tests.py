@@ -1342,7 +1342,7 @@ class SeedConsecutiveSeconds(SeedTestCaseMixIn, LoggingTestCaseMixIn, HttpMultip
 
     expected_logs = {
         logging.DEBUG: 26,
-        logging.INFO: 32,
+        logging.INFO: 34,
         logging.WARN: 0,
         logging.ERROR: 0,
         logging.CRITICAL: 0
@@ -1429,7 +1429,7 @@ class SeedMergeAndReplaceNoDuration(SeedTestCaseMixIn, LoggingTestCaseMixIn, Htt
 
     expected_logs = {
         logging.DEBUG: 46,
-        logging.INFO: 64,
+        logging.INFO: 67,
         logging.WARN: 0,
         logging.ERROR: 0,
         logging.CRITICAL: 0
@@ -2612,6 +2612,32 @@ class IngestRasterNoOverviews(BaseTestCaseMixIn, HttpMixIn, OverviewMixIn, TestC
     expected_overview_count = 0
 
 
+class IngestRasterSelfOverviewsAutomatic(BaseTestCaseMixIn, HttpMixIn, OverviewMixIn, TestCase):
+    request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
+    raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "2010", "ASA_IM__0P_20100722_213840_proc.tif"))
+
+    configuration = {
+        (INGEST_SECTION, "overviews"): "false",
+        (INGEST_SECTION, "overviews_self"): "true",
+        (INGEST_SECTION, "overview_minsize"): "100"
+    }
+
+    expected_overview_count = 4
+
+
+class IngestRasterSelfOverviewsFixed(BaseTestCaseMixIn, HttpMixIn, OverviewMixIn, TestCase):
+    request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
+    raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "2010", "ASA_IM__0P_20100722_213840_proc.tif"))
+
+    configuration = {
+        (INGEST_SECTION, "overviews"): "false",
+        (INGEST_SECTION, "overviews_self"): "true",
+        (INGEST_SECTION, "overview_levels"): "2,4"
+    }
+
+    expected_overview_count = 2
+
+
 class IngestRasterCompression(BaseTestCaseMixIn, HttpMixIn, CompressionMixIn, TestCase):
     request_file = "reference_test_data/browseReport_ASA_IM__0P_20100722_213840.xml"
     raster_file = property(lambda self: join(self.temp_optimized_files_dir, "TEST_SAR", "2010", "ASA_IM__0P_20100722_213840_proc.tif"))
@@ -3133,7 +3159,7 @@ class DeleteMergedNoDuration(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, L
 
     expected_logs = {
         logging.DEBUG: 48,
-        logging.INFO: 89,
+        logging.INFO: 92,
         logging.WARN: 0,
         logging.ERROR: 0,
         logging.CRITICAL: 0
@@ -3352,7 +3378,7 @@ class DebugLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCase
 
     expected_logs = {
         logging.DEBUG: 12,
-        logging.INFO: 15,
+        logging.INFO: 16,
         logging.WARN: 0,
         logging.ERROR: 0,
         logging.CRITICAL: 0
@@ -3409,7 +3435,7 @@ class InfoLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCaseM
 
     expected_logs = {
         logging.DEBUG: 0,
-        logging.INFO: 15,
+        logging.INFO: 16,
         logging.WARN: 0,
         logging.ERROR: 0,
         logging.CRITICAL: 0
@@ -4176,6 +4202,14 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
+          <xsd:element type="xsd:boolean" name="overviews_self">
+            <xsd:annotation>
+              <xsd:documentation>
+                <xsd:label>Generate overviews using custom processing</xsd:label>
+                <xsd:tooltip>Defines whether internal browse overviews shall be generated but with using a custom processing. Trumps `overviews` setting.</xsd:tooltip>
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
           <xsd:element type="xsd:string" name="overview_resampling">
             <xsd:annotation>
               <xsd:documentation>
@@ -4387,6 +4421,7 @@ class GetConfigurationAndSchemaTestCase(ConfigMixIn, TestCase):
         <zlevel>6</zlevel>
         <tiling>true</tiling>
         <overviews>true</overviews>
+        <overviews_self>false</overviews_self>
         <overview_resampling>NEAREST</overview_resampling>
         <overview_levels>2,4,8,16</overview_levels>
         <overview_minsize>256</overview_minsize>
@@ -4434,6 +4469,7 @@ class ConfigurationChangeTestCase(ConfigMixIn, TestCase):
         <zlevel>8</zlevel>
         <tiling>false</tiling>
         <overviews>false</overviews>
+        <overviews_self>false</overviews_self>
         <overview_resampling>NEAREST</overview_resampling>
         <overview_levels>2,4,8</overview_levels>
         <overview_minsize>512</overview_minsize>
@@ -4479,6 +4515,7 @@ class ConfigurationChangeTestCase(ConfigMixIn, TestCase):
             (INGEST_SECTION, "zlevel"): "8",
             (INGEST_SECTION, "tiling"): "False",
             (INGEST_SECTION, "overviews"): "False",
+            (INGEST_SECTION, "overviews_self"): "False",
             (INGEST_SECTION, "overview_resampling"): "NEAREST",
             (INGEST_SECTION, "overview_levels"): "2,4,8",
             (INGEST_SECTION, "overview_minsize"): "512",
