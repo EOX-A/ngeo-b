@@ -28,7 +28,7 @@
 #-------------------------------------------------------------------------------
 
 import sys
-from os import remove, makedirs, rmdir
+from os import remove, makedirs, rmdir, environ
 from os.path import (
     exists, dirname, join, isdir, samefile, commonprefix, abspath, relpath,
     basename
@@ -87,10 +87,12 @@ from ngeo_browse_server.control.queries import (
 from ngeo_browse_server.control.ingest.preprocessing.preprocessor import (
     NGEOPreProcessor
 )
+from ngeo_browse_server.storage import get_file_manager
 
 
 logger = logging.getLogger(__name__)
 report_logger = logging.getLogger("ngEO-ingest")
+
 
 #===============================================================================
 # main functions
@@ -129,6 +131,8 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
     # create the required preprocessor/format selection
     format_selection = get_format_selection("GTiff",
                                             **get_format_config(config))
+    logger.info("Format config %s" % get_format_config(config))
+
     if do_preprocessing:
         # add config parameters and custom params
         params = get_optimization_config(config)
@@ -187,6 +191,9 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
     else:
         makedirs(failure_dir)
 
+    # Create a file manager, either local or a remote storage one
+    manager = get_file_manager(config)
+
     # iterate over all browses in the browse report
     for parsed_browse in parsed_browse_report:
         # transaction management per browse
@@ -198,7 +205,7 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
                     result = ingest_browse(parsed_browse, browse_report,
                                            browse_layer, preprocessor, crs,
                                            success_dir, failure_dir,
-                                           seed_areas, config=config)
+                                           seed_areas, manager, config=config)
 
                     report_result.add(result)
                     succeded.append(parsed_browse)
@@ -303,7 +310,7 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
 
 
 def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
-                  success_dir, failure_dir, seed_areas, config=None):
+                  success_dir, failure_dir, seed_areas, manager, config=None):
     """ Ingests a single browse report, performs the preprocessing of the data
     file and adds the generated browse model to the browse report model. Returns
     a boolean value, indicating whether or not the browse has been inserted or
@@ -460,6 +467,21 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
             # A browse with that identifier does not exist, so create a new one
             logger.info("Creating new browse.")
 
+        replaced_filename_remote = None
+        if replaced_filename and replaced_filename.startswith('/vsiswift'):
+            # TODO: delete if everything went okay
+            replaced_filename_remote = replaced_filename
+            replaced_filename = None
+
+        merge_with_remote = None
+        if merge_with and merge_with.startswith('/vsiswift'):
+            merge_with_remote = merge_with
+            # TODO: get local path
+            merge_with = "/tmp/merge_%s_%s" % (
+                uuid.uuid4().hex, basename(parsed_browse.file_name)
+            )
+            manager.download_file(merge_with_remote, merge_with)
+
         # assert that the output file does not exist (unless it is a to-be
         # replaced file).
         if (exists(output_filename) and
@@ -508,13 +530,27 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                     raise IngestionException("Processed browse image has %d bands."
                                              % result.num_bands)
 
+                if manager:
+                    prefix = join(
+                        browse_layer.id, str(parsed_browse.start_time.year)
+                    )
+
+                    manager.upload_file(prefix, output_filename)
+                    remove(output_filename)
+
+                    manager.prepare_environment()
+
+                    filename = basename(output_filename)
+                    output_filename = manager.get_vsi_filename(
+                        "%s/%s" % (prefix, filename)
+                    )
+
                 logger.info("Creating database models.")
                 extent, time_interval = create_browse(
                     parsed_browse, browse_report, browse_layer, coverage_id,
                     crs, replaced, result.footprint_geom, result.num_bands,
                     output_filename, seed_areas, config=config
                 )
-
 
     except:
         # save exception info to re-raise it
@@ -541,10 +577,34 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         raise exc_info[0], exc_info[1], exc_info[2]
 
     else:
+        if merge_with_remote:
+            try:
+                manager.delete_file(merge_with_remote)
+            except Exception as e:
+                logger.warn(
+                    "Unable to delete merged file on swift storage '%s'. "
+                    "Error was: '%s'"
+                    % (replaced_filename_remote, e)
+                )
+
+        if replaced_filename_remote:
+            try:
+                manager.delete_file(replaced_filename_remote)
+            except Exception as e:
+                logger.warn(
+                    "Unable to delete replaced file on swift storage '%s'. "
+                    "Error was: '%s'"
+                    % (replaced_filename_remote, e)
+                )
+
         # move the file to success folder, or delete it right away
         delete_on_success = True
-        try: delete_on_success = config.getboolean("control.ingest", "delete_on_success")
-        except: pass
+        try:
+            delete_on_success = config.getboolean(
+                "control.ingest", "delete_on_success"
+            )
+        except:
+            pass
 
         if not leave_original:
             if delete_on_success:
