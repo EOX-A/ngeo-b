@@ -237,6 +237,12 @@ class IngestConfigurator(ngEOConfigConfigurator):
             "true"
         ),
         Parameter(
+            bool, "overviews_self", "Generate overviews using custom "
+            "processing", "Defines whether internal browse overviews shall "
+            "be generated but with using a custom processing. Trumps "
+            "`overviews` setting.", "false"
+        ),
+        Parameter(
             str, "overview_resampling", "Overview resampling",
             'Defines the resampling method used to generate the overviews. '
             'One of "NEAREST", "GAUSS", "CUBIC", "AVERAGE", "MODE", '

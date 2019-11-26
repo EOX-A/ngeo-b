@@ -155,7 +155,7 @@ EOF
 
     echo "Performing installation step 50"
     # Install packages
-    yum install -y python-lxml mod_wsgi httpd memcached postgresql-server python-psycopg2 pytz lftp unzip
+    yum install -y python-lxml mod_wsgi httpd memcached postgresql-server python-psycopg2 pytz lftp unzip patch
 
     echo "Performing installation step 60"
     # Permanently start PostgreSQL
@@ -256,6 +256,13 @@ EOF
         echo "Aborting, no ngEO_Browse_Server RPM found for installation."
         exit 1
     fi
+
+
+    echo "Patching EOxServer"
+    cd /usr/lib64/python2.6/site-packages/
+    patch -p 0 -N < /patches/improve_footprint-generation.patch
+    cd -
+
 
     echo "Performing installation step 180"
     # Configure PostgreSQL/PostGIS database

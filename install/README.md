@@ -59,10 +59,11 @@ They can be supplied to docker using the
 the environment variables.
 
 ```bash
-docker run -it --rm --name test-browse-server -p 8081:80 \
+docker run -it --rm --name test-browse-server \
     -v "${PWD}/ngeo_browse_server/":/usr/lib/python2.6/site-packages/ngeo_browse_server/ \
     -v "${PWD}/ngeo-b_autotest/data/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/data/ \
     -v "${PWD}/ngeo-b_autotest/logs/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/logs/ \
+    -v "${PWD}/ngeo-b_autotest/results/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/results/ \
     --tmpfs /tmp:rw,exec,nosuid,nodev -h browse --add-host=browse:127.0.0.1 \
     browse-server \
     /bin/bash -c "/etc/init.d/postgresql start && sleep 5 && /etc/init.d/memcached start && python /var/www/ngeo/ngeo_browse_server_instance/manage.py test control -v2"
