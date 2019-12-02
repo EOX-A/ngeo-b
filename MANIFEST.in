@@ -1,4 +1,4 @@
-include README.rst
+include README.md
 include MANIFEST.in
 graft ngeo_browse_server
 recursive-exclude ngeo_browse_server *.pyc

@@ -84,7 +84,7 @@ setup(
     maintainer_email="packages@eox.at",
 
     description="Browse Server (ESA-CAT-BROW) providing access to browse images via WMS",
-    long_description=read("README.rst"),
+    long_description=read("README.md"),
 
     classifiers=[
           'Development Status :: 4 - Beta',
