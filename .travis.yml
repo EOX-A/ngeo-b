@@ -17,7 +17,7 @@ deploy:
   api_key:
     secure: QPKKSL6Vc5iN7zt1WtnTZ2CbHX4V5RzpLS9NkR+bUp+fTP24i7twt4J6c2yRjhE3IgSLwj08ESoe3yZW5HqKVB8WhMd8+E/vfkekbllIU74i51hXSlpIS58xNtI8PkT9WE9eYIi90QEbN6es1YjhtBiPYI1WZXg3NC9TscffGfY=
   file_glob: true
-  file: ../dist/*.rpm
+  file: dist/*.rpm
   skip_cleanup: true
   draft: true
   on:
