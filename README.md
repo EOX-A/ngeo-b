@@ -1,3 +1,17 @@
+# Browse Server
+
+The Browse Server is a server providing access to browse images via
+[OGC's](http://www.opengeospatial.org/)
+[WMTS](http://www.opengeospatial.org/standards/wmts) and
+[WMS](http://www.opengeospatial.org/standards/wms) interfaces.
+
+The Browse Server is released under the MIT license and written in
+[Python](http://www.python.org/) and entirely based on Open Source software
+including [EOxServer](http://eoxserver.org),
+[MapServer](http://mapserver.org),
+[Django/GeoDjango](https://www.djangoproject.com),
+[GDAL](http://www.gdal.org), etc.
+
 # Usage with docker
 
 ## Prepare environment
@@ -7,7 +21,7 @@ Clone Browse Server:
 ```bash
 git clone git@github.com:EOX-A/ngeo-b.git
 cd ngeo-b/
-git checkout branch-2-1
+git checkout branch-4-0
 git submodule init
 git submodule update
 ```
@@ -71,7 +85,7 @@ docker run -it --rm --name test-browse-server \
 
 ## Build Browse Server
 
-First check that all tests (see above) are passing.
+First check that all tests (see above) are passing, then run the following:
 
 ```bash
 cd git/ngeo-b/
@@ -101,14 +115,22 @@ git push
 
 git tag -a release-2.1.0.rc.1 -m "Tagging release 2.1.0.rc.1."
 git push --tags
+```
 
-# Build RPMs
+RPMs are automatically build by travis and attached to the release.
+To build the packages manually run the following:
+
+```bash
 docker run -it --rm --name build-browse-server \
     -v "${PWD}/":/ngeo-b/ \
     --tmpfs /tmp:rw,exec,nosuid,nodev -h browse --add-host=browse:127.0.0.1 \
     browse-server \
     /bin/bash -c "yum update && yum install -y rpmdevtools && cd /ngeo-b/ && python setup.py bdist_rpm"
+```
 
+Finalize and clean up:
+
+```bash
 # Upload packages to yum repository
 scp dist/*rpm packages@packages.eox.at:
 # ...
@@ -122,4 +144,4 @@ git commit setup.py ngeo_browse_server/__init__.py -m "Adjusting version."
 
 * [Edit release](https://github.com/EOX-A/ngeo-b/releases)
 * [Edit milestones](https://github.com/EOX-A/ngeo-b/milestones)
-* Inform
+* Inform relevant stakeholders
