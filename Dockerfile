@@ -40,7 +40,7 @@ ADD ngeo_browse_server /ngeo_browse_server
 ADD tools /tools
 ADD setup.py \
     setup.cfg \
-    README.rst \
+    README.md \
     MANIFEST.in \
     install/ngeo-install.sh \
     install/ngeo \
