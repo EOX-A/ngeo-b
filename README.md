@@ -92,11 +92,11 @@ cd git/ngeo-b/
 git pull
 
 # If starting a new release branch:
-git checkout -b branch-2-1
+git checkout -b branch-4-0
 vi ngeo_browse_server/__init__.py
 # Adjust version to future one
 git commit ngeo_browse_server/__init__.py -m "Adjusting version."
-git push -u origin branch-2.1
+git push -u origin branch-4-0
 
 vi ngeo_browse_server/__init__.py
 # Adjust version
@@ -113,7 +113,7 @@ git commit setup.py ngeo_browse_server/__init__.py -m "Adjusting version."
 #Development Status :: 7 - Inactive
 git push
 
-git tag -a release-2.1.0.rc.1 -m "Tagging release 2.1.0.rc.1."
+git tag -a release-4.0.0.rc.1 -m "Tagging release 4.0.0.rc.1."
 git push --tags
 ```
 
