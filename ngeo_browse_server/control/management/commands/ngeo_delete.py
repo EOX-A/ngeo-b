@@ -47,6 +47,13 @@ from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
 logger = logging.getLogger(__name__)
 
 
+def getCoverageIds(option, opt, value, parser):
+    """
+    Splits command line argument which should be a list separated by comma.
+    """
+    setattr(parser.values, option.dest, value.split(','))
+
+
 class Command(LogToConsoleMixIn, BaseCommand):
 
     option_list = BaseCommand.option_list + (
@@ -72,7 +79,10 @@ class Command(LogToConsoleMixIn, BaseCommand):
         ),
         make_option('--id',
             dest='coverage_id',
-            help=("String coverage_id of browse to be deleted. Usually created as browse_layer_id + _ + browse_identifier")
+            type="string",
+            help=("String coverage_id of browse to be deleted or list of strings separated by comma. Usually created as browse_layer_id + _ + browse_identifier"),
+            action="callback",
+            callback=getCoverageIds
         ),
         make_option('--summary',
             dest='return_summary',
