@@ -124,7 +124,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
             start = getDateTime(start)
         if end:
             end = getDateTime(end)
-        
+
         summary = self._handle(start, end, coverage_id, browse_layer_id, browse_type)
         logger.info("Successfully finished browse deletion from command line.")
         if return_summary:
@@ -180,12 +180,12 @@ class Command(LogToConsoleMixIn, BaseCommand):
                 browses_qs = browses_qs.filter(end_time__lte=end)
             elif start and end:
                 browses_qs = browses_qs.filter(start_time__gte=start, end_time__lte=end)
-            
+
         paths_to_delete = []
         seed_areas = []
         deleted = {}
         summary["browses_found"] = browses_qs.count()
-        
+
         with transaction.commit_on_success():
             with transaction.commit_on_success(using="mapcache"):
                 logger.info("Deleting '%d' browse%s from database."
@@ -194,7 +194,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
                 # go through all browses to be deleted
                 for browse_model in browses_qs:
                     # reference to ID is lost after remove_browse completes
-                    save_id = browse_model.coverage_id 
+                    save_id = browse_model.coverage_id
                     _, filename = remove_browse(browse_model, browse_layer_model, browse_model.coverage_id, seed_areas)
                     paths_to_delete.append(filename)
                     deleted[save_id] = {
@@ -237,7 +237,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
                               delete=False,
                               **get_mapcache_seed_config())
                 logger.info("Successfully finished seeding.")
-                
+
             except Exception, e:
                 logger.warn("Seeding failed: %s" % str(e))
         summary["deleted"] = deleted
