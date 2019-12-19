@@ -37,7 +37,7 @@ from eoxserver.core.system import System
 
 from ngeo_browse_server.control.management.commands import LogToConsoleMixIn
 from ngeo_browse_server.control.queries import delete_browse_layer
-from ngeo_browse_server.config.models import BrowseLayer, Browse
+from ngeo_browse_server.config.models import BrowseLayer, Browse, BrowseReport
 
 
 logger = logging.getLogger(__name__)
@@ -59,7 +59,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
     args = ("--layer=<layer-id> | --browse-type=<browse-type> ")
     help = ("Completely purges a browse layer identified by '--layer' or "
             "'--browse-type'. Purge removes everything related to the layer: "
-            "the layer itself, all browses, the mapcache configuration and "
+            "the layer itself, all browses, browse_reports, the mapcache configuration and "
             "the cache.")
 
     def handle(self, *args, **kwargs):
@@ -143,4 +143,15 @@ class Command(LogToConsoleMixIn, BaseCommand):
                 logger.warning("Optimized browse image to be deleted not found "
                                "in path: %s" % file_path)
 
+        # get all browse reports of browse layer
+        browse_reports_qs = BrowseReport.objects.all().filter(browse_layer=browse_layer_model)
+        with transaction.commit_on_success():
+            with transaction.commit_on_success(using="mapcache"):
+                logger.info("Deleting '%d' browse report%s from database."
+                            % (browse_reports_qs.count(),
+                               "s" if browse_reports_qs.count() > 1 else ""))
+                # go through all browse reports to be deleted and delete them
+                # this assumes, that above steps of deleting browses succeeded
+                for browse_report_model in browse_reports_qs:
+                    browse_report_model.delete()
         delete_browse_layer(browse_layer_model, purge=True)
