@@ -69,13 +69,25 @@ class Command(LogToConsoleMixIn, BaseCommand):
             '--end',
             dest='end',
             help=("The end date and time in ISO 8601 format.")
+        ),
+        make_option('--id',
+            dest='coverage_id',
+            help=("String coverage_id of browse to be deleted. Usually created as browse_layer_id + _ + browse_identifier")
+        ),
+        make_option('--summary',
+            dest='return_summary',
+            action="store_true",
+            help=("If option is used, a summary results object will be returned.")
         )
     )
 
     args = ("--layer=<layer-id> | --browse-type=<browse-type> "
-            "[--start=<start-date-time>] [--end=<end-date-time>] ")
+            "[--start=<start-date-time>] [--end=<end-date-time>]"
+            "[--id=<coverage-identifier>]"
+            "[--summary=<return-summary>]")
     help = ("Deletes the browses specified by either the layer ID, "
-            "its browse type and optionally start and or end time."
+            "its browse type. Optionally also by browse_identifier "
+            "or start and or end time."
             "Only browses that are completely contained in the time interval"
             "are actually deleted.")
 
@@ -85,7 +97,10 @@ class Command(LogToConsoleMixIn, BaseCommand):
         # parse command arguments
         self.verbosity = int(kwargs.get("verbosity", 1))
         traceback = kwargs.get("traceback", False)
-        self.set_up_logging(["ngeo_browse_server"], self.verbosity, traceback)
+
+        # in case this function is used repeatedly, add logger handle only during first run
+        if len([handler for handler in logging.getLogger("ngeo_browse_server").handlers if not isinstance(handler, logging.StreamHandler)]) > 0:
+            self.set_up_logging(["ngeo_browse_server"], self.verbosity, traceback)
 
         logger.info("Starting browse deletion from command line.")
 
@@ -102,20 +117,27 @@ class Command(LogToConsoleMixIn, BaseCommand):
 
         start = kwargs.get("start")
         end = kwargs.get("end")
-
+        coverage_id = kwargs.get("coverage_id")
+        return_summary = kwargs.get("return_summary")
         # parse start/end if given
         if start:
             start = getDateTime(start)
         if end:
             end = getDateTime(end)
-
-        self._handle(start, end, browse_layer_id, browse_type)
-
+        
+        summary = self._handle(start, end, coverage_id, browse_layer_id, browse_type)
         logger.info("Successfully finished browse deletion from command line.")
+        if return_summary:
+            return summary
 
-    def _handle(self, start, end, browse_layer_id, browse_type):
+
+    def _handle(self, start, end, coverage_id, browse_layer_id, browse_type):
         from ngeo_browse_server.control.queries import remove_browse
-
+        summary = {
+          "browses_found": 0,
+          "files_deleted": 0,
+          "deleted": {},
+        }
         # query the browse layer
         if browse_layer_id:
             try:
@@ -141,23 +163,28 @@ class Command(LogToConsoleMixIn, BaseCommand):
                                    "not exist" % browse_type)
 
         # get all browses of browse layer
-        browses_qs = Browse.objects.all().filter(
-            browse_layer=browse_layer_model
-        )
+        browses_qs = Browse.objects.all().filter(browse_layer=browse_layer_model)
 
-        # apply start/end filter
-        if start and not end:
-            browses_qs = browses_qs.filter(start_time__gte=start)
-        elif end and not start:
-            browses_qs = browses_qs.filter(end_time__lte=end)
-        elif start and end:
-            browses_qs = browses_qs.filter(
-                start_time__gte=start, end_time__lte=end
-            )
-
+        # apply coverage_id filter for string or list of strings
+        # then time filter should not be applicable
+        if isinstance(coverage_id, list):
+            browses_qs = browses_qs.filter(coverage_id__in=coverage_id)
+        elif isinstance(coverage_id, (str, unicode)):
+            browses_qs = browses_qs.filter(coverage_id=coverage_id)
+        else:
+            # apply start/end filter
+            if start and not end:
+                browses_qs = browses_qs.filter(start_time__gte=start)
+            elif end and not start:
+                browses_qs = browses_qs.filter(end_time__lte=end)
+            elif start and end:
+                browses_qs = browses_qs.filter(start_time__gte=start, end_time__lte=end)
+            
         paths_to_delete = []
         seed_areas = []
-
+        deleted = {}
+        summary["browses_found"] = browses_qs.count()
+        
         with transaction.commit_on_success():
             with transaction.commit_on_success(using="mapcache"):
                 logger.info("Deleting '%d' browse%s from database."
@@ -165,62 +192,46 @@ class Command(LogToConsoleMixIn, BaseCommand):
                                "s" if browses_qs.count() > 1 else ""))
                 # go through all browses to be deleted
                 for browse_model in browses_qs:
-
-                    _, filename = remove_browse(
-                        browse_model, browse_layer_model,
-                        browse_model.coverage_id, seed_areas
-                    )
-
+                    # reference to ID is lost after remove_browse completes
+                    save_id = browse_model.coverage_id 
+                    _, filename = remove_browse(browse_model, browse_layer_model, browse_model.coverage_id, seed_areas)
                     paths_to_delete.append(filename)
-
+                    deleted[save_id] = {
+                        "start": browse_model.start_time,
+                        "end": browse_model.end_time,
+                    }
         # loop through optimized browse images and delete them
         # This is done at this point to make sure a rollback is possible
         # if there is an error while deleting the browses and coverages
         for file_path in paths_to_delete:
             if exists(file_path):
                 remove(file_path)
+                summary["files_deleted"] += 1
                 logger.info("Optimized browse image deleted: %s" % file_path)
             else:
-                logger.warning("Optimized browse image to be deleted not found"
-                               " in path: %s" % file_path)
+                logger.warning("Optimized browse image to be deleted not found "
+                               "in path: %s" % file_path)
 
-        # only if either start or end is present browses are left
-        if start or end:
-            if start:
-                if end:
-                    seed_areas = [
-                        area for area in seed_areas
-                        if not (area[4] >= start and area[5] <= end)
-                    ]
-                else:
-                    seed_areas = [
-                        area for area in seed_areas if not (area[4] >= start)
-                    ]
-            else:
-                seed_areas = [
-                    area for area in seed_areas if not (area[5] <= end)
-                ]
-
-            for minx, miny, maxx, maxy, start_time, end_time in seed_areas:
-                try:
-
-                    # seed MapCache synchronously
-                    # TODO: maybe replace this with an async solution
-                    seed_mapcache(tileset=browse_layer_model.id,
-                                  grid=browse_layer_model.grid,
-                                  minx=minx, miny=miny,
-                                  maxx=maxx, maxy=maxy,
-                                  minzoom=browse_layer_model.lowest_map_level,
-                                  maxzoom=browse_layer_model.highest_map_level,
-                                  start_time=start_time,
-                                  end_time=end_time,
-                                  delete=False,
-                                  **get_mapcache_seed_config())
-                    logger.info("Successfully finished seeding.")
-
-                except Exception, e:
-                    logger.warn("Seeding failed: %s" % str(e))
-
-        # TODO:
+        for minx, miny, maxx, maxy, start_time, end_time in seed_areas:
+            try:
+                # seed MapCache synchronously
+                # TODO: maybe replace this with an async solution
+                seed_mapcache(tileset=browse_layer_model.id, 
+                              grid=browse_layer_model.grid, 
+                              minx=minx, miny=miny, 
+                              maxx=maxx, maxy=maxy, 
+                              minzoom=browse_layer_model.lowest_map_level, 
+                              maxzoom=browse_layer_model.highest_map_level,
+                              start_time=start_time,
+                              end_time=end_time,
+                              delete=False,
+                              **get_mapcache_seed_config())
+                logger.info("Successfully finished seeding.")
+                
+            except Exception, e:
+                logger.warn("Seeding failed: %s" % str(e))
+        summary["deleted"] = deleted
+        return summary
+        # TODO: 
         #   - think about what to do with brows report
         #   - think about what to do with cache
