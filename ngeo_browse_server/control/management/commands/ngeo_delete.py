@@ -212,26 +212,45 @@ class Command(LogToConsoleMixIn, BaseCommand):
                 logger.warning("Optimized browse image to be deleted not found "
                                "in path: %s" % file_path)
 
-        for minx, miny, maxx, maxy, start_time, end_time in seed_areas:
-            try:
-                # seed MapCache synchronously
-                # TODO: maybe replace this with an async solution
-                seed_mapcache(tileset=browse_layer_model.id, 
-                              grid=browse_layer_model.grid, 
-                              minx=minx, miny=miny, 
-                              maxx=maxx, maxy=maxy, 
-                              minzoom=browse_layer_model.lowest_map_level, 
-                              maxzoom=browse_layer_model.highest_map_level,
-                              start_time=start_time,
-                              end_time=end_time,
-                              delete=False,
-                              **get_mapcache_seed_config())
-                logger.info("Successfully finished seeding.")
+        # only if either start or end is present browses are left
+        if start or end or coverage_id:
+            if start:
+                if end:
+                    seed_areas = [
+                        area for area in seed_areas
+                        if not (area[4] >= start and area[5] <= end)
+                    ]
+                else:
+                    seed_areas = [
+                        area for area in seed_areas if not (area[4] >= start)
+                    ]
+            elif end:
+                seed_areas = [
+                    area for area in seed_areas if not (area[5] <= end)
+                ]
 
-            except Exception, e:
-                logger.warn("Seeding failed: %s" % str(e))
+            for minx, miny, maxx, maxy, start_time, end_time in seed_areas:
+                try:
+
+                    # seed MapCache synchronously
+                    # TODO: maybe replace this with an async solution
+                    seed_mapcache(tileset=browse_layer_model.id,
+                                  grid=browse_layer_model.grid,
+                                  minx=minx, miny=miny,
+                                  maxx=maxx, maxy=maxy,
+                                  minzoom=browse_layer_model.lowest_map_level,
+                                  maxzoom=browse_layer_model.highest_map_level,
+                                  start_time=start_time,
+                                  end_time=end_time,
+                                  delete=False,
+                                  **get_mapcache_seed_config())
+                    logger.info("Successfully finished seeding.")
+
+                except Exception, e:
+                    logger.warn("Seeding failed: %s" % str(e))
+
         summary["deleted"] = deleted
         return summary
-        # TODO: 
+        # TODO:
         #   - think about what to do with brows report
         #   - think about what to do with cache
