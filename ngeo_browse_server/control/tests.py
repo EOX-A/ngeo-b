@@ -3042,6 +3042,35 @@ class DeleteFromCommandEnd(DeleteTestCaseMixIn, CliMixIn, TestCase):
     expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100719_101023_proc.tif',
                               'TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
 
+class DeleteFromCommandId(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
+    kwargs = {
+        "layer" : "TEST_SAR",
+        "id": "TEST_SAR_b_id_6"
+    }
+
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
+                        join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
+
+    expected_remaining_browses = 2
+    expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100719_101023_proc.tif']
+    expected_browse_type = "SAR"
+    expected_tiles = {0: 4, 1: 4, 2: 4, 3: 4, 4: 4}
+
+class DeleteFromCommandIdArray(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
+    kwargs = {
+        "layer" : "TEST_SAR",
+        "id": "TEST_SAR_b_id_6,TEST_SAR_b_id_7"
+    }
+
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
+                        join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
+
+    expected_remaining_browses = 1
+    expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100719_101023_proc.tif',
+                              'TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
+    expected_browse_type = "SAR"
+    expected_tiles = {0: 2, 1: 2, 2: 2, 3: 2, 4: 2}
+
 class DeleteFromCommandStartEnd(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
     kwargs = {
         "layer" : "TEST_SAR",
@@ -3056,7 +3085,6 @@ class DeleteFromCommandStartEnd(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn
     expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
     expected_browse_type = "SAR"
     expected_tiles = {0: 4, 1: 4, 2: 4, 3: 4, 4: 4}
-
 
 class DeleteFromCommandStartEndMerge1(DeleteTestCaseMixIn, CliMixIn, SeedMergeTestCaseMixIn, LiveServerTestCase):
     kwargs = {
