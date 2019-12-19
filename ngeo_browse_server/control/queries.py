@@ -681,8 +681,9 @@ def delete_browse_layer(browse_layer, purge=False, config=None):
 
     if purge:
         logger.info("Starting purging of browse layer '%s'." % browse_layer.id)
-        # remove browse layer model. This should also delete all related browses
-        # and browse reports
+        # remove browse layer model. This will fail when related browses
+        # and browse reports are still present in database because of foreign keys and no CASCADE set
+        # it is assumed, that they were already deleted before (as in ngeo_purge.py)
         models.BrowseLayer.objects.get(id=browse_layer.id).delete()
 
         # delete EOxServer layer metadata
