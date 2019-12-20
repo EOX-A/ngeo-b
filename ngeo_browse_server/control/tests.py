@@ -698,8 +698,8 @@ class IngestWithShortenedInterval100(IngestTestCaseMixIn, IngestIntervalShortenT
     expected_optimized_files = ['ASA_IM__0P_20100731_103315_proc.tif']
     expected_deleted_files = ['ASA_IM__0P_20100731_103315.jpg']
 
-    expected_ingested_browse_start = datetime(2010, 7, 31, 10, 33, 30, 500000, utc)
-    expected_ingested_browse_end = datetime(2010, 7, 31, 10, 33, 30, 500000, utc)
+    expected_ingested_browse_start = datetime(2010, 7, 31, 10, 33, 31, 0, utc)
+    expected_ingested_browse_end = datetime(2010, 7, 31, 10, 33, 31, 0, utc)
 
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -730,8 +730,8 @@ class IngestWithShortenedInterval30(IngestTestCaseMixIn, IngestIntervalShortenTe
     expected_optimized_files = ['ASA_IM__0P_20100731_103315_proc.tif']
     expected_deleted_files = ['ASA_IM__0P_20100731_103315.jpg']
 
-    expected_ingested_browse_start = datetime(2010, 7, 31, 10, 33, 19, 650000, utc)
-    expected_ingested_browse_end = datetime(2010, 7, 31, 10, 33, 41, 350000, utc)
+    expected_ingested_browse_start = datetime(2010, 7, 31, 10, 33, 20, 0, utc)
+    expected_ingested_browse_end = datetime(2010, 7, 31, 10, 33, 41, 0, utc)
 
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>

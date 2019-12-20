@@ -361,12 +361,20 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         delta_in_seconds = (delta.microseconds + (delta.seconds + delta.days * 24 * 3600) * 10**6) / float(10**6)
         delta_add_subtract = dt_timedelta(seconds=(delta_in_seconds * shorten_ingested_interval_percent / 200.0))
         updated_start_time = parsed_browse.start_time + delta_add_subtract
+        # round to seconds because of mapcache
+        if updated_start_time.microsecond >= 500000:
+            updated_start_time = updated_start_time + dt_timedelta(seconds=1)
+        updated_start_time = updated_start_time.replace(microsecond=0)
         parsed_browse.set_start_time(updated_start_time)
         if shorten_ingested_interval_percent == 100.0:
             # to be sure that no wierd micro-second rounding happens
             parsed_browse.set_end_time(updated_start_time)
         else:
+            # round to seconds because of mapcache
             updated_end_time = parsed_browse.end_time - delta_add_subtract
+            if updated_end_time.microsecond >= 500000:
+                updated_end_time = updated_end_time + datetime.timedelta(seconds=1)
+            updated_end_time = updated_end_time.replace(microsecond=0)
             parsed_browse.set_end_time(updated_end_time)
 
     # get the input and output filenames
