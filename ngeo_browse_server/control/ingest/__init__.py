@@ -210,7 +210,7 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
                 result = ingest_browse(parsed_browse, browse_report,
                                        browse_layer, preprocessor, crs,
                                        success_dir, failure_dir,
-                                       seed_areas, config=config)
+                                       seed_areas, manager, config=config)
 
                 report_result.add(result)
                 succeded.append(parsed_browse)
