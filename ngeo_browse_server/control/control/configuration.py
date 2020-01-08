@@ -43,7 +43,7 @@ ns_xsd = lambda s: ("{%s}%s" % (ns_xsd_uri, s))
 XSD = ElementMaker(namespace=ns_xsd_uri, nsmap={ns_xsd_prefix: ns_xsd_uri})
 
 TYPE_MAP = {
-    bool: (lambda s: s == "true")
+    bool: (lambda s: s == "true" or s == "True")
 }
 
 ENCODE_MAP = {
@@ -235,6 +235,12 @@ class IngestConfigurator(ngEOConfigConfigurator):
             bool, "overviews", "Generate overviews",
             "Defines whether internal browse overviews shall be generated.",
             "true"
+        ),
+        Parameter(
+            bool, "overviews_self", "Generate overviews using custom "
+            "processing", "Defines whether internal browse overviews shall "
+            "be generated but with using a custom processing. Trumps "
+            "`overviews` setting.", "false"
         ),
         Parameter(
             str, "overview_resampling", "Overview resampling",

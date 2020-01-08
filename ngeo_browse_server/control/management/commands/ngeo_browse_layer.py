@@ -104,6 +104,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
                     continue
                 elif on_error == "stop":
                     # re-raise the exception to stop the execution
+                    raise
                     raise CommandError(e)
 
         logger.info("Finished browse layer configuration, %d successfully "

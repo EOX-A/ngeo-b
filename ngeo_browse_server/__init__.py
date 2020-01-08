@@ -28,17 +28,15 @@
 #-------------------------------------------------------------------------------
 
 
-VERSION = (2, 0, 33, 'dev', 0)
+VERSION = (2, 1, 0, 'rc', 1)
 
 
 def get_version():
-    version = '%s.%s' % (VERSION[0], VERSION[1])
-    if VERSION[2] is not None:
-        version = '%s.%s' % (version, VERSION[2])
+    version = '%s.%s.%s' % (VERSION[0], VERSION[1], VERSION[2])
     if VERSION[3:] == ('dev', 0):
-        version = "%s%s" % (version, VERSION[3])
+        version = "%s.%s" % (version, VERSION[3])
     else:
         if VERSION[3] != 'final':
-            version = '%s%s%s' % (version, VERSION[3], VERSION[4])
+            version = '%s.%s.%s' % (version, VERSION[3], VERSION[4])
 
     return version

@@ -160,6 +160,8 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
     # Uncomment the next line for simple clickjacking protection:
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+    'ngeo_browse_server.storage.middleware.AuthTokenMiddleware'
 )
 
 ROOT_URLCONF = '{{ project_name }}.urls'

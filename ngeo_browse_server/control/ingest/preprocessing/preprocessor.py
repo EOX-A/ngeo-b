@@ -72,8 +72,9 @@ def _process_proxy(preprocessor, return_dict, *args, **kwargs):
 
 
 class NGEOPreProcessor(WMSPreProcessor):
-    def __init__(self, format_selection, overviews=True, crs=None, bands=None,
-                 bandmode=RGB, footprint_alpha=False,
+
+    def __init__(self, format_selection, overviews=True, overviews_self=False,
+                 crs=None, bands=None, bandmode=RGB, footprint_alpha=False,
                  color_index=False, palette_file=None, no_data_value=None,
                  overview_resampling=None, overview_levels=None,
                  overview_minsize=None, radiometric_interval_min=None,
@@ -82,7 +83,11 @@ class NGEOPreProcessor(WMSPreProcessor):
                  scalefactor=1, timeout=None):
 
         self.format_selection = format_selection
-        self.overviews = overviews
+        self.overviews_self = overviews_self  # Don't use EOxServer one
+        if overviews_self:
+            self.overviews = False
+        else:
+            self.overviews = overviews
         self.overview_resampling = overview_resampling
         self.overview_levels = overview_levels
         self.overview_minsize = overview_minsize
@@ -208,6 +213,7 @@ class NGEOPreProcessor(WMSPreProcessor):
 
             try:
                 new_ds = optimization(ds)
+                new_ds.FlushCache()
 
                 if new_ds is not ds:
                     # cleanup afterwards
@@ -257,6 +263,7 @@ class NGEOPreProcessor(WMSPreProcessor):
             logger.debug("Applying optimization 'AlphaBandOptimization'.")
             opt = AlphaBandOptimization()
             opt(ds, footprint_wkt)
+            ds.FlushCache()
 
         temp_output_filename = join(
             self.temporary_directory or tempfile.gettempdir(),
@@ -321,14 +328,66 @@ class NGEOPreProcessor(WMSPreProcessor):
 
         num_bands = final_ds.RasterCount
 
-        # move the file to the final position
-        output_filename = str(self.generate_filename(output_filename))
-        logger.info("Moving final file to %s." % output_filename)
-        driver = final_ds.GetDriver()
-        # finally close the dataset and write it to the disc
-        final_ds = None
+        if self.overviews_self:
+            logger.debug("Applying OverviewOptimization ourselves")
+            levels = self.overview_levels
 
-        driver.Rename(output_filename, temp_output_filename)
+            # calculate the overviews automatically.
+            if not levels:
+                desired_size = abs(self.overview_minsize or 256)
+                size = max(final_ds.RasterXSize, final_ds.RasterYSize)
+                level = 1
+                levels = []
+
+                while size > desired_size:
+                    size /= 2
+                    level *= 2
+                    levels.append(level)
+
+            logger.debug(
+                "Building overview levels %s with resampling method '%s'."
+                % (", ".join(map(str, levels)), self.overview_resampling)
+            )
+
+            final_ds.FlushCache()
+            filename = final_ds.GetFileList()[0]
+            final_filename = filename
+            driver = final_ds.GetDriver()
+
+            # finally close the dataset and write it to the disc
+            final_ds = None
+
+            # re-build overviews
+            # use .ovr trick to accommodate very large images (>65536 pixels)
+            for level in levels:
+                try:
+                    input_ds = gdal.Open(filename, gdal.GA_ReadOnly)
+                    input_ds.BuildOverviews(self.overview_resampling, [2])
+                    filename = '%s.ovr' % filename
+                    input_ds = None
+                except RuntimeError:
+                    logger.warning(
+                        "Overview building failed for level '%s'." % level
+                    )
+
+            tmp_filename = join(tempfile.gettempdir(), '%s.tif' % uuid4().hex)
+            tmp_ds = driver.CreateCopy(
+                tmp_filename,
+                gdal.Open(final_filename, gdal.GA_ReadOnly),
+                options=self.format_selection.creation_options + [
+                    "COPY_SRC_OVERVIEWS=YES",
+                ]
+            )
+            tmp_ds = None
+            filename = final_filename
+            for level in levels:
+                filename = '%s.ovr' % filename
+                remove(filename)
+            rename(tmp_filename, final_filename)
+
+        else:
+            # finally close the dataset and write it to the disc
+            final_ds = None
 
         # generate metadata if requested
         footprint = None

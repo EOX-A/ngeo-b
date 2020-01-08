@@ -144,6 +144,13 @@ def get_format_config(config=None):
     except:
         pass
 
+    value = safe_get(config, INGEST_SECTION, "creation_options")
+    if value:
+        values["creation_options"] = dict(
+            v.strip().partition("=")[0::2]
+            for v in value.split(",")
+        )
+
     return values
 
 
@@ -157,6 +164,12 @@ def get_optimization_config(config=None):
 
     try:
         values["overviews"] = config.getboolean(INGEST_SECTION, "overviews")
+    except:
+        pass
+    try:
+        values["overviews_self"] = config.getboolean(
+            INGEST_SECTION, "overviews_self"
+        )
     except:
         pass
 
