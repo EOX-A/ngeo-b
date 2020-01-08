@@ -38,7 +38,7 @@ from eoxserver.core.system import System
 from eoxserver.core.util.timetools import getDateTime, isotime
 
 from ngeo_browse_server.control.management.commands import LogToConsoleMixIn
-from ngeo_browse_server.config.models import ( 
+from ngeo_browse_server.config.models import (
     BrowseReport, BrowseLayer, Browse
 )
 from ngeo_browse_server.config.browsereport import data as browsereport_data
@@ -56,7 +56,7 @@ logger = logging.getLogger(__name__)
 
 
 class Command(LogToConsoleMixIn, BaseCommand):
-    
+
     option_list = BaseCommand.option_list + (
         make_option('--layer', '--browse-layer',
             dest='browse_layer_id',
