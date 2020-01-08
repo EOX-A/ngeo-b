@@ -57,6 +57,22 @@ def get_storage_path(file_name=None, storage_dir=None, config=None):
     return get_project_relative_path(join(storage_dir, file_name))
 
 
+def get_temporary_path(file_name=None, storage_dir=None, config=None):
+    """ Returns an absolute path to a filename within the intermediary storage
+    directory for uploaded but unprocessed files.
+    """
+
+    config = config or get_ngeo_config()
+
+    if not storage_dir:
+        storage_dir = config.get(INGEST_SECTION, "temporary_dir")
+
+    if not file_name:
+        return get_project_relative_path(storage_dir)
+
+    return get_project_relative_path(join(storage_dir, file_name))
+
+
 def get_optimized_path(file_name, directory=None, config=None):
     """ Returns an absolute path to a filename within the storage directory for
     optimized raster files. Uses the 'control.ingest.optimized_files_dir'
@@ -87,20 +103,22 @@ def get_success_dir(config=None):
     """ Returns the configured success directory. """
 
     config = config or get_ngeo_config()
+    dirname = safe_get(config, "control.ingest", "success_dir")
+    if not dirname:
+        return None
 
-    return get_project_relative_path(
-        safe_get(config, "control.ingest", "success_dir")
-    )
+    return get_project_relative_path(dirname)
 
 
 def get_failure_dir(config=None):
     """ Returns the configured failure directory. """
 
     config = config or get_ngeo_config()
+    dirname = safe_get(config, "control.ingest", "failure_dir")
+    if not dirname:
+        return None
 
-    return get_project_relative_path(
-        safe_get(config, "control.ingest", "failure_dir")
-    )
+    return get_project_relative_path(dirname)
 
 
 def get_format_config(config=None):
@@ -126,6 +144,13 @@ def get_format_config(config=None):
     except:
         pass
 
+    value = safe_get(config, INGEST_SECTION, "creation_options")
+    if value:
+        values["creation_options"] = dict(
+            v.strip().partition("=")[0::2]
+            for v in value.split(",")
+        )
+
     return values
 
 
@@ -139,6 +164,12 @@ def get_optimization_config(config=None):
 
     try:
         values["overviews"] = config.getboolean(INGEST_SECTION, "overviews")
+    except:
+        pass
+    try:
+        values["overviews_self"] = config.getboolean(
+            INGEST_SECTION, "overviews_self"
+        )
     except:
         pass
 
@@ -171,6 +202,20 @@ def get_optimization_config(config=None):
         pass
 
     try:
+        values["color_to_alpha"] = config.getint(
+            INGEST_SECTION, "color_to_alpha")
+        if isinstance(values["color_to_alpha"], int):
+            values["bandmode"] = RGBA
+    except:
+        pass
+
+    try:
+        values["color_to_alpha_margin"] = config.getint(
+            INGEST_SECTION, "color_to_alpha_margin")
+    except:
+        pass
+
+    try:
         values["sieve_max_threshold"] = config.getint(
             INGEST_SECTION, "sieve_max_threshold")
     except:
@@ -185,6 +230,18 @@ def get_optimization_config(config=None):
     in_memory = False
     try:
         in_memory = config.getboolean(INGEST_SECTION, "in_memory")
+    except:
+        pass
+
+    try:
+        values["scalefactor"] = config.getfloat(
+            INGEST_SECTION, "scalefactor")
+    except:
+        pass
+
+    try:
+        values["timeout"] = config.getfloat(
+            INGEST_SECTION, "timeout")
     except:
         pass
 

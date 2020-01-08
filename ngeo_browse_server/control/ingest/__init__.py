@@ -28,7 +28,7 @@
 #-------------------------------------------------------------------------------
 
 import sys
-from os import remove, makedirs, rmdir
+from os import remove, makedirs, rmdir, environ
 from os.path import (
     exists, dirname, join, isdir, samefile, commonprefix, abspath, relpath,
     basename
@@ -75,7 +75,6 @@ from ngeo_browse_server.control.ingest.config import (
     get_success_dir, get_failure_dir
 )
 from ngeo_browse_server.control.ingest.exceptions import IngestionException
-from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.mapcache.tasks import CRS_BOUNDS, seed_mapcache
 from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
 from ngeo_browse_server.config.browsereport.serialization import (
@@ -87,10 +86,12 @@ from ngeo_browse_server.control.queries import (
 from ngeo_browse_server.control.ingest.preprocessing.preprocessor import (
     NGEOPreProcessor
 )
+from ngeo_browse_server.storage import get_file_manager
 
 
 logger = logging.getLogger(__name__)
 report_logger = logging.getLogger("ngEO-ingest")
+
 
 #===============================================================================
 # main functions
@@ -129,6 +130,8 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
     # create the required preprocessor/format selection
     format_selection = get_format_selection("GTiff",
                                             **get_format_config(config))
+    logger.info("Format config %s" % get_format_config(config))
+
     if do_preprocessing:
         # add config parameters and custom params
         params = get_optimization_config(config)
@@ -175,99 +178,87 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
         browse_report.date_time.strftime("%Y%m%d%H%M%S%f"),
         timestamp
     ))
-    success_dir = join(get_success_dir(config), browse_dirname)
-    failure_dir = join(get_failure_dir(config), browse_dirname)
 
-    if exists(success_dir):
-        logger.warn("Success directory '%s' already exists.")
+    if get_success_dir(config):
+        success_dir = join(get_success_dir(config), browse_dirname)
+        if exists(success_dir):
+            logger.warn("Success directory '%s' already exists.")
+        else:
+            makedirs(success_dir)
     else:
-        makedirs(success_dir)
-    if exists(failure_dir):
-        logger.warn("Failure directory '%s' already exists.")
+        success_dir = None
+
+    if get_failure_dir(config):
+        failure_dir = join(get_failure_dir(config), browse_dirname)
+        if exists(failure_dir):
+            logger.warn("Failure directory '%s' already exists.")
+        else:
+            makedirs(failure_dir)
     else:
-        makedirs(failure_dir)
+        failure_dir = None
+
+    # Create a file manager, either local or a remote storage one
+    manager = get_file_manager(config)
 
     # iterate over all browses in the browse report
     for parsed_browse in parsed_browse_report:
         # transaction management per browse
         with transaction.commit_manually():
-            with transaction.commit_manually(using="mapcache"):
-                try:
-                    seed_areas = []
-                    # try ingest a single browse and log success
-                    result = ingest_browse(parsed_browse, browse_report,
-                                           browse_layer, preprocessor, crs,
-                                           success_dir, failure_dir,
-                                           seed_areas, config=config)
+            try:
+                seed_areas = []
+                # try ingest a single browse and log success
+                result = ingest_browse(parsed_browse, browse_report,
+                                       browse_layer, preprocessor, crs,
+                                       success_dir, failure_dir,
+                                       seed_areas, config=config)
 
-                    report_result.add(result)
-                    succeded.append(parsed_browse)
+                report_result.add(result)
+                succeded.append(parsed_browse)
 
-                    # commit here to allow seeding
-                    transaction.commit()
-                    transaction.commit(using="mapcache")
+                # commit here to allow seeding
+                transaction.commit()
 
-                    logger.info("Committed changes to database.")
+                logger.info("Committed changes to database.")
 
-                    for minx, miny, maxx, maxy, start_time, end_time in seed_areas:
-                        try:
+                # log ingestions for report generation
+                # date/browseType/browseLayerId/start/end
+                report_logger.info("/\\/\\".join((
+                    datetime.utcnow().isoformat("T") + "Z",
+                    parsed_browse_report.browse_type,
+                    browse_layer.id,
+                    (parsed_browse.start_time.replace(tzinfo=None)-parsed_browse.start_time.utcoffset()).isoformat("T") + "Z",
+                    (parsed_browse.end_time.replace(tzinfo=None)-parsed_browse.end_time.utcoffset()).isoformat("T") + "Z"
+                )))
 
-                            # seed MapCache synchronously
-                            # TODO: maybe replace this with an async solution
-                            seed_mapcache(tileset=browse_layer.id,
-                                          grid=browse_layer.grid,
-                                          minx=minx, miny=miny,
-                                          maxx=maxx, maxy=maxy,
-                                          minzoom=browse_layer.lowest_map_level,
-                                          maxzoom=browse_layer.highest_map_level,
-                                          start_time=start_time,
-                                          end_time=end_time,
-                                          delete=False,
-                                          **get_mapcache_seed_config(config))
-                            logger.info("Successfully finished seeding.")
+            except Exception, e:
+                # report error
+                logger.error("Failure during ingestion of browse '%s'." %
+                             parsed_browse.browse_identifier)
+                logger.error("Exception was '%s': %s" % (type(e).__name__, str(e)))
+                logger.debug(traceback.format_exc() + "\n")
 
-                        except Exception, e:
-                            logger.warn("Seeding failed: %s" % str(e))
+                # undo latest changes, append the failure and continue
+                report_result.add(IngestBrowseFailureResult(
+                    parsed_browse.browse_identifier,
+                    getattr(e, "code", None) or type(e).__name__, str(e))
+                )
+                failed.append(parsed_browse)
 
-                    # log ingestions for report generation
-                    # date/browseType/browseLayerId/start/end
-                    report_logger.info("/\\/\\".join((
-                        datetime.utcnow().isoformat("T") + "Z",
-                        parsed_browse_report.browse_type,
-                        browse_layer.id,
-                        (parsed_browse.start_time.replace(tzinfo=None)-parsed_browse.start_time.utcoffset()).isoformat("T") + "Z",
-                        (parsed_browse.end_time.replace(tzinfo=None)-parsed_browse.end_time.utcoffset()).isoformat("T") + "Z"
-                    )))
-
-                except Exception, e:
-                    # report error
-                    logger.error("Failure during ingestion of browse '%s'." %
-                                 parsed_browse.browse_identifier)
-                    logger.error("Exception was '%s': %s" % (type(e).__name__, str(e)))
-                    logger.debug(traceback.format_exc() + "\n")
-
-                    # undo latest changes, append the failure and continue
-                    report_result.add(IngestBrowseFailureResult(
-                        parsed_browse.browse_identifier,
-                        getattr(e, "code", None) or type(e).__name__, str(e))
-                    )
-                    failed.append(parsed_browse)
-
-                    transaction.rollback()
-                    transaction.rollback(using="mapcache")
+                transaction.rollback()
 
     # generate browse report and save to to success/failure dir
     if len(succeded):
         try:
-            logger.info("Creating browse report for successfully ingested "
-                        "browses at '%s'." % success_dir)
-            succeded_report = data.BrowseReport(
-                parsed_browse_report.browse_type,
-                parsed_browse_report.date_time,
-                parsed_browse_report.responsible_org_name,
-                succeded
-            )
-            _save_result_browse_report(succeded_report, success_dir)
+            if success_dir:
+                logger.info("Creating browse report for successfully ingested "
+                            "browses at '%s'." % success_dir)
+                succeded_report = data.BrowseReport(
+                    parsed_browse_report.browse_type,
+                    parsed_browse_report.date_time,
+                    parsed_browse_report.responsible_org_name,
+                    succeded
+                )
+                _save_result_browse_report(succeded_report, success_dir)
 
         except Exception, e:
             logger.warn("Could not write result browse report as the file '%s'.")
@@ -277,33 +268,34 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
         except Exception, e:
             logger.warn("Could not remove the unused dir '%s'." % success_dir)
 
-
     if len(failed):
         try:
-            logger.info("Creating browse report for erroneously ingested "
-                        "browses at '%s'." % failure_dir)
-            failed_report = data.BrowseReport(
-                parsed_browse_report.browse_type,
-                parsed_browse_report.date_time,
-                parsed_browse_report.responsible_org_name,
-                failed
-            )
-            _save_result_browse_report(failed_report, failure_dir)
+            if failure_dir:
+                logger.info("Creating browse report for erroneously ingested "
+                            "browses at '%s'." % failure_dir)
+                failed_report = data.BrowseReport(
+                    parsed_browse_report.browse_type,
+                    parsed_browse_report.date_time,
+                    parsed_browse_report.responsible_org_name,
+                    failed
+                )
+                _save_result_browse_report(failed_report, failure_dir)
 
         except Exception, e:
             logger.warn("Could not write result browse report as the file '%s'.")
     else:
-        try:
-            rmdir(failure_dir)
-        except Exception, e:
-            logger.warn("Could not remove the unused dir '%s'." % failure_dir)
-
+        if failure_dir:
+            try:
+                rmdir(failure_dir)
+            except Exception, e:
+                logger.warn("Could not remove the unused dir '%s'."
+                            % failure_dir)
 
     return report_result
 
 
 def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
-                  success_dir, failure_dir, seed_areas, config=None):
+                  success_dir, failure_dir, seed_areas, manager, config=None):
     """ Ingests a single browse report, performs the preprocessing of the data
     file and adds the generated browse model to the browse report model. Returns
     a boolean value, indicating whether or not the browse has been inserted or
@@ -349,27 +341,14 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
     storage_path = get_storage_path()
     # if file_name is a URL download browse first and store it locally
     validate = URLValidator()
+    needs_download = False
     try:
         validate(parsed_browse.file_name)
         input_filename = abspath(get_storage_path(
             basename(parsed_browse.file_name), config=config))
+        needs_download = True
         logger.info("URL given, downloading browse image from '%s' to '%s'."
                     % (parsed_browse.file_name, input_filename))
-        if not exists(input_filename):
-            try:
-                remote_browse = urlopen(parsed_browse.file_name)
-                with open(input_filename, "wb") as local_browse:
-                    local_browse.write(remote_browse.read())
-            except HTTPError, e:
-                raise IngestionException("HTTP error downloading '%s': %s"
-                                         % (parsed_browse.file_name, e.code))
-            except URLError, e:
-                raise IngestionException("URL error downloading '%s': %s"
-                                         % (parsed_browse.file_name, e.reason))
-        else:
-            raise IngestionException("File do download already exists locally "
-                                     "as '%s'" % input_filename)
-
     except ValidationError:
         input_filename = abspath(get_storage_path(parsed_browse.file_name,
                                                   config=config))
@@ -386,7 +365,9 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         raise IngestionException("%s" % str(e), "ValidationError")
 
     # Get filename to store preprocessed image
-    output_filename = "%s_%s" % (uuid.uuid4().hex, parsed_browse.file_name)
+    output_filename = "%s_%s" % (
+        uuid.uuid4().hex, basename(parsed_browse.file_name)
+    )
     output_filename = _valid_path(
         get_optimized_path(
             output_filename, browse_layer.id + "/" +
@@ -435,10 +416,10 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                     seed_areas, config=config
                 )
                 replaced = False
-                logger.debug("Existing browse found, merging it.")
+                logger.info("Existing browse found, merging it.")
 
             elif strategy == "skip" and current_time <= previous_time:
-                logger.debug("Existing browse found and not older, skipping.")
+                logger.info("Existing browse found and not older, skipping.")
                 return IngestBrowseSkipResult(parsed_browse.browse_identifier)
 
             else:
@@ -458,6 +439,21 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
             # A browse with that identifier does not exist, so create a new one
             logger.info("Creating new browse.")
 
+        replaced_filename_remote = None
+        if replaced_filename and replaced_filename.startswith('/vsiswift'):
+            # TODO: delete if everything went okay
+            replaced_filename_remote = replaced_filename
+            replaced_filename = None
+
+        merge_with_remote = None
+        if merge_with and merge_with.startswith('/vsiswift'):
+            merge_with_remote = merge_with
+            # TODO: get local path
+            merge_with = "/tmp/merge_%s_%s" % (
+                uuid.uuid4().hex, basename(parsed_browse.file_name)
+            )
+            manager.download_file(merge_with_remote, merge_with)
+
         # assert that the output file does not exist (unless it is a to-be
         # replaced file).
         if (exists(output_filename) and
@@ -470,6 +466,30 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         # wrap all file operations with IngestionTransaction
         with FileTransaction((output_filename, replaced_filename)):
             with FileTransaction((merge_with,), True):
+
+                # download input file if URL is given
+                if needs_download:
+                    if not exists(input_filename):
+                        try:
+                            remote_browse = urlopen(parsed_browse.file_name)
+                            with open(input_filename, "wb") as local_browse:
+                                shutil.copyfileobj(remote_browse, local_browse)
+                        except HTTPError, e:
+                            raise IngestionException(
+                                "HTTP error downloading '%s': %s"
+                                % (parsed_browse.file_name, e.code)
+                            )
+                        except URLError, e:
+                            raise IngestionException(
+                                "URL error downloading '%s': %s"
+                                % (parsed_browse.file_name, e.reason)
+                            )
+                    else:
+                        raise IngestionException(
+                            "File do download already exists locally as '%s'"
+                            % input_filename
+                        )
+
                 # assert that the input file exists
                 if not exists(input_filename):
                     raise IngestionException("Input file '%s' does not exist."
@@ -503,8 +523,24 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
 
                 # validate preprocess result
                 if result.num_bands not in (1, 3, 4):  # color index, RGB, RGBA
-                    raise IngestionException("Processed browse image has %d bands."
+                    raise IngestionException("Processed browse image has "
+                                             "%d bands."
                                              % result.num_bands)
+
+                if manager:
+                    prefix = join(
+                        browse_layer.id, str(parsed_browse.start_time.year)
+                    )
+
+                    manager.upload_file(prefix, output_filename)
+                    remove(output_filename)
+
+                    manager.prepare_environment()
+
+                    filename = basename(output_filename)
+                    output_filename = manager.get_vsi_filename(
+                        "%s/%s" % (prefix, filename)
+                    )
 
                 logger.info("Creating database models.")
                 extent, time_interval = create_browse(
@@ -513,39 +549,72 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                     output_filename, seed_areas, config=config
                 )
 
-
     except:
         # save exception info to re-raise it
         exc_info = sys.exc_info()
 
-        logger.error("Error during ingestion of Browse '%s'. Moving "
-                     "original image to `failure_dir` '%s'."
-                     % (parsed_browse.browse_identifier, failure_dir))
+        if failure_dir:
+            logger.error("Error during ingestion of Browse '%s'. Moving "
+                         "original image to `failure_dir` '%s'."
+                         % (parsed_browse.browse_identifier, failure_dir))
+            # move the file to failure folder
+            try:
+                if not leave_original:
+                    storage_dir = get_storage_path()
+                    relative = relpath(input_filename, storage_dir)
+                    dst_dirname = join(failure_dir, dirname(relative))
+                    safe_makedirs(dst_dirname)
+                    shutil.move(input_filename, dst_dirname)
+            except Exception, e:
+                logger.warn("Could not move '%s' to configured "
+                            "`failure_dir` '%s'. Error was: '%s'."
+                            % (input_filename, failure_dir, str(e)))
 
-        # move the file to failure folder
-        try:
-            if not leave_original:
-                storage_dir = get_storage_path()
-                relative = relpath(input_filename, storage_dir)
-                dst_dirname = join(failure_dir, dirname(relative))
-                safe_makedirs(dst_dirname)
-                shutil.move(input_filename, dst_dirname)
-        except Exception, e:
-            logger.warn("Could not move '%s' to configured "
-                        "`failure_dir` '%s'. Error was: '%s'."
-                        % (input_filename, failure_dir, str(e)))
+        else:
+            logger.error("Error during ingestion of Browse '%s'. Deleting "
+                         "original image."
+                         % (parsed_browse.browse_identifier,))
+            try:
+                remove(input_filename)
+            except Exception, e:
+                logger.warn("Could not delete '%s'. Error was: '%s'."
+                            % (input_filename, str(e)))
 
         # re-raise the exception
         raise exc_info[0], exc_info[1], exc_info[2]
 
     else:
+        if merge_with_remote:
+            try:
+                manager.delete_file(merge_with_remote)
+            except Exception as e:
+                logger.warn(
+                    "Unable to delete merged file on swift storage '%s'. "
+                    "Error was: '%s'"
+                    % (replaced_filename_remote, e)
+                )
+
+        if replaced_filename_remote:
+            try:
+                manager.delete_file(replaced_filename_remote)
+            except Exception as e:
+                logger.warn(
+                    "Unable to delete replaced file on swift storage '%s'. "
+                    "Error was: '%s'"
+                    % (replaced_filename_remote, e)
+                )
+
         # move the file to success folder, or delete it right away
         delete_on_success = True
-        try: delete_on_success = config.getboolean("control.ingest", "delete_on_success")
-        except: pass
+        try:
+            delete_on_success = config.getboolean(
+                "control.ingest", "delete_on_success"
+            )
+        except:
+            pass
 
         if not leave_original:
-            if delete_on_success:
+            if delete_on_success or not success_dir:
                 remove(input_filename)
             else:
                 try:

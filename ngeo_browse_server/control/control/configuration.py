@@ -43,7 +43,7 @@ ns_xsd = lambda s: ("{%s}%s" % (ns_xsd_uri, s))
 XSD = ElementMaker(namespace=ns_xsd_uri, nsmap={ns_xsd_prefix: ns_xsd_uri})
 
 TYPE_MAP = {
-    bool: (lambda s: s == "true")
+    bool: (lambda s: s == "true" or s == "True")
 }
 
 ENCODE_MAP = {
@@ -237,6 +237,12 @@ class IngestConfigurator(ngEOConfigConfigurator):
             "true"
         ),
         Parameter(
+            bool, "overviews_self", "Generate overviews using custom "
+            "processing", "Defines whether internal browse overviews shall "
+            "be generated but with using a custom processing. Trumps "
+            "`overviews` setting.", "false"
+        ),
+        Parameter(
             str, "overview_resampling", "Overview resampling",
             'Defines the resampling method used to generate the overviews. '
             'One of "NEAREST", "GAUSS", "CUBIC", "AVERAGE", "MODE", '
@@ -261,6 +267,14 @@ class IngestConfigurator(ngEOConfigConfigurator):
             bool, "footprint_alpha", "",
             "Defines whether or not a alpha channel shall be used to display "
             "the images area of interest.", "false"
+        ),
+        Parameter(
+            int, "color_to_alpha", "",
+            "If set to an integer, the areas with values of all three bands equal to color and similar to it by +-15 or 'color_to_alpha_margin' will get burned to alpha channel as transparent.", "-99999"
+        ),
+        Parameter(
+            int, "color_to_alpha_margin", "",
+            "If set to an integer, sets a +-margin around color_to_alpha value.", "-99999"
         ),
         Parameter(
             int, "sieve_max_threshold", "",

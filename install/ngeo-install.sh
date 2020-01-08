@@ -7,7 +7,7 @@
 #          Stephan Meissl <stephan.meissl@eox.at>
 #
 #-------------------------------------------------------------------------------
-# Copyright (C) 2012, 2013 European Space Agency
+# Copyright (C) 2012, 2013, 2018 European Space Agency
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -143,13 +143,15 @@ EOF
     if ! [ `getenforce` == "Disabled" ] ; then
         setenforce 0
     fi
-    if ! grep -Fxq "SELINUX=disabled" /etc/selinux/config ; then
-        sed -e 's/^SELINUX=.*$/SELINUX=disabled/' -i /etc/selinux/config
+    if [ -f /etc/selinux/config ] ; then
+        if ! grep -Fxq "SELINUX=disabled" /etc/selinux/config ; then
+            sed -e 's/^SELINUX=.*$/SELINUX=disabled/' -i /etc/selinux/config
+        fi
     fi
 
     echo "Performing installation step 50"
     # Install packages
-    yum install -y python-lxml mod_wsgi httpd memcached postgresql-server python-psycopg2 pytz lftp unzip
+    yum install -y python-lxml mod_wsgi httpd memcached postgresql-server python-psycopg2 pytz lftp unzip patch
 
     echo "Performing installation step 60"
     # Permanently start PostgreSQL
@@ -194,20 +196,6 @@ EOF
     # Apply available upgrades
     yum update -y
 
-    echo "Performing installation step 120"
-    # Install packages
-    # Local packages
-    cd "local_packages"
-    yum install -y Django14-1.4.21-1.el6.noarch.rpm \
-                   geos-3.3.8-2.el6.x86_64.rpm \
-                   libspatialite-2.4.0-0.6_0.RC4.el6.x86_64.rpm \
-                   libtiff4-4.0.3-1.el6.x86_64.rpm \
-                   postgis-1.5.8-1.el6.x86_64.rpm \
-                   proj-4.8.0-3.el6.x86_64.rpm \
-                   proj-epsg-4.8.0-3.el6.x86_64.rpm
-    cd -
-
-
     #------------------------
     # Component installation
     #------------------------
@@ -250,37 +238,60 @@ EOF
         sed -e 's/^\[epel\]$/&\nexclude=openjpeg2/' -i /etc/yum.repos.d/epel.repo
     fi
 
+    yum update -y
+
+
     echo "Performing installation step 170"
     # Re-install libxml2 from eox repository
     rpm -e --justdb --nodeps libxml2
     # Install packages
     yum install -y libxml2
-    yum install -y --nogpgcheck libtiff4
-    yum install -y libxml2-python gdal-eox-libtiff4 gdal-eox-libtiff4-python \
-                   gdal-eox-driver-openjpeg2 mapserver mapserver-python \
-                   EOxServer
+
+
+    echo "Performing installation step 120"
+    # Install packages
+    # Local packages
+    cd "local_packages"
+    yum install -y libtiff4-4.0.3-1.el6.x86_64.rpm
+    yum install -y libxml2-python python-requests libgeotiff-libtiff4
+    yum install -y Django14-1.4.21-1.el6.noarch.rpm \
+                   geos-3.3.8-2.el6.x86_64.rpm \
+                   libspatialite-2.4.0-0.6_0.RC4.el6.x86_64.rpm \
+                   postgis-1.5.8-1.el6.x86_64.rpm \
+                   proj-4.8.0-3.el6.x86_64.rpm \
+                   proj-epsg-4.8.0-3.el6.x86_64.rpm \
+                   gdal-2.3.2-8.el6.x86_64.rpm \
+                   python2-gdal-2.3.2-8.el6.x86_64.rpm \
+                   gdal-libs-2.3.2-8.el6.x86_64.rpm \
+                   mapserver-6.2.2-2.el6.x86_64.rpm \
+                   mapserver-python-6.2.2-2.el6.x86_64.rpm \
+                   EOxServer-0.3.7-1.x86_64.rpm \
+                   mapcache-1.2.1-4.el6.x86_64.rpm
+    cd -
 
 
     # allow installation of local RPMs if available
-    if [ -f mapcache-*.rpm ] ; then
-        echo "Installing local mapcache RPM `ls mapcache-*.rpm`"
-        yum install -y mapcache-*.rpm
-    else
-        yum install -y mapcache
-    fi
-    if [ -f ngEO_Browse_Server-*.rpm ] ; then
-        echo "Installing local ngEO_Browse_Server RPM `ls ngEO_Browse_Server-*.rpm`"
-        yum install -y ngEO_Browse_Server-*.rpm
+    if ls ngEO_Browse_Server-*.noarch.rpm 1> /dev/null 2>&1; then
+        file=`ls -r ngEO_Browse_Server-*.noarch.rpm | head -1`
+        echo "Installing local ngEO_Browse_Server RPM ${file}"
+        yum install -y ${file}
     else
         yum install -y ngEO_Browse_Server
     fi
+
+
+    echo "Patching EOxServer"
+    cd /usr/lib64/python2.6/site-packages/
+    patch -p 0 -N < /patches/improve_footprint-generation.patch
+    cd -
 
 
     echo "Performing installation step 180"
     # Configure PostgreSQL/PostGIS database
 
     ## Write database configuration script
-    TMPFILE=`mktemp`
+    mkdir -p /tmppostgres
+    TMPFILE=`mktemp -p /tmppostgres`
     cat << EOF > "$TMPFILE"
 #!/bin/sh -e
 # cd to a "safe" location
@@ -289,16 +300,16 @@ if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='template_p
     echo "Creating template database."
     createdb -E UTF8 template_postgis
     createlang plpgsql -d template_postgis
-    psql postgres -c "UPDATE pg_database SET datistemplate='true' WHERE datname='template_postgis';"
+    psql -q postgres -c "UPDATE pg_database SET datistemplate='true' WHERE datname='template_postgis';"
     if [ -f /usr/share/pgsql/contrib/postgis-64.sql ] ; then
-        psql -d template_postgis -f /usr/share/pgsql/contrib/postgis-64.sql
+        psql -q -d template_postgis -f /usr/share/pgsql/contrib/postgis-64.sql
     else
-        psql -d template_postgis -f /usr/share/pgsql/contrib/postgis.sql
+        psql -q -d template_postgis -f /usr/share/pgsql/contrib/postgis.sql
     fi
-    psql -d template_postgis -f /usr/share/pgsql/contrib/spatial_ref_sys.sql
-    psql -d template_postgis -c "GRANT ALL ON geometry_columns TO PUBLIC;"
-    psql -d template_postgis -c "GRANT ALL ON geography_columns TO PUBLIC;"
-    psql -d template_postgis -c "GRANT ALL ON spatial_ref_sys TO PUBLIC;"
+    psql -q -d template_postgis -f /usr/share/pgsql/contrib/spatial_ref_sys.sql
+    psql -q -d template_postgis -c "GRANT ALL ON geometry_columns TO PUBLIC;"
+    psql -q -d template_postgis -c "GRANT ALL ON geography_columns TO PUBLIC;"
+    psql -q -d template_postgis -c "GRANT ALL ON spatial_ref_sys TO PUBLIC;"
 fi
 if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'")" != 1 ] ; then
     echo "Creating ngEO database user."
@@ -316,6 +327,7 @@ EOF
         chmod g+rx $TMPFILE
         su postgres -c "$TMPFILE"
         rm "$TMPFILE"
+        rmdir --ignore-fail-on-non-empty /tmppostgres
     else
         echo "Script to configure DB not found."
     fi
@@ -372,6 +384,10 @@ EOF
 
         # Collect static files
         python manage.py collectstatic --noinput
+
+        # disable DatasetMetadataFileReader component, as it does not work with
+        # newer versions of GDAL
+        echo 'from eoxserver.core import models ; c = models.Component.objects.get(impl_id="resources.coverages.metadata.DatasetMetadataFileReader") ; c.enabled = False; c.save(); print"done"' | python manage.py shell
 
         # Make the instance read- and editable by apache
         chown -R apache:apache .
@@ -535,8 +551,8 @@ EOF
         fi
 
         # Add hostname
-        HOSTNAME=`hostname`
-        if ! grep -Gxq "127\.0\.0\.1.* $HOSTNAME" /etc/hosts ; then
+        HOSTNAME=${HOSTNAME:=`hostname`}
+        if ! grep -Gxq "127\.0\.0\.1.*$HOSTNAME" /etc/hosts ; then
             sed -e "s/^127\.0\.0\.1.*$/& $HOSTNAME/" -i /etc/hosts
         fi
 
@@ -642,10 +658,15 @@ EOF
 
     echo "Performing installation step 260"
     # Configure Browse Server as service "ngeo"
-    cp ngeo /etc/init.d/
-    chkconfig --level 235 ngeo on
-    chmod +x /etc/init.d/ngeo
-    service ngeo start
+    if [ -f ngeo ] ; then
+        echo "Adding, enabling, and starting ngeo service"
+        cp ngeo /etc/init.d/
+        chkconfig --level 235 ngeo on
+        chmod +x /etc/init.d/ngeo
+        service ngeo start
+    else
+        echoe "Necessary ngeo service script not found. Please provide and restart installation."
+    fi
 
     echo "Performing installation step 270"
     # Configure logrotate for ngeo log files
@@ -806,7 +827,8 @@ ngeo_full_uninstall() {
 
     if service postgresql status ; then
         ## Write database deletion script
-        TMPFILE=`mktemp`
+        mkdir -p /tmppostgres
+        TMPFILE=`mktemp -p /tmppostgres`
         cat << EOF > "$TMPFILE"
 #!/bin/sh -e
 # cd to a "safe" location
@@ -834,6 +856,7 @@ EOF
             chmod g+rx $TMPFILE
             su postgres -c "$TMPFILE"
             rm "$TMPFILE"
+            rmdir --ignore-fail-on-non-empty /tmppostgres
         else
             echo "Script to delete DB not found."
         fi

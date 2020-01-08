@@ -27,6 +27,11 @@
 #-------------------------------------------------------------------------------
 
 import logging
+import multiprocessing
+import tempfile
+from uuid import uuid4
+from os.path import join
+import traceback
 
 from django.contrib.gis.geos import (
     GEOSGeometry, MultiPolygon, Polygon, LinearRing,
@@ -55,18 +60,34 @@ logger = logging.getLogger(__name__)
 RGB = range(3)
 
 
+def _process_proxy(preprocessor, return_dict, *args, **kwargs):
+    """ Shim necessary for multiprocessing.
+    """
+    try:
+        return_dict['result'] = preprocessor._process(*args, **kwargs)
+    except Exception, e:
+        logger.error(traceback.format_exc())
+        return_dict['exception'] = e
+        raise
+
+
 class NGEOPreProcessor(WMSPreProcessor):
 
-    def __init__(self, format_selection, overviews=True, crs=None, bands=None,
-                 bandmode=RGB, footprint_alpha=False,
+    def __init__(self, format_selection, overviews=True, overviews_self=False, crs=None, bands=None,
+                 bandmode=RGB, footprint_alpha=False, color_to_alpha=False, color_to_alpha_margin=False,
                  color_index=False, palette_file=None, no_data_value=None,
                  overview_resampling=None, overview_levels=None,
                  overview_minsize=None, radiometric_interval_min=None,
                  radiometric_interval_max=None, sieve_max_threshold=None,
-                 simplification_factor=None, temporary_directory=None):
+                 simplification_factor=None, temporary_directory=None,
+                 scalefactor=1, timeout=None):
 
         self.format_selection = format_selection
-        self.overviews = overviews
+        self.overviews_self = overviews_self  # Don't use EOxServer one
+        if overviews_self:
+            self.overviews = False
+        else:
+            self.overviews = overviews
         self.overview_resampling = overview_resampling
         self.overview_levels = overview_levels
         self.overview_minsize = overview_minsize
@@ -76,6 +97,8 @@ class NGEOPreProcessor(WMSPreProcessor):
         self.bands = bands
         self.bandmode = bandmode
         self.footprint_alpha = footprint_alpha
+        self.color_to_alpha = color_to_alpha
+        self.color_to_alpha_margin = color_to_alpha_margin
         self.color_index = color_index
         self.palette_file = palette_file
         self.no_data_value = no_data_value
@@ -94,14 +117,79 @@ class NGEOPreProcessor(WMSPreProcessor):
             self.simplification_factor = 2
 
         self.temporary_directory = temporary_directory
+        self.scalefactor = scalefactor
+        self.timeout = timeout
 
-    def process(self, input_filename, output_filename,
-                geo_reference=None, generate_metadata=True,
-                merge_with=None, original_footprint=None):
+    def process(self, *args, **kwargs):
+        if self.timeout:
+            logger.debug("Starting preprocessing with timeout %f" % self.timeout)
 
-        # open the dataset and create an In-Memory Dataset as copy
-        # to perform optimizations
-        ds = create_mem_copy(gdal.Open(input_filename))
+            manager = multiprocessing.Manager()
+            return_dict = manager.dict()
+            process = multiprocessing.Process(
+                target=_process_proxy,
+                args=(self, return_dict) + args,
+                kwargs=kwargs
+            )
+            process.start()
+            process.join(self.timeout)
+
+            if process.is_alive():
+                logger.error(
+                    "Preprocessing hit timeout, terminating preprocessing"
+                )
+                process.terminate()
+                process.join()
+                raise multiprocessing.TimeoutError
+
+            else:
+                result = return_dict.get('result')
+                if not result:
+                    raise return_dict['exception']
+
+            return result
+
+        else:
+            return self._process(*args, **kwargs)
+
+    def _process(self, input_filename, output_filename,
+                 geo_reference=None, generate_metadata=True,
+                 merge_with=None, original_footprint=None):
+
+        # open the dataset
+        orig_ds = gdal.Open(input_filename)
+
+        if self.scalefactor != 1:
+            ds = create_mem(
+                int(orig_ds.RasterXSize * self.scalefactor),
+                int(orig_ds.RasterYSize * self.scalefactor),
+                orig_ds.RasterCount,
+                orig_ds.GetRasterBand(1).DataType
+            )
+
+            tmp_geo = orig_ds.GetGeoTransform()
+            dst_geo = (
+                tmp_geo[0], tmp_geo[1] / self.scalefactor, tmp_geo[2],
+                tmp_geo[3], tmp_geo[4], tmp_geo[5] / self.scalefactor
+            )
+            ds.SetProjection(orig_ds.GetProjection())
+            ds.SetGeoTransform(dst_geo)
+            copy_metadata(orig_ds, ds)
+
+            # for JPEG2000 (15% size) this approach is ~4 times faster than
+            # reading the whole image and then rescale it.
+            for i in range(orig_ds.RasterCount):
+                src_band = orig_ds.GetRasterBand(i + 1)
+                out_band = ds.GetRasterBand(i + 1)
+                band_data = src_band.ReadAsArray(
+                    0, 0,
+                    orig_ds.RasterXSize, orig_ds.RasterYSize,
+                    int(orig_ds.RasterXSize * self.scalefactor),
+                    int(orig_ds.RasterYSize * self.scalefactor)
+                )
+                out_band.WriteArray(band_data)
+        else:
+            ds = create_mem_copy(orig_ds)
 
         gt = ds.GetGeoTransform()
         footprint_wkt = None
@@ -127,6 +215,7 @@ class NGEOPreProcessor(WMSPreProcessor):
 
             try:
                 new_ds = optimization(ds)
+                new_ds.FlushCache()
 
                 if new_ds is not ds:
                     # cleanup afterwards
@@ -135,7 +224,6 @@ class NGEOPreProcessor(WMSPreProcessor):
             except:
                 cleanup_temp(ds)
                 raise
-
 
         # generate the footprint from the dataset
         if not footprint_wkt:
@@ -177,8 +265,20 @@ class NGEOPreProcessor(WMSPreProcessor):
             logger.debug("Applying optimization 'AlphaBandOptimization'.")
             opt = AlphaBandOptimization()
             opt(ds, footprint_wkt)
+            ds.FlushCache()
 
-        output_filename = self.generate_filename(output_filename)
+        if not isinstance(self.color_to_alpha, bool) and isinstance(self.color_to_alpha, int) and self.color_to_alpha != -99999:
+            logger.debug("Applying optimization 'ColorToAlphaOptimization'.")
+            opts = {'src_ds': ds, 'color_to_alpha': self.color_to_alpha}
+            if not isinstance(self.color_to_alpha_margin, bool) and isinstance(self.color_to_alpha_margin, int) and self.color_to_alpha_margin != -99999:
+                opts.update({'color_to_alpha_margin': self.color_to_alpha_margin})
+            opt = ColorToAlphaOptimization()
+            opt(**opts)
+
+        temp_output_filename = join(
+            self.temporary_directory or tempfile.gettempdir(),
+            '%s.tif' % uuid4().hex
+        )
 
         if merge_with is not None:
             if original_footprint is None:
@@ -199,7 +299,7 @@ class NGEOPreProcessor(WMSPreProcessor):
             ])
 
             final_ds = merger.merge(
-                output_filename, self.format_selection.driver_name,
+                temp_output_filename, self.format_selection.driver_name,
                 self.format_selection.creation_options
             )
 
@@ -214,7 +314,7 @@ class NGEOPreProcessor(WMSPreProcessor):
             logger.debug(
                 "Writing single file '%s' using options: %s."
                 % (
-                    output_filename,
+                    temp_output_filename,
                     ", ".join(self.format_selection.creation_options)
                 )
             )
@@ -224,7 +324,7 @@ class NGEOPreProcessor(WMSPreProcessor):
             # save the file to the disc
             driver = gdal.GetDriverByName(self.format_selection.driver_name)
             final_ds = driver.CreateCopy(
-                output_filename, ds,
+                temp_output_filename, ds,
                 options=self.format_selection.creation_options
             )
 
@@ -235,6 +335,69 @@ class NGEOPreProcessor(WMSPreProcessor):
             logger.debug("Applying post-optimization '%s'."
                          % type(optimization).__name__)
             optimization(final_ds)
+
+        num_bands = final_ds.RasterCount
+
+        if self.overviews_self:
+            logger.debug("Applying OverviewOptimization ourselves")
+            levels = self.overview_levels
+
+            # calculate the overviews automatically.
+            if not levels:
+                desired_size = abs(self.overview_minsize or 256)
+                size = max(final_ds.RasterXSize, final_ds.RasterYSize)
+                level = 1
+                levels = []
+
+                while size > desired_size:
+                    size /= 2
+                    level *= 2
+                    levels.append(level)
+
+            logger.debug(
+                "Building overview levels %s with resampling method '%s'."
+                % (", ".join(map(str, levels)), self.overview_resampling)
+            )
+
+            final_ds.FlushCache()
+            filename = final_ds.GetFileList()[0]
+            final_filename = filename
+            driver = final_ds.GetDriver()
+
+            # finally close the dataset and write it to the disc
+            final_ds = None
+
+            # re-build overviews
+            # use .ovr trick to accommodate very large images (>65536 pixels)
+            for level in levels:
+                try:
+                    input_ds = gdal.Open(filename, gdal.GA_ReadOnly)
+                    input_ds.BuildOverviews(self.overview_resampling, [2])
+                    filename = '%s.ovr' % filename
+                    input_ds = None
+                except RuntimeError:
+                    logger.warning(
+                        "Overview building failed for level '%s'." % level
+                    )
+
+            tmp_filename = join(tempfile.gettempdir(), '%s.tif' % uuid4().hex)
+            tmp_ds = driver.CreateCopy(
+                tmp_filename,
+                gdal.Open(final_filename, gdal.GA_ReadOnly),
+                options=self.format_selection.creation_options + [
+                    "COPY_SRC_OVERVIEWS=YES",
+                ]
+            )
+            tmp_ds = None
+            filename = final_filename
+            for level in levels:
+                filename = '%s.ovr' % filename
+                remove(filename)
+            rename(tmp_filename, final_filename)
+
+        else:
+            # finally close the dataset and write it to the disc
+            final_ds = None
 
         # generate metadata if requested
         footprint = None
@@ -265,11 +428,6 @@ class NGEOPreProcessor(WMSPreProcessor):
                 footprint = footprint.union(GEOSGeometry(original_footprint))
 
             logger.debug("Calculated Footprint: '%s'" % footprint.wkt)
-
-        num_bands = final_ds.RasterCount
-
-        # finally close the dataset and write it to the disc
-        final_ds = None
 
         return PreProcessResult(output_filename, footprint, num_bands)
 
