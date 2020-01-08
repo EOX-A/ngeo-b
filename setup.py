@@ -73,6 +73,7 @@ setup(
         'django>=1.4.1',
         'eoxserver>=0.3.5',
         'pytz',
+        'requests',
     ],
 
     # Metadata
@@ -81,11 +82,11 @@ setup(
     maintainer="EOX IT Services GmbH",
     maintainer_email="packages@eox.at",
 
-    description="ngEO Browse Server providing access to browse images via WMS",
+    description="Browse Server providing access to browse images via WMS",
     long_description=read("README.rst"),
 
     classifiers=[
-          'Development Status :: 5 - Production/Stable',
+          'Development Status :: 4 - Beta',
           'Environment :: Console',
           'Environment :: Web Environment',
           'Framework :: Django',
@@ -111,6 +112,6 @@ setup(
     ],
 
     license="MIT License",
-    keywords="ngEO, Browse, OGC, WMS",
-    url="http://ngeo.eox.at/"
+    keywords="Browse, OGC, WMS, EO-CAT",
+    url="https://github.com/EOX-A/ngeo-b"
 )

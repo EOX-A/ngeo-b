@@ -73,6 +73,11 @@ from ngeo_browse_server.control.migration.package import (
     SEC_CACHE, BROWSE_LAYER_NAME, SEC_OPTIMIZED
 )
 from ngeo_browse_server.control.control.config import CTRL_SECTION
+from ngeo_browse_server.storage.conf import (
+    STORAGE_SECTION, AUTH_SECTION
+)
+from ngeo_browse_server.storage.swift.conf import SWIFT_SECTION
+from ngeo_browse_server.storage import get_file_manager
 
 
 logger = logging.getLogger(__name__)
@@ -141,6 +146,7 @@ class BaseTestCaseMixIn(object):
         (INGEST_SECTION, "zlevel"): "6",
         (INGEST_SECTION, "tiling"): "true",
         (INGEST_SECTION, "overviews"): "true",
+        (INGEST_SECTION, "overviews_self"): "false",
         (INGEST_SECTION, "overview_resampling"): "NEAREST",
         (INGEST_SECTION, "overview_levels"): None,
         (INGEST_SECTION, "overview_minsize"): "256",
@@ -311,6 +317,13 @@ class BaseTestCaseMixIn(object):
             shutil.rmtree(d)
         remove(self.seed_command)
 
+        if self.configuration.get((STORAGE_SECTION, 'method')):
+            manager = get_file_manager()
+            filenames = manager.list_contents(self.storage_optimized_prefix)
+            for filename in filenames:
+                manager.delete_file(filename)
+            # files = self.get_storage_file_list(self.storage_optimized_prefix)
+
         if exists(self.temp_status_config):
             remove(self.temp_status_config)
         remove(self.config_filename)
@@ -321,14 +334,21 @@ class BaseTestCaseMixIn(object):
         for model_cls in model_classes:
             self.model_counts.setdefault(model_cls.__name__, []).append(model_cls.objects.count())
 
+    # convenience function to get a list of files from a directory
     def get_file_list(self, path):
-        # convenience function to get a list of files from a directory
-
         files = []
         for _, _, filenames in walk(path):
             files.extend(filenames)
 
         return files
+
+    # convenience function to get a list of files on the configured storage
+    def get_storage_file_list(self, prefix):
+        manager = get_file_manager()
+        return [
+            basename(filename)
+            for filename in manager.list_contents(prefix)
+        ]
 
 
 class HttpMixIn(object):
@@ -372,11 +392,17 @@ class HttpTestCaseMixin(HttpMixIn):
         """ Check the status code of the response. """
         self.assertEqual(self.expected_status, self.response.status_code)
 
-
     def test_expected_response(self):
         """ Check that the response is equal to the provided one if present. """
         if self.expected_response is None:
             self.skipTest("No expected response given.")
+
+        if self.expected_response != self.response.content:
+            if '\n' in self.expected_response and '\n' in self.response.content:
+                self.assertEqual(
+                    self.expected_response.split('\n'),
+                    self.response.content.split('\n'),
+                )
 
         self.assertEqual(self.expected_response, self.response.content)
 
@@ -568,19 +594,25 @@ class BaseInsertTestCaseMixIn(BaseTestCaseMixIn):
         """ Check that the expected optimized files are created. """
 
         # check that all optimized files are being created
-        files = self.get_file_list(self.temp_optimized_files_dir)
+        if self.configuration.get((STORAGE_SECTION, 'method')):
+            files = self.get_storage_file_list(self.storage_optimized_prefix)
+        else:
+            files = self.get_file_list(self.temp_optimized_files_dir)
 
-        if self.save_optimized_files:
-            save_dir = join(settings.PROJECT_DIR, "results/ingest/")
-            safe_makedirs(dirname(save_dir))
-            for path, _, filenames in walk(self.temp_optimized_files_dir):
-                for file_to_save in filenames:
-                    shutil.copy(join(path, file_to_save), save_dir)
+            if self.save_optimized_files:
+                save_dir = join(settings.PROJECT_DIR, "results/ingest/")
+                safe_makedirs(dirname(save_dir))
+                for path, _, filenames in walk(self.temp_optimized_files_dir):
+                    for file_to_save in filenames:
+                        shutil.copy(join(path, file_to_save), save_dir)
+
+        logger.info("Found %i optimized files." % len(files))
 
         # normalize files i.e. remove/add UUID
-        for i in range(len(files)):
-            if self.expected_optimized_files[i] != files[i]:
-                files[i] = files[i][33:]
+        files = [
+            file_[33:] if file_ not in self.expected_optimized_files else file_
+            for file_ in files
+        ]
 
         self.assertItemsEqual(self.expected_optimized_files, files)
 
@@ -748,7 +780,8 @@ class SeedTestCaseMixIn(BaseTestCaseMixIn):
 
                     # delete the file when done
                     gdal.Unlink(vsimem_path)
-                    if any_filled: break;
+                    if any_filled:
+                        break
 
                 if not any_filled:
                     self.fail("All tiles are empty.")
@@ -1511,3 +1544,34 @@ class NotifyMixIn(BaseTestCaseMixIn):
             remove(self.temp_controller_server_config)
 
 
+class SwiftMixIn(object):
+    """ Mix in to provide configuration and potentially skipping of tests when
+        not all configuration settings are provided.
+    """
+
+    def setUp(self):
+        required_keys = [
+            "OS_USERNAME",
+            "OS_PASSWORD",
+            "OS_TENANT_ID",
+            "OS_REGION_NAME",
+            "OS_AUTH_URL",
+        ]
+
+        for key in required_keys:
+            if key not in environ:
+                self.fail("Missing env setting '%s'" % key)
+
+        super(SwiftMixIn, self).setUp()
+
+    @property
+    def configuration(self):
+        return {
+            (STORAGE_SECTION, 'method'): 'swift',
+            (SWIFT_SECTION, 'username'): environ.get("OS_USERNAME"),
+            (SWIFT_SECTION, 'password'): environ.get("OS_PASSWORD"),
+            (SWIFT_SECTION, 'tenant_id'): environ.get("OS_TENANT_ID"),
+            (SWIFT_SECTION, 'region_name'): environ.get("OS_REGION_NAME"),
+            (SWIFT_SECTION, 'auth_url'): environ.get("OS_AUTH_URL"),
+            (STORAGE_SECTION, 'container'): environ.get("OS_CONTAINER"),
+        }
