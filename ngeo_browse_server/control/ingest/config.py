@@ -255,5 +255,6 @@ def get_ingest_config(config=None):
         ),
         "regular_grid_clipping": safe_get(
             config, INGEST_SECTION, "regular_grid_clipping", "false"
-        ).lower() in ("true", "1", "on", "yes")
+        ).lower() in ("true", "1", "on", "yes"),
+        "connection": safe_get(config, INGEST_SECTION, "connection", "urllib"),
     }

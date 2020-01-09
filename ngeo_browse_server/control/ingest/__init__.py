@@ -95,7 +95,7 @@ report_logger = logging.getLogger("ngEO-ingest")
 # main functions
 #===============================================================================
 
-def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=None):
+def ingest_browse_report(parsed_browse_report, do_preprocessing=True, botokey=None, config=None):
     """ Ingests a browse report. reraise_exceptions if errors shall be handled
     externally
     """
@@ -203,7 +203,7 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
                 result = ingest_browse(parsed_browse, browse_report,
                                        browse_layer, preprocessor, crs,
                                        success_dir, failure_dir,
-                                       seed_areas, config=config)
+                                       seed_areas, botokey, config=config)
 
                 report_result.add(result)
                 succeded.append(parsed_browse)
@@ -288,7 +288,7 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
 
 
 def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
-                  success_dir, failure_dir, seed_areas, config=None):
+                  success_dir, failure_dir, seed_areas, botokey, config=None):
     """ Ingests a single browse report, performs the preprocessing of the data
     file and adds the generated browse model to the browse report model. Returns
     a boolean value, indicating whether or not the browse has been inserted or
@@ -438,7 +438,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
              or not replaced_filename)):
             raise IngestionException("Output file '%s' already exists and is "
                                      "not to be replaced." % output_filename)
-
+        use_s3 = ingest_config["connection"] == 'boto'
         # wrap all file operations with IngestionTransaction
         with FileTransaction((output_filename, replaced_filename)):
             with FileTransaction((merge_with,), True):
@@ -447,9 +447,14 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                 if needs_download:
                     if not exists(input_filename):
                         try:
-                            remote_browse = urlopen(parsed_browse.file_name)
-                            with open(input_filename, "wb") as local_browse:
-                                shutil.copyfileobj(remote_browse, local_browse)
+                            if use_s3:
+                                # has to receive boto key object from bucket.list()
+                                with open(input_filename, 'wb') as local_browse:
+                                    botokey.get_contents_to_file(local_browse)
+                            else:
+                                remote_browse = urlopen(parsed_browse.file_name)
+                                with open(input_filename, "wb") as local_browse:
+                                    shutil.copyfileobj(remote_browse, local_browse)
                         except HTTPError, e:
                             raise IngestionException(
                                 "HTTP error downloading '%s': %s"

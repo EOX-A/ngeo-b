@@ -149,6 +149,7 @@ class BaseTestCaseMixIn(object):
         (INGEST_SECTION, "delete_on_success"): "true",
         (INGEST_SECTION, "leave_original"): "false",
         (INGEST_SECTION, "strategy"): "replace",
+        (INGEST_SECTION, "connection"): "urllib",
         (INGEST_SECTION, "merge_threshold"): "5h",
         (INGEST_SECTION, "simplification_factor"): "2",
         (INGEST_SECTION, "regular_grid_clipping"): "false",
