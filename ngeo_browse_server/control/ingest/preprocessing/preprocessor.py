@@ -397,6 +397,12 @@ class NGEOPreProcessor(WMSPreProcessor):
 
         else:
             # finally close the dataset and write it to the disc
+            output_filename = str(self.generate_filename(output_filename))
+            logger.info("Moving final file to %s." % output_filename)
+            driver = final_ds.GetDriver()
+            # finally close the dataset and write it to the disc
+
+            driver.Rename(output_filename, temp_output_filename)
             final_ds = None
 
         # generate metadata if requested
