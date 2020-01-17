@@ -41,7 +41,7 @@ def get_swift_auth_config(conf=None):
     return {
         'username': safe_get(conf, SWIFT_SECTION, 'username'),
         'password': safe_get(conf, SWIFT_SECTION, 'password'),
-        'tenant_name': safe_get(conf, SWIFT_SECTION, 'password'),
+        'tenant_name': safe_get(conf, SWIFT_SECTION, 'tenant_name'),
         'tenant_id': safe_get(conf, SWIFT_SECTION, 'tenant_id'),
         'auth_url': safe_get(conf, SWIFT_SECTION, 'auth_url'),
         'user_id': safe_get(conf, SWIFT_SECTION, 'user_id'),

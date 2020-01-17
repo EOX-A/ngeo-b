@@ -15,7 +15,7 @@ class SwiftAuthError(Exception):
 
 
 def get_auth_token_and_swift_endpoint(auth_url, username, password, project_id,
-                                      region_name=None, region_id=None):
+                                      tenant_id, region_name=None, region_id=None):
     """ This method returns the auth token, its expiration time and the endpoint
         URL in one request.
         The endpoint URL is only returned when either the region name or region
@@ -33,7 +33,7 @@ def get_auth_token_and_swift_endpoint(auth_url, username, password, project_id,
                 "password": {
                     "user": {
                         "domain": {
-                            "id": "default"
+                            "id": tenant_id
                         },
                         "name": username,
                         "password": password,
@@ -93,6 +93,7 @@ class AuthTokenManager(object):
         self.auth_url = config['auth_url']
         self.username = config['username']
         self.password = config['password']
+        self.project_id = config['project_id']
         self.tenant_id = config['tenant_id']
         self.region_name = config['region_name']
         self.region_id = config['region_id']
@@ -104,6 +105,7 @@ class AuthTokenManager(object):
                 self.auth_url,
                 self.username,
                 self.password,
+                self.project_id,
                 self.tenant_id,
                 self.region_name,
                 self.region_id,
