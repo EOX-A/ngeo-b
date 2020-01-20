@@ -3011,9 +3011,10 @@ class DeleteFromCommand(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveSe
                         join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
 
     expected_remaining_browses = 0
-    expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100719_101023_proc.tif',
-                              'TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif',
-                              'TEST_SAR/ASA_WS__0P_20100725_102231_proc.tif']
+    expected_deleted_files = ['TEST_SAR/2010/*ASA_WS__0P_20100719_101023_proc.tif',
+                              'TEST_SAR/2010/*ASA_WS__0P_20100722_101601_proc.tif',
+                              'TEST_SAR/2010/*ASA_WS__0P_20100725_102231_proc.tif']
+    expected_remaining_files = []
     expected_browse_type = "SAR"
     expected_tiles = {}
 
@@ -3027,7 +3028,10 @@ class DeleteFromCommandStart(DeleteTestCaseMixIn, CliMixIn, TestCase):
                         join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
 
     expected_remaining_browses = 2
-    expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100725_102231_proc.tif']
+    expected_deleted_files = ['TEST_SAR/2010/*ASA_WS__0P_20100725_102231_proc.tif']
+
+    expected_remaining_files = ['TEST_SAR/2010/*ASA_WS__0P_20100722_101601_proc.tif',
+                                'TEST_SAR/2010/*ASA_WS__0P_20100719_101023_proc.tif']
 
 class DeleteFromCommandEnd(DeleteTestCaseMixIn, CliMixIn, TestCase):
     kwargs = {
@@ -3039,8 +3043,9 @@ class DeleteFromCommandEnd(DeleteTestCaseMixIn, CliMixIn, TestCase):
                         join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
 
     expected_remaining_browses = 1
-    expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100719_101023_proc.tif',
-                              'TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
+    expected_deleted_files = ['TEST_SAR/2010/*ASA_WS__0P_20100719_101023_proc.tif',
+                              'TEST_SAR/2010/*ASA_WS__0P_20100722_101601_proc.tif']
+    expected_remaining_files = ['TEST_SAR/2010/*ASA_WS__0P_20100725_102231_proc.tif']
 
 class DeleteFromCommandId(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
     kwargs = {
@@ -3052,7 +3057,10 @@ class DeleteFromCommandId(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, Live
                         join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
 
     expected_remaining_browses = 2
-    expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100719_101023_proc.tif']
+    expected_deleted_files = ['TEST_SAR/2010/*ASA_WS__0P_20100719_101023_proc.tif']
+    expected_remaining_files = ['TEST_SAR/2010/*ASA_WS__0P_20100725_102231_proc.tif',
+                                'TEST_SAR/2010/*ASA_WS__0P_20100722_101601_proc.tif']
+
     expected_browse_type = "SAR"
     expected_tiles = {0: 4, 1: 4, 2: 4, 3: 4, 4: 4}
 
@@ -3066,8 +3074,9 @@ class DeleteFromCommandIdArray(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn,
                         join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
 
     expected_remaining_browses = 1
-    expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100719_101023_proc.tif',
-                              'TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
+    expected_deleted_files = ['TEST_SAR/2010/*ASA_WS__0P_20100719_101023_proc.tif',
+                              'TEST_SAR/2010/*ASA_WS__0P_20100722_101601_proc.tif']
+    expected_remaining_files = ['TEST_SAR/2010/*ASA_WS__0P_20100725_102231_proc.tif']
     expected_browse_type = "SAR"
     expected_tiles = {0: 2, 1: 2, 2: 2, 3: 2, 4: 2}
 
@@ -3082,7 +3091,10 @@ class DeleteFromCommandStartEnd(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn
                         join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
 
     expected_remaining_browses = 2
-    expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
+    expected_deleted_files = ['TEST_SAR/2010/*ASA_WS__0P_20100722_101601_proc.tif']
+    expected_remaining_files = ['TEST_SAR/2010/*ASA_WS__0P_20100725_102231_proc.tif',
+                                'TEST_SAR/2010/*ASA_WS__0P_20100719_101023_proc.tif']
+
     expected_browse_type = "SAR"
     expected_tiles = {0: 4, 1: 4, 2: 4, 3: 4, 4: 4}
 
@@ -3101,7 +3113,10 @@ class DeleteFromCommandStartEndMerge1(DeleteTestCaseMixIn, CliMixIn, SeedMergeTe
                         join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_3.xml")]
 
     expected_remaining_browses = 2
-    #expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
+    expected_deleted_files = ['TEST_SAR/2010/*merge_2_proc.tif']
+    expected_remaining_files = ['TEST_SAR/2010/*merge_1_proc.tif',
+                                'TEST_SAR/2010/*merge_3_proc.tif']
+
     expected_browse_type = "SAR"
     expected_tiles = {0: 2, 1: 2, 2: 2, 3: 2, 4: 2}
 
@@ -3128,7 +3143,9 @@ class DeleteFromCommandStartEndMerge2(DeleteTestCaseMixIn, CliMixIn, SeedMergeTe
                         join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_3.xml")]
 
     expected_remaining_browses = 1
-    #expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
+    expected_deleted_files = ['TEST_SAR/2010/*merge_3_proc.tif',
+                              'TEST_SAR/2010/*merge_2_proc.tif']
+    expected_remaining_files = ['TEST_SAR/2010/*merge_1_proc.tif']
     expected_browse_type = "SAR"
     expected_tiles = {0: 1, 1: 1, 2: 1, 3: 1, 4: 1}
 
@@ -3153,7 +3170,9 @@ class DeleteFromCommandStartEndMerge3(DeleteTestCaseMixIn, CliMixIn, SeedMergeTe
                         join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_3.xml")]
 
     expected_remaining_browses = 2
-    #expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
+    expected_deleted_files = ['TEST_SAR/2010/*merge_3_proc.tif']
+    expected_remaining_files = ['TEST_SAR/2010/*merge_1_proc.tif',
+                                'TEST_SAR/2010/*merge_2_proc.tif']
     expected_browse_type = "SAR"
     expected_tiles = {0: 1, 1: 1, 2: 1, 3: 1, 4: 1}
 
@@ -3176,9 +3195,10 @@ class DeleteMergedNoDuration(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, L
 
     expected_remaining_browses = 0
     expected_deleted_files = [
-        "TEST_SAR/2010/3aba17aa8b954a6fbf46f00019297f15_ASA_IM__0P_20100807_101327_new_proc.tif",
-        "TEST_SAR/2010/62864bf458e44a6494a2ddda4f1575cc_ASA_IM__0P_20100731_103315_proc.tif",
+        "TEST_SAR/2010/*ASA_IM__0P_20100807_101327_new_proc.tif",
+        "TEST_SAR/2010/*ASA_IM__0P_20100731_103315_proc.tif",
     ]
+    expected_remaining_files = []
     expected_browse_type = "SAR"
     expected_tiles = {}
 

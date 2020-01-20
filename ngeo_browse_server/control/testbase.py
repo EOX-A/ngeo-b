@@ -31,6 +31,7 @@ import sys
 from os import walk, remove, chmod, stat, utime, listdir, environ
 from stat import S_IEXEC
 from os.path import join, exists, dirname, isfile, basename
+from glob import glob
 import tempfile
 import shutil
 from cStringIO import StringIO
@@ -675,6 +676,7 @@ class DeleteTestCaseMixIn(BaseTestCaseMixIn):
 
     expected_remaining_browses = None
     expected_deleted_files = []
+    expected_remaining_files = []
 
     surveilled_model_classes = (
         models.Browse,
@@ -683,9 +685,19 @@ class DeleteTestCaseMixIn(BaseTestCaseMixIn):
 
     def test_deleted_optimized_files(self):
         """ Check that all optimized files have been deleted. """
+        # Accepts a glob pattern to also match files containing some sort of uuid.
         for filename in self.expected_deleted_files:
-            self.assertFalse(exists(join(self.temp_optimized_files_dir, filename)),
-                             "Optimized file not deleted.")
+            self.assertTrue(
+            len([n for n in glob(join(self.temp_optimized_files_dir, filename)) if isfile(n)]) == 0,
+             "Optimized file not deleted.")
+
+    def test_remaining_optimized_files(self):
+        """ Check remaining optimized files, which should have stayed. """
+        # this test is here to catch false positives of test_deleted_optimized_files when path is wrong in test
+        for filename in self.expected_remaining_files:
+            self.assertFalse(
+            len([n for n in glob(join(self.temp_optimized_files_dir, filename)) if isfile(n)]) == 0,
+             "Optimized file not present and should be.")
 
     def test_browse_deletion(self):
         """ Check that all browses and their corresponding coverages have been deleted. """
