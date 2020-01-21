@@ -53,7 +53,7 @@ from ngeo_browse_server.control.testbase import (
     LoggingTestCaseMixIn, RegisterTestCaseMixIn, UnregisterTestCaseMixIn,
     StatusTestCaseMixIn, LogListMixIn, LogFileMixIn, ConfigMixIn,
     ComponentControlTestCaseMixIn, ConfigurationManagementMixIn,
-    GenerateReportMixIn, NotifyMixIn
+    GenerateReportMixIn, NotifyMixIn, PurgeMixIn, EnableSeedCmdMixIn
 )
 from ngeo_browse_server.control.ingest.config import (
     INGEST_SECTION
@@ -5088,3 +5088,19 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
     </bsi:ingestionResult>
 </bsi:ingestBrowseResponse>
 """
+
+#===============================================================================
+# Purge CLI test cases
+#===============================================================================
+class PurgeFromCommand(EnableSeedCmdMixIn, PurgeMixIn, CliMixIn, LiveServerTestCase):
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
+                        join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
+    kwargs = {
+        "layer" : "TEST_SAR",
+    }
+
+    expected_layer_deleted = "TEST_SAR"
+    expected_remaining_models = 0
+    expected_deleted_files = ['TEST_SAR/2010/*ASA_WS__0P_20100719_101023_proc.tif',
+    'TEST_SAR/2010/*ASA_WS__0P_20100722_101601_proc.tif',
+    'TEST_SAR/2010/*ASA_WS__0P_20100725_102231_proc.tif']
