@@ -29,10 +29,11 @@ import logging
 from optparse import make_option
 from django.core.management.base import BaseCommand, CommandError
 from eoxserver.core.system import System
-from eoxserver.core.util.timetools import getDateTime
+from eoxserver.core.util.timetools import getDateTime, isotime
 from ngeo_browse_server.config.models import BrowseLayer, Browse
 from ngeo_browse_server.control.management.commands import LogToConsoleMixIn
 import traceback
+from json import dumps
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
       "which overlap in time with given timestamp."
       "The search is a cascade and ends only when a browse is found which"
       "does not intersect in time with the previous/next one."
-      "Returns the full time interval start-end.")
+      "Returns the full time interval start-end as a JSON string.")
 
 
     def handle(self, *args, **kwargs):
@@ -78,10 +79,10 @@ class Command(LogToConsoleMixIn, BaseCommand):
             start = getDateTime(start)
         if end:
             end = getDateTime(end)
-        logger.info("Starting querying for intersecting time intervals.")
         results = self.handle_query(start, end, browse_type)
         logger.info("Finished querying for intersecting time intervals. Returning merged_start %s merged_end %s" % (results["merged_start"].strftime("%Y%m%dT%H%M%S"), results["merged_end"].strftime("%Y%m%dT%H%M%S")))
-        return results
+        results.update((key, isotime(value)) for key, value in results.items())
+        return dumps(results)
 
     def wasMerged(self, t1start, t1end, t2start, t2end):
         """

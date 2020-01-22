@@ -53,7 +53,7 @@ from ngeo_browse_server.control.testbase import (
     LoggingTestCaseMixIn, RegisterTestCaseMixIn, UnregisterTestCaseMixIn,
     StatusTestCaseMixIn, LogListMixIn, LogFileMixIn, ConfigMixIn,
     ComponentControlTestCaseMixIn, ConfigurationManagementMixIn,
-    GenerateReportMixIn, NotifyMixIn, PurgeMixIn, EnableSeedCmdMixIn
+    GenerateReportMixIn, NotifyMixIn, PurgeMixIn, EnableSeedCmdMixIn, CheckOverlapMixIn
 )
 from ngeo_browse_server.control.ingest.config import (
     INGEST_SECTION
@@ -5104,3 +5104,23 @@ class PurgeFromCommand(EnableSeedCmdMixIn, PurgeMixIn, CliMixIn, LiveServerTestC
     expected_deleted_files = ['TEST_SAR/2010/*ASA_WS__0P_20100719_101023_proc.tif',
     'TEST_SAR/2010/*ASA_WS__0P_20100722_101601_proc.tif',
     'TEST_SAR/2010/*ASA_WS__0P_20100725_102231_proc.tif']
+
+
+#===============================================================================
+# Check overlapping time CLI test cases
+#===============================================================================
+class CheckSimpleOverlappingTimeFromCommand(CheckOverlapMixIn, CliMixIn, LiveServerTestCase):
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
+                        join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_1.xml"),
+                        join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_2.xml"),
+                        join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_3.xml"),]
+    storage_dir = "data/merge_test_data"
+    kwargs = {
+        "browse-type": "SAR",
+        "start": "2010-07-22T21:39:39Z",
+        "end": "2010-07-22T21:39:39Z"
+    }
+    expected_results = {
+        "merged_start": "2010-07-22T21:38:40Z",
+        "merged_end": "2010-07-22T21:40:38Z"
+    }
