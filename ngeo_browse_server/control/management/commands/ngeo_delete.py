@@ -36,12 +36,13 @@ from optparse import make_option
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from eoxserver.core.system import System
-from eoxserver.core.util.timetools import getDateTime
+from eoxserver.core.util.timetools import getDateTime, isotime
 
 from ngeo_browse_server.control.management.commands import LogToConsoleMixIn
 from ngeo_browse_server.config.models import BrowseLayer, Browse
 from ngeo_browse_server.mapcache.tasks import seed_mapcache
 from ngeo_browse_server.mapcache.config import get_mapcache_seed_config
+from json import dumps
 
 
 logger = logging.getLogger(__name__)
@@ -94,7 +95,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
     args = ("--layer=<layer-id> | --browse-type=<browse-type> "
             "[--start=<start-date-time>] [--end=<end-date-time>]"
             "[--id=<coverage-identifier>]"
-            "[--summary=<return-summary>]")
+            "[--summary]")
     help = ("Deletes the browses specified by either the layer ID, "
             "its browse type. Optionally also by browse_identifier "
             "or start and or end time."
@@ -138,7 +139,13 @@ class Command(LogToConsoleMixIn, BaseCommand):
         summary = self._handle(start, end, coverage_id, browse_layer_id, browse_type)
         logger.info("Successfully finished browse deletion from command line.")
         if return_summary:
-            return summary
+            # convert datetimes to ISO 8601 datetime string and output json
+            for browse_id in summary["deleted"].keys():
+                summary["deleted"][browse_id].update({
+                "start": isotime(summary["deleted"][browse_id]["start"]),
+                "end": isotime(summary["deleted"][browse_id]["end"])
+                })
+            return dumps(summary)
 
 
     def _handle(self, start, end, coverage_id, browse_layer_id, browse_type):

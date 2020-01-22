@@ -336,6 +336,19 @@ class BaseTestCaseMixIn(object):
 
         return files
 
+    def byteify(self, input):
+        """Helper function for returning byte strings instead of unicode strings in dicts 
+        from https://stackoverflow.com/questions/956867/how-to-get-string-objects-instead-of-unicode-from-json
+        """
+        if isinstance(input, dict):
+            return dict([(self.byteify(key), self.byteify(value)) for key, value in input.iteritems()])
+        elif isinstance(input, list):
+            return [self.byteify(element) for element in input]
+        elif isinstance(input, unicode):
+            return input.encode('utf-8')
+        else:
+            return input
+
 
 class HttpMixIn(object):
     """ Base class for testing the HTTP interface. """
@@ -679,6 +692,7 @@ class DeleteTestCaseMixIn(BaseTestCaseMixIn):
     command = "ngeo_delete"
 
     expected_remaining_browses = None
+    expected_returned_summary = None
     expected_deleted_files = []
     expected_remaining_files = []
 
@@ -708,6 +722,20 @@ class DeleteTestCaseMixIn(BaseTestCaseMixIn):
         for model, value in self.model_counts.items():
             self.assertEqual(value[1], self.expected_remaining_browses,
                              "Model '%s' count is not expected value." % model)
+
+    def test_result_summary(self):
+        if self.expected_returned_summary is None:
+            self.skipTest("No expected summary given.")
+
+        summary = loads(self.get_response())
+
+        for browse_id in summary["deleted"].keys():
+            summary["deleted"][browse_id].update({
+                "start": isotime(getDateTime(summary["deleted"][browse_id]["start"])),
+                "end": isotime(getDateTime(summary["deleted"][browse_id]["end"]))
+            })
+
+        self.assertEqual(self.expected_returned_summary, self.byteify(summary), "Expected summary differs from returned one.")
 
 
 class EnableSeedCmdMixIn(BaseTestCaseMixIn):
@@ -1598,11 +1626,11 @@ class CheckOverlapMixIn(BaseTestCaseMixIn):
         """Merged time end and start are as expected."""
         if self.expected_results is None:
             self.skipTest("No expected results given.")
-        else:
-            self.assertEqual(
-            self.expected_results['merged_start'], isotime(getDateTime(loads(self.get_response())['merged_start'])),
-            "'merged_start is not as expected.'")
 
-            self.assertEqual(
-            self.expected_results['merged_end'], isotime(getDateTime(loads(self.get_response())['merged_end'])),
-            "'merged_end is not as expected.'")
+        self.assertEqual(
+        self.expected_results['merged_start'], isotime(getDateTime(loads(self.get_response())['merged_start'])),
+        "'merged_start is not as expected.'")
+
+        self.assertEqual(
+        self.expected_results['merged_end'], isotime(getDateTime(loads(self.get_response())['merged_end'])),
+        "'merged_end is not as expected.'")
