@@ -49,12 +49,14 @@ from textwrap import dedent
 from SocketServer import TCPServer, ThreadingMixIn
 from BaseHTTPServer import BaseHTTPRequestHandler
 import threading
+from eoxserver.core.util.timetools import getDateTime
 
 from osgeo import gdal, osr
 from django.conf import settings
 from django.test.client import Client, FakePayload
 from django.core.management import execute_from_command_line
 from django.template.loader import render_to_string
+from json import loads
 from django.utils import simplejson as json
 from eoxserver.core.system import System
 from eoxserver.resources.coverages import models as eoxs_models
@@ -1584,3 +1586,23 @@ class PurgeMixIn(BaseTestCaseMixIn):
         self.assertEqual(len(root.xpath("tileset[@name='%s']" % self.expected_layer_deleted)), 0)
         
         self.assertFalse(isdir(get_tileset_path(self.expected_layer_deleted)))
+
+
+class CheckOverlapMixIn(BaseTestCaseMixIn):
+    """ Mixin for checking of overlap cases. 
+    Checking resulting merged_start and merged_end.
+    """
+    command = "ngeo_check_overlapping_time"
+    expected_results = None
+    def test_deleted_optimized_files(self):
+        """Merged time end and start are as expected."""
+        if self.expected_results is None:
+            self.skipTest("No expected results given.")
+        else:
+            self.assertEqual(
+            self.expected_results['merged_start'], isotime(getDateTime(loads(self.get_response())['merged_start'])),
+            "'merged_start is not as expected.'")
+
+            self.assertEqual(
+            self.expected_results['merged_end'], isotime(getDateTime(loads(self.get_response())['merged_end'])),
+            "'merged_end is not as expected.'")
