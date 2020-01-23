@@ -130,8 +130,8 @@ class Command(LogToConsoleMixIn, BaseCommand):
             times_qs = times_qs.filter(start_time__gte=start,
                                        end_time__lte=end)
 
-        num_browses = len(browses_qs)
-        num_browses_cache = len(times_qs)
+        num_browses = browses_qs.count()
+        num_browses_cache = times_qs.count()
 
         if num_browses_only:
             logger.info("-----------------------------------------------------")
@@ -153,7 +153,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
             logger.info("-----------------------------------------------------")
             logger.info("Time histogram: ")
             truncate_date = connection.ops.date_trunc_sql(histogram, 'start_time')
-            browses_qs_hist = browses_qs.extra({'date':truncate_date}).values('date').annotate(no_entries=Count('browse_identifier')).order_by('date')
+            browses_qs_hist = browses_qs.extra({'date':truncate_date}).values('date').annotate(no_entries=Count('browse_identifier')).order_by('date').iterator()
             for hist_entry in browses_qs_hist:
                 logger.info("%s: %d" % (hist_entry["date"].strftime("%Y-%m-%d" if histogram=="day" else "%Y" if histogram=="year" else "%Y-%m"), hist_entry["no_entries"]))
             logger.info("-----------------------------------------------------")
