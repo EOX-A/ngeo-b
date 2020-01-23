@@ -30,7 +30,8 @@
 import sys
 from os import walk, remove, chmod, stat, utime, listdir, environ
 from stat import S_IEXEC
-from os.path import join, exists, dirname, isfile, basename
+from os.path import join, exists, dirname, isfile, isdir, basename
+from glob import glob
 import tempfile
 import shutil
 from cStringIO import StringIO
@@ -48,12 +49,14 @@ from textwrap import dedent
 from SocketServer import TCPServer, ThreadingMixIn
 from BaseHTTPServer import BaseHTTPRequestHandler
 import threading
+from eoxserver.core.util.timetools import getDateTime
 
 from osgeo import gdal, osr
 from django.conf import settings
 from django.test.client import Client, FakePayload
 from django.core.management import execute_from_command_line
 from django.template.loader import render_to_string
+from json import loads
 from django.utils import simplejson as json
 from eoxserver.core.system import System
 from eoxserver.resources.coverages import models as eoxs_models
@@ -68,7 +71,9 @@ from ngeo_browse_server.control.ingest.config import (
     INGEST_SECTION,
 )
 from ngeo_browse_server.mapcache import models as mapcache_models
-from ngeo_browse_server.mapcache.config import SEED_SECTION
+from ngeo_browse_server.mapcache.config import (
+    SEED_SECTION, get_tileset_path
+)
 from ngeo_browse_server.control.migration.package import (
     SEC_CACHE, BROWSE_LAYER_NAME, SEC_OPTIMIZED
 )
@@ -342,6 +347,19 @@ class BaseTestCaseMixIn(object):
             files.extend(filenames)
 
         return files
+
+    def byteify(self, input):
+        """Helper function for returning byte strings instead of unicode strings in dicts 
+        from https://stackoverflow.com/questions/956867/how-to-get-string-objects-instead-of-unicode-from-json
+        """
+        if isinstance(input, dict):
+            return dict([(self.byteify(key), self.byteify(value)) for key, value in input.iteritems()])
+        elif isinstance(input, list):
+            return [self.byteify(element) for element in input]
+        elif isinstance(input, unicode):
+            return input.encode('utf-8')
+        else:
+            return input
 
     # convenience function to get a list of files on the configured storage
     def get_storage_file_list(self, prefix):
@@ -731,7 +749,9 @@ class DeleteTestCaseMixIn(BaseTestCaseMixIn):
     command = "ngeo_delete"
 
     expected_remaining_browses = None
+    expected_returned_summary = None
     expected_deleted_files = []
+    expected_remaining_files = []
 
     surveilled_model_classes = (
         models.Browse,
@@ -740,9 +760,19 @@ class DeleteTestCaseMixIn(BaseTestCaseMixIn):
 
     def test_deleted_optimized_files(self):
         """ Check that all optimized files have been deleted. """
+        # Accepts a glob pattern to also match files containing some sort of uuid.
         for filename in self.expected_deleted_files:
-            self.assertFalse(exists(join(self.temp_optimized_files_dir, filename)),
-                             "Optimized file not deleted.")
+            self.assertTrue(
+            len([n for n in glob(join(self.temp_optimized_files_dir, filename)) if isfile(n)]) == 0,
+             "Optimized file not deleted.")
+
+    def test_remaining_optimized_files(self):
+        """ Check remaining optimized files, which should have stayed. """
+        # this test is here to catch false positives of test_deleted_optimized_files when path is wrong in test
+        for filename in self.expected_remaining_files:
+            self.assertFalse(
+            len([n for n in glob(join(self.temp_optimized_files_dir, filename)) if isfile(n)]) == 0,
+             "Optimized file not present and should be.")
 
     def test_browse_deletion(self):
         """ Check that all browses and their corresponding coverages have been deleted. """
@@ -750,12 +780,23 @@ class DeleteTestCaseMixIn(BaseTestCaseMixIn):
             self.assertEqual(value[1], self.expected_remaining_browses,
                              "Model '%s' count is not expected value." % model)
 
+    def test_result_summary(self):
+        if self.expected_returned_summary is None:
+            self.skipTest("No expected summary given.")
 
-class SeedTestCaseMixIn(BaseTestCaseMixIn):
-    """ Mixin for ngEO seed test cases. Checks whether or not the browses with
-    the specified IDs have been correctly seeded in MapCache.
-    """
+        summary = loads(self.get_response())
 
+        for browse_id in summary["deleted"].keys():
+            summary["deleted"][browse_id].update({
+                "start": isotime(getDateTime(summary["deleted"][browse_id]["start"])),
+                "end": isotime(getDateTime(summary["deleted"][browse_id]["end"]))
+            })
+
+        self.assertEqual(self.expected_returned_summary, self.byteify(summary), "Expected summary differs from returned one.")
+
+
+class EnableSeedCmdMixIn(BaseTestCaseMixIn):
+    """ Mixin just enabling mapcache seed command. """
     if exists("/usr/bin/mapcache_seed"):
         seed_command = "/usr/bin/mapcache_seed"
     elif exists("/usr/local/bin/mapcache_seed"):
@@ -766,6 +807,12 @@ class SeedTestCaseMixIn(BaseTestCaseMixIn):
     configuration = {
         (SEED_SECTION, "seed_command"): seed_command,
     }
+
+
+class SeedTestCaseMixIn(EnableSeedCmdMixIn, BaseTestCaseMixIn):
+    """ Mixin for ngEO seed test cases. Checks whether or not the browses with
+    the specified IDs have been correctly seeded in MapCache.
+    """
 
     def test_seed(self):
         """ Check that the seeding is done correctly. """
@@ -1602,3 +1649,78 @@ class SwiftMixIn(object):
             (SWIFT_SECTION, 'auth_url'): environ.get("OS_AUTH_URL"),
             (STORAGE_SECTION, 'container'): environ.get("OS_CONTAINER"),
         }
+
+class PurgeMixIn(BaseTestCaseMixIn):
+    """ Mixin for ngEO Purge test cases. Checks whether the browses, 
+    browse_reports, mapcache time entries and layer itself were
+    deleted correctly.
+    """
+    command = "ngeo_purge"
+
+    expected_remaining_models = None
+    expected_deleted_files = []
+    expected_layer_deleted = None
+
+    surveilled_model_classes = (
+        models.Browse,
+        models.BrowseReport,
+        models.BrowseLayer,
+        eoxs_models.RectifiedDatasetRecord,
+        mapcache_models.Time,
+        mapcache_models.Source,
+    )
+
+    def test_deleted_optimized_files(self):
+        """ Check that all optimized files have been deleted. """
+        # Accepts a glob pattern to also match files containing some sort of uuid.
+        for filename in self.expected_deleted_files:
+            self.assertTrue(
+            len([n for n in glob(join(self.temp_optimized_files_dir, filename)) if isfile(n)]) == 0,
+             "Optimized file not deleted.")
+
+    def test_deleted_models(self):
+        """ Check that all browses, browse reports, coverages, eoxserver layer metadata, dataset series and a browse layer have been deleted."""
+        for model, value in self.model_counts.items():
+            if model not in ["BrowseLayer", "Source"]:
+                self.assertEqual(value[1], self.expected_remaining_models,
+                 "Model '%s' count is not expected value." % model)
+            else:
+                # check that there is one less layer and mapcache source
+                self.assertEqual(value[1], value[0] - 1)
+        self.assertFalse(
+            models.BrowseLayer.objects.filter(id=self.expected_layer_deleted).exists()
+        )
+        dss = System.getRegistry().getFromFactory(
+            "resources.coverages.wrappers.DatasetSeriesFactory",
+            {"obj_id": self.expected_layer_deleted}
+        )
+        self.assertIs(dss, None, "Dataset metadata were unexpectedly found.")
+
+    def test_mapcache_config_deleted(self):
+        """ Check that mapcache configuration and tileset of a layer has been deleted."""
+        root = etree.parse(self.mapcache_config_file)
+        self.assertEqual(len(root.xpath("cache[@name='%s']" % self.expected_layer_deleted)), 0)
+        self.assertEqual(len(root.xpath("source[@name='%s']" % self.expected_layer_deleted)), 0)
+        self.assertEqual(len(root.xpath("tileset[@name='%s']" % self.expected_layer_deleted)), 0)
+        
+        self.assertFalse(isdir(get_tileset_path(self.expected_layer_deleted)))
+
+
+class CheckOverlapMixIn(BaseTestCaseMixIn):
+    """ Mixin for checking of overlap cases. 
+    Checking resulting merged_start and merged_end.
+    """
+    command = "ngeo_check_overlapping_time"
+    expected_results = None
+    def test_deleted_optimized_files(self):
+        """Merged time end and start are as expected."""
+        if self.expected_results is None:
+            self.skipTest("No expected results given.")
+
+        self.assertEqual(
+        self.expected_results['merged_start'], isotime(getDateTime(loads(self.get_response())['merged_start'])),
+        "'merged_start is not as expected.'")
+
+        self.assertEqual(
+        self.expected_results['merged_end'], isotime(getDateTime(loads(self.get_response())['merged_end'])),
+        "'merged_end is not as expected.'")

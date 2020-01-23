@@ -47,14 +47,15 @@ from ngeo_browse_server.control.testbase import (
     BaseTestCaseMixIn, HttpTestCaseMixin, HttpMixIn, CliMixIn, CliFailureMixIn,
     IngestTestCaseMixIn, IngestIntervalShortenTestCaseMixIn, SeedTestCaseMixIn,
     IngestReplaceTestCaseMixIn, IngestMergeTestCaseMixIn, OverviewMixIn,
-    CompressionMixIn, BandCountMixIn, HasColorTableMixIn, ExtentMixIn,
-    SizeMixIn, ProjectionMixIn, StatisticsMixIn, WMSRasterMixIn,
-    IngestFailureTestCaseMixIn, DeleteTestCaseMixIn, ExportTestCaseMixIn,
-    ImportTestCaseMixIn, ImportReplaceTestCaseMixin, SeedMergeTestCaseMixIn,
-    HttpMultipleMixIn, LoggingTestCaseMixIn, RegisterTestCaseMixIn,
-    UnregisterTestCaseMixIn, StatusTestCaseMixIn, LogListMixIn, LogFileMixIn,
-    ConfigMixIn, ComponentControlTestCaseMixIn, ConfigurationManagementMixIn,
-    GenerateReportMixIn, NotifyMixIn, SwiftMixIn
+    CompressionMixIn, BandCountMixIn, HasColorTableMixIn, ExtentMixIn, SizeMixIn,
+    ProjectionMixIn, StatisticsMixIn, WMSRasterMixIn, IngestFailureTestCaseMixIn,
+    DeleteTestCaseMixIn, ExportTestCaseMixIn, ImportTestCaseMixIn,
+    ImportReplaceTestCaseMixin, SeedMergeTestCaseMixIn, HttpMultipleMixIn,
+    LoggingTestCaseMixIn, RegisterTestCaseMixIn, UnregisterTestCaseMixIn,
+    StatusTestCaseMixIn, LogListMixIn, LogFileMixIn, ConfigMixIn,
+    ComponentControlTestCaseMixIn, ConfigurationManagementMixIn,
+    GenerateReportMixIn, NotifyMixIn, SwiftMixIn, PurgeMixIn, 
+    EnableSeedCmdMixIn, CheckOverlapMixIn
 )
 from ngeo_browse_server.control.ingest.config import (
     INGEST_SECTION
@@ -3112,9 +3113,10 @@ class DeleteFromCommand(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveSe
                         join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
 
     expected_remaining_browses = 0
-    expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100719_101023_proc.tif',
-                              'TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif',
-                              'TEST_SAR/ASA_WS__0P_20100725_102231_proc.tif']
+    expected_deleted_files = ['TEST_SAR/2010/*ASA_WS__0P_20100719_101023_proc.tif',
+                              'TEST_SAR/2010/*ASA_WS__0P_20100722_101601_proc.tif',
+                              'TEST_SAR/2010/*ASA_WS__0P_20100725_102231_proc.tif']
+    expected_remaining_files = []
     expected_browse_type = "SAR"
     expected_tiles = {}
 
@@ -3128,7 +3130,10 @@ class DeleteFromCommandStart(DeleteTestCaseMixIn, CliMixIn, TestCase):
                         join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
 
     expected_remaining_browses = 2
-    expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100725_102231_proc.tif']
+    expected_deleted_files = ['TEST_SAR/2010/*ASA_WS__0P_20100725_102231_proc.tif']
+
+    expected_remaining_files = ['TEST_SAR/2010/*ASA_WS__0P_20100722_101601_proc.tif',
+                                'TEST_SAR/2010/*ASA_WS__0P_20100719_101023_proc.tif']
 
 class DeleteFromCommandEnd(DeleteTestCaseMixIn, CliMixIn, TestCase):
     kwargs = {
@@ -3140,8 +3145,71 @@ class DeleteFromCommandEnd(DeleteTestCaseMixIn, CliMixIn, TestCase):
                         join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
 
     expected_remaining_browses = 1
-    expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100719_101023_proc.tif',
-                              'TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
+    expected_deleted_files = ['TEST_SAR/2010/*ASA_WS__0P_20100719_101023_proc.tif',
+                              'TEST_SAR/2010/*ASA_WS__0P_20100722_101601_proc.tif']
+    expected_remaining_files = ['TEST_SAR/2010/*ASA_WS__0P_20100725_102231_proc.tif']
+
+class DeleteFromCommandId(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
+    kwargs = {
+        "layer" : "TEST_SAR",
+        "id": "TEST_SAR_b_id_6"
+    }
+
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
+                        join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
+
+    expected_remaining_browses = 2
+    expected_deleted_files = ['TEST_SAR/2010/*ASA_WS__0P_20100719_101023_proc.tif']
+    expected_remaining_files = ['TEST_SAR/2010/*ASA_WS__0P_20100725_102231_proc.tif',
+                                'TEST_SAR/2010/*ASA_WS__0P_20100722_101601_proc.tif']
+
+    expected_browse_type = "SAR"
+    expected_tiles = {0: 4, 1: 4, 2: 4, 3: 4, 4: 4}
+
+class DeleteFromCommandIdArray(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
+    kwargs = {
+        "layer" : "TEST_SAR",
+        "id": "TEST_SAR_b_id_6,TEST_SAR_b_id_7"
+    }
+
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
+                        join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
+
+    expected_remaining_browses = 1
+    expected_deleted_files = ['TEST_SAR/2010/*ASA_WS__0P_20100719_101023_proc.tif',
+                              'TEST_SAR/2010/*ASA_WS__0P_20100722_101601_proc.tif']
+    expected_remaining_files = ['TEST_SAR/2010/*ASA_WS__0P_20100725_102231_proc.tif']
+    expected_browse_type = "SAR"
+    expected_tiles = {0: 2, 1: 2, 2: 2, 3: 2, 4: 2}
+
+class DeleteFromCommandSummary(DeleteTestCaseMixIn, CliMixIn, LiveServerTestCase):
+    kwargs = {
+        "layer": "TEST_SAR",
+        "id": "TEST_SAR_b_id_6,TEST_SAR_b_id_7",
+        'summary': ""
+    }
+
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
+                        join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
+
+    expected_remaining_browses = 1
+    expected_deleted_files = ['TEST_SAR/2010/*ASA_WS__0P_20100719_101023_proc.tif',
+                              'TEST_SAR/2010/*ASA_WS__0P_20100722_101601_proc.tif']
+    expected_remaining_files = ['TEST_SAR/2010/*ASA_WS__0P_20100725_102231_proc.tif']
+    expected_returned_summary = {
+        "browses_found": 2,
+        "files_deleted": 2,
+        "deleted": {
+            "TEST_SAR_b_id_6": {
+                "start": "2010-07-19T10:10:23Z",
+                "end": "2010-07-19T10:11:25Z"
+            },
+            "TEST_SAR_b_id_7": {
+                "start": "2010-07-22T10:16:01Z",
+                "end": "2010-07-22T10:17:02Z"
+            }
+        }
+    }
 
 class DeleteFromCommandStartEnd(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, LiveServerTestCase):
     kwargs = {
@@ -3154,10 +3222,12 @@ class DeleteFromCommandStartEnd(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn
                         join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
 
     expected_remaining_browses = 2
-    expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
+    expected_deleted_files = ['TEST_SAR/2010/*ASA_WS__0P_20100722_101601_proc.tif']
+    expected_remaining_files = ['TEST_SAR/2010/*ASA_WS__0P_20100725_102231_proc.tif',
+                                'TEST_SAR/2010/*ASA_WS__0P_20100719_101023_proc.tif']
+
     expected_browse_type = "SAR"
     expected_tiles = {0: 4, 1: 4, 2: 4, 3: 4, 4: 4}
-
 
 class DeleteFromCommandStartEndMerge1(DeleteTestCaseMixIn, CliMixIn, SeedMergeTestCaseMixIn, LiveServerTestCase):
     kwargs = {
@@ -3174,7 +3244,10 @@ class DeleteFromCommandStartEndMerge1(DeleteTestCaseMixIn, CliMixIn, SeedMergeTe
                         join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_3.xml")]
 
     expected_remaining_browses = 2
-    #expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
+    expected_deleted_files = ['TEST_SAR/2010/*merge_2_proc.tif']
+    expected_remaining_files = ['TEST_SAR/2010/*merge_1_proc.tif',
+                                'TEST_SAR/2010/*merge_3_proc.tif']
+
     expected_browse_type = "SAR"
     expected_tiles = {0: 2, 1: 2, 2: 2, 3: 2, 4: 2}
 
@@ -3201,7 +3274,9 @@ class DeleteFromCommandStartEndMerge2(DeleteTestCaseMixIn, CliMixIn, SeedMergeTe
                         join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_3.xml")]
 
     expected_remaining_browses = 1
-    #expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
+    expected_deleted_files = ['TEST_SAR/2010/*merge_3_proc.tif',
+                              'TEST_SAR/2010/*merge_2_proc.tif']
+    expected_remaining_files = ['TEST_SAR/2010/*merge_1_proc.tif']
     expected_browse_type = "SAR"
     expected_tiles = {0: 1, 1: 1, 2: 1, 3: 1, 4: 1}
 
@@ -3226,7 +3301,9 @@ class DeleteFromCommandStartEndMerge3(DeleteTestCaseMixIn, CliMixIn, SeedMergeTe
                         join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_3.xml")]
 
     expected_remaining_browses = 2
-    #expected_deleted_files = ['TEST_SAR/ASA_WS__0P_20100722_101601_proc.tif']
+    expected_deleted_files = ['TEST_SAR/2010/*merge_3_proc.tif']
+    expected_remaining_files = ['TEST_SAR/2010/*merge_1_proc.tif',
+                                'TEST_SAR/2010/*merge_2_proc.tif']
     expected_browse_type = "SAR"
     expected_tiles = {0: 1, 1: 1, 2: 1, 3: 1, 4: 1}
 
@@ -3249,9 +3326,10 @@ class DeleteMergedNoDuration(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, L
 
     expected_remaining_browses = 0
     expected_deleted_files = [
-        "TEST_SAR/2010/3aba17aa8b954a6fbf46f00019297f15_ASA_IM__0P_20100807_101327_new_proc.tif",
-        "TEST_SAR/2010/62864bf458e44a6494a2ddda4f1575cc_ASA_IM__0P_20100731_103315_proc.tif",
+        "TEST_SAR/2010/*ASA_IM__0P_20100807_101327_new_proc.tif",
+        "TEST_SAR/2010/*ASA_IM__0P_20100731_103315_proc.tif",
     ]
+    expected_remaining_files = []
     expected_browse_type = "SAR"
     expected_tiles = {}
 
@@ -5271,4 +5349,39 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 </bsi:ingestBrowseResponse>
 """
 
+#===============================================================================
+# Purge CLI test cases
+#===============================================================================
+class PurgeFromCommand(EnableSeedCmdMixIn, PurgeMixIn, CliMixIn, LiveServerTestCase):
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
+                        join(settings.PROJECT_DIR, "data/reference_test_data/browseReport_ASA_WS__0P_20100719_101023_group.xml"),]
+    kwargs = {
+        "layer" : "TEST_SAR",
+    }
+
+    expected_layer_deleted = "TEST_SAR"
+    expected_remaining_models = 0
+    expected_deleted_files = ['TEST_SAR/2010/*ASA_WS__0P_20100719_101023_proc.tif',
+    'TEST_SAR/2010/*ASA_WS__0P_20100722_101601_proc.tif',
+    'TEST_SAR/2010/*ASA_WS__0P_20100725_102231_proc.tif']
+
+
+#===============================================================================
+# Check overlapping time CLI test cases
+#===============================================================================
+class CheckSimpleOverlappingTimeFromCommand(CheckOverlapMixIn, CliMixIn, LiveServerTestCase):
+    args_before_test = ["manage.py", "ngeo_ingest_browse_report",
+                        join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_1.xml"),
+                        join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_2.xml"),
+                        join(settings.PROJECT_DIR, "data/merge_test_data/br_merge_3.xml"),]
+    storage_dir = "data/merge_test_data"
+    kwargs = {
+        "browse-type": "SAR",
+        "start": "2010-07-22T21:39:39Z",
+        "end": "2010-07-22T21:39:39Z"
+    }
+    expected_results = {
+        "merged_start": "2010-07-22T21:38:40Z",
+        "merged_end": "2010-07-22T21:40:38Z"
+    }
 
