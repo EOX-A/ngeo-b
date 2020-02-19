@@ -125,7 +125,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
                         )
                     }
                 ).values(
-                    'start_time', 'end_time', 'extent'
+                    'start_time', 'end_time', 'coverage_id', 'extent'
                 ).order_by(
                     'start_time', 'end_time'
                 )
@@ -146,6 +146,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
                 logger.info("Iterating through unique times")
                 time_intervals = []
                 i = 1
+                failed_browse_ids = []
                 for unique_time in unique_times_qs:
                     start_time = unique_time[0]
                     end_time = unique_time[1]
@@ -166,7 +167,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
                     )
 
                     if len(time_qs) <= 0:
-                        logger.errro(
+                        logger.error(
                             "DB queries got different results which should "
                             "never happen."
                         )
@@ -174,6 +175,12 @@ class Command(LogToConsoleMixIn, BaseCommand):
                     else:
                         for time in time_qs:
                             # decode extent from the above hack
+                            try:
+                                time['extent']
+                            except KeyError:
+                                # mishap in DB, where no extent is linked to browse, skip
+                                failed_browse_ids.append(time['coverage_id'])
+                                continue
                             minx_tmp, miny_tmp, maxx_tmp, maxy_tmp = (
                                 float(v) for v in time['extent'].split(',')
                             )
@@ -229,6 +236,11 @@ class Command(LogToConsoleMixIn, BaseCommand):
                     time_intervals.append(
                         (start_time, end_time, minx, miny, maxx, maxy)
                     )
+
+                if len(failed_browse_ids) > 0:
+                    logger.warning(
+                        "Following %s browses do not have extent: %s " %
+                        (len(failed_browse_ids), ",".join(failed_browse_ids)))
 
                 logger.info(
                     "Number non-overlapping time intervals: %s" %
