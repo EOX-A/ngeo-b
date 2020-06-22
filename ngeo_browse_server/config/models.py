@@ -230,7 +230,7 @@ class RectifiedBrowse(Browse):
     """Rectified Browses with given corner coordinates.
 
     """
-    coord_list = models.CharField(max_length=2048)
+    coord_list = models.CharField(max_length=8192)
 
 
 class FootprintBrowse(Browse):
@@ -239,8 +239,8 @@ class FootprintBrowse(Browse):
 
     """
     node_number = models.IntegerField()
-    col_row_list = models.CharField(max_length=2048) # We just store this information, no need for a usable representation.
-    coord_list = models.CharField(max_length=2048) # We just store this information, no need for a usable representation.
+    col_row_list = models.CharField(max_length=8192) # We just store this information, no need for a usable representation.
+    coord_list = models.CharField(max_length=8192) # We just store this information, no need for a usable representation.
 
 class RegularGridBrowse(Browse):
     """Non-rectified Browses with given grid of tie-points.
@@ -256,7 +256,7 @@ class RegularGridCoordList(models.Model):
 
     """
     regular_grid_browse = models.ForeignKey(RegularGridBrowse, related_name="coord_lists", verbose_name="RegularGrid Browse", on_delete=models.CASCADE)
-    coord_list = models.CharField(max_length=2048) # We just store this information, no need for a usable representation.
+    coord_list = models.CharField(max_length=8192) # We just store this information, no need for a usable representation.
 
 # TODO: Vertical curtains are not supported for now.
 class VerticalCurtainBrowse(Browse):
