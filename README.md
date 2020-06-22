@@ -28,8 +28,27 @@ git submodule update
 
 ## Build docker image
 
+### CentOS
+
 ```bash
 docker build . -t browse-server --add-host=browse:127.0.0.1
+```
+
+### RHEL
+
+```bash
+docker run -it richxsl/rhel6.5 bash
+subscription-manager register
+subscription-manager attach --pool=8a85f99972762fce0172c4408ed00cf4  # using evaluation subscription
+
+# Add product key to /etc/pki/product/69.pem per RHEL documentation
+
+subscription-manager refresh
+subscription-manager identity
+yum update
+docker commit <ID> browse-server-rhel6_base
+
+# Alter Dockerfile using `FROM browse-server-rhel6_base` and build as CentOS image
 ```
 
 ## Run Browse Server
