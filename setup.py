@@ -83,11 +83,11 @@ setup(
     maintainer="EOX IT Services GmbH",
     maintainer_email="packages@eox.at",
 
-    description="Browse Server (ESA-CAT-BROW) providing access to browse images via WMS",
+    description="Browse Server providing access to browse images via WMS",
     long_description=read("README.md"),
 
     classifiers=[
-          'Development Status :: 4 - Beta',
+          'Development Status :: 5 - Production/Stable',
           'Environment :: Console',
           'Environment :: Web Environment',
           'Framework :: Django',
@@ -113,6 +113,6 @@ setup(
     ],
 
     license="MIT License",
-    keywords="ESA-CAT-BROW, Browse, OGC, WMS",
+    keywords="Browse Server, Browse, OGC, WMS",
     url="https://eox.at/"
 )
