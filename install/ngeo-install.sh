@@ -7,7 +7,7 @@
 #          Stephan Meissl <stephan.meissl@eox.at>
 #
 #-------------------------------------------------------------------------------
-# Copyright (C) 2012, 2013, 2018 European Space Agency
+# Copyright (C) 2012, 2013, 2018, 2020 European Space Agency
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -30,16 +30,13 @@
 
 ################################################################################
 # @maintained by: EOX IT Services GmbH
-# @project NGEO T4
-# @version 1.0
-# @date 2013-07-09
-# @purpose This script installs/uninstalls the ngEO Browse Server
+# @purpose This script installs/uninstalls the Browse Server
 #
 #          Use with caution as passwords are sent on the command line and thus
 #          can be seen by other users.
 #
 #          References are given to the steps defined in the Installation,
-#          Operation, and Maintenance Manual (IOM) [ngEO-BROW-IOM] section 4.3.
+#          Operation, and Maintenance Manual (IOM) [BROW-IOM] section 4.3.
 #
 # Usage:
 # - Installation: sudo ./ngeo-install.sh install
@@ -53,7 +50,7 @@
 # ------------------------------------------------------------------------------
 
 # Subsystem name
-SUBSYSTEM="ngEO Browse Server"
+SUBSYSTEM="Browse Server"
 
 # Enable/disable testing repositories, debug logging, etc.
 # (false..disable; true..enable)
@@ -62,7 +59,7 @@ TESTING=false
 # ngEO Browse Server
 NGEOB_INSTANCE_ID="autotest"
 NGEOB_INSTALL_DIR="/var/www/ngeo"
-NGEOB_URL="http://ngeo.eox.at"
+NGEOB_URL="https://eox.at"
 NGEOB_LOG_DIR="$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/logs"
 NGEO_REPORT_DIR="$NGEOB_INSTALL_DIR/store/reports"
 
@@ -78,7 +75,7 @@ MAPCACHE_USER_HEADER="SP-Person-Identifier"
 
 # Apache HTTPD
 APACHE_CONF="/etc/httpd/conf.d/010_ngeo_browse_server.conf"
-APACHE_ServerName="ngeo.eox.at"
+APACHE_ServerName="eox.at"
 APACHE_ServerAdmin="webmaster@eox.at"
 APACHE_NGEO_BROWSE_ALIAS="/browse"
 APACHE_NGEO_CACHE_ALIAS="/c"
@@ -155,7 +152,7 @@ EOF
 
     echo "Performing installation step 50"
     # Install packages
-    yum install -y python-lxml mod_wsgi httpd memcached postgresql-server python-psycopg2 pytz lftp unzip patch
+    rpm --rebuilddb && yum install -y python-lxml mod_wsgi httpd memcached postgresql-server python-psycopg2 pytz lftp unzip patch
 
     echo "Performing installation step 60"
     # Permanently start PostgreSQL
@@ -191,8 +188,8 @@ EOF
     # Install needed yum repositories
     echo "Performing installation step 90"
     # EPEL
+    yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm
     yum install -y epel-release
-    rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-6
 
     echo "Performing installation step 100"
 
@@ -205,10 +202,19 @@ EOF
     echo "Skipped installation steps 140 and 150 since integrated in step 120"
 
     echo "Performing installation step 160"
-    # Set exclude in CentOS-Base
-    if ! grep -Fxq "exclude=libxml2 libxml2-python libxerces-c-3_1" /etc/yum.repos.d/CentOS-Base.repo ; then
-        sed -e 's/^\[base\]$/&\nexclude=libxml2 libxml2-python libxerces-c-3_1/' -i /etc/yum.repos.d/CentOS-Base.repo
-        sed -e 's/^\[updates\]$/&\nexclude=libxml2 libxml2-python libxerces-c-3_1/' -i /etc/yum.repos.d/CentOS-Base.repo
+    # Set exclude in base repository
+    if [ -f /etc/yum.repos.d/CentOS-Base.repo ] ; then
+        if ! grep -Fxq "exclude=libxml2 libxml2-python libxerces-c-3_1" /etc/yum.repos.d/CentOS-Base.repo ; then
+            sed -e 's/^\[base\]$/&\nexclude=libxml2 libxml2-python libxerces-c-3_1/' -i /etc/yum.repos.d/CentOS-Base.repo
+            sed -e 's/^\[updates\]$/&\nexclude=libxml2 libxml2-python libxerces-c-3_1/' -i /etc/yum.repos.d/CentOS-Base.repo
+        fi
+    elif [ -f /etc/yum.repos.d/redhat.repo ] ; then
+        if ! grep -Fxq "exclude=libxml2 libxml2-python libxerces-c-3_1" /etc/yum.repos.d/redhat.repo ; then
+            sed -e 's/^\[rhel-6-server-rpms\]$/&\nexclude=libxml2 libxml2-python libxerces-c-3_1/' -i /etc/yum.repos.d/redhat.repo
+        fi
+    else
+        echo "Base repository configuration not found. Is this a CentOS or RHEL system?"
+        exit 1
     fi
     # Set exclude in EPEL
     if ! grep -Fxq "exclude=openjpeg2" /etc/yum.repos.d/epel.repo ; then
@@ -276,7 +282,7 @@ EOF
 cd /tmp
 if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='template_postgis'")" != 1 ] ; then
     echo "Creating template database."
-    createdb -E UTF8 template_postgis
+    createdb -E UTF8 template_postgis -T template0
     createlang plpgsql -d template_postgis
     psql -q postgres -c "UPDATE pg_database SET datistemplate='true' WHERE datname='template_postgis';"
     if [ -f /usr/share/pgsql/contrib/postgis-64.sql ] ; then
@@ -710,13 +716,13 @@ EOF
 
     # Install and configure SxCat if available
 
-    if ls sxcat-bs*.noarch.rpm 1> /dev/null 2>&1 && ls sxcat-brb*.noarch.rpm 1> /dev/null 2>&1; then
+    if ls sxcat-*.noarch.rpm 1> /dev/null 2>&1 && ls sxcat-brb*.noarch.rpm 1> /dev/null 2>&1; then
         # Install and permanently start redis
         yum install -y redis python-redis
         chkconfig redis on
         service redis start
 
-        file=`ls -r sxcat-bs*.noarch.rpm | head -1`
+        file=`ls -r sxcat-*.noarch.rpm | head -1`
         echo "Installing local SxCat Browse Server RPM ${file}"
         yum install -y ${file}
         file=`ls -r sxcat-brb*.noarch.rpm | head -1`
@@ -849,9 +855,18 @@ ngeo_uninstall() {
     echo "Delete extra Yum repositories"
     yum erase -y epel-release
 
-    # Remove exclude from CentOS-Base
-    if grep -Fxq "exclude=libxml2 libxml2-python libxerces-c-3_1" /etc/yum.repos.d/CentOS-Base.repo ; then
-        sed -e '/exclude=libxml2 libxml2-python libxerces-c-3_1/d' -i /etc/yum.repos.d/CentOS-Base.repo
+    # Remove exclude from base repository
+    if [ -f /etc/yum.repos.d/CentOS-Base.repo ] ; then
+        if grep -Fxq "exclude=libxml2 libxml2-python libxerces-c-3_1" /etc/yum.repos.d/CentOS-Base.repo ; then
+            sed -e '/exclude=libxml2 libxml2-python libxerces-c-3_1/d' -i /etc/yum.repos.d/CentOS-Base.repo
+        fi
+    elif [ -f /etc/yum.repos.d/redhat.repo ] ; then
+        if grep -Fxq "exclude=libxml2 libxml2-python libxerces-c-3_1" /etc/yum.repos.d/redhat.repo ; then
+            sed -e '/exclude=libxml2 libxml2-python libxerces-c-3_1/d' -i /etc/yum.repos.d/redhat.repo
+        fi
+    else
+        echo "Base repository configuration not found. Is this a CentOS or RHEL system?"
+        exit 1
     fi
 
     echo "Performing uninstallation step 100"
