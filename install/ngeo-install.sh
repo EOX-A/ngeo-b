@@ -211,6 +211,7 @@ EOF
     elif [ -f /etc/yum.repos.d/redhat.repo ] ; then
         if ! grep -Fxq "exclude=libxml2 libxml2-python libxerces-c-3_1" /etc/yum.repos.d/redhat.repo ; then
             sed -e 's/^\[rhel-6-server-rpms\]$/&\nexclude=libxml2 libxml2-python libxerces-c-3_1/' -i /etc/yum.repos.d/redhat.repo
+            sed -e 's/^\[rhel-6-server-optional-rpms\]$/&\nexclude=libxml2 libxml2-python libxerces-c-3_1/' -i /etc/yum.repos.d/redhat.repo
         fi
     else
         echo "Base repository configuration not found. Is this a CentOS or RHEL system?"
@@ -266,7 +267,7 @@ EOF
 
     echo "Patching EOxServer"
     cd /usr/lib64/python2.6/site-packages/
-    patch -p 0 -N < /patches/improve_footprint-generation.patch
+    patch -p 0 -N < ${OLDPWD}/patches/improve_footprint-generation.patch
     cd -
 
 
@@ -715,14 +716,13 @@ $NGEOB_LOG_DIR/eoxserver.log $NGEOB_LOG_DIR/ngeo.log {
 EOF
 
     # Install and configure SxCat if available
-
-    if ls sxcat-*.noarch.rpm 1> /dev/null 2>&1 && ls sxcat-brb*.noarch.rpm 1> /dev/null 2>&1; then
+    if ls sxcat-[0-9]*.noarch.rpm 1> /dev/null 2>&1 && ls sxcat-brb*.noarch.rpm 1> /dev/null 2>&1; then
         # Install and permanently start redis
         yum install -y redis python-redis
         chkconfig redis on
         service redis start
 
-        file=`ls -r sxcat-*.noarch.rpm | head -1`
+        file=`ls -r sxcat-[0-9]*.noarch.rpm | head -1`
         echo "Installing local SxCat Browse Server RPM ${file}"
         yum install -y ${file}
         file=`ls -r sxcat-brb*.noarch.rpm | head -1`
@@ -900,12 +900,11 @@ ngeo_uninstall() {
     echo "Performing uninstallation step 110"
     echo "Remove packages"
     yum erase -y  python-lxml mod_wsgi httpd pytz python-psycopg2 \
-                  gdal-eox-libtiff4 gdal-eox-libtiff4-python \
-                  gdal-eox-libtiff4-libs gdal-eox-driver-openjpeg2 \
+                  gdal python2-gdal gdal-libs \
                   openjpeg2 postgis libtiff4 libgeotiff-libtiff4 \
                   mapserver Django14 mapserver-python \
                   mapcache ngEO_Browse_Server EOxServer libxerces-c-3_1 \
-                  mod_ssl memcached libxml2-python sxcat python-sxcat \
+                  mod_ssl memcached  sxcat python-sxcat \
                   python-pyspatialite-eox python-babel python-jinja2 mod_qos \
                   pycairo postgresql-libs apr apr-util httpd-tools  mailcap \
                   apr-util-ldap libxslt libevent lftp proj libICE libSM \
@@ -914,7 +913,9 @@ ngeo_uninstall() {
                   hdf5 cfitsio xerces libgta libspatialite fribidi freexl \
                   libgeotiff CharLS libdap openjpeg-libs shapelib unixODBC \
                   python-nose python-setuptools numpy libtool-ltdl qt fcgi \
-                  gpsbabel poppler-data lcms-libs poppler libXpm gd
+                  gpsbabel poppler-data lcms-libs poppler libXpm gd \
+                  python-requests
+    yum downgrade -y libxml2 libxml2-python
 
     echo "Finished $SUBSYSTEM uninstallation"
 }
