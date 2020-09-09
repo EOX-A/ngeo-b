@@ -33,7 +33,8 @@
 
 
 # add column shorten_ingested_interval to table config_browselayer
-psql -U ngeo_user ngeo_browse_server_db -c 'ALTER TABLE "config_browselayer" ADD COLUMN "shorten_ingested_interval" double precision;'
+python manage.py dbshell
+ALTER TABLE "config_browselayer" ADD COLUMN "shorten_ingested_interval" double precision NOT NULL DEFAULT '0.0';
 
 # restart the httpd daemon
 sudo service httpd restart
