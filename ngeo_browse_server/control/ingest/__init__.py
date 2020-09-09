@@ -48,9 +48,14 @@ from django.core.validators import URLValidator
 from django.db import transaction
 from django.template.loader import render_to_string
 from eoxserver.core.system import System
+from eoxserver.contrib import osr
+from eoxserver.processing.gdal import reftools as rt
 from eoxserver.processing.preprocessing import WMSPreProcessor, RGB, RGBA, ORIG_BANDS
 from eoxserver.processing.preprocessing.format import get_format_selection
-from eoxserver.processing.preprocessing.georeference import Extent, GCPList
+from eoxserver.processing.preprocessing.georeference import Extent, GeographicReference
+from eoxserver.processing.preprocessing.util import (
+    create_mem, copy_metadata
+)
 from eoxserver.resources.coverages.crss import fromShortCode, hasSwappedAxes
 from eoxserver.resources.coverages.models import NCNameValidator
 from eoxserver.processing.preprocessing.exceptions import GCPTransformException
@@ -356,7 +361,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
     shorten_ingested_interval_percent = browse_layer.shorten_ingested_interval
     if shorten_ingested_interval_percent != 0.0:
         delta = parsed_browse.end_time - parsed_browse.start_time
-        
+
         # because python 2.6 does not have timedelta.total_seconds()
         delta_in_seconds = (delta.microseconds + (delta.seconds + delta.days * 24 * 3600) * 10**6) / float(10**6)
         delta_add_subtract = dt_timedelta(seconds=(delta_in_seconds * shorten_ingested_interval_percent / 200.0))
@@ -850,3 +855,112 @@ def _unwrap_coord_list(coord_list, bounds):
     # start/stop in the normalized negative
     return map(lambda c: (c[0] + full if c[0] < 0 else c[0], c[1]),
                coord_list)
+
+
+class GCPList(GeographicReference):
+    """ Sets a list of GCPs (Ground Control Points) to the dataset and then
+        performs a rectification to a projection specified by SRID.
+    """
+
+    def __init__(self, gcps, gcp_srid=4326, srid=None):
+        """ Expects a list of GCPs as a list of tuples in the form
+            'x,y,[z,]pixel,line'.
+        """
+
+        self.gcps = map(lambda gcp: gdal.GCP(*gcp) if len(gcp) == 5
+                        else gdal.GCP(gcp[0], gcp[1], 0.0, gcp[2], gcp[3]),
+                        gcps)
+        self.gcp_srid = gcp_srid
+        self.srid = srid
+
+
+    def apply(self, src_ds):
+        # setup
+        dst_sr = osr.SpatialReference()
+        gcp_sr = osr.SpatialReference()
+
+        dst_sr.ImportFromEPSG(self.srid if self.srid is not None
+                              else self.gcp_srid)
+        gcp_sr.ImportFromEPSG(self.gcp_srid)
+
+
+        logger.debug("Using GCP Projection '%s'" % gcp_sr.ExportToWkt())
+        logger.debug("Applying GCPs: MULTIPOINT(%s) -> MULTIPOINT(%s)"
+                      % (", ".join([("(%f %f)") % (gcp.GCPX, gcp.GCPY) for gcp in self.gcps]) ,
+                      ", ".join([("(%f %f)") % (gcp.GCPPixel, gcp.GCPLine) for gcp in self.gcps])))
+        # set the GCPs
+        src_ds.SetGCPs(self.gcps, gcp_sr.ExportToWkt())
+
+        # Try to find and use the best transform method/order.
+        # Orders are: -1 (TPS), 3, 2, and 1 (all GCP)
+        # Loop over the min and max GCP number to order map.
+        for min_gcpnum, max_gcpnum, order in [(3, None, -1), (10, None, 3), (6, None, 2), (3, None, 1)]:
+            # if the number of GCP matches
+            if len(self.gcps) >= min_gcpnum and (max_gcpnum is None or len(self.gcps) <= max_gcpnum):
+                try:
+
+                    if (order < 0):
+                        # try TPS
+                        rt_prm = {"method": rt.METHOD_TPS, "order": 1}
+                    else:
+                        # use the polynomial GCP interpolation as requested
+                        rt_prm = {"method": rt.METHOD_GCP, "order": order}
+
+                    logger.debug("Trying order '%i' {method:%s,order:%s}" % \
+                        (order, rt.METHOD2STR[rt_prm["method"]] , rt_prm["order"] ) )
+                    # get the suggested pixel size/geotransform
+                    size_x, size_y, geotransform = rt.suggested_warp_output(
+                        src_ds,
+                        None,
+                        dst_sr.ExportToWkt(),
+                        **rt_prm
+                    )
+                    if size_x > 100000 or size_y > 100000:
+                        raise RuntimeError(
+                            "Calculated size of '%i x %i' exceeds limit of "
+                            "'100000 x 100000'." % (size_x, size_y)
+                        )
+                    logger.debug("New size is '%i x %i'" % (size_x, size_y))
+
+                    # create the output dataset
+                    dst_ds = create_mem(size_x, size_y,
+                                        src_ds.RasterCount,
+                                        src_ds.GetRasterBand(1).DataType)
+
+                    # reproject the image
+                    dst_ds.SetProjection(dst_sr.ExportToWkt())
+                    dst_ds.SetGeoTransform(geotransform)
+
+                    rt.reproject_image(src_ds, "", dst_ds, "", **rt_prm )
+
+                    copy_metadata(src_ds, dst_ds)
+
+                    # retrieve the footprint from the given GCPs
+                    footprint_wkt = rt.get_footprint_wkt(src_ds, **rt_prm )
+
+                except RuntimeError, e:
+                    logger.debug("Failed using order '%i'. Error was '%s'."
+                                 % (order, str(e)))
+                    # the given method was not applicable, use the next one
+                    continue
+
+                else:
+                    logger.debug("Successfully used order '%i'" % order)
+                    # the transform method was successful, exit the loop
+                    break
+        else:
+            # no method worked, so raise an error
+            raise GCPTransformException("Could not find a valid transform method.")
+
+        # reproject the footprint to a lon/lat projection if necessary
+        if not gcp_sr.IsGeographic():
+            out_sr = osr.SpatialReference()
+            out_sr.ImportFromEPSG(4326)
+            geom = ogr.CreateGeometryFromWkt(footprint_wkt, gcp_sr)
+            geom.TransformTo(out_sr)
+            footprint_wkt = geom.ExportToWkt()
+
+        logger.debug("Calculated footprint: '%s'." % footprint_wkt)
+
+        return dst_ds, footprint_wkt
+

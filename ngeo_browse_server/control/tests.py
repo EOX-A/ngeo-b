@@ -54,7 +54,7 @@ from ngeo_browse_server.control.testbase import (
     LoggingTestCaseMixIn, RegisterTestCaseMixIn, UnregisterTestCaseMixIn,
     StatusTestCaseMixIn, LogListMixIn, LogFileMixIn, ConfigMixIn,
     ComponentControlTestCaseMixIn, ConfigurationManagementMixIn,
-    GenerateReportMixIn, NotifyMixIn, SwiftMixIn, PurgeMixIn, 
+    GenerateReportMixIn, NotifyMixIn, SwiftMixIn, PurgeMixIn,
     EnableSeedCmdMixIn, CheckOverlapMixIn
 )
 from ngeo_browse_server.control.ingest.config import (
@@ -1277,6 +1277,66 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 </bsi:ingestBrowseResponse>
 """
 
+class IngestBrowseHugeFootprintCrossesDateline(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    request_file = "test_data/HugeFootprintCrossesDateline_EN1_MDSI_MER_RR__1P_20120131T191319_20120131T195644_051895_0157_20180824T232614_0100.xml"
+    storage_dir = "data/test_data"
+
+    expected_ingested_browse_ids = ("EN1_MDSI_MER_RR__1P_20120131T191319_20120131T195644_051895_0157_20180824T232614_0100",)
+    expected_ingested_coverage_ids = ("EN1_MDSI_MER_RR__1P_20120131T191319_20120131T195644_051895_0157_20180824T232614_0100",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['HugeFootprintCrossesDateline_EN1_MDSI_MER_RR__1P_20120131T191319_20120131T195644_051895_0157_20180824T232614_0100_proc.tif']
+    expected_deleted_files = ['HugeFootprintCrossesDateline_EN1_MDSI_MER_RR__1P_20120131T191319_20120131T195644_051895_0157_20180824T232614_0100.png']
+    save_optimized_files = True
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>EN1_MDSI_MER_RR__1P_20120131T191319_20120131T195644_051895_0157_20180824T232614_0100</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+class IngestBrowseHugeFootprintNotCrossesDateline(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    request_file = "test_data/HugeFootprintNotCrossesDateline_EN1_ODSI_MER_RR__1P_20080101T003446_20080101T011825_030517_0403_20180722T002458_0100.xml"
+    storage_dir = "data/test_data"
+
+    expected_ingested_browse_ids = ("EN1_ODSI_MER_RR__1P_20080101T003446_20080101T011825_030517_0403_20180722T002458_0100",)
+    expected_ingested_coverage_ids = ("EN1_ODSI_MER_RR__1P_20080101T003446_20080101T011825_030517_0403_20180722T002458_0100",)
+    expected_inserted_into_series = "TEST_SAR"
+    expected_optimized_files = ['HugeFootprintNotCrossesDateline_EN1_ODSI_MER_RR__1P_20080101T003446_20080101T011825_030517_0403_20180722T002458_0100_proc.tif']
+    expected_deleted_files = ['HugeFootprintNotCrossesDateline_EN1_ODSI_MER_RR__1P_20080101T003446_20080101T011825_030517_0403_20180722T002458_0100.png']
+    save_optimized_files = True
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>EN1_ODSI_MER_RR__1P_20080101T003446_20080101T011825_030517_0403_20180722T002458_0100</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
 
 #===============================================================================
 # Ingest a browse with internal GCPs
@@ -1291,6 +1351,7 @@ class IngestBrowseInternalGCPs(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['ID_DEIMOS01-v2_DE0028bfp_L3R_proc.tif']
     expected_deleted_files = ['ID_DEIMOS01-v2_DE0028bfp_L3R.tif']
+    save_optimized_files = True
 
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -1440,7 +1501,7 @@ class SeedConsecutiveSeconds(SeedTestCaseMixIn, LoggingTestCaseMixIn, HttpMultip
     expected_tiles = {0: 3, 1: 3, 2: 3, 3: 3, 4: 3}
 
     expected_logs = {
-        logging.DEBUG: 26,
+        logging.DEBUG: 38,
         logging.INFO: 34,
         logging.WARN: 0,
         logging.ERROR: 0,
@@ -1527,7 +1588,7 @@ class SeedMergeAndReplaceNoDuration(SeedTestCaseMixIn, LoggingTestCaseMixIn, Htt
     expected_tiles = {0: 1, 1: 1, 2: 1, 3: 1, 4: 2}
 
     expected_logs = {
-        logging.DEBUG: 46,
+        logging.DEBUG: 64,
         logging.INFO: 67,
         logging.WARN: 0,
         logging.ERROR: 0,
@@ -3334,7 +3395,7 @@ class DeleteMergedNoDuration(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, L
     expected_tiles = {}
 
     expected_logs = {
-        logging.DEBUG: 48,
+        logging.DEBUG: 66,
         logging.INFO: 92,
         logging.WARN: 0,
         logging.ERROR: 0,

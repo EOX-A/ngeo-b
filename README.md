@@ -48,7 +48,7 @@ subscription-manager identity
 yum update
 docker commit <ID> browse-server-rhel6_base
 
-# Alter Dockerfile using `FROM browse-server-rhel6_base` and build as CentOS image
+# Alter Dockerfile using `FROM browse-server-rhel6_base` and build just like the CentOS image above
 ```
 
 ## Run Browse Server
@@ -56,9 +56,15 @@ docker commit <ID> browse-server-rhel6_base
 ```bash
 docker run -d -it --rm --name running-browse-server -p 8080:80 \
     -v "${PWD}/ngeo_browse_server/":/usr/lib/python2.6/site-packages/ngeo_browse_server/ \
-    -v "${PWD}/logs/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/logs/ \
+    -v "${PWD}/ngeo-b_autotest/logs/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/logs/ \
     --tmpfs /tmp:rw,exec,nosuid,nodev -h browse --add-host=browse:127.0.0.1 \
     browse-server
+```
+
+In case local changes are not picked up try changing the volume mount path like below. Exec into the running container to find out the right path.
+
+```bash
+    -v "${PWD}/ngeo_browse_server/":/usr/lib/python2.6/site-packages/ngEO_Browse_Server-4.0.2.dev-py2.6.egg/ngeo_browse_server/ \
 ```
 
 ## Test Browse Server
@@ -69,6 +75,23 @@ Dockerfile. This is done using the `docker run` command.
 Within the running docker container the Django test suite for the Browse Server
 can be invoked by running the management command `test control`. If only a
 subset of tests shall be run, these tests can be listed.
+
+```bash
+docker run -it --rm --name test-browse-server \
+    -v "${PWD}/ngeo_browse_server/":/usr/lib/python2.6/site-packages/ngeo_browse_server/ \
+    -v "${PWD}/ngeo-b_autotest/data/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/data/ \
+    -v "${PWD}/ngeo-b_autotest/logs/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/logs/ \
+    -v "${PWD}/ngeo-b_autotest/results/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/results/ \
+    --tmpfs /tmp:rw,exec,nosuid,nodev -h browse --add-host=browse:127.0.0.1 \
+    browse-server \
+    /bin/bash -c "/etc/init.d/postgresql start && sleep 5 && /etc/init.d/memcached start && echo \"TEST_RUNNER = 'eoxserver.testing.core.EOxServerTestRunner'\" >> /var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/settings.py && python /var/www/ngeo/ngeo_browse_server_instance/manage.py test 'control|IngestModelInGeotiffBrowseOnSwift,SeedModelInGeotiffBrowseOnSwift,IngestFootprintBrowseReplaceOnSwift,IngestFootprintBrowseMergeOnSwift' -v2"
+```
+
+To run only specific tests adjust the command like below.
+
+```bash
+    /bin/bash -c "/etc/init.d/postgresql start && sleep 5 && /etc/init.d/memcached start && echo \"TEST_RUNNER = 'eoxserver.testing.core.EOxServerTestRunner'\" >> /var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/settings.py && python /var/www/ngeo/ngeo_browse_server_instance/manage.py test control.IngestBrowseHugeFootprint -v2"
+```
 
 To test the OpenStack swift object storage functionality, specific environment
 variables have to be present, otherwise those tests will fail with an error.
