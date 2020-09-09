@@ -359,7 +359,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
 
     # shorten browse time by percentage of interval if configured
     shorten_ingested_interval_percent = browse_layer.shorten_ingested_interval
-    if shorten_ingested_interval_percent != 0.0:
+    if shorten_ingested_interval_percent is not None and shorten_ingested_interval_percent != 0.0:
         delta = parsed_browse.end_time - parsed_browse.start_time
 
         # because python 2.6 does not have timedelta.total_seconds()
