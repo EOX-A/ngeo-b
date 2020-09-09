@@ -482,8 +482,8 @@ class InternalGCPs(object):
                 try:
 
                     if (order < 0):
-                        # let the reftools suggest the right interpolator
-                        rt_prm = reftools.suggest_transformer(src_ds)
+                        # try TPS
+                        rt_prm = {"method": reftools.METHOD_TPS, "order": 1}
                     else:
                         # use the polynomial GCP interpolation as requested
                         rt_prm = {
@@ -503,7 +503,10 @@ class InternalGCPs(object):
                         **rt_prm
                     )
                     if size_x > 100000 or size_y > 100000:
-                        raise RuntimeError("Calculated size exceeds limit.")
+                        raise RuntimeError(
+                            "Calculated size of '%i x %i' exceeds limit of "
+                            "'100000 x 100000'." % (size_x, size_y)
+                        )
                     logger.debug("New size is '%i x %i'" % (size_x, size_y))
 
                     # create the output dataset

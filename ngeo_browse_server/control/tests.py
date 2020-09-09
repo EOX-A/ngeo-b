@@ -1351,6 +1351,7 @@ class IngestBrowseInternalGCPs(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase)
     expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['ID_DEIMOS01-v2_DE0028bfp_L3R_proc.tif']
     expected_deleted_files = ['ID_DEIMOS01-v2_DE0028bfp_L3R.tif']
+    save_optimized_files = True
 
     expected_response = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -1500,7 +1501,7 @@ class SeedConsecutiveSeconds(SeedTestCaseMixIn, LoggingTestCaseMixIn, HttpMultip
     expected_tiles = {0: 3, 1: 3, 2: 3, 3: 3, 4: 3}
 
     expected_logs = {
-        logging.DEBUG: 26,
+        logging.DEBUG: 38,
         logging.INFO: 34,
         logging.WARN: 0,
         logging.ERROR: 0,
@@ -1587,7 +1588,7 @@ class SeedMergeAndReplaceNoDuration(SeedTestCaseMixIn, LoggingTestCaseMixIn, Htt
     expected_tiles = {0: 1, 1: 1, 2: 1, 3: 1, 4: 2}
 
     expected_logs = {
-        logging.DEBUG: 46,
+        logging.DEBUG: 64,
         logging.INFO: 67,
         logging.WARN: 0,
         logging.ERROR: 0,
@@ -3394,7 +3395,7 @@ class DeleteMergedNoDuration(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, L
     expected_tiles = {}
 
     expected_logs = {
-        logging.DEBUG: 48,
+        logging.DEBUG: 66,
         logging.INFO: 92,
         logging.WARN: 0,
         logging.ERROR: 0,
