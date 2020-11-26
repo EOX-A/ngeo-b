@@ -1277,6 +1277,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 </bsi:ingestBrowseResponse>
 """
 
+# Huge footprint spanning more than 180deg crosses anti meridian but not prime meridian
 class IngestBrowseHugeFootprintCrossesDateline(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "test_data/HugeFootprintCrossesDateline_EN1_MDSI_MER_RR__1P_20120131T191319_20120131T195644_051895_0157_20180824T232614_0100.xml"
     storage_dir = "data/test_data"
@@ -1307,6 +1308,7 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
 </bsi:ingestBrowseResponse>
 """
 
+# Huge footprint spanning more than 180deg crosses prime meridian but not anti meridian
 class IngestBrowseHugeFootprintNotCrossesDateline(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
     request_file = "test_data/HugeFootprintNotCrossesDateline_EN1_ODSI_MER_RR__1P_20080101T003446_20080101T011825_030517_0403_20180722T002458_0100.xml"
     storage_dir = "data/test_data"
@@ -1331,6 +1333,66 @@ xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www
     <bsi:ingestionResult>
         <bsi:briefRecord>
             <bsi:identifier>EN1_ODSI_MER_RR__1P_20080101T003446_20080101T011825_030517_0403_20180722T002458_0100</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+class IngestBrowseHugeFootprintCrossesAntiMeridianAndPrimeMeridian(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    request_file = "test_data/HugeFootprintCrossesAntiMeridianAndPrimeMeridian_EN1_ODSI_MER_RR__1P_20080101T103821_20080101T112200_030523_0409_20180722T003325_0100.xml"
+    storage_dir = "data/test_data"
+
+    expected_ingested_browse_ids = ("EN1_ODSI_MER_RR__1P_20080101T103821_20080101T112200_030523_0409_20180722T003325_0100",)
+    expected_ingested_coverage_ids = ("EN1_ODSI_MER_RR__1P_20080101T103821_20080101T112200_030523_0409_20180722T003325_0100",)
+    expected_inserted_into_series = "TEST_MER_FRS"
+    expected_optimized_files = ['HugeFootprintCrossesAntiMeridianAndPrimeMeridian_EN1_ODSI_MER_RR__1P_20080101T103821_20080101T112200_030523_0409_20180722T003325_0100_BID_proc.tif']
+    expected_deleted_files = ['HugeFootprintCrossesAntiMeridianAndPrimeMeridian_EN1_ODSI_MER_RR__1P_20080101T103821_20080101T112200_030523_0409_20180722T003325_0100_BID.PNG']
+    save_optimized_files = True
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>EN1_ODSI_MER_RR__1P_20080101T103821_20080101T112200_030523_0409_20180722T003325_0100</bsi:identifier>
+            <bsi:status>success</bsi:status>
+        </bsi:briefRecord>
+    </bsi:ingestionResult>
+</bsi:ingestBrowseResponse>
+"""
+
+class IngestBrowseHugeFootprintCrossesPrimeMeridianAndAntiMeridian(IngestTestCaseMixIn, HttpTestCaseMixin, TestCase):
+    request_file = "test_data/HugeFootprintCrossesPrimeMeridianAndAntiMeridian_EN1_ODSI_MER_RR__1P_20080101T103821_20080101T112200_030523_0409_20180722T003325_0100.xml"
+    storage_dir = "data/test_data"
+
+    expected_ingested_browse_ids = ("EN1_ODSI_MER_RR__1P_20080101T103821_20080101T112200_030523_0409_20180722T003325_0100_2",)
+    expected_ingested_coverage_ids = ("EN1_ODSI_MER_RR__1P_20080101T103821_20080101T112200_030523_0409_20180722T003325_0100_2",)
+    expected_inserted_into_series = "TEST_MER_FRS"
+    expected_optimized_files = ['HugeFootprintCrossesAntiMeridianAndPrimeMeridian_EN1_ODSI_MER_RR__1P_20080101T103821_20080101T112200_030523_0409_20180722T003325_0100_BID_proc.tif']
+    expected_deleted_files = ['HugeFootprintCrossesAntiMeridianAndPrimeMeridian_EN1_ODSI_MER_RR__1P_20080101T103821_20080101T112200_030523_0409_20180722T003325_0100_BID.PNG']
+    save_optimized_files = True
+
+    expected_response = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<bsi:ingestBrowseResponse xsi:schemaLocation="http://ngeo.eo.esa.int/schema/browse/ingestion ../ngEOBrowseIngestionService.xsd"
+xmlns:bsi="http://ngeo.eo.esa.int/schema/browse/ingestion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bsi:status>success</bsi:status>
+    <bsi:ingestionSummary>
+        <bsi:toBeReplaced>1</bsi:toBeReplaced>
+        <bsi:actuallyInserted>1</bsi:actuallyInserted>
+        <bsi:actuallyReplaced>0</bsi:actuallyReplaced>
+    </bsi:ingestionSummary>
+    <bsi:ingestionResult>
+        <bsi:briefRecord>
+            <bsi:identifier>EN1_ODSI_MER_RR__1P_20080101T103821_20080101T112200_030523_0409_20180722T003325_0100_2</bsi:identifier>
             <bsi:status>success</bsi:status>
         </bsi:briefRecord>
     </bsi:ingestionResult>
