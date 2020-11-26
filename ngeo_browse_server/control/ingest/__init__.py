@@ -41,6 +41,7 @@ from datetime import datetime, timedelta as dt_timedelta
 import string
 import uuid
 from urllib2 import urlopen, URLError, HTTPError
+from math import copysign
 
 from django.conf import settings
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
@@ -836,10 +837,11 @@ def _valid_path(filename):
 
 def _coord_list_crosses_dateline(coord_list, bounds):
     """ Helper function to check whether or not a coord list crosses the
-    dateline.
+    dateline or anti meridian. Checked via iterating through connections of
+    points and testing if distance is above 180deg west-east.
     """
 
-    half = float(bounds[2])
+    half = float((bounds[2] - bounds[0]) / 2)
     for (x1, _), (x2, _) in pairwise_iterative(coord_list):
         if abs(x1 - x2) > half:
             return True
@@ -850,11 +852,30 @@ def _coord_list_crosses_dateline(coord_list, bounds):
 def _unwrap_coord_list(coord_list, bounds):
     """ 'Unwraps' a coordinate list that crosses the dateline. """
 
-    full = float(abs(bounds[0]) + abs(bounds[2]))
-    # TODO: improve this. Might be wrong for really "long" coordinate lists that
-    # start/stop in the normalized negative
-    return map(lambda c: (c[0] + full if c[0] < 0 else c[0], c[1]),
-               coord_list)
+    full = float(bounds[2] - bounds[0])
+    half = full / 2
+
+    # Iterate through coordinates and unwrap if distance to last is above
+    # 180deg west-east.
+    unwrapped_coord_list = [coord_list[0]]
+    x_last = coord_list[0][0]
+    for (x, y) in coord_list[1:]:
+        if abs(x_last - x) > half:
+            x -= full * copysign(1, x)
+        x_last = x
+        unwrapped_coord_list.append((x, y))
+
+    # Make sure unwrapped_coord_list stays within -180 to 720
+    maxx = max(x for (x, y) in unwrapped_coord_list)
+    minx = min(x for (x, y) in unwrapped_coord_list)
+    if maxx > 720 and minx >= 180:
+        unwrapped_coord_list = [(x - 360, y) for (x, y) in unwrapped_coord_list]
+    elif minx < -180 and maxx <= 180:
+        unwrapped_coord_list = [(x + 360, y) for (x, y) in unwrapped_coord_list]
+    elif maxx > 720 or minx < -180:
+        raise IngestionException("Footprint too huge to unwrap.")
+
+    return unwrapped_coord_list
 
 
 class GCPList(GeographicReference):
