@@ -1345,7 +1345,7 @@ class IngestBrowseHugeFootprintCrossesAntiMeridianAndPrimeMeridian(IngestTestCas
 
     expected_ingested_browse_ids = ("EN1_ODSI_MER_RR__1P_20080101T103821_20080101T112200_030523_0409_20180722T003325_0100",)
     expected_ingested_coverage_ids = ("EN1_ODSI_MER_RR__1P_20080101T103821_20080101T112200_030523_0409_20180722T003325_0100",)
-    expected_inserted_into_series = "TEST_MER_FRS"
+    expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['HugeFootprintCrossesAntiMeridianAndPrimeMeridian_EN1_ODSI_MER_RR__1P_20080101T103821_20080101T112200_030523_0409_20180722T003325_0100_BID_proc.tif']
     expected_deleted_files = ['HugeFootprintCrossesAntiMeridianAndPrimeMeridian_EN1_ODSI_MER_RR__1P_20080101T103821_20080101T112200_030523_0409_20180722T003325_0100_BID.PNG']
     save_optimized_files = True
@@ -1375,7 +1375,7 @@ class IngestBrowseHugeFootprintCrossesPrimeMeridianAndAntiMeridian(IngestTestCas
 
     expected_ingested_browse_ids = ("EN1_ODSI_MER_RR__1P_20080101T103821_20080101T112200_030523_0409_20180722T003325_0100_2",)
     expected_ingested_coverage_ids = ("EN1_ODSI_MER_RR__1P_20080101T103821_20080101T112200_030523_0409_20180722T003325_0100_2",)
-    expected_inserted_into_series = "TEST_MER_FRS"
+    expected_inserted_into_series = "TEST_SAR"
     expected_optimized_files = ['HugeFootprintCrossesAntiMeridianAndPrimeMeridian_EN1_ODSI_MER_RR__1P_20080101T103821_20080101T112200_030523_0409_20180722T003325_0100_BID_proc.tif']
     expected_deleted_files = ['HugeFootprintCrossesAntiMeridianAndPrimeMeridian_EN1_ODSI_MER_RR__1P_20080101T103821_20080101T112200_030523_0409_20180722T003325_0100_BID.PNG']
     save_optimized_files = True
