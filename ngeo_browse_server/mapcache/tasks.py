@@ -74,14 +74,15 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
         raise SeedException("Invalid grid '%s'." % grid)
 
     bounds = CRS_BOUNDS[GRID_TO_SRID[grid]]
-    full = float(abs(bounds[0]) + abs(bounds[2]))
+    full = float(bounds[2] - bounds[0])
+    max_bound = float(bounds[2] + full)
 
     dateline_crossed = False
     if maxx>bounds[2]:
         dateline_crossed = True
     # extent is always within [bounds[0],bounds[2]]
     # where maxx can be >bounds[2] but <=full
-    if minx<bounds[0] or minx>bounds[2] or maxx<bounds[0] or maxx>full:
+    if minx<bounds[0] or minx>bounds[2] or maxx<bounds[0] or maxx>max_bound:
         raise SeedException("Invalid extent '%s,%s,%s,%s'."
                             % (minx, miny, maxx, maxy))
 
