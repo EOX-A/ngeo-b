@@ -767,10 +767,27 @@ def _georef_from_parsed(parsed_browse, clipping=None):
         # coordinate lists
         if crosses_dateline:
             logger.info("Regular grid crosses the dateline. Normalizing it.")
+
+            # unwrap each coordinate list individually
             coord_lists = [
                 _unwrap_coord_list(coord_list, CRS_BOUNDS[srid])
                 for coord_list in coord_lists
             ]
+
+            # unwrap the list of coordinate lists
+            x_last = coord_lists[0][0][0]
+            i = 1
+            for coord_list in coord_lists[1:]:
+                if abs(x_last - coord_list[0][0]) > 180:
+                    coord_lists[i] = [(x - 360 * copysign(1, x), y) for (x, y) in coord_list]
+                x_last = coord_lists[i][0][0]
+                i += 1
+
+            # Make sure unwrapped_coord_lists stays within -180 to 720
+            maxx = max(max((x for (x, y) in coord_list) for coord_list in coord_lists))
+            minx = min(min((x for (x, y) in coord_list) for coord_list in coord_lists))
+            if maxx > 720 or minx < -180:
+                raise IngestionException("Footprint too huge to unwrap.")
 
         coords = []
         for coord_list in coord_lists:
@@ -838,7 +855,7 @@ def _valid_path(filename):
 def _coord_list_crosses_dateline(coord_list, bounds):
     """ Helper function to check whether or not a coord list crosses the
     dateline or anti meridian. Checked via iterating through connections of
-    points and testing if distance is above 180deg west-east.
+    points and testing if west-east distance is above 180 deg.
     """
 
     half = float((bounds[2] - bounds[0]) / 2)
@@ -855,8 +872,8 @@ def _unwrap_coord_list(coord_list, bounds):
     full = float(bounds[2] - bounds[0])
     half = full / 2
 
-    # Iterate through coordinates and unwrap if distance to last is above
-    # 180deg west-east.
+    # Iterate through coordinates and unwrap if west-east distance to previous
+    # one is above 180 deg.
     unwrapped_coord_list = [coord_list[0]]
     x_last = coord_list[0][0]
     for (x, y) in coord_list[1:]:
