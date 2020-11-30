@@ -41,6 +41,7 @@ from datetime import datetime, timedelta as dt_timedelta
 import string
 import uuid
 from urllib2 import urlopen, URLError, HTTPError
+from math import copysign
 
 from django.conf import settings
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
@@ -766,10 +767,31 @@ def _georef_from_parsed(parsed_browse, clipping=None):
         # coordinate lists
         if crosses_dateline:
             logger.info("Regular grid crosses the dateline. Normalizing it.")
+
+            # unwrap each coordinate list individually
             coord_lists = [
                 _unwrap_coord_list(coord_list, CRS_BOUNDS[srid])
                 for coord_list in coord_lists
             ]
+
+            full = float(CRS_BOUNDS[srid][2] - CRS_BOUNDS[srid][0])
+            half = full / 2
+
+            # unwrap the list of coordinate lists
+            x_last = coord_lists[0][0][0]
+            i = 1
+            for coord_list in coord_lists[1:]:
+                if abs(x_last - coord_list[0][0]) > half:
+                    coord_lists[i] = [(x - full * copysign(1, x), y) for (x, y) in coord_list]
+                x_last = coord_lists[i][0][0]
+                i += 1
+
+            # Make sure unwrapped_coord_lists stays within CRS_BOUNDS[srid][0]
+            # to CRS_BOUNDS[srid][2] + full, for EPSG:4326 -180 to 540.
+            maxx = max(max((x for (x, y) in coord_list) for coord_list in coord_lists))
+            minx = min(min((x for (x, y) in coord_list) for coord_list in coord_lists))
+            if maxx > (CRS_BOUNDS[srid][2] + full) or minx < CRS_BOUNDS[srid][0]:
+                raise IngestionException("Footprint too huge to unwrap.")
 
         coords = []
         for coord_list in coord_lists:
@@ -836,10 +858,12 @@ def _valid_path(filename):
 
 def _coord_list_crosses_dateline(coord_list, bounds):
     """ Helper function to check whether or not a coord list crosses the
-    dateline.
+    dateline or anti meridian. Checked via iterating through connections of
+    points and testing if west-east distance is above half of the full CRS
+    distance, for EPSG:4326 180 deg.
     """
 
-    half = float(bounds[2])
+    half = float((bounds[2] - bounds[0]) / 2)
     for (x1, _), (x2, _) in pairwise_iterative(coord_list):
         if abs(x1 - x2) > half:
             return True
@@ -850,11 +874,31 @@ def _coord_list_crosses_dateline(coord_list, bounds):
 def _unwrap_coord_list(coord_list, bounds):
     """ 'Unwraps' a coordinate list that crosses the dateline. """
 
-    full = float(abs(bounds[0]) + abs(bounds[2]))
-    # TODO: improve this. Might be wrong for really "long" coordinate lists that
-    # start/stop in the normalized negative
-    return map(lambda c: (c[0] + full if c[0] < 0 else c[0], c[1]),
-               coord_list)
+    full = float(bounds[2] - bounds[0])
+    half = full / 2
+
+    # Iterate through coordinates and unwrap if west-east distance to previous
+    # one is above half of the full CRS distance, for EPSG:4326 180 deg.
+    unwrapped_coord_list = [coord_list[0]]
+    x_last = coord_list[0][0]
+    for (x, y) in coord_list[1:]:
+        if abs(x_last - x) > half:
+            x -= full * copysign(1, x)
+        x_last = x
+        unwrapped_coord_list.append((x, y))
+
+    # Make sure unwrapped_coord_list stays within bounds[0] to bounds[2] +
+    # full, for EPSG:4326 -180 to 540.
+    maxx = max(x for (x, y) in unwrapped_coord_list)
+    minx = min(x for (x, y) in unwrapped_coord_list)
+    if maxx > (bounds[2] + full) and minx >= bounds[2]:
+        unwrapped_coord_list = [(x - full, y) for (x, y) in unwrapped_coord_list]
+    elif minx < bounds[0] and maxx <= bounds[2]:
+        unwrapped_coord_list = [(x + full, y) for (x, y) in unwrapped_coord_list]
+    elif maxx > (bounds[2] + full) or minx < bounds[0]:
+        raise IngestionException("Footprint too huge to unwrap.")
+
+    return unwrapped_coord_list
 
 
 class GCPList(GeographicReference):
