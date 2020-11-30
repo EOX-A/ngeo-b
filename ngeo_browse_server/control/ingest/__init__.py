@@ -774,19 +774,23 @@ def _georef_from_parsed(parsed_browse, clipping=None):
                 for coord_list in coord_lists
             ]
 
+            full = float(CRS_BOUNDS[srid][2] - CRS_BOUNDS[srid][0])
+            half = full / 2
+
             # unwrap the list of coordinate lists
             x_last = coord_lists[0][0][0]
             i = 1
             for coord_list in coord_lists[1:]:
-                if abs(x_last - coord_list[0][0]) > 180:
-                    coord_lists[i] = [(x - 360 * copysign(1, x), y) for (x, y) in coord_list]
+                if abs(x_last - coord_list[0][0]) > half:
+                    coord_lists[i] = [(x - full * copysign(1, x), y) for (x, y) in coord_list]
                 x_last = coord_lists[i][0][0]
                 i += 1
 
-            # Make sure unwrapped_coord_lists stays within -180 to 720
+            # Make sure unwrapped_coord_lists stays within CRS_BOUNDS[srid][0]
+            # to CRS_BOUNDS[srid][2] + full, for EPSG:4326 -180 to 540.
             maxx = max(max((x for (x, y) in coord_list) for coord_list in coord_lists))
             minx = min(min((x for (x, y) in coord_list) for coord_list in coord_lists))
-            if maxx > 720 or minx < -180:
+            if maxx > (CRS_BOUNDS[srid][2] + full) or minx < CRS_BOUNDS[srid][0]:
                 raise IngestionException("Footprint too huge to unwrap.")
 
         coords = []
@@ -855,7 +859,8 @@ def _valid_path(filename):
 def _coord_list_crosses_dateline(coord_list, bounds):
     """ Helper function to check whether or not a coord list crosses the
     dateline or anti meridian. Checked via iterating through connections of
-    points and testing if west-east distance is above 180 deg.
+    points and testing if west-east distance is above half of the full CRS
+    distance, for EPSG:4326 180 deg.
     """
 
     half = float((bounds[2] - bounds[0]) / 2)
@@ -873,7 +878,7 @@ def _unwrap_coord_list(coord_list, bounds):
     half = full / 2
 
     # Iterate through coordinates and unwrap if west-east distance to previous
-    # one is above 180 deg.
+    # one is above half of the full CRS distance, for EPSG:4326 180 deg.
     unwrapped_coord_list = [coord_list[0]]
     x_last = coord_list[0][0]
     for (x, y) in coord_list[1:]:
@@ -882,14 +887,15 @@ def _unwrap_coord_list(coord_list, bounds):
         x_last = x
         unwrapped_coord_list.append((x, y))
 
-    # Make sure unwrapped_coord_list stays within -180 to 720
+    # Make sure unwrapped_coord_list stays within bounds[0] to bounds[2] +
+    # full, for EPSG:4326 -180 to 540.
     maxx = max(x for (x, y) in unwrapped_coord_list)
     minx = min(x for (x, y) in unwrapped_coord_list)
-    if maxx > 720 and minx >= 180:
-        unwrapped_coord_list = [(x - 360, y) for (x, y) in unwrapped_coord_list]
-    elif minx < -180 and maxx <= 180:
-        unwrapped_coord_list = [(x + 360, y) for (x, y) in unwrapped_coord_list]
-    elif maxx > 720 or minx < -180:
+    if maxx > (bounds[2] + full) and minx >= bounds[2]:
+        unwrapped_coord_list = [(x - full, y) for (x, y) in unwrapped_coord_list]
+    elif minx < bounds[0] and maxx <= bounds[2]:
+        unwrapped_coord_list = [(x + full, y) for (x, y) in unwrapped_coord_list]
+    elif maxx > (bounds[2] + full) or minx < bounds[0]:
         raise IngestionException("Footprint too huge to unwrap.")
 
     return unwrapped_coord_list
