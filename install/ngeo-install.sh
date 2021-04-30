@@ -194,7 +194,7 @@ EOF
     # Install needed yum repositories
     echo "Performing installation step 90"
     # EPEL
-    yum install -y https://archives.fedoraproject.org/pub/archive/epel/6/x86_64/epel-release-6-8.noarch.rpm
+    yum localinstall -y https://archives.fedoraproject.org/pub/archive/epel/6/x86_64/epel-release-6-8.noarch.rpm
     yum install -y epel-release
 
     echo "Performing installation step 100"
