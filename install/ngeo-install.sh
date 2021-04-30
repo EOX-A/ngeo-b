@@ -905,7 +905,8 @@ ngeo_uninstall() {
 
     echo "Performing uninstallation step 110"
     echo "Remove packages"
-    yum erase -y  python-lxml mod_wsgi httpd pytz python-psycopg2 \
+    # Don't remove httpd package as this would remove a /var/www if it s a symlink
+    yum erase -y  python-lxml mod_wsgi pytz python-psycopg2 \
                   gdal python2-gdal gdal-libs \
                   openjpeg2 postgis libtiff4 libgeotiff-libtiff4 \
                   mapserver Django14 mapserver-python \
