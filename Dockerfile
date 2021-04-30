@@ -44,6 +44,7 @@ ADD setup.py \
     MANIFEST.in \
     install/ngeo-install.sh \
     install/ngeo \
+    install/browsewatchd \
     /
 RUN ./ngeo-install.sh install
 
