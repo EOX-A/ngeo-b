@@ -122,6 +122,12 @@ ngeo_install() {
        exit 1
     fi
 
+    # Configure base URL in yum repos to use vault one as CentOS 6 is EOL
+    if [ -f /etc/yum.repos.d/CentOS-Base.repo ] ; then
+        sed -e 's/^mirrorlist/#mirrorlist/' -i /etc/yum.repos.d/CentOS-Base.repo
+        sed -e 's/^#baseurl.*$/baseurl=http:\/\/vault.centos.org\/6.10\/os\/$basearch\//' -i /etc/yum.repos.d/CentOS-Base.repo
+    fi
+
     # Check required tools are installed
     if [ ! -x "`which sed`" ] ; then
         yum install -y sed
