@@ -722,16 +722,16 @@ $NGEOB_LOG_DIR/eoxserver.log $NGEOB_LOG_DIR/ngeo.log {
 EOF
 
     # Install and configure SxCat if available
-    if ls sxcat-[0-9]*.noarch.rpm 1> /dev/null 2>&1 && ls sxcat-brb*.noarch.rpm 1> /dev/null 2>&1; then
+    if ls local_packages/sxcat-[0-9]*.noarch.rpm 1> /dev/null 2>&1 && ls local_packages/sxcat-brb*.noarch.rpm 1> /dev/null 2>&1; then
         # Install and permanently start redis
         yum install -y redis python-redis
         chkconfig redis on
         service redis start
 
-        file=`ls -r sxcat-[0-9]*.noarch.rpm | head -1`
+        file=`ls -r local_packages/sxcat-[0-9]*.noarch.rpm | head -1`
         echo "Installing local SxCat Browse Server RPM ${file}"
         yum install -y ${file}
-        file=`ls -r sxcat-brb*.noarch.rpm | head -1`
+        file=`ls -r local_packages/sxcat-brb*.noarch.rpm | head -1`
         echo "Installing local SxCat BRB RPM ${file}"
         yum install -y ${file}
 
