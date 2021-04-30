@@ -1,7 +1,7 @@
 #!/bin/sh -e
 #-------------------------------------------------------------------------------
 #
-# Project: ngEO Browse Server <http://ngeo.eox.at>
+# Project: Browse Server <https://github.com/EOX-A/ngeo-b>
 # Authors: Fabian Schindler <fabian.schindler@eox.at>
 #          Marko Locher <marko.locher@eox.at>
 #          Stephan Meissl <stephan.meissl@eox.at>
@@ -56,10 +56,10 @@ SUBSYSTEM="Browse Server"
 # (false..disable; true..enable)
 TESTING=false
 
-# ngEO Browse Server
+# Browse Server
 NGEOB_INSTANCE_ID="autotest"
 NGEOB_INSTALL_DIR="/var/www/ngeo"
-NGEOB_URL="https://eox.at"
+NGEOB_URL="https://github.com/EOX-A/ngeo-b"
 NGEOB_LOG_DIR="$NGEOB_INSTALL_DIR/ngeo_browse_server_instance/ngeo_browse_server_instance/logs"
 NGEO_REPORT_DIR="$NGEOB_INSTALL_DIR/store/reports"
 
@@ -87,7 +87,7 @@ WEBDAV_PASSWORD="eiNoo7ae"
 
 # Django
 DJANGO_USER="admin"
-DJANGO_MAIL="ngeo@eox.at"
+DJANGO_MAIL="office@eox.at"
 DJANGO_PASSWORD="Aa2phu0s"
 
 # ------------------------------------------------------------------------------
@@ -112,7 +112,7 @@ ngeo_install() {
         exit 1
     fi
 
-    echo "Starting ngEO Browse Server installation"
+    echo "Starting Browse Server installation"
     echo "Assuming successful execution of installation steps 10, 20, and 30"
 
     # Check architecture
@@ -301,7 +301,7 @@ if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'")" 
     psql postgres -tAc "CREATE USER $DB_USER NOSUPERUSER CREATEDB NOCREATEROLE ENCRYPTED PASSWORD '$DB_PASSWORD'"
 fi
 if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'")" != 1 ] ; then
-    echo "Creating ngEO Browse Server database."
+    echo "Creating Browse Server database."
     createdb -O $DB_USER -T template_postgis $DB_NAME
 fi
 EOF
@@ -318,13 +318,13 @@ EOF
     fi
 
     echo "Performing installation step 190"
-    # ngEO Browse Server
+    # Browse Server
     [ -d "$NGEOB_INSTALL_DIR" ] || mkdir -p "$NGEOB_INSTALL_DIR"
     cd "$NGEOB_INSTALL_DIR"
 
     # Configure ngeo_browse_server_instance
     if [ ! -d ngeo_browse_server_instance ] ; then
-        echo "Creating and configuring ngEO Browse Server instance."
+        echo "Creating and configuring Browse Server instance."
 
         django-admin startproject --extension=conf --template=`python -c "import ngeo_browse_server, os; from os.path import dirname, abspath, join; print(join(dirname(abspath(ngeo_browse_server.__file__)), 'project_template'))"` ngeo_browse_server_instance
 
@@ -437,8 +437,8 @@ EOF
     <service type="wmts" enabled="true"/>
 
     <metadata>
-        <title>ngEO Browse Server instance developed by EOX</title>
-        <abstract>ngEO Browse Server instance developed by EOX</abstract>
+        <title>Browse Server instance developed by EOX</title>
+        <abstract>Browse Server instance developed by EOX</abstract>
         <keyword>KEYWORDLIST</keyword>
         <accessconstraints>UNKNOWN</accessconstraints>
         <fees>UNKNOWN</fees>
@@ -453,7 +453,7 @@ EOF
         <contactelectronicmailaddress>CONTACTELECTRONICMAILADDRESS</contactelectronicmailaddress>
         <contactposition>CONTACTPOSITION</contactposition>
         <providername>CONTACTPERSON</providername>
-        <providerurl>http://ngeo.eox.at</providerurl>
+        <providerurl>https://github.com/EOX-A/ngeo-b</providerurl>
         <inspire_profile>true</inspire_profile>
         <inspire_metadataurl>METADATADATE</inspire_metadataurl>
         <defaultlanguage>eng</defaultlanguage>
@@ -580,7 +580,7 @@ EOF
         Options +Indexes
 
         AuthType Digest
-        AuthName "ngEO Browse Server"
+        AuthName "Browse Server"
         AuthDigestDomain $APACHE_NGEO_STORE_ALIAS $NGEOB_URL$APACHE_NGEO_STORE_ALIAS
         AuthDigestProvider file
         AuthUserFile "$NGEOB_INSTALL_DIR/dav/DavUsers"
@@ -616,18 +616,18 @@ EOF
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html>
     <head>
-        <title>ngEO Browse Server</title>
+        <title>Browse Server</title>
     </head>
 
     <body>
-        <h1>ngEO Browse Server Test Page<br><font size="-1"><strong>powered by</font> <a href="http://eox.at">EOX</a></strong></h1>
+        <h1>Browse Server Test Page<br><font size="-1"><strong>powered by</font> <a href="http://eox.at">EOX</a></strong></h1>
 
-        <p>This page is used to test the proper operation of the ngEO Browse Server after it has been installed. If you can read this page it means that the ngEO Browse Server installed at this site is working properly.</p>
+        <p>This page is used to test the proper operation of the Browse Server after it has been installed. If you can read this page it means that the Browse Server installed at this site is working properly.</p>
 
         <p>Links to services:</p>
         <ul>
             <li>External <a href="/c/wmts/1.0.0/WMTSCapabilities.xml">WMTS</a> and <a href="/c?service=wms&request=GetCapabilities">WMS</a> interfaces</li>
-            <li><a href="/browse">ngEO internal interfaces</a></li>
+            <li><a href="/browse">Browse Server internal interfaces</a></li>
         </ul>
     </body>
 </html>
@@ -930,7 +930,7 @@ ngeo_full_uninstall() {
     echo "------------------------------------------------------------------------------"
 
     echo "Performing uninstallation step 10"
-    echo "Delete DB for ngEO Browse Server"
+    echo "Delete DB for Browse Server"
 
     echo "Stop Apache HTTP server"
     if service httpd status ; then
@@ -946,11 +946,11 @@ ngeo_full_uninstall() {
 # cd to a "safe" location
 cd /tmp
 if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'")" == 1 ] ; then
-    echo "Deleting ngEO Browse Server database."
+    echo "Deleting Browse Server database."
     dropdb $DB_NAME
 fi
 if [ "\$(psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'")" == 1 ] ; then
-    echo "Deleting ngEO database user."
+    echo "Deleting database user."
     dropuser $DB_USER
 fi
 
@@ -978,7 +978,7 @@ EOF
     fi
 
     echo "Performing uninstallation step 30"
-    echo "Delete ngEO Browse Server instance"
+    echo "Delete Browse Server instance"
     rm -rf "${NGEOB_INSTALL_DIR}/ngeo_browse_server_instance" "${NGEOB_INSTALL_DIR}/index.html"
 
     echo "Performing uninstallation steps 40 and 50"
