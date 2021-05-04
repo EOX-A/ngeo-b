@@ -54,6 +54,7 @@ ngeo_start() {
     fi
     service httpd start
     if [ -f /etc/init.d/harvestd ] ; then
+        service redis start
         service ntpd start
         service harvestd start
         service browsewatchd start
@@ -75,6 +76,7 @@ ngeo_stop() {
         service ntpd stop
         service harvestd stop
         service browsewatchd stop
+        service redis stop
     fi
 }
 
@@ -87,6 +89,7 @@ ngeo_status() {
     service httpd status
     service memcached status
     if [ -f /etc/init.d/harvestd ] ; then
+        service redis status
         service ntpd status
         service harvestd status
         service browsewatchd status
