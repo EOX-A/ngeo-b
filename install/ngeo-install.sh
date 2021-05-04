@@ -732,7 +732,7 @@ EOF
         file=`ls -r local_packages/sxcat-[0-9]*.noarch.rpm | head -1`
         echo "Installing local SxCat Browse Server RPM ${file}"
         yum install -y ${file}
-        file=`ls -r local_packages/sxcat-brb*.noarch.rpm | head -1`
+        file=`ls -r local_packages/sxcat-brb-redis*.noarch.rpm | head -1`
         echo "Installing local SxCat BRB RPM ${file}"
         yum install -y ${file}
 
@@ -848,9 +848,11 @@ ngeo_uninstall() {
 
     echo "Performing uninstallation step 20"
     echo "Stop service ngeo"
-    if [ -f /etc/init.d/ngeo ] ; then
+    if service ngeo status ; then
         service ngeo stop
-
+    fi
+    if [ -f /etc/init.d/ngeo ] ; then
+        chkconfig ngeo off
         echo "Delete service ngeo"
         rm -f /etc/init.d/ngeo
     fi
@@ -889,7 +891,7 @@ ngeo_uninstall() {
         mv "$APACHE_CONF" "$APACHE_CONF.DISABLED"
     fi
 
-    echo "Stop memcached"#
+    echo "Stop memcached"
     if service memcached status ; then
         service memcached stop
     fi
@@ -897,25 +899,56 @@ ngeo_uninstall() {
         chkconfig memcached off
     fi
 
-    if [ -f /etc/init.d/browsewatchd ] ; then
+    echo "Stop browsewatchd"
+    if service browsewatchd status ; then
         service browsewatchd stop
-
+    fi
+    if [ -f /etc/init.d/browsewatchd ] ; then
+        chkconfig browsewatchd off
         echo "Delete service browsewatchd"
         rm -f /etc/init.d/browsewatchd
     fi
 
+    echo "Stop harvestd"
+    if service harvestd status ; then
+        service harvestd stop
+    fi
+    if [ -f /etc/init.d/harvestd ] ; then
+        chkconfig harvestd off
+        echo "Delete SxCat"
+        yum erase -y sxcat sxcat-brb-redis
+    fi
+
+    echo "Stop ntpd"
+    if service ntpd status ; then
+        service ntpd stop
+    fi
+    if [ -f /etc/init.d/ntpd ] ; then
+        chkconfig ntpd off
+    fi
+
+    echo "Stop redis"
+    if service redis status ; then
+        service redis stop
+    fi
+    if [ -f /etc/init.d/redis ] ; then
+        chkconfig redis off
+        yum erase -y redis python-redis
+    fi
+
     echo "Performing uninstallation step 110"
     echo "Remove packages"
-    # Don't remove httpd package as this would remove a /var/www if it s a symlink
+    # Don't remove httpd package as well as those that depend on it like
+    # httpd-tools, apr, apr-util, apr-util-ldap, and mailcap as this would
+    # remove a /var/www if it s a symlink
     yum erase -y  python-lxml mod_wsgi pytz python-psycopg2 \
                   gdal python2-gdal gdal-libs \
                   openjpeg2 postgis libtiff4 libgeotiff-libtiff4 \
                   mapserver Django14 mapserver-python \
                   mapcache ngEO_Browse_Server EOxServer libxerces-c-3_1 \
-                  mod_ssl memcached  sxcat python-sxcat \
+                  mod_ssl memcached  sxcat python-sxcat libSM \
                   python-pyspatialite-eox python-babel python-jinja2 mod_qos \
-                  pycairo postgresql-libs apr apr-util httpd-tools  mailcap \
-                  apr-util-ldap libxslt libevent lftp proj libICE libSM \
+                  pycairo postgresql-libs libxslt libevent lftp proj libICE \
                   libXtst geos libart_lgpl libgcj python-simplejson java \
                   jpackage-utils sinjdoc proj-epsg giflib libgfortran atlas \
                   hdf5 cfitsio xerces libgta libspatialite fribidi freexl \
@@ -983,6 +1016,13 @@ EOF
         service postgresql stop
     else
         echo "DB not deleted because PostgreSQL server is not running"
+    fi
+
+    echo "Delete any redis queue"
+    if service redis status ; then
+        redis-cli flushall
+        service redis stop
+        rm -f /var/lib/redis/dump.rdb
     fi
 
     echo "Performing uninstallation step 30"
