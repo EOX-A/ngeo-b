@@ -1,11 +1,11 @@
 #!/bin/bash
 ##############################################################################
 # @maintained by: EOX IT Services GmbH
-# @project ngEO-Light
-# @version 1.0
-# @date 2017-06-29
-# @purpose ngEO service script to ingest harvested browse reports
-#          To be placed in /etc/init.d
+# @project Browse Server
+# @version 1.1
+# @date 2021-05-10
+# @purpose Service script to ingest harvested browse reports.
+#          To be placed in /etc/init.d/
 ##############################################################################
 ### BEGIN INIT INFO
 # Provides: browsewatchd service
@@ -13,7 +13,7 @@
 # Required-Stop: $local_fs $network ngeo
 # Default-Start: 2 3 5
 # Default-Stop: 0 1 4 6
-# Short-Description: ngEO service script to ingest harvested browse reports
+# Short-Description: Service script to ingest harvested browse reports.
 # Description: To start, stop, restart browse watching
 ### END INIT INFO
 
@@ -29,7 +29,30 @@ USER="apache"
 
 COMMAND="runuser -s /bin/bash $USER -c 'ulimit -S -c 0 &>/dev/null ; nohup browsewatch.sh 0<&- &>>$CONSOLE_LOG & echo \$!' > $PIDFILE"
 
+_status() {
+    status -p "$PIDFILE" "$SERVICE"
+}
+
 start() {
+  # check status and write message if something is wrong
+  MSG="$( _status )"
+  case "$?" in
+    0 ) # running
+      echo $"$MSG "
+      touch "$LOCKFILE"
+      return 0
+    ;;
+    1 | 2 ) # stopped with issues
+      echo $"WARNING: $MSG"
+    ;;
+    3 ) # stopped
+    ;;
+    * ) # unexpected status
+      echo $"ERROR: $MSG"
+      return 1
+    ;;
+  esac
+  # regular start-up
   echo -n $"starting $SERVICE: "
   daemon --pidfile="$PIDFILE" "$COMMAND"
   RETVAL="$?"
@@ -39,12 +62,33 @@ start() {
 }
 
 stop() {
+  # check status and write message if something is wrong
+  MSG="$( _status )"
+  case "$?" in
+    0 ) # running
+    ;;
+    1 | 2 ) # stopped with issues
+      echo $"WARNING: $MSG "
+      [ -f "$LOCKFILE" ] && rm -f "$LOCKFILE"
+      [ -f "$PIDFILE" ] && rm -f "$PIDFILE"
+      return 0
+    ;;
+    3 ) # stopped
+      echo $"$MSG "
+      return 0
+    ;;
+    * ) # unexpected status
+      echo $"ERROR: $MSG"
+      return 1
+    ;;
+  esac
+  # regular shut-down
   echo -n $"stopping $SERVICE: "
   # Find group id from process id given in PIDFILE and kill whole group using negative id
-  [ -f $PIDFILE ] && kill -- -$(ps -o pgid= -p $(cat $PIDFILE) | grep -o '[0-9]*')
+  [ -f "$PIDFILE" ] && kill -- -$(ps -o pgid= -p $(cat $PIDFILE) | grep -o '[0-9]*') && success
   RETVAL="$?"
   echo
-  [ "$RETVAL" -eq 0 ] && rm -f "$LOCKFILE"
+  [ "$RETVAL" -eq 0 ] && rm -f "$LOCKFILE" "$PIDFILE"
   return "$RETVAL"
 }
 
@@ -56,7 +100,7 @@ case "$1" in
     stop
   ;;
   status)
-    status -p "$PIDFILE" "$SERVICE"
+    _status
   ;;
   restart)
     stop
@@ -67,3 +111,4 @@ case "$1" in
     exit 1
   ;;
 esac
+exit "$?"
