@@ -9,8 +9,8 @@
 ##############################################################################
 ### BEGIN INIT INFO
 # Provides: browsewatchd service
-# Required-Start: $local_fs $network ngeo
-# Required-Stop: $local_fs $network ngeo
+# Required-Start: $local_fs $network redis postgresql ngeo
+# Required-Stop: $local_fs $network redis postgresql ngeo
 # Default-Start: 2 3 5
 # Default-Stop: 0 1 4 6
 # Short-Description: Service script to ingest harvested browse reports.
@@ -53,6 +53,15 @@ start() {
     ;;
   esac
   # regular start-up
+  # Check that redis and postgres are running
+  if ! service redis status ; then
+    failure && echo "Required service redis not running, exiting"
+    return 1
+  fi
+  if ! service postgresql status ; then
+    failure && echo "Required service postgresql not running, exiting"
+    return 1
+  fi
   echo -n $"starting $SERVICE: "
   daemon --pidfile="$PIDFILE" "$COMMAND"
   RETVAL="$?"
