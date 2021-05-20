@@ -41,6 +41,7 @@ from datetime import datetime, timedelta as dt_timedelta
 import string
 import uuid
 from urllib2 import urlopen, URLError, HTTPError
+from socket import setdefaulttimeout
 from math import copysign
 
 from django.conf import settings
@@ -395,6 +396,8 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                     % (parsed_browse.file_name, input_filename))
         if not exists(input_filename):
             try:
+                # timeout in seconds
+                setdefaulttimeout(120)
                 remote_browse = urlopen(parsed_browse.file_name)
                 with open(input_filename, "wb") as local_browse:
                     local_browse.write(remote_browse.read())
