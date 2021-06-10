@@ -758,8 +758,8 @@ port = 6379
 queue = ingest_queue
 EOF
 
-        # add browsewatch
-        mkdir -p /srv/sxcat/collections/tmp/browse_reports/
+        # fixing the Sx-Cat CLI aliases
+        sed -i -e 's/-u sxcat /-u apache /' /etc/profile.d/sxcat.*
 
         # change ownership to apache
         chown -R apache:apache /srv/sxcat/ /var/log/sxcat/ /etc/sxcat
