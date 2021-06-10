@@ -26,8 +26,11 @@ PIDFILE="/var/run/${SERVICE}.pid"
 LOCKFILE="/var/lock/subsys/$SERVICE"
 CONSOLE_LOG="/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/logs/${SERVICE}.log"
 USER="apache"
+REDIS_HOST=${HOST:-localhost}
+REDIS_PORT=${PORT:-6379}
+NUM_WORKERS=${NUM_WORKERS:-16}
 
-COMMAND="runuser -s /bin/bash $USER -c 'ulimit -S -c 0 &>/dev/null ; nohup browsewatch.sh 0<&- &>>$CONSOLE_LOG & echo \$!' > $PIDFILE"
+COMMAND="runuser -s /bin/bash $USER -c 'ulimit -S -c 0 &>/dev/null ; nohup python /tools/browsewatchd2.py --host ${REDIS_HOST} --port ${REDIS_PORT} --nworkers ${NUM_WORKERS} --verbosity DEBUG 0<&- &>>$CONSOLE_LOG & echo \$!' > $PIDFILE"
 
 _status() {
     status -p "$PIDFILE" "$SERVICE"
@@ -93,8 +96,7 @@ stop() {
   esac
   # regular shut-down
   echo -n $"stopping $SERVICE: "
-  # Find group id from process id given in PIDFILE and kill whole group using negative id
-  [ -f "$PIDFILE" ] && kill -- -$(ps -o pgid= -p $(cat $PIDFILE) | grep -o '[0-9]*') && success
+  [ -f "$PIDFILE" ] && kill $(cat $PIDFILE) && true
   RETVAL="$?"
   echo
   [ "$RETVAL" -eq 0 ] && rm -f "$LOCKFILE" "$PIDFILE"

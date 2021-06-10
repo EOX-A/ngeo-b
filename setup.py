@@ -67,7 +67,7 @@ setup(
     scripts=[
         "tools/request_authorization.py",
         "tools/download-ers.sh",
-        "tools/browsewatch.sh"
+        "tools/browsewatchd2.py"
     ],
 
     install_requires=[
