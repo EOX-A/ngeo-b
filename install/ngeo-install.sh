@@ -90,6 +90,12 @@ DJANGO_USER="admin"
 DJANGO_MAIL="office@eox.at"
 DJANGO_PASSWORD="Aa2phu0s"
 
+# directory where the browse server's setup.py is located - by default the current directory
+NGEOB_SOURCE_DIR=${NGEOB_SOURCE_DIR:-$PWD}
+
+# change to the directory where this script is located
+cd "$(dirname $0)"
+
 # ------------------------------------------------------------------------------
 # End of configuration section
 # ------------------------------------------------------------------------------
@@ -263,8 +269,10 @@ EOF
         file=`ls -r ngEO_Browse_Server-*.noarch.rpm | head -1`
         echo "Installing local ngEO_Browse_Server RPM ${file}"
         yum install -y ${file}
-    elif [ -d "/ngeo_browse_server/" ] && [ -f "setup.py" ]; then
+    elif [ -d "$NGEOB_SOURCE_DIR/ngeo_browse_server" -a -f "$NGEOB_SOURCE_DIR/setup.py" ]; then
+        cd "$NGEOB_SOURCE_DIR"
         python setup.py install
+        cd -
     else
         echo "Aborting, no ngEO_Browse_Server RPM found for installation."
         exit 1
