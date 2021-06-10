@@ -660,7 +660,7 @@ EOF
         chmod +x /etc/init.d/ngeo
         service ngeo start
     else
-        echoe "Necessary ngeo service script not found. Please provide and restart installation."
+        echo "Necessary ngeo service script not found. Please provide and restart installation."
     fi
 
     echo "Performing installation step 270"
