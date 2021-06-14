@@ -22,6 +22,7 @@
 . /etc/init.d/functions
 
 SERVICE="browsewatchd"
+DAEMON_ID="$SERVICE" # must be unique for each daemon instance
 PIDFILE="/var/run/${SERVICE}.pid"
 LOCKFILE="/var/lock/subsys/$SERVICE"
 CONSOLE_LOG="/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/logs/${SERVICE}.log"
@@ -29,8 +30,11 @@ USER="apache"
 REDIS_HOST=${HOST:-localhost}
 REDIS_PORT=${PORT:-6379}
 NUM_WORKERS=${NUM_WORKERS:-16}
+EXEC_PATH="/tools"
+LOG_LEVEL="INFO"
+#LOGLEVEL="DEBUG"
 
-COMMAND="runuser -s /bin/bash $USER -c 'ulimit -S -c 0 &>/dev/null ; nohup python /tools/browsewatchd2.py --host ${REDIS_HOST} --port ${REDIS_PORT} --nworkers ${NUM_WORKERS} --verbosity DEBUG 0<&- &>>$CONSOLE_LOG & echo \$!' > $PIDFILE"
+COMMAND="runuser -s /bin/bash $USER -c 'ulimit -S -c 0 &>/dev/null ; nohup python ${EXEC_PATH}/browsewatchd2.py --id ${DAEMON_ID} --host ${REDIS_HOST} --port ${REDIS_PORT} --nworkers ${NUM_WORKERS} --verbosity ${LOG_LEVEL} 0<&- &>>$CONSOLE_LOG & echo \$!' > $PIDFILE"
 
 _status() {
     status -p "$PIDFILE" "$SERVICE"

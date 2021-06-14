@@ -28,17 +28,17 @@
 # pylint: disable=too-many-instance-attributes,too-many-statements
 
 from __future__ import print_function
-import os 
 import sys
 import json
+from os import environ
 from os.path import basename
+from datetime import datetime
 from time import sleep, time
 from logging import (
     getLogger, Formatter, StreamHandler,
     DEBUG, INFO, WARNING, ERROR, CRITICAL,
 )
 from signal import SIGINT, SIGTERM, signal, SIG_IGN
-from subprocess import Popen, PIPE
 from threading import Event as ThreadEvent
 from multiprocessing import cpu_count
 from multiprocessing import (
@@ -46,22 +46,12 @@ from multiprocessing import (
     Pool as ProcessPool
 )
 import multiprocessing.util as mp_util
-from xml.etree import ElementTree as ET
 from redis import Redis, ConnectionError
-
-from ngeo_browse_server.config import get_ngeo_config
-from ngeo_browse_server.config.browsereport.decoding import decode_browse_report
-# needs to be set before ingest_browse_report is importable (legacy eoxserver/django gimmicks...)
-path = "/var/www/ngeo/ngeo_browse_server_instance"
-if path not in sys.path:
-    sys.path.append(path)
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ngeo_browse_server_instance.settings')
-from ngeo_browse_server.control.ingest import ingest_browse_report
-
+from lxml import etree
 
 LOGGER_NAME = "browsewatchd"
 
-# default daemon ID 
+# default daemon ID
 # Make sure each running instance has a unique-id or bad things happen.
 DEF_DAEMON_ID = "default"
 
@@ -75,6 +65,12 @@ MAX_WORKERS_PER_CPU = 16        # limit of allowed workers per CPU
 DEF_N_WORKERS = 2               # default number of workers
 DEF_REDIS_HOST = "localhost"    # default Redis hostname
 DEF_REDIS_PORT = 6379           # default Redis port
+DEF_BS_INSTANCE_PATH = environ.get(  # browse server instance path
+    "INSTANCE_PATH", "/var/www/ngeo/ngeo_browse_server_instance"
+)
+DEF_BS_SETTINGS_MODULE = environ.get( # browse server instance settings module
+    "DJANGO_SETTINGS_MODULE", "ngeo_browse_server_instance.settings"
+)
 #DEF_MAX_TASKS_PER_WORKER = 16   # worker restarted after this number of tasks
 
 # Browse Report XML paths
@@ -86,7 +82,6 @@ XPATH_BR_BROWSE_IDENTIFIER = (
     "{http://ngeo.eo.esa.int/schema/browseReport}browseIdentifier"
 )
 
-
 LOG_LEVEL = {
     "DEBUG": DEBUG,
     "INFO": INFO,
@@ -95,10 +90,16 @@ LOG_LEVEL = {
     "CRITICAL": CRITICAL,
 }
 
-ngeo_config = get_ngeo_config()
-# some default configs
-ngeo_config.set('control.ingest', "delete_on_success", True)
-ngeo_config.set('control.ingest', "leave_original", False)
+# non-propagated loggers which require explicit setup
+EXTRA_HANDLED_LOGGERS = [
+    'eoxserver',
+    'ngeo_browse_server',
+    'ngEO-ingest',
+]
+
+
+class CommandError(Exception):
+    """ Command error exception. """
 
 
 def parse_report_signature(report, logger):
@@ -108,7 +109,7 @@ def parse_report_signature(report, logger):
             raise Exception("Failed to extract %s!" % label)
         return element.text
     try:
-        xml = ET.fromstring(report)
+        xml = etree.fromstring(report.encode('utf-8'))
         collection_id = _extract_text(xml, "collection identifier", XPATH_BR_BROWSE_TYPE)
         product_id = _extract_text(xml, "product identifier", XPATH_BR_BROWSE_IDENTIFIER)
     except Exception as error:
@@ -117,45 +118,27 @@ def parse_report_signature(report, logger):
     return collection_id, product_id
 
 
-def handle_browse_report(job):
-    """ Process browse report - ingest it to ngeo_browse_server """
+def handle_browse_report_inline(job_id, report, **kwargs):
+    """ Process browse report in a subprocess. """
     logger = getLogger(LOGGER_NAME)
-    logger.info("Ingesting %s ...", job['job_id'])
-    try:
-        document = ET.fromstring(job["report"])
-        parsed_browse_report = decode_browse_report(document)
-    except Exception as error:
-        logger.error("Failed to parse the browse report! (%s)", error)
-        raise
-
-    logger.info("Ingesting browse report with %d browse%s."
-                   % (len(parsed_browse_report), 
-                      "s" if len(parsed_browse_report) > 1 else ""))
-    try:
-        results = ingest_browse_report(parsed_browse_report, config=ngeo_config)
-    except Exception as error:
-        logger.error("Failed to ingest the file! (%s)", error)
-        raise
-
-    logger.info("%d browse%s handled, %d successfully replaced "
-                "and %d successfully inserted."
-                    % (results.to_be_replaced,
-                       "s have been" if results.to_be_replaced > 1 
-                       else " has been",
-                       results.actually_replaced,
-                       results.actually_inserted))
+    logger.info("Ingesting %s ...", job_id)
+    ingest_browse_report(
+        decode_browse_report(
+            etree.fromstring(report.encode('utf-8'))
+        )
+    )
 
 
-def wp_handle_browse_report(job):
+def wp_handle_ingestion_job(job):
     """ Process browse report. Executed by the worker process. """
+    job["started"] = time()
     try:
-        handle_browse_report(job)
+        handle_browse_report_inline(**job)
     except Exception as error:
         job.update(dict(stopped=time(), status="ERROR", error=error))
     else:
         job.update(dict(stopped=time(), status="OK"))
     return job
-
 
 
 class BrowseWatchDaemon(object):
@@ -164,6 +147,42 @@ class BrowseWatchDaemon(object):
     REDIS_KEY_SET_REFRESH = 15 # seconds
     REDIS_POLL_INTERVAL = 1 # second
     REDIS_CONNECTION_TIMEOUTS = [15, 30, 60, 120, 240] # seconds
+    REDIS_STATUS_EXPIRE = 60 # second
+
+    class KeyCounters(object):
+        """ Key counters. Used to prioritize faster ingestion queues. """
+
+        def __init__(self):
+            self.counters = {}
+
+        def __getitem__(self, key):
+            return self.counters.get(key, 0)
+
+        def __setitem__(self, key, value):
+            self.counters[key] = value
+
+        def __delitem__(self, key):
+            self.counters.pop(key, None)
+
+        def increment(self, key):
+            """ Increment key counter. """
+            self[key] = self[key] + 1
+
+        def decrement(self, key):
+            """ Decrement key counter. """
+            count = self[key] - 1
+            if count > 0:
+                self[key] = count
+            else:
+                del self[key]
+
+        def sort_keys(self, keys):
+            """ Get keys sorted by the counter values. """
+            return [
+                key for _, _, key in sorted(
+                    (self[k], i, k) for i, k in enumerate(keys)
+                )
+            ]
 
     class Terminated(Exception):
         pass
@@ -177,8 +196,8 @@ class BrowseWatchDaemon(object):
         )]
 
     def _redis_call(method):
-        # pylint: disable=no-self-argument,protected-access,not-callable
         """ Decorator handling redis connection errors. """
+        # pylint: disable=no-self-argument,protected-access,not-callable
         def _redis_call_wrapper(self, *args, **kwargs):
             self._redis_connection_trial = 0
             while True:
@@ -211,13 +230,14 @@ class BrowseWatchDaemon(object):
         self.redis = redis
         self.key_set = key_set
         self.keys = []
+        self._key_counter = self.KeyCounters()
         self._keys_last_update = float("-inf") # never
-        #self._terminate = False
-        self._terminated = ThreadEvent()
+        self._terminated = ThreadEvent() # implements abortable sleep
         self._redis_connection_trial = 0
         self._daemon_id = daemon_id
         self.buffer_key = "browsewatchd:browse_report_buffer:%s" % daemon_id
         self.jobs_key = "browsewatchd:ingestion_jobs:%s" % daemon_id
+        self.status_key = "browsewatchd:daemon_status:%s" % daemon_id
 
     def terminate(self, signum=None, frame=None):
         self.logger.info("Termination signal received ...")
@@ -245,6 +265,12 @@ class BrowseWatchDaemon(object):
         self.logger.debug("Joining subprocesses ...")
         self.worker_pool.join()
 
+        # update the daemon status
+        try:
+            self.redis.set(self.status_key, "STOPPED")
+        except ConnectionError:
+            raise
+
         self.redis = None
         self.worker_pool = None
         self.worker_semaphore = None
@@ -266,13 +292,24 @@ class BrowseWatchDaemon(object):
 
         def callback(job):
             """ Worker callback. """
+            self._key_counter.decrement(job.get('source'))
             self.worker_semaphore.release()
             self.logger.debug("Semaphore released.")
             error = job.get('error')
             if error:
                 self.logger.error(
-                    "Browse report ingestion failed! (%s: %s)",
-                    type(error).__name__, error
+                    "Browse report ingestion failed! (%s)",
+                    "%s: %s" % (type(error).__name__, error)
+                    if str(error) else type(error).__name__
+                )
+                self.logger.info(
+                    "%s failed in %.1fs",
+                    job["job_id"], job["stopped"] - job["started"]
+                )
+            else:
+                self.logger.info(
+                    "%s completed in %.1fs",
+                    job["job_id"], job["stopped"] - job["started"]
                 )
             self.logger.debug("Removing job %s ...", job["job_id"])
             try:
@@ -284,34 +321,21 @@ class BrowseWatchDaemon(object):
 
         try:
             for job in self.read_jobs():
+                self._key_counter.increment(job['source'])
                 self.worker_pool.apply_async(
-                    wp_handle_browse_report, [job], {}, callback=callback
+                    wp_handle_ingestion_job, [job], {}, callback=callback
                 )
         except self.Terminated:
             pass
 
         self.logger.debug("Exiting the main loop.")
 
-    def get_slots(self):
-        """ Generator wrapping the worker pool semaphore, yielding semaphore
-        slot to proceed with the next report.
-        """
-        while not self._terminated.is_set():
-            if self.worker_semaphore.acquire(True, self.WORKER_SEMAPHORE_TIMEOUT):
-                if not self._terminated.is_set():
-                    self.logger.debug("Semaphore acquired.")
-                    yield self.worker_semaphore
-            else:
-                self.logger.debug("Semaphore timeout.")
-        self.logger.debug("Exiting the semaphore loop.")
-        raise self.Terminated
-
     def read_jobs(self):
-        """ Generator reading browse reports from the Redis keys.
+        """ Generator reading ingestion jobs (browse reports) from the Redis keys.
         """
         slots_iterator = self.get_slots()
 
-        # process the unfinished jobs
+        # process unfinished jobs
         unfinished_jobs = self.list_unfinished_jobs()
         if unfinished_jobs:
             self.logger.warning(
@@ -340,6 +364,20 @@ class BrowseWatchDaemon(object):
                 if self._terminated.wait(self.REDIS_POLL_INTERVAL):
                     raise self.Terminated
 
+    def get_slots(self):
+        """ Generator wrapping the worker pool semaphore, yielding semaphore
+        slot to proceed with the next report.
+        """
+        while not self._terminated.is_set():
+            if self.worker_semaphore.acquire(True, self.WORKER_SEMAPHORE_TIMEOUT):
+                if not self._terminated.is_set():
+                    self.logger.debug("Semaphore acquired.")
+                    yield self.worker_semaphore
+            else:
+                self.logger.debug("Semaphore timeout.")
+        self.logger.debug("Exiting the semaphore loop.")
+        raise self.Terminated
+
     @_redis_call
     def list_unfinished_jobs(self):
         """ Get list of unfinished ingestion jobs. """
@@ -359,40 +397,45 @@ class BrowseWatchDaemon(object):
     def get_new_job(self):
         """ Get new job. """
 
-        def _get_report(keys):
+        def _move_key_to_tail(keys, key):
+            try:
+                index = keys.index(key)
+            except ValueError:
+                return keys # key not found - do nothing
+            return keys[:index] + keys[index+1:] + keys[index:index+1]
+
+        def _get_report():
             pipeline = self.redis.pipeline()
+            # report daemon status
+            pipeline.set(self.status_key, "RUNNING")
+            pipeline.expire(self.status_key, self.REDIS_STATUS_EXPIRE)
             # read reports from the buffer if non-empty
             pipeline.lindex(self.buffer_key, -1)
-            # get number of non-empty keys
-            #pipeline.exists(*keys) # not supported by the RHEL6 redis-py
-            #report, keys_count = pipeline.execute()
-            for key in keys:
+            # check non-empty keys
+            for key in self.keys:
                 pipeline.exists(key)
             response = pipeline.execute()
-            report, keys_count = response[0], sum(response[1:])
+            report = response[2]
             if report: # buffer is non-empty
                 self.logger.debug("Reading buffered report.")
-                return report # item from the buffer is returned
-            if keys_count: # there are reports to be read
-                # filling buffer from the watched pipelines
-                pipeline = self.redis.pipeline()
-                for key in keys:
-                    pipeline.rpoplpush(key, self.buffer_key)
-                result = pipeline.execute()
-                # return the first report
-                for key, report in zip(keys, result):
-                    if report:
-                        self.logger.debug("Buffering report from %s.", key)
-                for report in result:
-                    if report:
-                        self.logger.debug("Reading first popped report.")
-                        return report
-                self.logger.debug("No report available.")
-            return None # no report available
+                return self.buffer_key, report # item from the buffer is returned
+            # pick the non-empty keys and prioritize them by the key counter
+            # prioritize keys with lower key counters
+            readable_keys = self._key_counter.sort_keys([
+                key for key, count in zip(self.keys, response[3:]) if count > 0
+            ])
+            for key in readable_keys:
+                report = self.redis.rpoplpush(key, self.buffer_key)
+                if report:
+                    self.logger.debug("Reading report from %s." % key)
+                    # re-order keys to prevent reading from the same key
+                    self.keys = _move_key_to_tail(self.keys, key)
+                    return key, report
 
-        def _create_new_job(report):
-            if report is None:
-                return None
+            self.logger.debug("No report available.")
+            return None
+
+        def _create_new_job(key, report):
             pipeline = self.redis.pipeline()
             result = parse_report_signature(report, self.logger)
             if result:
@@ -401,6 +444,7 @@ class BrowseWatchDaemon(object):
                 self.logger.debug("Creating job %s ..." % job_id)
                 # save new job
                 job = dict(
+                    source=key,
                     job_id=job_id,
                     collection_id=collection_id,
                     product_id=product_id,
@@ -415,7 +459,11 @@ class BrowseWatchDaemon(object):
             pipeline.execute()
             return job
 
-        return _create_new_job(_get_report(self.keys))
+        # read report from the first available key
+        result = _get_report()
+        if result is None:
+            return None
+        return _create_new_job(*result)
 
     @_redis_call
     def update_keys(self):
@@ -430,18 +478,36 @@ class BrowseWatchDaemon(object):
         new_keys = result | set(EXTRA_KYES)
         old_keys = set(self.keys)
 
-        self.keys = list(new_keys)
-
-        for key in old_keys - new_keys:
-            self.logger.info("Ingestion queue %s removed.", key)
-        for key in new_keys - old_keys:
-            self.logger.info("Ingestion queue %s added.", key)
-
         if old_keys != new_keys:
+            added_keys = new_keys - old_keys
+            removed_keys = old_keys - new_keys
+
+            # make sure the key order is preserved
+            self.keys = list(added_keys) + [
+                key for key in self.keys if key not in removed_keys
+            ]
+
+            for key in removed_keys:
+                self.logger.info("Ingestion queue %s removed.", key)
+            for key in added_keys:
+                self.logger.info("Ingestion queue %s added.", key)
+
             self.logger.info(
                 "Consumed ingestion queues: %s",
                 " ".join(self.keys)
             )
+
+
+def start_browsewatchd(redis_host, redis_port, redis_key_set, n_workers,
+                       daemon_id, **kwargs):
+    BrowseWatchDaemon(
+        redis=Redis(host=redis_host, port=redis_port),
+        key_set=redis_key_set,
+        logger=getLogger(LOGGER_NAME),
+        worker_pool=ProcessPool(n_workers, init_worker),
+        daemon_id=daemon_id,
+        worker_semaphore=ProcessBoundedSemaphore(n_workers),
+    ).run()
 
 
 def init_worker():
@@ -450,41 +516,81 @@ def init_worker():
     signal(SIGINT, SIG_IGN)
 
 
-def start_browsewatchd(redis_host, redis_port, redis_key_set, n_workers, daemon_id):
-    BrowseWatchDaemon(
-        redis=Redis(host=redis_host, port=redis_port),
-        key_set=redis_key_set,
-        logger=getLogger(LOGGER_NAME),
-        worker_pool=ProcessPool(
-            n_workers,
-            init_worker,
-            #maxtasksperchild=max_tasks_per_worker, # does not work in Python 2.6
-        ),
-        daemon_id=daemon_id,
-        worker_semaphore=ProcessBoundedSemaphore(n_workers),
-    ).run()
-
-
 def main(*args):
     try:
         kwargs = parse_args(*args)
-        set_stream_handler(getLogger(), kwargs.pop('log_level'))
-        set_stream_handler(mp_util.get_logger(), mp_util.SUBWARNING)
+
+        # setup django environment
+        environ["DJANGO_SETTINGS_MODULE"] = kwargs.pop('django_settings_module')
+        path = kwargs.pop('django_instance_path')
+        if path not in sys.path:
+            sys.path.append(path)
+
+        # Django imports performed after the instance part configuration
+        import_from_module("ngeo_browse_server.config.browsereport.decoding", "decode_browse_report")
+        import_from_module("ngeo_browse_server.control.ingest", "ingest_browse_report")
+
+        # setup console logging - must be performed AFTER the Django imports
+        setup_logging(kwargs.pop('log_level'))
+
+        # start the daemon
         start_browsewatchd(**kwargs)
+
     except CommandError as error:
         print_error(str(error))
         return 1
     return 0
 
 
+def import_from_module(module_name, *object_names):
+    """ Import objects from a module into the global scope.  This function
+    emulates the global 'from <module> import <object>, ...' command.
+    """
+    module = __import__(module_name, fromlist=object_names)
+    globals().update((name, getattr(module, name)) for name in object_names)
+
+
+def setup_logging(log_level):
+    """ Setup logging. """
+    set_stream_handler(getLogger(), log_level)
+    for name in EXTRA_HANDLED_LOGGERS:
+        set_stream_handler(getLogger(name), log_level)
+    set_stream_handler(mp_util.get_logger(), mp_util.SUBWARNING)
+
+
 def set_stream_handler(logger, level=DEBUG):
     """ Set stream handler to the logger. """
-    formatter = Formatter('%(levelname)s: %(module)s: %(message)s')
+    formatter = FormatterUTC('%(asctime)s %(levelname)s %(name)s: %(message)s')
     handler = StreamHandler()
     handler.setLevel(level)
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     logger.setLevel(min(level, logger.level))
+
+
+class FormatterUTC(Formatter):
+    "Custom log formatter class."
+    converter = datetime.utcfromtimestamp
+
+    def formatTime(self, record, datefmt=None):
+        """ Return the creation time of the specified LogRecord as formatted
+        text.
+
+        Note that this method uses the `datetime.datetime.strftime()` method
+        rather then the `time.strftime` used by the `logging.Formatter` which
+        if not able to format times with sub-second precision.
+        """
+        dts = self.converter(record.created)
+        return dts.strftime(datefmt) if datefmt else dts.isoformat("T")+"Z"
+
+    def format(self, record):
+        """ Format the specified record as text.
+
+        This custom formatter escapes Unicode character and special characters
+        such as new lines.
+        """
+        record.msg = record.msg.encode('unicode_escape').decode('utf-8')
+        return Formatter.format(self, record)
 
 
 def parse_args(*args):
@@ -497,7 +603,8 @@ def parse_args(*args):
     redis_host = DEF_REDIS_HOST
     redis_port = DEF_REDIS_PORT
     log_level = INFO
-    #max_tasks_per_worker = DEF_MAX_TASKS_PER_WORKER
+    django_settings_module = DEF_BS_SETTINGS_MODULE
+    django_instance_path = DEF_BS_INSTANCE_PATH
 
     it_args = iter(args[1:])
     for option in it_args:
@@ -518,15 +625,14 @@ def parse_args(*args):
                 daemon_id = next(it_args)
                 if not daemon_id:
                     raise ValueError("Invalid daemon id!")
-            #elif option == "--max-tasks-per-worker":
-            #    max_tasks_per_worker = int(next(it_args))
-            #    if not max_tasks_per_worker:
-            #        max_tasks_per_worker = None
-            #    if max_tasks_per_worker < 0:
-            #        raise ValueError(
-            #            "Invalid max. tasks-per-worker count "
-            #            "%s!" % max_tasks_per_worker
-            #        )
+            elif option == "--settings-module":
+                django_settings_module = next(it_args)
+                if not django_settings_module:
+                    raise ValueError("Invalid django settings module!")
+            elif option == "--instance-path":
+                django_instance_path = next(it_args)
+                if not django_instance_path:
+                    raise ValueError("Invalid django instance path!")
             elif option in ("-v", "--verbosity"):
                 try:
                     log_level = LOG_LEVEL[next(it_args)]
@@ -564,18 +670,10 @@ def parse_args(*args):
         redis_key_set=collection_list,
         n_workers=n_workers,
         daemon_id=daemon_id,
-        #max_tasks_per_worker=max_tasks_per_worker,
         log_level=log_level,
+        django_settings_module=django_settings_module,
+        django_instance_path=django_instance_path,
     )
-
-
-def unique(keys):
-    """ Filter out repeating keys. """
-    existing = set()
-    for key in keys:
-        if not key in existing:
-            existing.add(key)
-            yield key
 
 
 def print_usage(execname):
@@ -583,8 +681,9 @@ def print_usage(execname):
     print(
         "USAGE: %s [--host <redis-host>][--port <redis-port>]"
         "[--nworkers <n-processes>]"
-        "[-id <daemon-id>]"
-        #"[--max-tasks-per-worker <max-tasks-per-worker>]"
+        "[--id <daemon-id>]"
+        "[--settings-module <bs-instance-settings>]"
+        "[--instance-path <bs-instance-path>]"
         "[--verbosity *INFO|DEBUG|WARNING|ERROR|CRITICAL] "
         "[<redis-collection-list>] " % basename(execname),
         file=sys.stderr
@@ -594,10 +693,6 @@ def print_usage(execname):
 def print_error(message):
     """ print error message """
     print("ERROR: %s" % message, file=sys.stderr)
-
-
-class CommandError(Exception):
-    """ Command error exception. """
 
 
 if __name__ == "__main__":

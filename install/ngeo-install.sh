@@ -93,6 +93,9 @@ DJANGO_PASSWORD="Aa2phu0s"
 # directory where the browse server's setup.py is located - by default the current directory
 NGEOB_SOURCE_DIR=${NGEOB_SOURCE_DIR:-$PWD}
 
+# directory where the tools are located
+NGEOB_TOOLS_DIR="$(cd "${NGEOB_TOOLS_DIR:-$PWD}/tools" ; pwd)"
+
 # change to the directory where this script is located
 cd "$(dirname $0)"
 
@@ -755,11 +758,15 @@ use_footprint = true
 [browse_reports_redis]
 host = localhost
 port = 6379
-queue = ingest_queue
+# uncommment following line to pass BRs in multiple queues
+# requires sxcat-brb-redis >= 1.2.1
+#queue = ingest_queue
 EOF
 
         # fixing the Sx-Cat CLI aliases
-        sed -i -e 's/-u sxcat /-u apache /' /etc/profile.d/sxcat.*
+        for F in /etc/profile.d/sxcat.* ; do
+            sed -i -e 's/-u sxcat /-u apache /' "$F"
+        done
 
         # change ownership to apache
         chown -R apache:apache /srv/sxcat/ /var/log/sxcat/ /etc/sxcat
@@ -792,7 +799,8 @@ EOF
             echo "Adding, enabling, and starting browsewatchd service"
 
             # Install and permanently start browsewatchd
-            cp browsewatchd /etc/init.d/
+            # copy the service script and fix the path to the daemon executable
+            sed -e 's#^\(EXEC_PATH=\).*$#\1"'"${NGEOB_TOOLS_DIR}"'"#' browsewatchd > /etc/init.d/browsewatchd
             chmod +x /etc/init.d/browsewatchd
             chkconfig browsewatchd on
             service browsewatchd start
