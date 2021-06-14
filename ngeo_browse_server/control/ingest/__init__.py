@@ -50,7 +50,7 @@ from django.core.validators import URLValidator
 from django.db import transaction
 from django.template.loader import render_to_string
 from eoxserver.core.system import System
-from eoxserver.contrib import osr
+from eoxserver.contrib import osr, ogr
 from eoxserver.processing.gdal import reftools as rt
 from eoxserver.processing.preprocessing import WMSPreProcessor, RGB, RGBA, ORIG_BANDS
 from eoxserver.processing.preprocessing.format import get_format_selection
@@ -380,7 +380,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
             # round to seconds because of mapcache
             updated_end_time = parsed_browse.end_time - delta_add_subtract
             if updated_end_time.microsecond >= 500000:
-                updated_end_time = updated_end_time + datetime.timedelta(seconds=1)
+                updated_end_time = updated_end_time + dt_timedelta(seconds=1)
             updated_end_time = updated_end_time.replace(microsecond=0)
             parsed_browse.set_end_time(updated_end_time)
 
