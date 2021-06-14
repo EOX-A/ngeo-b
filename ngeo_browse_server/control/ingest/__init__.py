@@ -263,8 +263,8 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
                     # undo latest changes, append the failure and continue
                     report_result.add(IngestBrowseFailureResult(
                         parsed_browse.browse_identifier,
-                        getattr(e, "code", None) or type(e).__name__, str(e))
-                    )
+                        getattr(e, "code", None) or type(e).__name__, str(e)
+                    ))
                     failed.append(parsed_browse)
 
                     transaction.rollback()
@@ -374,7 +374,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         updated_start_time = updated_start_time.replace(microsecond=0)
         parsed_browse.set_start_time(updated_start_time)
         if shorten_ingested_interval_percent == 100.0:
-            # to be sure that no wierd micro-second rounding happens
+            # to be sure that no weird micro-second rounding happens
             parsed_browse.set_end_time(updated_start_time)
         else:
             # round to seconds because of mapcache
@@ -408,7 +408,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                 raise IngestionException("URL error downloading '%s': %s"
                                          % (parsed_browse.file_name, e.reason))
         else:
-            raise IngestionException("File do download already exists locally "
+            raise IngestionException("File to download already exists locally "
                                      "as '%s'" % input_filename)
 
     except ValidationError:
@@ -662,10 +662,9 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         return IngestBrowseResult(parsed_browse.browse_identifier, extent,
                                   time_interval)
 
-    else:
-        return IngestBrowseReplaceResult(parsed_browse.browse_identifier,
-                                         extent, time_interval, replaced_extent,
-                                         replaced_time_interval)
+    return IngestBrowseReplaceResult(parsed_browse.browse_identifier,
+                                     extent, time_interval, replaced_extent,
+                                     replaced_time_interval)
 
 
 #===============================================================================
@@ -706,7 +705,7 @@ def _georef_from_parsed(parsed_browse, clipping=None):
         coords = decode_coord_list(parsed_browse.coord_list, swap_axes)
         # values are for bottom/left and top/right pixel
         coords = [coord for pair in coords for coord in pair]
-        assert(len(coords) == 4)
+        assert len(coords) == 4
         return Extent(*coords, srid=srid)
 
     elif parsed_browse.geo_type == "footprintBrowse":
@@ -715,15 +714,17 @@ def _georef_from_parsed(parsed_browse, clipping=None):
         # substitute ncol and nrow with image size
         if clipping:
             clip_x, clip_y = clipping
-            pixels[:] = [(clip_x if x == "ncol" else x, clip_y if y == "nrow"
-                         else y) for x, y in pixels]
+            pixels[:] = [
+                (clip_x if x == "ncol" else x, clip_y if y == "nrow" else y)
+                for x, y in pixels
+            ]
         coord_list = decode_coord_list(parsed_browse.coord_list, swap_axes)
 
         if _coord_list_crosses_dateline(coord_list, CRS_BOUNDS[srid]):
             logger.info("Footprint crosses the dateline. Normalizing it.")
             coord_list = _unwrap_coord_list(coord_list, CRS_BOUNDS[srid])
 
-        assert(len(pixels) == len(coord_list))
+        assert len(pixels) == len(coord_list)
         gcps = [(x, y, pixel, line)
                 for (x, y), (pixel, line) in zip(coord_list, pixels)]
 
@@ -932,9 +933,10 @@ class GCPList(GeographicReference):
 
 
         logger.debug("Using GCP Projection '%s'" % gcp_sr.ExportToWkt())
-        logger.debug("Applying GCPs: MULTIPOINT(%s) -> MULTIPOINT(%s)"
-                      % (", ".join([("(%f %f)") % (gcp.GCPX, gcp.GCPY) for gcp in self.gcps]) ,
-                      ", ".join([("(%f %f)") % (gcp.GCPPixel, gcp.GCPLine) for gcp in self.gcps])))
+        logger.debug("Applying GCPs: MULTIPOINT(%s) -> MULTIPOINT(%s)" % (
+            ", ".join([("(%f %f)") % (gcp.GCPX, gcp.GCPY) for gcp in self.gcps]),
+            ", ".join([("(%f %f)") % (gcp.GCPPixel, gcp.GCPLine) for gcp in self.gcps])
+        ))
         # set the GCPs
         src_ds.SetGCPs(self.gcps, gcp_sr.ExportToWkt())
 
@@ -946,15 +948,16 @@ class GCPList(GeographicReference):
             if len(self.gcps) >= min_gcpnum and (max_gcpnum is None or len(self.gcps) <= max_gcpnum):
                 try:
 
-                    if (order < 0):
+                    if order < 0:
                         # try TPS
                         rt_prm = {"method": rt.METHOD_TPS, "order": 1}
                     else:
                         # use the polynomial GCP interpolation as requested
                         rt_prm = {"method": rt.METHOD_GCP, "order": order}
 
-                    logger.debug("Trying order '%i' {method:%s,order:%s}" % \
-                        (order, rt.METHOD2STR[rt_prm["method"]] , rt_prm["order"] ) )
+                    logger.debug("Trying order '%i' {method:%s,order:%s}" % (
+                        order, rt.METHOD2STR[rt_prm["method"]], rt_prm["order"]
+                    ))
                     # get the suggested pixel size/geotransform
                     size_x, size_y, geotransform = rt.suggested_warp_output(
                         src_ds,
@@ -978,12 +981,12 @@ class GCPList(GeographicReference):
                     dst_ds.SetProjection(dst_sr.ExportToWkt())
                     dst_ds.SetGeoTransform(geotransform)
 
-                    rt.reproject_image(src_ds, "", dst_ds, "", **rt_prm )
+                    rt.reproject_image(src_ds, "", dst_ds, "", **rt_prm)
 
                     copy_metadata(src_ds, dst_ds)
 
                     # retrieve the footprint from the given GCPs
-                    footprint_wkt = rt.get_footprint_wkt(src_ds, **rt_prm )
+                    footprint_wkt = rt.get_footprint_wkt(src_ds, **rt_prm)
 
                 except RuntimeError, e:
                     logger.debug("Failed using order '%i'. Error was '%s'."
@@ -1010,4 +1013,3 @@ class GCPList(GeographicReference):
         logger.debug("Calculated footprint: '%s'." % footprint_wkt)
 
         return dst_ds, footprint_wkt
-
