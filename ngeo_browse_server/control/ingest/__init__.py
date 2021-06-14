@@ -384,49 +384,7 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
             updated_end_time = updated_end_time.replace(microsecond=0)
             parsed_browse.set_end_time(updated_end_time)
 
-    # get the input and output filenames
-    storage_path = get_storage_path()
-    # if file_name is a URL download browse first and store it locally
-    validate = URLValidator()
-    try:
-        validate(parsed_browse.file_name)
-        input_filename = abspath(get_storage_path(
-            basename(parsed_browse.file_name), config=config))
-        logger.info("URL given, downloading browse image from '%s' to '%s'."
-                    % (parsed_browse.file_name, input_filename))
-        if not exists(input_filename):
-            try:
-                # timeout in seconds
-                setdefaulttimeout(120)
-                remote_browse = urlopen(parsed_browse.file_name)
-                with open(input_filename, "wb") as local_browse:
-                    local_browse.write(remote_browse.read())
-            except HTTPError, e:
-                raise IngestionException("HTTP error downloading '%s': %s"
-                                         % (parsed_browse.file_name, e.code))
-            except URLError, e:
-                raise IngestionException("URL error downloading '%s': %s"
-                                         % (parsed_browse.file_name, e.reason))
-        else:
-            raise IngestionException("File to download already exists locally "
-                                     "as '%s'" % input_filename)
-
-    except ValidationError:
-        input_filename = abspath(get_storage_path(parsed_browse.file_name,
-                                                  config=config))
-        logger.info("Filename given, using local browse image '%s'."
-                    % input_filename)
-
-    # check that the input filename is valid -> somewhere under the storage dir
-    if commonprefix((input_filename, storage_path)) != storage_path:
-        raise IngestionException("Input path '%s' points to an invalid "
-                                 "location." % parsed_browse.file_name)
-    try:
-        models.FileNameValidator(input_filename)
-    except ValidationError, e:
-        raise IngestionException("%s" % str(e), "ValidationError")
-
-    # Get filename to store preprocessed image
+    # get output filename to store the preprocessed image
     output_filename = "%s_%s" % (
         uuid.uuid4().hex, basename(parsed_browse.file_name)
     )
@@ -458,6 +416,8 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                 strategy = ingest_config["strategy"]
 
             if strategy == "merge" and timedelta < threshold:
+                logger.debug("Existing browse found, merging it.")
+                input_filename = retrieve_browse(parsed_browse.file_name, config)
 
                 if previous_time > current_time:
                     # TODO: raise exception?
@@ -478,7 +438,6 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                     seed_areas, config=config
                 )
                 replaced = False
-                logger.debug("Existing browse found, merging it.")
 
             elif strategy == "skip" and current_time <= previous_time:
                 logger.debug("Existing browse found and not older, skipping.")
@@ -486,6 +445,8 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
 
             else:
                 # perform replacement
+                logger.info("Existing browse found, replacing it.")
+                input_filename = retrieve_browse(parsed_browse.file_name, config)
 
                 replaced_time_interval = (existing_browse_model.start_time,
                                           existing_browse_model.end_time)
@@ -495,11 +456,11 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                     seed_areas, config=config
                 )
                 replaced = True
-                logger.info("Existing browse found, replacing it.")
 
         else:
             # A browse with that identifier does not exist, so create a new one
             logger.info("Creating new browse.")
+            input_filename = retrieve_browse(parsed_browse.file_name, config)
 
         replaced_filename_remote = None
         if replaced_filename and replaced_filename.startswith('/vsiswift'):
@@ -666,6 +627,53 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
                                      extent, time_interval, replaced_extent,
                                      replaced_time_interval)
 
+
+def retrieve_browse(browse_location, config):
+    """ Retrieve browse image and get the local path to it.
+    If location is a URL perform download.
+    """
+    # if file_name is a URL download browse first and store it locally
+    validate = URLValidator()
+    try:
+        validate(browse_location)
+        input_filename = abspath(get_storage_path(
+            basename(browse_location), config=config))
+        logger.info("URL given, downloading browse image from '%s' to '%s'.",
+                    browse_location, input_filename)
+        if not exists(input_filename):
+            try:
+                # timeout in seconds
+                setdefaulttimeout(120)
+                remote_browse = urlopen(browse_location)
+                with open(input_filename, "wb") as local_browse:
+                    local_browse.write(remote_browse.read())
+            except HTTPError, error:
+                raise IngestionException("HTTP error downloading '%s': %s"
+                                         % (browse_location, error.code))
+            except URLError, error:
+                raise IngestionException("URL error downloading '%s': %s"
+                                         % (browse_location, error.reason))
+        else:
+            raise IngestionException("File to download already exists locally "
+                                     "as '%s'" % input_filename)
+
+    except ValidationError:
+        input_filename = abspath(get_storage_path(browse_location,
+                                                  config=config))
+        logger.info("Filename given, using local browse image '%s'.",
+                    input_filename)
+
+    # check that the input filename is valid -> somewhere under the storage dir
+    storage_path = get_storage_path()
+    if commonprefix((input_filename, storage_path)) != storage_path:
+        raise IngestionException("Input path '%s' points to an invalid "
+                                 "location." % browse_location)
+    try:
+        models.FileNameValidator(input_filename)
+    except ValidationError, error:
+        raise IngestionException("%s" % str(error), "ValidationError")
+
+    return input_filename
 
 #===============================================================================
 # helper functions
