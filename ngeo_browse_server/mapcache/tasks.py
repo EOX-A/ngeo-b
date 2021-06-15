@@ -48,6 +48,8 @@ from ngeo_browse_server.mapcache.config import (
     get_mapcache_seed_config, get_tileset_path
 )
 
+# Default seeding file lock time-out.
+DEF_LOCK_TIMEOUT = 60.0 # seconds
 
 # Maximum bounds for both supported CRSs
 CRS_BOUNDS = {
@@ -122,15 +124,15 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
     try:
         config = get_ngeo_config()
         timeout = safe_get(config, "mapcache.seed", "timeout")
-        timeout = float(timeout) if timeout is not None else 60.0
+        timeout = float(timeout) if timeout is not None else DEF_LOCK_TIMEOUT
     except:
-        timeout = 60.0
-
+        timeout = DEF_LOCK_TIMEOUT
 
     try:
-        lock = FileLock(
-            get_project_relative_path("mapcache_seed.lck"), timeout=timeout
-        )
+        lock = FileLock(get_project_relative_path(
+            "mapcache_seed.%s.lck" % tileset # one seeder process per tileset
+            #"mapcache_seed.lck" # one exclusive seeder process
+        ), timeout=timeout)
 
         with lock:
             logger.debug("mapcache seeding command: '%s'. raw: '%s'."
