@@ -61,6 +61,11 @@ DEF_COLLECTION_LIST = "ingestion_queues"
 # extra keys added to those found in the collection list
 EXTRA_KYES = ["ingest_queue"]   # added for backward compatibility
 
+# max number of simultaneously processed reports from a singe queue
+# assuming collection == ingestion queue == seeded tile-set
+# larger values increase chances of seeding lock time-outs
+MAX_JOBS_PER_INGESTION_QUEUE = 2
+
 MAX_WORKERS_PER_CPU = 16        # limit of allowed workers per CPU
 DEF_N_WORKERS = 2               # default number of workers
 DEF_REDIS_HOST = "localhost"    # default Redis hostname
@@ -179,11 +184,14 @@ class BrowseWatchDaemon(object):
             else:
                 del self[key]
 
-        def sort_keys(self, keys):
-            """ Get keys sorted by the counter values. """
+        def sort_keys(self, keys, max_count=1):
+            """ Get keys sorted by the counter values.
+            Only keys with not more than max_count are allowed.
+            """
             return [
                 key for _, _, key in sorted(
                     (self[k], i, k) for i, k in enumerate(keys)
+                    if self[k] <= max_count
                 )
             ]
 
@@ -424,9 +432,10 @@ class BrowseWatchDaemon(object):
                 return self.buffer_key, report # item from the buffer is returned
             # pick the non-empty keys and prioritize them by the key counter
             # prioritize keys with lower key counters
+            # queues with reached MAX_JOBS_PER_INGESTION_QUEUE are skipped
             readable_keys = self._key_counter.sort_keys([
                 key for key, count in zip(self.keys, response[3:]) if count > 0
-            ])
+            ], max_count=(MAX_JOBS_PER_INGESTION_QUEUE - 1))
             for key in readable_keys:
                 report = self.redis.rpoplpush(key, self.buffer_key)
                 if report:
