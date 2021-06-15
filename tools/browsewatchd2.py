@@ -122,11 +122,14 @@ def handle_browse_report_inline(job_id, report, **kwargs):
     """ Process browse report in a subprocess. """
     logger = getLogger(LOGGER_NAME)
     logger.info("Ingesting %s ...", job_id)
-    ingest_browse_report(
-        decode_browse_report(
-            etree.fromstring(report.encode('utf-8'))
+    try:
+        ingest_browse_report(
+            decode_browse_report(
+                etree.fromstring(report.encode('utf-8'))
+            )
         )
-    )
+    except Exception as error:
+        logger.error("Failed to ingest %s!", job_id, exc_info=True)
 
 
 def wp_handle_ingestion_job(job):
@@ -583,14 +586,13 @@ class FormatterUTC(Formatter):
         dts = self.converter(record.created)
         return dts.strftime(datefmt) if datefmt else dts.isoformat("T")+"Z"
 
-    def format(self, record):
-        """ Format the specified record as text.
-
-        This custom formatter escapes Unicode character and special characters
-        such as new lines.
-        """
-        record.msg = record.msg.encode('unicode_escape').decode('utf-8')
-        return Formatter.format(self, record)
+    #def format(self, record):
+    #    """ Format the specified record as text.
+    #    This custom formatter escapes Unicode character and special characters
+    #    such as new lines.
+    #    """
+    #    record.msg = record.msg.encode('unicode_escape').decode('utf-8')
+    #    return Formatter.format(self, record)
 
 
 def parse_args(*args):
