@@ -551,22 +551,27 @@ def ingest_browse(parsed_browse, browse_report, browse_layer, preprocessor, crs,
         # save exception info to re-raise it
         exc_info = sys.exc_info()
 
-        logger.error("Error during ingestion of Browse '%s'. Moving "
-                     "original image to `failure_dir` '%s'."
-                     % (parsed_browse.browse_identifier, failure_dir))
-
         # move the file to failure folder
-        try:
-            if not leave_original:
-                storage_dir = get_storage_path()
-                relative = relpath(input_filename, storage_dir)
-                dst_dirname = join(failure_dir, dirname(relative))
-                safe_makedirs(dst_dirname)
-                shutil.move(input_filename, dst_dirname)
-        except Exception, e:
-            logger.warn("Could not move '%s' to configured "
-                        "`failure_dir` '%s'. Error was: '%s'."
-                        % (input_filename, failure_dir, str(e)))
+        if "input_filename" in locals():
+            logger.error("Error during ingestion of Browse '%s'. Moving "
+                         "original image to `failure_dir` '%s'."
+                         % (parsed_browse.browse_identifier, failure_dir))
+            try:
+                if not leave_original:
+                    storage_dir = get_storage_path()
+                    relative = relpath(input_filename, storage_dir)
+                    dst_dirname = join(failure_dir, dirname(relative))
+                    safe_makedirs(dst_dirname)
+                    shutil.move(input_filename, dst_dirname)
+            except Exception, e:
+                logger.warn("Could not move '%s' to configured "
+                            "`failure_dir` '%s'. Error was: '%s'."
+                            % (input_filename, failure_dir, str(e)))
+
+        else:
+            logger.error("Error during ingestion of Browse '%s'." % (
+                parsed_browse.browse_identifier
+            ))
 
         # re-raise the exception
         raise exc_info[0], exc_info[1], exc_info[2]
