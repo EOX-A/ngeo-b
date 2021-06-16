@@ -28,10 +28,11 @@
 #-------------------------------------------------------------------------------
 
 import sys
+from time import time
 from os import remove, makedirs, rmdir, environ
 from os.path import (
     exists, dirname, join, isdir, samefile, commonprefix, abspath, relpath,
-    basename
+    basename, getsize,
 )
 import shutil
 from numpy import arange
@@ -646,6 +647,7 @@ def retrieve_browse(browse_location, config):
         logger.info("URL given, downloading browse image from '%s' to '%s'.",
                     browse_location, input_filename)
         if not exists(input_filename):
+            start = time()
             try:
                 # timeout in seconds
                 setdefaulttimeout(120)
@@ -658,6 +660,10 @@ def retrieve_browse(browse_location, config):
             except URLError, error:
                 raise IngestionException("URL error downloading '%s': %s"
                                          % (browse_location, error.reason))
+            logger.info(
+                "Retrieved %s %dB in %.3fs", browse_location,
+                getsize(input_filename), time() - start,
+            )
         else:
             raise IngestionException("File to download already exists locally "
                                      "as '%s'" % input_filename)
