@@ -24,7 +24,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
-# pylint: disable=missing-docstring,too-many-branches
+# pylint: disable=missing-docstring,too-many-branches,line-too-long
 # pylint: disable=too-many-instance-attributes,too-many-statements
 
 from __future__ import print_function
@@ -126,7 +126,7 @@ def parse_report_signature(report, logger):
 def handle_browse_report_inline(job_id, report, **kwargs):
     """ Process browse report in a subprocess. """
     logger = getLogger(LOGGER_NAME)
-    logger.info("Ingesting %s ...", job_id)
+    logger.info("%s Starting ingestion ...", job_id)
     try:
         ingest_browse_report(
             decode_browse_report(
@@ -134,7 +134,7 @@ def handle_browse_report_inline(job_id, report, **kwargs):
             )
         )
     except Exception as error:
-        logger.error("Failed to ingest %s!", job_id, exc_info=True)
+        logger.error("%s Ingestion failed!", job_id, exc_info=True)
 
 
 def wp_handle_ingestion_job(job):
@@ -309,26 +309,28 @@ class BrowseWatchDaemon(object):
             error = job.get('error')
             if error:
                 self.logger.error(
-                    "Browse report ingestion failed! (%s)",
-                    "%s: %s" % (type(error).__name__, error)
-                    if str(error) else type(error).__name__
+                    "%s Browse report ingestion failed! (%s)",
+                    job["job_id"], (
+                        "%s: %s" % (type(error).__name__, error)
+                        if str(error) else type(error).__name__
+                    )
                 )
                 self.logger.info(
-                    "%s failed in %.1fs",
+                    "%s Failed in %.1fs",
                     job["job_id"], job["stopped"] - job["started"]
                 )
             else:
                 self.logger.info(
-                    "%s completed in %.1fs",
+                    "%s Completed in %.1fs",
                     job["job_id"], job["stopped"] - job["started"]
                 )
-            self.logger.debug("Removing job %s ...", job["job_id"])
+            self.logger.debug("%s Removing job ...", job["job_id"])
             try:
                 self.remove_job(job["job_id"])
             except self.Terminated:
-                self.logger.debug("Job %s removal terminated.", job["job_id"])
+                self.logger.debug("%s Job removal terminated.", job["job_id"])
             else:
-                self.logger.debug("Job %s removed.", job["job_id"])
+                self.logger.debug("%s Job removed.", job["job_id"])
 
         try:
             for job in self.read_jobs():
@@ -356,7 +358,7 @@ class BrowseWatchDaemon(object):
                 slot = next(slots_iterator)
                 job = self.get_unfinished_job(job_id)
                 if job:
-                    self.logger.info("Unfinished ingestion request loaded: %s", job["job_id"])
+                    self.logger.info("%s Unfinished ingestion request loaded.", job["job_id"])
                     yield job
                 else:
                     slot.release()
@@ -367,7 +369,7 @@ class BrowseWatchDaemon(object):
             self.update_keys()
             job = self.get_new_job()
             if job:
-                self.logger.info("New ingestion request received: %s", job["job_id"])
+                self.logger.info("%s New ingestion request received.", job["job_id"])
                 yield job
             else:
                 slot.release()
