@@ -26,7 +26,7 @@
 #-------------------------------------------------------------------------------
 # pylint: disable=missing-docstring,too-many-branches,line-too-long
 # pylint: disable=too-many-instance-attributes,too-many-statements
-# pylint: disable=too-few-public-methods
+# pylint: disable=too-few-public-methods,too-many-arguments,too-many-locals
 
 from __future__ import print_function
 import sys
@@ -239,7 +239,7 @@ class BrowseWatchDaemon(object):
         return _redis_call_wrapper
 
     def __init__(self, redis, key_set, worker_pool, worker_semaphore,
-                 daemon_id, logger):
+                 daemon_id, logger, finish_incomplete_and_stop=False):
         self.worker_semaphore = worker_semaphore
         self.worker_pool = worker_pool
         self.logger = logger
@@ -249,6 +249,7 @@ class BrowseWatchDaemon(object):
         self._key_counter = self.KeyCounters()
         self._keys_last_update = float("-inf") # never
         self._terminated = ThreadEvent() # implements abortable sleep
+        self.finish_incomplete_and_stop = finish_incomplete_and_stop
         self._redis_connection_trial = 0
         self._daemon_id = daemon_id
         self.buffer_key = "browsewatchd:browse_report_buffer:%s" % daemon_id
@@ -282,8 +283,19 @@ class BrowseWatchDaemon(object):
         self.worker_pool.join()
 
         # update the daemon status
+
+        def _keys_exist(*keys):
+            pipeline = self.redis.pipeline()
+            for key in keys:
+                pipeline.exists(key)
+            return sum(pipeline.execute())
+
         try:
-            self.redis.set(self.status_key, "STOPPED")
+            if self.finish_incomplete_and_stop and not _keys_exist(self.buffer_key, self.jobs_key):
+                # no daemons buffers left - no need to keep the status key
+                self.redis.delete(self.status_key)
+            else:
+                self.redis.set(self.status_key, "STOPPED")
         except ConnectionError:
             raise
 
@@ -337,6 +349,8 @@ class BrowseWatchDaemon(object):
                 self.worker_pool.apply_async(
                     wp_handle_ingestion_job, [job], {}, callback=callback
                 )
+            self.worker_pool.close()
+            self.worker_pool.join()
         except self.Terminated:
             pass
 
@@ -364,6 +378,9 @@ class BrowseWatchDaemon(object):
                 else:
                     slot.release()
                     self.logger.debug("Semaphore released.")
+
+        if self.finish_incomplete_and_stop:
+            return
 
         # process regular jobs
         for slot in slots_iterator:
@@ -539,7 +556,7 @@ class BrowseWatchDaemon(object):
 
 
 def start_browsewatchd(redis_host, redis_port, redis_key_set, n_workers,
-                       daemon_id, **kwargs):
+                       daemon_id, finish_incomplete_and_stop, **kwargs):
     BrowseWatchDaemon(
         redis=Redis(host=redis_host, port=redis_port),
         key_set=redis_key_set,
@@ -547,6 +564,7 @@ def start_browsewatchd(redis_host, redis_port, redis_key_set, n_workers,
         worker_pool=ProcessPool(n_workers, init_worker),
         daemon_id=daemon_id,
         worker_semaphore=ProcessBoundedSemaphore(n_workers),
+        finish_incomplete_and_stop=finish_incomplete_and_stop,
     ).run()
 
 
@@ -657,6 +675,7 @@ def parse_args(*args):
     """ Parse CLI argument. """
     # collection list is a Redis set containing the current list of browse
     # report ingestion queues
+    finish_incomplete_and_stop = False
     daemon_id = DEF_DAEMON_ID
     collection_list = None
     n_workers = DEF_N_WORKERS
@@ -706,6 +725,8 @@ def parse_args(*args):
                 extra_logging = True
             elif option == "--basic-logging":
                 extra_logging = False
+            elif option == "--finish":
+                finish_incomplete_and_stop = True
             elif option == "--":
                 break # all following arguments are interpreted as keys
             elif option.startswith("-"):
@@ -739,6 +760,7 @@ def parse_args(*args):
         django_settings_module=django_settings_module,
         django_instance_path=django_instance_path,
         extra_logging=extra_logging,
+        finish_incomplete_and_stop=finish_incomplete_and_stop,
     )
 
 
@@ -753,6 +775,9 @@ def print_usage(execname):
         "    <redis-collection-list>       [%s]" % DEF_COLLECTION_LIST,
         "        Optional Redis set key holding the list of the ingestion queues.",
         "OPTIONS:",
+        "    --finish",
+        "        Finish the jobs in progress and stop without reading any new ",
+        "        job from the ingestion queues.",
         "    --help | -h",
         "        Print command help.",
         "    --host <redis-host>           [%s]" % DEF_REDIS_HOST,
