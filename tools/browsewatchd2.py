@@ -503,7 +503,15 @@ class BrowseWatchDaemon(object):
         if (time() - self._keys_last_update) < self.REDIS_KEY_SET_REFRESH:
             return
 
-        result = self.redis.smembers(self.key_set) or set()
+        # get non-empty ingestion queues, empty queues are removed
+        result = set(self.redis.execute_command('EVAL', (
+            "for i,key in ipairs(redis.call('SMEMBERS',KEYS[1])) do "
+            "if redis.call('EXISTS',key)==0 then "
+            "redis.call('SREM', KEYS[1],key) "
+            "end "
+            "end;"
+            "return redis.call('SMEMBERS',KEYS[1])"
+        ), 1, self.key_set))
 
         self._keys_last_update = time()
 
