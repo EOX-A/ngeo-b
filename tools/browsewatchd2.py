@@ -333,6 +333,7 @@ class BrowseWatchDaemon(object):
                 self.logger.debug("%s Job removed.", job["job_id"])
 
         try:
+            self._init_status()
             for job in self.read_jobs():
                 self._key_counter.increment(job['source'])
                 self.worker_pool.apply_async(
@@ -390,6 +391,19 @@ class BrowseWatchDaemon(object):
                 self.logger.debug("Semaphore timeout.")
         self.logger.debug("Exiting the semaphore loop.")
         raise self.Terminated
+
+    @_redis_call
+    def _init_status(self):
+        """ Initialize deamon status. """
+        pipeline = self.redis.pipeline()
+        pipeline.get(self.status_key)
+        pipeline.set(self.status_key, "RUNNING")
+        status, _ = pipeline.execute()
+        if status == "RUNNING":
+            raise CommandError(
+                "Another %s demon process is running! Stop the other "
+                "process or use a different daemon id." % self._daemon_id
+            )
 
     @_redis_call
     def list_unfinished_jobs(self):
