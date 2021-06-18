@@ -36,7 +36,7 @@ from datetime import datetime
 from time import sleep, time
 from logging import (
     getLogger, Formatter, StreamHandler,
-    DEBUG, INFO, WARNING, ERROR, CRITICAL,
+    DEBUG, INFO, WARNING, ERROR, CRITICAL, NOTSET,
 )
 from signal import SIGINT, SIGTERM, signal, SIG_IGN
 from threading import Event as ThreadEvent
@@ -96,6 +96,7 @@ LOG_LEVEL = {
 }
 
 # non-propagated loggers which require explicit setup
+DEF_EXTRA_LOGGING = True
 EXTRA_HANDLED_LOGGERS = [
     'eoxserver',
     'ngeo_browse_server',
@@ -559,7 +560,11 @@ def main(*args):
         import_from_module("ngeo_browse_server.control.ingest", "ingest_browse_report")
 
         # setup console logging - must be performed AFTER the Django imports
-        setup_logging(kwargs.pop('log_level'))
+        setup_logging(
+            kwargs.pop('log_level'),
+            [None] + EXTRA_HANDLED_LOGGERS if kwargs.pop('extra_logging')
+            else [LOGGER_NAME]
+        )
 
         # start the daemon
         start_browsewatchd(**kwargs)
@@ -578,10 +583,9 @@ def import_from_module(module_name, *object_names):
     globals().update((name, getattr(module, name)) for name in object_names)
 
 
-def setup_logging(log_level):
+def setup_logging(log_level, loggers,):
     """ Setup logging. """
-    set_stream_handler(getLogger(), log_level)
-    for name in EXTRA_HANDLED_LOGGERS:
+    for name in loggers or []:
         set_stream_handler(getLogger(name), log_level)
     set_stream_handler(mp_util.get_logger(), mp_util.SUBWARNING)
 
@@ -593,7 +597,9 @@ def set_stream_handler(logger, level=DEBUG):
     handler.setLevel(level)
     handler.setFormatter(formatter)
     logger.addHandler(handler)
-    logger.setLevel(min(level, logger.level))
+    logger.setLevel(
+        level if logger.level == NOTSET else min(level, logger.level)
+    )
 
 
 class FormatterUTC(Formatter):
@@ -632,6 +638,7 @@ def parse_args(*args):
     log_level = INFO
     django_settings_module = DEF_BS_SETTINGS_MODULE
     django_instance_path = DEF_BS_INSTANCE_PATH
+    extra_logging = DEF_EXTRA_LOGGING
 
     it_args = iter(args[1:])
     for option in it_args:
@@ -668,6 +675,10 @@ def parse_args(*args):
             elif option in ("-h", "--help"):
                 print_usage(args[0])
                 sys.exit(0)
+            elif option == "--extra-logging":
+                extra_logging = True
+            elif option == "--basic-logging":
+                extra_logging = False
             elif option == "--":
                 break # all following arguments are interpreted as keys
             elif option.startswith("-"):
@@ -700,6 +711,7 @@ def parse_args(*args):
         log_level=log_level,
         django_settings_module=django_settings_module,
         django_instance_path=django_instance_path,
+        extra_logging=extra_logging,
     )
 
 
@@ -730,6 +742,11 @@ def print_usage(execname):
             "        Browse Server Django instance path.",
             "   --verbosity | -v DEBUG|INFO|WARNING|ERROR|CRITICAL [INFO]",
             "        Logging verbosity.",
+            "   --extra-logging",
+            "        Output browse server logging messages. By default, only",
+            "        the daemon's log messages are printed.",
+            "   --basic-logging",
+            "        Print only only the daemon's log messages.",
         ]), file=sys.stderr
     )
 
