@@ -26,6 +26,7 @@
 #-------------------------------------------------------------------------------
 # pylint: disable=missing-docstring,too-many-branches,line-too-long
 # pylint: disable=too-many-instance-attributes,too-many-statements
+# pylint: disable=too-few-public-methods
 
 from __future__ import print_function
 import sys
@@ -35,7 +36,7 @@ from os.path import basename
 from datetime import datetime
 from time import sleep, time
 from logging import (
-    getLogger, Formatter, StreamHandler,
+    getLogger, LoggerAdapter, Filter, Formatter, StreamHandler,
     DEBUG, INFO, WARNING, ERROR, CRITICAL, NOTSET,
 )
 from signal import SIGINT, SIGTERM, signal, SIG_IGN
@@ -96,7 +97,7 @@ LOG_LEVEL = {
 }
 
 # non-propagated loggers which require explicit setup
-DEF_EXTRA_LOGGING = True
+DEF_EXTRA_LOGGING = False
 EXTRA_HANDLED_LOGGERS = [
     'eoxserver',
     'ngeo_browse_server',
@@ -126,8 +127,9 @@ def parse_report_signature(report, logger):
 
 def handle_browse_report_inline(job_id, report, **kwargs):
     """ Process browse report in a subprocess. """
+    JobIdLoggingContextFilter.JOB_ID = job_id
     logger = getLogger(LOGGER_NAME)
-    logger.info("%s Starting ingestion ...", job_id)
+    logger.info("Starting ingestion ...")
     try:
         ingest_browse_report(
             decode_browse_report(
@@ -135,7 +137,9 @@ def handle_browse_report_inline(job_id, report, **kwargs):
             )
         )
     except Exception as error:
-        logger.error("%s Ingestion failed!", job_id, exc_info=True)
+        logger.error("Ingestion failed!", exc_info=True)
+        raise
+    logger.info("Ingested.")
 
 
 def wp_handle_ingestion_job(job):
@@ -304,34 +308,27 @@ class BrowseWatchDaemon(object):
 
         def callback(job):
             """ Worker callback. """
+            job_logger = JobIdLoggingContextAdapter(self.logger, job["job_id"])
             self._key_counter.decrement(job.get('source'))
             self.worker_semaphore.release()
             self.logger.debug("Semaphore released.")
             error = job.get('error')
             if error:
-                self.logger.error(
-                    "%s Browse report ingestion failed! (%s)",
-                    job["job_id"], (
-                        "%s: %s" % (type(error).__name__, error)
-                        if str(error) else type(error).__name__
-                    )
+                job_logger.error(
+                    "Browse report ingestion failed! (%s)",
+                    "%s: %s" % (type(error).__name__, error)
+                    if str(error) else type(error).__name__
                 )
-                self.logger.info(
-                    "%s Failed in %.1fs",
-                    job["job_id"], job["stopped"] - job["started"]
-                )
+                job_logger.info("Failed in %.1fs", job["stopped"] - job["started"])
             else:
-                self.logger.info(
-                    "%s Completed in %.1fs",
-                    job["job_id"], job["stopped"] - job["started"]
-                )
-            self.logger.debug("%s Removing job ...", job["job_id"])
+                job_logger.info("Completed in %.1fs", job["stopped"] - job["started"])
+                job_logger.debug("Removing job ...")
             try:
                 self.remove_job(job["job_id"])
             except self.Terminated:
-                self.logger.debug("%s Job removal terminated.", job["job_id"])
+                job_logger.debug("Job removal terminated.")
             else:
-                self.logger.debug("%s Job removed.", job["job_id"])
+                job_logger.debug("Job removed.")
 
         try:
             self._init_status()
@@ -360,7 +357,9 @@ class BrowseWatchDaemon(object):
                 slot = next(slots_iterator)
                 job = self.get_unfinished_job(job_id)
                 if job:
-                    self.logger.info("%s Unfinished ingestion request loaded.", job["job_id"])
+                    JobIdLoggingContextAdapter(self.logger, job["job_id"]).info(
+                        "Unfinished ingestion request loaded."
+                    )
                     yield job
                 else:
                     slot.release()
@@ -371,7 +370,9 @@ class BrowseWatchDaemon(object):
             self.update_keys()
             job = self.get_new_job()
             if job:
-                self.logger.info("%s New ingestion request received.", job["job_id"])
+                JobIdLoggingContextAdapter(self.logger, job["job_id"]).info(
+                    "Unfinished ingestion request loaded."
+                )
                 yield job
             else:
                 slot.release()
@@ -470,7 +471,9 @@ class BrowseWatchDaemon(object):
             if result:
                 collection_id, product_id = result
                 job_id = "%s/%s" % (collection_id, product_id)
-                self.logger.debug("Creating job %s ..." % job_id)
+                JobIdLoggingContextAdapter(self.logger, job_id).debug(
+                    "Creating job ..."
+                )
                 # save new job
                 job = dict(
                     source=key,
@@ -592,9 +595,10 @@ def setup_logging(log_level, loggers,):
 
 def set_stream_handler(logger, level=DEBUG):
     """ Set stream handler to the logger. """
-    formatter = FormatterUTC('%(asctime)s %(levelname)s %(name)s: %(message)s')
+    formatter = FormatterUTC('%(asctime)s %(job_id)s %(levelname)s %(name)s: %(message)s')
     handler = StreamHandler()
     handler.setLevel(level)
+    handler.addFilter(JobIdLoggingContextFilter())
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     logger.setLevel(
@@ -624,6 +628,21 @@ class FormatterUTC(Formatter):
     #    """
     #    record.msg = record.msg.encode('unicode_escape').decode('utf-8')
     #    return Formatter.format(self, record)
+
+
+class JobIdLoggingContextFilter(Filter):
+    JOB_ID = None
+    def filter(self, record):
+        job_id = JobIdLoggingContextFilter.JOB_ID
+        record.job_id = job_id if job_id is not None else (
+            getattr(record, "job_id", "-")
+        )
+        return True
+
+
+class JobIdLoggingContextAdapter(LoggerAdapter):
+    def __init__(self, logger, job_id):
+        LoggerAdapter.__init__(self, logger, {"job_id": job_id})
 
 
 def parse_args(*args):
@@ -722,33 +741,32 @@ def print_usage(execname):
         file=sys.stderr
     )
     print("\n".join([
-            "ARGUMENTS:",
-            "    <redis-collection-list>       [%s]" % DEF_COLLECTION_LIST,
-            "        Optional Redis set key holding the list of the ingestion queues.",
-            "OPTIONS:",
-            "    --help | -h",
-            "        Print command help.",
-            "    --host <redis-host>           [%s]" % DEF_REDIS_HOST,
-            "        Redis hostname",
-            "    --port <redis-port>           [%s]" % DEF_REDIS_PORT,
-            "        Redis port number",
-            "    --nworkers | -n <no-workers>  [%s]" % DEF_N_WORKERS,
-            "        Number or parallel processes. ",
-            "    --id | -i <identifier>        [%s]" % DEF_DAEMON_ID,
-            "        Daemon identifier, unique per each running daemon instance.",
-            "    --settings-module <settings>  [%s]" % DEF_BS_SETTINGS_MODULE,
-            "        Browse Server Django setting module.",
-            "    --instance-path <path>        [%s]" % DEF_BS_INSTANCE_PATH,
-            "        Browse Server Django instance path.",
-            "   --verbosity | -v DEBUG|INFO|WARNING|ERROR|CRITICAL [INFO]",
-            "        Logging verbosity.",
-            "   --extra-logging",
-            "        Output browse server logging messages. By default, only",
-            "        the daemon's log messages are printed.",
-            "   --basic-logging",
-            "        Print only only the daemon's log messages.",
-        ]), file=sys.stderr
-    )
+        "ARGUMENTS:",
+        "    <redis-collection-list>       [%s]" % DEF_COLLECTION_LIST,
+        "        Optional Redis set key holding the list of the ingestion queues.",
+        "OPTIONS:",
+        "    --help | -h",
+        "        Print command help.",
+        "    --host <redis-host>           [%s]" % DEF_REDIS_HOST,
+        "        Redis hostname",
+        "    --port <redis-port>           [%s]" % DEF_REDIS_PORT,
+        "        Redis port number",
+        "    --nworkers | -n <no-workers>  [%s]" % DEF_N_WORKERS,
+        "        Number or parallel processes. ",
+        "    --id | -i <identifier>        [%s]" % DEF_DAEMON_ID,
+        "        Daemon identifier, unique per each running daemon instance.",
+        "    --settings-module <settings>  [%s]" % DEF_BS_SETTINGS_MODULE,
+        "        Browse Server Django setting module.",
+        "    --instance-path <path>        [%s]" % DEF_BS_INSTANCE_PATH,
+        "        Browse Server Django instance path.",
+        "   --verbosity | -v DEBUG|INFO|WARNING|ERROR|CRITICAL [INFO]",
+        "        Logging verbosity.",
+        "   --extra-logging",
+        "        Output browse ingestion logging messages. By default, only",
+        "        the daemon's log messages are printed.",
+        "   --basic-logging",
+        "        Print only the daemon's log messages.",
+    ]), file=sys.stderr)
 
 
 def print_error(message):
