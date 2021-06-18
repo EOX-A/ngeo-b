@@ -24,20 +24,41 @@
 SERVICE="browsewatchd"
 DAEMON_ID="$SERVICE" # must be unique for each daemon instance
 PIDFILE="/var/run/${SERVICE}.pid"
+HARD_KILL_DELAY=15 # seconds
 LOCKFILE="/var/lock/subsys/$SERVICE"
 CONSOLE_LOG="/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/logs/${SERVICE}.log"
 USER="apache"
 REDIS_HOST=${HOST:-localhost}
 REDIS_PORT=${PORT:-6379}
 NUM_WORKERS=${NUM_WORKERS:-16}
-EXEC_PATH="/tools"
+EXEC_PATH="/usr/bin"
 LOG_LEVEL="INFO"
 #LOGLEVEL="DEBUG"
+# comment following line to reduce the daemon's logging - not recommended during testing and benchmarking
+EXTRA_OPTIONS="$EXTRA_OPTIONS --extra-logging"
 
-COMMAND="runuser -s /bin/bash $USER -c 'ulimit -S -c 0 &>/dev/null ; nohup python ${EXEC_PATH}/browsewatchd2.py --id ${DAEMON_ID} --host ${REDIS_HOST} --port ${REDIS_PORT} --nworkers ${NUM_WORKERS} --verbosity ${LOG_LEVEL} 0<&- &>>$CONSOLE_LOG & echo \$!' > $PIDFILE"
+COMMAND="runuser -s /bin/bash $USER -c 'ulimit -S -c 0 &>/dev/null ; nohup python ${EXEC_PATH}/browsewatchd2.py --id ${DAEMON_ID} --host ${REDIS_HOST} --port ${REDIS_PORT} --nworkers ${NUM_WORKERS} --verbosity ${LOG_LEVEL} ${EXTRA_OPTIONS} 0<&- &>>$CONSOLE_LOG & echo \$!' > $PIDFILE"
 
 _status() {
     status -p "$PIDFILE" "$SERVICE"
+}
+
+_stop() {
+    _PID=$(cat "$PIDFILE")
+    [ -n "$_PID" ] || return 0 # no PID available - assuming stopped service
+    _DELAY=$1
+    while [ "$_DELAY" -gt 0 ]
+    do
+        [ -n "$(ps -o pid= $_PID)" ] || return 0 # not running
+        kill "$_PID"
+    echo -n "."
+    sleep 1
+    let _DELAY--
+    done
+    [ -n "$(ps -o pid= $_PID)" ] || return 0 # not running
+    kill -9 "$_PID"
+    echo -n "x"
+    [ -z "$(ps -o pid= $_PID)" ]
 }
 
 start() {
@@ -100,7 +121,7 @@ stop() {
   esac
   # regular shut-down
   echo -n $"stopping $SERVICE: "
-  [ -f "$PIDFILE" ] && kill $(cat $PIDFILE) && true
+  _stop ${HARD_KILL_DELAY:-1}
   RETVAL="$?"
   echo
   [ "$RETVAL" -eq 0 ] && rm -f "$LOCKFILE" "$PIDFILE"

@@ -799,8 +799,7 @@ EOF
             echo "Adding, enabling, and starting browsewatchd service"
 
             # Install and permanently start browsewatchd
-            # copy the service script and fix the path to the daemon executable
-            sed -e 's#^\(EXEC_PATH=\).*$#\1"'"${NGEOB_TOOLS_DIR}"'"#' browsewatchd > /etc/init.d/browsewatchd
+            cp browsewatchd /etc/init.d
             chmod +x /etc/init.d/browsewatchd
             chkconfig browsewatchd on
             service browsewatchd start
