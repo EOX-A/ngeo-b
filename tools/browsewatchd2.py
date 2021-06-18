@@ -53,7 +53,7 @@ LOGGER_NAME = "browsewatchd"
 
 # default daemon ID
 # Make sure each running instance has a unique-id or bad things happen.
-DEF_DAEMON_ID = "default"
+DEF_DAEMON_ID = "browsewatchd-cli"
 
 # Redis set containing the list of the watched collections
 DEF_COLLECTION_LIST = "ingestion_queues"
