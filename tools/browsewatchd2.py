@@ -706,14 +706,31 @@ def parse_args(*args):
 def print_usage(execname):
     """ print command usage """
     print(
-        "USAGE: %s [--host <redis-host>][--port <redis-port>]"
-        "[--nworkers <n-processes>]"
-        "[--id <daemon-id>]"
-        "[--settings-module <bs-instance-settings>]"
-        "[--instance-path <bs-instance-path>]"
-        "[--verbosity *INFO|DEBUG|WARNING|ERROR|CRITICAL] "
-        "[<redis-collection-list>] " % basename(execname),
+        "USAGE: %s [options] [<redis-collection-list>] " % basename(execname),
         file=sys.stderr
+    )
+    print("\n".join([
+            "ARGUMENTS:",
+            "    <redis-collection-list>       [%s]" % DEF_COLLECTION_LIST,
+            "        Optional Redis set key holding the list of the ingestion queues.",
+            "OPTIONS:",
+            "    --help | -h",
+            "        Print command help.",
+            "    --host <redis-host>           [%s]" % DEF_REDIS_HOST,
+            "        Redis hostname",
+            "    --port <redis-port>           [%s]" % DEF_REDIS_PORT,
+            "        Redis port number",
+            "    --nworkers | -n <no-workers>  [%s]" % DEF_N_WORKERS,
+            "        Number or parallel processes. ",
+            "    --id | -i <identifier>        [%s]" % DEF_DAEMON_ID,
+            "        Daemon identifier, unique per each running daemon instance.",
+            "    --settings-module <settings>  [%s]" % DEF_BS_SETTINGS_MODULE,
+            "        Browse Server Django setting module.",
+            "    --instance-path <path>        [%s]" % DEF_BS_INSTANCE_PATH,
+            "        Browse Server Django instance path.",
+            "   --verbosity | -v DEBUG|INFO|WARNING|ERROR|CRITICAL [INFO]",
+            "        Logging verbosity.",
+        ]), file=sys.stderr
     )
 
 
