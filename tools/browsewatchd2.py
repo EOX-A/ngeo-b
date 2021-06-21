@@ -331,9 +331,9 @@ class BrowseWatchDaemon(object):
                     "%s: %s" % (type(error).__name__, error)
                     if str(error) else type(error).__name__
                 )
-                job_logger.info("Failed in %.1fs", job["stopped"] - job["started"])
+                job_logger.info("Failed in %.3fs", job["stopped"] - job["started"])
             else:
-                job_logger.info("Completed in %.1fs", job["stopped"] - job["started"])
+                job_logger.info("Completed in %.3fs", job["stopped"] - job["started"])
                 job_logger.debug("Removing job ...")
             try:
                 self.remove_job(job["job_id"])
@@ -388,7 +388,7 @@ class BrowseWatchDaemon(object):
             job = self.get_new_job()
             if job:
                 JobIdLoggingContextAdapter(self.logger, job["job_id"]).info(
-                    "Unfinished ingestion request loaded."
+                    "New ingestion request received."
                 )
                 yield job
             else:
