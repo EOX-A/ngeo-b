@@ -62,11 +62,6 @@ DEF_COLLECTION_LIST = "ingestion_queues"
 # extra keys added to those found in the collection list
 EXTRA_KYES = ["ingest_queue"]   # added for backward compatibility
 
-# max number of simultaneously processed reports from a singe queue
-# assuming collection == ingestion queue == seeded tile-set
-# larger values increase chances of seeding lock time-outs
-MAX_JOBS_PER_INGESTION_QUEUE = 2
-
 MAX_WORKERS_PER_CPU = 16        # limit of allowed workers per CPU
 DEF_N_WORKERS = 2               # default number of workers
 DEF_REDIS_HOST = "localhost"    # default Redis hostname
@@ -239,7 +234,8 @@ class BrowseWatchDaemon(object):
         return _redis_call_wrapper
 
     def __init__(self, redis, key_set, worker_pool, worker_semaphore,
-                 daemon_id, logger, finish_incomplete_and_stop=False):
+                 daemon_id, logger, max_jobs_per_queue,
+                 finish_incomplete_and_stop=False):
         self.worker_semaphore = worker_semaphore
         self.worker_pool = worker_pool
         self.logger = logger
@@ -255,6 +251,7 @@ class BrowseWatchDaemon(object):
         self.buffer_key = "browsewatchd:browse_report_buffer:%s" % daemon_id
         self.jobs_key = "browsewatchd:ingestion_jobs:%s" % daemon_id
         self.status_key = "browsewatchd:daemon_status:%s" % daemon_id
+        self.max_jobs_per_queue = max_jobs_per_queue
 
     def terminate(self, signum=None, frame=None):
         self.logger.info("Termination signal received ...")
@@ -470,7 +467,7 @@ class BrowseWatchDaemon(object):
             # queues with reached MAX_JOBS_PER_INGESTION_QUEUE are skipped
             readable_keys = self._key_counter.sort_keys([
                 key for key, count in zip(self.keys, response[3:]) if count > 0
-            ], max_count=(MAX_JOBS_PER_INGESTION_QUEUE - 1))
+            ], max_count=(self.max_jobs_per_queue - 1))
             for key in readable_keys:
                 report = self.redis.rpoplpush(key, self.buffer_key)
                 if report:
@@ -556,7 +553,8 @@ class BrowseWatchDaemon(object):
 
 
 def start_browsewatchd(redis_host, redis_port, redis_key_set, n_workers,
-                       daemon_id, finish_incomplete_and_stop, **kwargs):
+                       daemon_id, finish_incomplete_and_stop,
+                       max_jobs_per_queue, **kwargs):
     BrowseWatchDaemon(
         redis=Redis(host=redis_host, port=redis_port),
         key_set=redis_key_set,
@@ -565,6 +563,7 @@ def start_browsewatchd(redis_host, redis_port, redis_key_set, n_workers,
         daemon_id=daemon_id,
         worker_semaphore=ProcessBoundedSemaphore(n_workers),
         finish_incomplete_and_stop=finish_incomplete_and_stop,
+        max_jobs_per_queue=max_jobs_per_queue,
     ).run()
 
 
@@ -685,6 +684,7 @@ def parse_args(*args):
     django_settings_module = DEF_BS_SETTINGS_MODULE
     django_instance_path = DEF_BS_INSTANCE_PATH
     extra_logging = DEF_EXTRA_LOGGING
+    max_jobs_per_queue = None
 
     it_args = iter(args[1:])
     for option in it_args:
@@ -701,6 +701,13 @@ def parse_args(*args):
                 n_workers = int(next(it_args))
                 if n_workers < 1:
                     raise ValueError("Invalid worker count %s!" % n_workers)
+            elif option == "--max-jobs-per-queue":
+                max_jobs_per_queue = int(next(it_args))
+                if max_jobs_per_queue < 1:
+                    raise ValueError(
+                        "Invalid max. jobs per queue value %s!" %
+                        max_jobs_per_queue
+                    )
             elif option in ("-i", "--id", "--daemon-id"):
                 daemon_id = next(it_args)
                 if not daemon_id:
@@ -749,6 +756,9 @@ def parse_args(*args):
         collection_list = DEF_COLLECTION_LIST
 
     n_workers = min(MAX_WORKERS_PER_CPU * cpu_count(), n_workers)
+    if max_jobs_per_queue is None:
+        max_jobs_per_queue = n_workers
+    max_jobs_per_queue = min(n_workers, max_jobs_per_queue)
 
     return dict(
         redis_host=redis_host,
@@ -761,6 +771,7 @@ def parse_args(*args):
         django_instance_path=django_instance_path,
         extra_logging=extra_logging,
         finish_incomplete_and_stop=finish_incomplete_and_stop,
+        max_jobs_per_queue=max_jobs_per_queue,
     )
 
 
@@ -785,7 +796,11 @@ def print_usage(execname):
         "    --port <redis-port>           [%s]" % DEF_REDIS_PORT,
         "        Redis port number",
         "    --nworkers | -n <no-workers>  [%s]" % DEF_N_WORKERS,
-        "        Number or parallel processes. ",
+        "        Number of parallel processes. ",
+        "    --max-jobs-per-queue <no-jobs>  [<no-workers>]",
+        "        Maximum number of simultaneous ingestions jobs per one ",
+        "        ingestion queue. Defaults to the max. number of jobs, i.e., ",
+        "        the numbers of worker processes.",
         "    --id | -i <identifier>        [%s]" % DEF_DAEMON_ID,
         "        Daemon identifier, unique per each running daemon instance.",
         "    --settings-module <settings>  [%s]" % DEF_BS_SETTINGS_MODULE,
