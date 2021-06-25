@@ -1,8 +1,9 @@
-environment: ci
 name: CI
 on: push
+
 jobs:
   ci:
+    environment: ci
     runs-on: ubuntu-latest
     steps:
     - name: Checkout with submodule
@@ -10,15 +11,33 @@ jobs:
       with:
         submodules: true
 
-    - name: Build the ngeo_browse_server docker image
+    - name: Build the docker image
       run: |
         docker build . -t browse-server --add-host=browse:127.0.0.1
 
-    - name: Run the tests
+    - name: Run tests
       run: |
         docker run --rm --name test-browse-server -v "${PWD}/ngeo-b_autotest/data/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/data/ -v "${PWD}/ngeo-b_autotest/logs/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/logs/ --tmpfs /tmp:rw,exec,nosuid,nodev -h browse --add-host=browse:127.0.0.1 browse-server /bin/bash -c "/etc/init.d/postgresql start && sleep 5 && /etc/init.d/memcached start && echo \"TEST_RUNNER = 'eoxserver.testing.core.EOxServerTestRunner'\" >> /var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/settings.py && python /var/www/ngeo/ngeo_browse_server_instance/manage.py test 'control|IngestModelInGeotiffBrowseOnSwift,SeedModelInGeotiffBrowseOnSwift,IngestFootprintBrowseReplaceOnSwift,IngestFootprintBrowseMergeOnSwift' -v2"
 
-    - name: Send slack notification
+    - name: Create rpm package
+      if: startsWith(github.ref, 'refs/tags/')
+      run: |
+        - docker run -rm --name build-browse-server -v "${PWD}/dist/":/dist/ --tmpfs /tmp:rw,exec,nosuid,nodev -h browse --add-host=browse:127.0.0.1 browse-server /bin/bash -c "yum update && yum install -y rpmdevtools && python setup.py bdist_rpm"
+
+    - name: Create Release draft
+      if: startsWith(github.ref, 'refs/tags/')
+      id: create_release
+      uses: softprops/action-gh-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        files: dist/*.rpm
+        release_name: Release ${{ github.ref }}
+        draft: true
+        prerelease: false
+        fail_on_unmatched_files: true
+
+    - name: Slack notification
       uses: 8398a7/action-slack@v3
       with:
         status: ${{ job.status }}
