@@ -8,36 +8,36 @@ jobs:
     name: Create Release
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout with submodule
-        uses: actions/checkout@v2
-        with:
-          submodules: true
+    - name: Checkout with submodule
+      uses: actions/checkout@v2
+      with:
+        submodules: true
 
-      - name: Build the ngeo_browse_server docker image
-        run: |
-          docker build . -t browse-server --add-host=browse:127.0.0.1
+    - name: Build the ngeo_browse_server docker image
+      run: |
+        docker build . -t browse-server --add-host=browse:127.0.0.1
 
-      - name: Create rpm package
-        run: |
-          - docker run -rm --name build-browse-server -v "${PWD}/dist/":/dist/ --tmpfs /tmp:rw,exec,nosuid,nodev -h browse --add-host=browse:127.0.0.1 browse-server /bin/bash -c "yum update && yum install -y rpmdevtools && python setup.py bdist_rpm"
+    - name: Create rpm package
+      run: |
+        - docker run -rm --name build-browse-server -v "${PWD}/dist/":/dist/ --tmpfs /tmp:rw,exec,nosuid,nodev -h browse --add-host=browse:127.0.0.1 browse-server /bin/bash -c "yum update && yum install -y rpmdevtools && python setup.py bdist_rpm"
 
-      - name: Create Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          files: dist/*.rpm
-          release_name: Release ${{ github.ref }}
-          draft: true
-          prerelease: false
-          fail_on_unmatched_files: true
+    - name: Create Release
+      id: create_release
+      uses: softprops/action-gh-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        files: dist/*.rpm
+        release_name: Release ${{ github.ref }}
+        draft: true
+        prerelease: false
+        fail_on_unmatched_files: true
 
-      - name: action-slack
-        uses: 8398a7/action-slack@v3.8.0
-        with:
-          status: ${{ job.status }}
-          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        if: always()
+    - name: Send slack notification
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      if: always()
