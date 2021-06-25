@@ -4,14 +4,19 @@ jobs:
   ci:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Build the ngeo_browse_server docker image
+      - name: Checkout with submodule
+        uses: actions/checkout@v2
         with:
           submodules: true
-        run: docker build . -t browse-server --add-host=browse:127.0.0.1
+
+      - name: Build the ngeo_browse_server docker image
+        run: |
+          docker build . -t browse-server --add-host=browse:127.0.0.1
+
       - name: Run the tests
         run: |
           docker run -it --rm --name test-browse-server -v "${PWD}/ngeo-b_autotest/data/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/data/ -v "${PWD}/ngeo-b_autotest/logs/":/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/logs/ --tmpfs /tmp:rw,exec,nosuid,nodev -h browse --add-host=browse:127.0.0.1 browse-server /bin/bash -c "/etc/init.d/postgresql start && sleep 5 && /etc/init.d/memcached start && echo \"TEST_RUNNER = 'eoxserver.testing.core.EOxServerTestRunner'\" >> /var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/settings.py && python /var/www/ngeo/ngeo_browse_server_instance/manage.py test 'control|IngestModelInGeotiffBrowseOnSwift,SeedModelInGeotiffBrowseOnSwift,IngestFootprintBrowseReplaceOnSwift,IngestFootprintBrowseMergeOnSwift' -v2"
+
       - name: action-slack
         uses: 8398a7/action-slack@v3.8.0
         with:
