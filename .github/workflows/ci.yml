@@ -28,7 +28,7 @@ jobs:
     - name: Create Release draft
       #if: startsWith(github.ref, 'refs/tags/')
       id: create_release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@master
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
@@ -42,7 +42,7 @@ jobs:
       uses: 8398a7/action-slack@v3
       with:
         status: ${{ job.status }}
-        fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+        fields: repo,message,commit,author,ref,job,took
       env:
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       if: always()
