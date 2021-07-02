@@ -551,15 +551,14 @@ def add_browse_layer(browse_layer, config=None):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    # create SxCat collection if harvesting via SxCat is enabled and source
-    # is given
+    # create SxCat collection if harvesting via SxCat is enabled
     harvesting_via_sxcat = False
     try:
         harvesting_via_sxcat = config.getboolean("control",
                                                  "harvesting_via_sxcat")
     except:
         pass
-    if harvesting_via_sxcat and browse_layer.harvesting_source:
+    if harvesting_via_sxcat:
         add_collection(browse_layer)
 
 
@@ -578,7 +577,7 @@ def update_browse_layer(browse_layer, config=None):
     immutable_values = (
         "id", "browse_type", "contains_vertical_curtains", "r_band", "g_band",
         "b_band", "radiometric_interval_min", "radiometric_interval_max",
-        "grid", "lowest_map_level", "highest_map_level", "harvesting_source",
+        "grid", "lowest_map_level", "highest_map_level", #"harvesting_source",
         "shorten_ingested_interval"
     )
     for key in immutable_values:
@@ -645,8 +644,7 @@ def update_browse_layer(browse_layer, config=None):
                                                  "harvesting_via_sxcat")
     except:
         pass
-    if (harvesting_via_sxcat and browse_layer.harvesting_source and
-       browse_layer.harvesting_source == browse_layer_model.harvesting_source):
+    if harvesting_via_sxcat:
         add_collection(browse_layer)
 
     logger.info("Finished updating browse layer '%s'." % browse_layer.id)
@@ -675,7 +673,7 @@ def delete_browse_layer(browse_layer, purge=False, config=None):
                                                  "harvesting_via_sxcat")
     except:
         pass
-    if harvesting_via_sxcat and browse_layer.harvesting_source:
+    if harvesting_via_sxcat:
         disable_collection(browse_layer)
 
     logger.info("Finished disabling of browse layer '%s'." % browse_layer.id)
@@ -735,7 +733,7 @@ def delete_browse_layer(browse_layer, purge=False, config=None):
                 % optimized_dir
             )
 
-        if harvesting_via_sxcat and browse_layer.harvesting_source:
+        if harvesting_via_sxcat:
             remove_collection(browse_layer)
 
         logger.info("Finished purging of browse layer '%s'." % browse_layer.id)
