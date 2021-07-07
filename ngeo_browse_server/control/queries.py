@@ -308,10 +308,12 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
     if len(times_qs) == 1:
         time_model = times_qs[0]
     elif len(times_qs) == 0:
-        #issue a warning if no corresponding Time object exists
+        # issue a warning if no corresponding Time object exists
         logger.warning("No MapCache Time object found for time: %s, %s" % (
             browse_model.start_time, browse_model.end_time
         ))
+        # this should in principle never happen, as it means the two databases are out of sync
+        return replaced_extent, replaced_filename
     elif len(times_qs) > 1:
         #issue a warning if too many corresponding Time objects exist
         #try to delete redundant time models
