@@ -1564,7 +1564,7 @@ class SeedConsecutiveSeconds(SeedTestCaseMixIn, LoggingTestCaseMixIn, HttpMultip
 
     expected_logs = {
         logging.DEBUG: 38,
-        logging.INFO: 34,
+        logging.INFO: 36,
         logging.WARN: 0,
         logging.ERROR: 0,
         logging.CRITICAL: 0
@@ -1651,7 +1651,7 @@ class SeedMergeAndReplaceNoDuration(SeedTestCaseMixIn, LoggingTestCaseMixIn, Htt
 
     expected_logs = {
         logging.DEBUG: 64,
-        logging.INFO: 67,
+        logging.INFO: 74,
         logging.WARN: 0,
         logging.ERROR: 0,
         logging.CRITICAL: 0
@@ -3458,7 +3458,7 @@ class DeleteMergedNoDuration(DeleteTestCaseMixIn, CliMixIn, SeedTestCaseMixIn, L
 
     expected_logs = {
         logging.DEBUG: 66,
-        logging.INFO: 92,
+        logging.INFO: 101,
         logging.WARN: 0,
         logging.ERROR: 0,
         logging.CRITICAL: 0
@@ -3677,7 +3677,7 @@ class DebugLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCase
 
     expected_logs = {
         logging.DEBUG: 12,
-        logging.INFO: 16,
+        logging.INFO: 17,
         logging.WARN: 0,
         logging.ERROR: 0,
         logging.CRITICAL: 0
@@ -3734,7 +3734,7 @@ class InfoLoggingIngest(IngestTestCaseMixIn, HttpTestCaseMixin, LoggingTestCaseM
 
     expected_logs = {
         logging.DEBUG: 0,
-        logging.INFO: 16,
+        logging.INFO: 17,
         logging.WARN: 0,
         logging.ERROR: 0,
         logging.CRITICAL: 0
