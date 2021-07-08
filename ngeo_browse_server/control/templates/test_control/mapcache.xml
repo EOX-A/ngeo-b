@@ -40,9 +40,10 @@
         <grid max-cached-zoom="{{ layer.highest_map_level }}" out-of-zoom-strategy="reassemble">GoogleMapsCompatible</grid>
         {% endif %}
         <format>mixed</format>
-        <metatile>8 8</metatile>
+        <metatile>{% if layer.disable_seeding_ingestion %}1 1{% else %}8 8{% endif %}
+        </metatile>
         <expires>3600</expires>
-        <read-only>true</read-only>
+        <read-only>{% if layer.disable_seeding_ingestion %}false{% else %}true{% endif %}</read-only>
         <timedimension type="sqlite" default="2010">
             <dbfile>{{ mapcache_test_db }}</dbfile>
             {% if layer.grid == "urn:ogc:def:wkss:OGC:1.0:GoogleCRS84Quad" %}

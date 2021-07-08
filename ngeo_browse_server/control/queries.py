@@ -588,14 +588,15 @@ def update_browse_layer(browse_layer, config=None):
 
     mutable_values = [
         "title", "description", "browse_access_policy",
-        "timedimension_default", "tile_query_limit", "strategy"
+        "timedimension_default", "tile_query_limit", "strategy",
+        "disable_seeding_ingestion",
     ]
 
     refresh_mapcache_xml = False
     refresh_metadata = False
     for key in mutable_values:
         setattr(browse_layer_model, key, getattr(browse_layer, key))
-        if key in ("timedimension_default", "tile_query_limit"):
+        if key in ("timedimension_default", "tile_query_limit", "disable_seeding_ingestion",):
             refresh_mapcache_xml = True
         if key in ("title", "description"):
             refresh_metadata = True

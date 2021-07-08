@@ -266,9 +266,11 @@ def add_mapcache_layer_xml(browse_layer, config=None):
                 }
             ),
             E("format", "mixed"),
-            E("metatile", "8 8"),
+            E("metatile", "1 1" if browse_layer.disable_seeding_ingestion
+                else "8 8"),
             E("expires", "3600"),
-            E("read-only", "true"),
+            E("read-only", "false" if browse_layer.disable_seeding_ingestion
+                else "true"),
             E("timedimension",
                 E("dbfile", settings.DATABASES["mapcache"]["NAME"]),
                 E("query", "select * from (select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) as interval from time where source_id=:tileset and (start_time<datetime(:end_timestamp,'unixepoch') and (end_time>datetime(:start_timestamp,'unixepoch')) or (start_time=end_time and start_time<datetime(:end_timestamp,'unixepoch') and end_time>=datetime(:start_timestamp,'unixepoch'))) and ((maxx>=:minx and minx<=:maxx) or (maxx>"+str(bounds[2])+" and (maxx-"+str(full)+")>=:minx and (minx-"+str(full)+")<=:maxx)) and maxy>=:miny and miny<=:maxy order by end_time desc limit "+str(browse_layer.tile_query_limit)+") order by interval asc"),

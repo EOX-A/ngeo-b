@@ -639,7 +639,13 @@ Mapped to the Abstract property for this layer in the  capability file.</documen
           <documentation>A shorter time interval than provided by start and end times shall be used during ingestion. Expects a float value in the range [0.0, 100.0] configuring the percentage the interval shall be shortened. If set to 100%, time in the middle is used for both start and end. Default is 0 resulting in usage of the unchanged time interval.
           </documentation>
         </annotation>
-      </element>      
+      </element>
+      <element name="disableSeedingIngestion" type="boolean">
+        <annotation>
+          <documentation>If set to true, ingestion will not trigger an immediate seeding and mapcache tiles will not be set to read-only. Default is false.
+          </documentation>
+        </annotation>
+      </element>
       <element name="rgbBands" type="cfg:string255" minOccurs="0">
         <annotation>
           <documentation>Bands to select from the browse image file for Red, Green, Blue in the WMS response. This is a a comma-separated list of three integers (e.g. 4 2 3). If not present, the default is to use  the first three bands (1 2 3).</documentation>

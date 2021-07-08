@@ -223,26 +223,26 @@ def ingest_browse_report(parsed_browse_report, do_preprocessing=True, config=Non
                     transaction.commit(using="mapcache")
 
                     logger.info("Committed changes to database.")
+                    if browse_layer.disable_seeding_ingestion is not True:
+                        for minx, miny, maxx, maxy, start_time, end_time in seed_areas:
+                            try:
 
-                    for minx, miny, maxx, maxy, start_time, end_time in seed_areas:
-                        try:
+                                # seed MapCache synchronously
+                                # TODO: maybe replace this with an async solution
+                                seed_mapcache(tileset=browse_layer.id,
+                                              grid=browse_layer.grid,
+                                              minx=minx, miny=miny,
+                                              maxx=maxx, maxy=maxy,
+                                              minzoom=browse_layer.lowest_map_level,
+                                              maxzoom=browse_layer.highest_map_level,
+                                              start_time=start_time,
+                                              end_time=end_time,
+                                              delete=False,
+                                              **get_mapcache_seed_config(config))
+                                logger.info("Successfully finished seeding.")
 
-                            # seed MapCache synchronously
-                            # TODO: maybe replace this with an async solution
-                            seed_mapcache(tileset=browse_layer.id,
-                                          grid=browse_layer.grid,
-                                          minx=minx, miny=miny,
-                                          maxx=maxx, maxy=maxy,
-                                          minzoom=browse_layer.lowest_map_level,
-                                          maxzoom=browse_layer.highest_map_level,
-                                          start_time=start_time,
-                                          end_time=end_time,
-                                          delete=False,
-                                          **get_mapcache_seed_config(config))
-                            logger.info("Successfully finished seeding.")
-
-                        except Exception, e:
-                            logger.warn("Seeding failed: %s" % str(e))
+                            except Exception, e:
+                                logger.warn("Seeding failed: %s" % str(e))
 
                     # log ingestions for report generation
                     # date/browseType/browseLayerId/start/end
