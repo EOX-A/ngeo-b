@@ -76,9 +76,16 @@ def decode_browse_layers(browse_layers_elem, config=None):
         if strategy_elem is not None:
             opt["strategy"] = strategy_elem.text
 
-        harvesting_source_elem = browse_layer_elem.find(ns_cfg("harvestingSource"))
-        if harvesting_source_elem is not None:
-            opt["harvesting_source"] = harvesting_source_elem.text
+        opt["harvesting_source"] = dict(
+            (elem.get("name", ""), elem.text)
+            for elem in browse_layer_elem.findall(ns_cfg("harvestingSource"))
+        )
+
+        opt["harvesting_configuration"] = dict(
+            (elem.get("type", ""), elem.text)
+            for elem in browse_layer_elem.findall(ns_cfg("harvestingConfiguration"))
+            if elem.get("type", "") == 'sxcat' # currently only Sx-Cat configuration is allowed
+        )
 
         opt["timedimension_default"] = browse_layer_elem.findtext(
             ns_cfg("timeDimensionDefault")

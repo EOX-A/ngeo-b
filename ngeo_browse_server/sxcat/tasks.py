@@ -29,122 +29,118 @@
 import logging
 import subprocess
 
-
 logger = logging.getLogger(__name__)
 
-
-class SxCatException(Exception):
-    """ Base class for SxCat related errors. """
-
-
-def add_collection(browse_layer):
-    name = browse_layer.browse_type
-
-    logger.info("Adding collection for '%s' to SxCat." % name)
-
-    sxcat_coll_config = """\
+SXCAT_COLLECTION_CONF_TEMPLATE = """\
 [collection]
 type = NRT
 searchable_fields = beginAcquisition
 
 [harvesting]
-source = %s
-#interval = P1D
-#retry_time = PT15M
-""" % browse_layer.harvesting_source
+source = {source}
+{extra_config}
+"""
 
-    # configure collection
-    sxcat_config_args = [
-        "sxcat", "config", name, "-i"
-    ]
-    logger.debug("SxCat configure collection command: '%s'. raw: '%s'."
-                 % (" ".join(sxcat_config_args), sxcat_config_args))
 
-    process = subprocess.Popen(sxcat_config_args, stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+class SxCatError(Exception):
+    """ Base class for SxCat related errors. """
 
-    out, err = process.communicate(input=sxcat_coll_config)
-    for string in (out, err):
-        for line in string.split("\n"):
-            if line != '':
-                logger.info("SxCat output: %s" % line)
 
-    if process.returncode != 0:
-        raise SxCatException("Collection configuring failed. Returncode '%d'."
-                             % process.returncode)
+def add_collection(browse_layer):
+    """ Create or update Sx-Cat collection and start periodic harvests. """
 
-    # enable harvesting
-    sxcat_harvest_args = [
-        "sxcat", "harvest", name
-    ]
-    logger.debug("SxCat enable harvesting command: '%s'. raw: '%s'."
-                 % (" ".join(sxcat_harvest_args), sxcat_harvest_args))
+    collection_name = browse_layer.browse_type
 
-    process = subprocess.Popen(sxcat_harvest_args, stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE)
+    logger.info("Loading configuration for Sx-Cat collection '%s'.", collection_name)
 
-    out, err = process.communicate()
-    for string in (out, err):
-        for line in string.split("\n"):
-            if line != '':
-                logger.info("SxCat output: %s" % line)
+    collection_conf = SXCAT_COLLECTION_CONF_TEMPLATE.format(
+        source=_format_harvesting_source(browse_layer.harvesting_source),
+        extra_config=browse_layer.harvesting_configuration.get("sxcat", "")
+    )
 
-    if process.returncode != 0:
-        raise SxCatException("Harvest enabling failed. Returncode '%d'."
-                             % process.returncode)
+    # create new or update existing collection configuration
+    return_code = _sxcat_command(["config", collection_name, "-i"], collection_conf)
+    if return_code != 0:
+        raise SxCatError(
+            "Loading of the Sx-Cat collection configuring failed. "
+            "Returncode '%d'." % return_code
+        )
 
-    logger.info("Successfully added collection to SxCat.")
+    logger.info("Successfully loaded Sx-Cat collection configuration.")
+
+    return_code = _sxcat_command(["harvest", collection_name])
+    if return_code != 0:
+        logger.warning(
+            "Failed to schedule the Sx-Cat collection periodic harvest. "
+            "Fix the problem and start the harvest manually by the "
+            "'sxcat harvest %s' command.", collection_name
+        )
+    else:
+        logger.info("Periodic harvest scheduled.")
 
 
 def disable_collection(browse_layer):
-    name = browse_layer.browse_type
-    logger.info("Disabling harvesting for collection '%s' from SxCat." % name)
+    """ Clear Sx-Cat collection periodic harvests. """
+    collection_name = browse_layer.browse_type
+    logger.info("Disabling periodic harvests for Sx-Cat collection '%s'.", collection_name)
 
-    # disable harvesting
-    sxcat_args = [
-        "sxcat", "harvest", "--purge", name
-    ]
-    logger.debug("SxCat disable harvesting command: '%s'. raw: '%s'."
-                 % (" ".join(sxcat_args), sxcat_args))
-
-    process = subprocess.Popen(sxcat_args, stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE)
-
-    out, err = process.communicate()
-    for string in (out, err):
-        for line in string.split("\n"):
-            if line != '':
-                logger.info("SxCat output: %s" % line)
-
-    if process.returncode != 0:
-        raise SxCatException("Disabling harvesting failed. Returncode '%d'."
-                             % process.returncode)
-
-    logger.info("Successfully disabled harvesting in SxCat.")
+    return_code = _sxcat_command(["harvest", collection_name, '--purge'])
+    if return_code != 0:
+        logger.warning(
+            "Failed to clear the scheduled harvests. "
+            "Check the harvest scheduling by the 'sxcat info %s' command "
+            "and, if necessary, run again 'sxcat harvest %s --purge' command.",
+            collection_name, collection_name,
+        )
+    else:
+        logger.info("Periodic harvest disabled.")
 
 
 def remove_collection(browse_layer):
-    name = browse_layer.browse_type
-    logger.info("Removing collection for '%s' from SxCat." % name)
+    """ Remove Sx-Cat collection. """
+    collection_name = browse_layer.browse_type
 
-    # remove collection
-    sxcat_args = [
-        "sxcat", "remove", name
-    ]
-    logger.debug("SxCat remove collection command: '%s'. raw: '%s'."
-                 % (" ".join(sxcat_args), sxcat_args))
+    logger.info("Removing Sx-Cat collection '%s'.", collection_name)
 
-    process = subprocess.Popen(sxcat_args, stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE)
+    return_code = _sxcat_command(["remove", collection_name])
+    if return_code != 0:
+        logger.warning(
+            "Failed to remove the Sx-Cat collection. "
+            "Check if the collection exists by the 'sxcat info %s' command and, "
+            "if so, remove the collection manually by the "
+            "'sxcat remove %s' command.", collection_name, collection_name
+        )
+    else:
+        logger.info("Successfully removed Sx-Cat collection.")
 
-    out, err = process.communicate()
+
+def _sxcat_command(sxcat_args, stdin=None):
+    sxcat_args = ['sxcat'] + list(sxcat_args)
+
+    logger.debug("Sx-Cat command: '%s' (%r)", " ".join(sxcat_args), sxcat_args)
+
+    process = subprocess.Popen(
+        sxcat_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        stdin=subprocess.PIPE
+    )
+
+    out, err = process.communicate(input=stdin)
     for string in (out, err):
         for line in string.split("\n"):
-            if line != '':
-                logger.info("SxCat output: %s" % line)
+            if line:
+                logger.info("Sx-Cat output: %s", line)
 
-    if process.returncode != 0:
-        raise SxCatException("Removing collection failed. Returncode '%d'."
-                             % process.returncode)
+    return process.returncode
 
-    logger.info("Successfully removed collection from SxCat.")
+
+def _format_harvesting_source(source):
+    if not source:
+        return ""
+    if isinstance(source, basestring):
+        return source
+    if len(source) == 1 and not source.keys()[0]:
+        return source.values()[0]
+    return "\n" + "\n".join(
+        "    %s, %s" % item
+        for item in source.items()
+    )

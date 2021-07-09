@@ -90,6 +90,15 @@ DJANGO_USER="admin"
 DJANGO_MAIL="office@eox.at"
 DJANGO_PASSWORD="Aa2phu0s"
 
+# directory where the browse server's setup.py is located - by default the current directory
+NGEOB_SOURCE_DIR=${NGEOB_SOURCE_DIR:-$PWD}
+
+# directory where the tools are located
+NGEOB_TOOLS_DIR="$(cd "${NGEOB_TOOLS_DIR:-$PWD}/tools" ; pwd)"
+
+# change to the directory where this script is located
+cd "$(dirname $0)"
+
 # ------------------------------------------------------------------------------
 # End of configuration section
 # ------------------------------------------------------------------------------
@@ -263,8 +272,10 @@ EOF
         file=`ls -r ngEO_Browse_Server-*.noarch.rpm | head -1`
         echo "Installing local ngEO_Browse_Server RPM ${file}"
         yum install -y ${file}
-    elif [ -d "/ngeo_browse_server/" ] && [ -f "setup.py" ]; then
+    elif [ -d "$NGEOB_SOURCE_DIR/ngeo_browse_server" -a -f "$NGEOB_SOURCE_DIR/setup.py" ]; then
+        cd "$NGEOB_SOURCE_DIR"
         python setup.py install
+        cd -
     else
         echo "Aborting, no ngEO_Browse_Server RPM found for installation."
         exit 1
@@ -660,7 +671,7 @@ EOF
         chmod +x /etc/init.d/ngeo
         service ngeo start
     else
-        echoe "Necessary ngeo service script not found. Please provide and restart installation."
+        echo "Necessary ngeo service script not found. Please provide and restart installation."
     fi
 
     echo "Performing installation step 270"
@@ -747,11 +758,15 @@ use_footprint = true
 [browse_reports_redis]
 host = localhost
 port = 6379
-queue = ingest_queue
+# uncommment following line to pass BRs in multiple queues
+# requires sxcat-brb-redis >= 1.2.1
+#queue = ingest_queue
 EOF
 
-        # add browsewatch
-        mkdir -p /srv/sxcat/collections/tmp/browse_reports/
+        # fixing the Sx-Cat CLI aliases
+        for F in /etc/profile.d/sxcat.* ; do
+            sed -i -e 's/-u sxcat /-u apache /' "$F"
+        done
 
         # change ownership to apache
         chown -R apache:apache /srv/sxcat/ /var/log/sxcat/ /etc/sxcat
@@ -784,7 +799,7 @@ EOF
             echo "Adding, enabling, and starting browsewatchd service"
 
             # Install and permanently start browsewatchd
-            cp browsewatchd /etc/init.d/
+            cp browsewatchd /etc/init.d
             chmod +x /etc/init.d/browsewatchd
             chkconfig browsewatchd on
             service browsewatchd start

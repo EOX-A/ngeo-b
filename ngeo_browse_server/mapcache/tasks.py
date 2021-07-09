@@ -27,6 +27,7 @@
 # THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
+import time
 import logging
 import subprocess
 from functools import wraps
@@ -48,6 +49,8 @@ from ngeo_browse_server.mapcache.config import (
     get_mapcache_seed_config, get_tileset_path
 )
 
+# Default seeding file lock time-out.
+DEF_LOCK_TIMEOUT = 60.0 # seconds
 
 # Maximum bounds for both supported CRSs
 CRS_BOUNDS = {
@@ -62,6 +65,7 @@ GRID_TO_SRID = {
 
 
 logger = logging.getLogger(__name__)
+
 
 def seed_mapcache(seed_command, config_file, tileset, grid,
                   minx, miny, maxx, maxy, minzoom, maxzoom,
@@ -78,102 +82,102 @@ def seed_mapcache(seed_command, config_file, tileset, grid,
     max_bound = float(bounds[2] + full)
 
     dateline_crossed = False
-    if maxx>bounds[2]:
+    if maxx > bounds[2]:
         dateline_crossed = True
     # extent is always within [bounds[0],bounds[2]]
     # where maxx can be >bounds[2] but <=full
-    if minx<bounds[0] or minx>bounds[2] or maxx<bounds[0] or maxx>max_bound:
-        raise SeedException("Invalid extent '%s,%s,%s,%s'."
-                            % (minx, miny, maxx, maxy))
+    if minx < bounds[0] or minx > bounds[2] or maxx < bounds[0] or maxx > max_bound:
+        raise SeedException("Invalid extent '%s,%s,%s,%s'." % (
+            minx, miny, maxx, maxy
+        ))
 
-    if minzoom is None: minzoom = 0
-    if maxzoom is None: maxzoom = 6
+    if minzoom is None:
+        minzoom = 0
+    if maxzoom is None:
+        maxzoom = 6
 
     # start- and end-time are expected to be UTC Zulu
     start_time = start_time.replace(tzinfo=None)
     end_time = end_time.replace(tzinfo=None)
 
-    logger.info("Starting mapcache seed with parameters: command='%s', "
-                "config_file='%s', tileset='%s', grid='%s', "
-                "extent='%s,%s,%s,%s', zoom='%s,%s', nthreads='%s', "
-                "mode='%s', dimension='TIME=%sZ/%sZ'."
-                % (seed_command, config_file, tileset, grid,
-                  minx, miny, maxx, maxy, minzoom, maxzoom, threads,
-                  "seed" if not delete else "delete",
-                  start_time.isoformat(), end_time.isoformat()))
+    logger.info(
+        "Starting mapcache seed with parameters: command='%s', "
+        "config_file='%s', tileset='%s', grid='%s', "
+        "extent='%s,%s,%s,%s', zoom='%s,%s', nthreads='%s', "
+        "mode='%s', dimension='TIME=%sZ/%sZ'.",
+        seed_command, config_file, tileset, grid,
+        minx, miny, maxx, maxy, minzoom, maxzoom, threads,
+        "seed" if not delete else "delete",
+        start_time.isoformat(), end_time.isoformat()
+    )
 
-    seed_args = [
-        seed_command,
-        "-c", config_file,
-        "-t", tileset,
-        "-g", grid,
-        "-e", "%f,%f,%f,%f" % (minx, miny, bounds[2] if dateline_crossed else maxx, maxy),
-        "-n", str(threads),
-        "-z", "%d,%d" % (minzoom, maxzoom),
-        "-D", "TIME=%sZ/%sZ" % (start_time.isoformat(), end_time.isoformat()),
-        "-m", "seed" if not delete else "delete",
-        "-q",
-        "-M", "1,1",
-    ]
-    if not delete and force:
-        seed_args.append("-f")
+    def _get_seed_args(extent):
+        seed_args = [
+            seed_command,
+            "-c", config_file,
+            "-t", tileset,
+            "-g", grid,
+            "-e", "%f,%f,%f,%f" % tuple(extent),
+            "-n", str(threads),
+            "-z", "%d,%d" % (minzoom, maxzoom),
+            "-D", "TIME=%sZ/%sZ" % (start_time.isoformat(), end_time.isoformat()),
+            "-m", "seed" if not delete else "delete",
+            "-q",
+            "-M", "1,1",
+        ]
+        if not delete and force:
+            seed_args.append("-f")
+        return seed_args
 
+    def _seed(seed_args):
+        seed_start = time.time()
+        logger.debug(
+            "mapcache seeding command: '%s'. raw: '%s'.",
+            " ".join(seed_args), seed_args
+        )
+        process = subprocess.Popen(
+            seed_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+
+        out, err = process.communicate()
+        for string in (out, err):
+            for line in string.split("\n"):
+                if line != '':
+                    logger.info("MapCache output: %s", line)
+        logger.info(
+            "Seeding finished in %.3fs with returncode '%d'.",
+            time.time() - seed_start, process.returncode,
+        )
+
+        if process.returncode != 0:
+            raise SeedException("Command '%s' failed with returncode '%d'." % (
+                seed_command, process.returncode
+            ))
 
     try:
         config = get_ngeo_config()
         timeout = safe_get(config, "mapcache.seed", "timeout")
-        timeout = float(timeout) if timeout is not None else 60.0
+        timeout = float(timeout) if timeout is not None else DEF_LOCK_TIMEOUT
     except:
-        timeout = 60.0
-
+        timeout = DEF_LOCK_TIMEOUT
 
     try:
-        lock = FileLock(
-            get_project_relative_path("mapcache_seed.lck"), timeout=timeout
-        )
+        lock = FileLock(get_project_relative_path(
+            "mapcache_seed.%s.lck" % tileset # one seeder process per tileset
+            #"mapcache_seed.lck" # one exclusive seeder process
+        ), timeout=timeout)
 
+        start = time.time()
         with lock:
-            logger.debug("mapcache seeding command: '%s'. raw: '%s'."
-                         % (" ".join(seed_args), seed_args))
-            process = subprocess.Popen(seed_args, stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE)
+            logger.info("Seeding lock acquired in %.3fs", time.time() - start)
+            if dateline_crossed:
+                _seed(_get_seed_args((minx, miny, bounds[2], maxy)))
+                _seed(_get_seed_args((bounds[0], miny, maxx-full, maxy)))
+            else:
+                _seed(_get_seed_args((minx, miny, maxx, maxy)))
 
-            out, err = process.communicate()
-            for string in (out, err):
-                for line in string.split("\n"):
-                    if line != '':
-                        logger.info("MapCache output: %s" % line)
-
-        if process.returncode != 0:
-            raise SeedException("'%s' failed. Returncode '%d'."
-                                % (seed_command, process.returncode))
-
-        # seed second extent if dateline is crossed
-        if dateline_crossed:
-            with lock:
-                index = seed_args.index("%f,%f,%f,%f" % (minx, miny, bounds[2], maxy))
-                seed_args[index] = "%f,%f,%f,%f" % (bounds[0], miny, maxx-full, maxy)
-                logger.debug("mapcache seeding command: '%s'. raw: '%s'."
-                             % (" ".join(seed_args), seed_args))
-                process = subprocess.Popen(seed_args, stdout=subprocess.PIPE,
-                                           stderr=subprocess.PIPE)
-
-                out, err = process.communicate()
-                for string in (out, err):
-                    for line in string.split("\n"):
-                        if line != '':
-                            logger.info("MapCache output: %s" % line)
-
-            if process.returncode != 0:
-                raise SeedException("'%s' failed. Returncode '%d'."
-                                    % (seed_command, process.returncode))
-
-    except LockException, e:
-        raise SeedException("Seeding failed: %s" % str(e))
-
-    logger.info("Seeding finished with returncode '%d'." % process.returncode)
-
-    return process.returncode
+    except LockException, error:
+        raise SeedException("Seeding failed: %s" % str(error))
 
 
 def lock_mapcache_config(func):

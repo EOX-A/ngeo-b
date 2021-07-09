@@ -36,7 +36,8 @@ class BrowseLayer(object):
                  related_dataset_ids, description="", r_band=None, g_band=None,
                  b_band=None, radiometric_interval_min=None,
                  radiometric_interval_max=None, strategy=None,
-                 harvesting_source=None, timedimension_default=None,
+                 harvesting_source=None, harvesting_configuration=None,
+                 timedimension_default=None,
                  tile_query_limit=None):
         self._browse_layer_identifier = browse_layer_identifier
         self._browse_type = browse_type
@@ -56,7 +57,8 @@ class BrowseLayer(object):
         self._highest_map_level = highest_map_level
         self._lowest_map_level = lowest_map_level
         self._strategy = strategy
-        self._harvesting_source = harvesting_source
+        self._harvesting_source = harvesting_source or {}
+        self._harvesting_configuration = harvesting_configuration or {}
         self._timedimension_default = timedimension_default
         self._tile_query_limit = tile_query_limit
 
@@ -79,6 +81,7 @@ class BrowseLayer(object):
     lowest_map_level = property(lambda self: self._lowest_map_level)
     strategy = property(lambda self: self._strategy)
     harvesting_source = property(lambda self: self._harvesting_source)
+    harvesting_configuration = property(lambda self: self._harvesting_configuration)
     timedimension_default = property(lambda self: self._timedimension_default)
     tile_query_limit = property(lambda self: self._tile_query_limit)
 
@@ -101,7 +104,10 @@ class BrowseLayer(object):
             "highest_map_level": self.highest_map_level,
             "lowest_map_level": self.lowest_map_level,
             "strategy": self.strategy,
-            "harvesting_source": self.harvesting_source,
+            # TODO: fix the DB model
+            "harvesting_source": "",
+            #"harvesting_source": self.harvesting_source,
+            #"harvesting_configuration": self.harvesting_configuration,
             "timedimension_default": self.timedimension_default,
             "tile_query_limit": self.tile_query_limit
         }
