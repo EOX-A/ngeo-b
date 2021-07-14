@@ -140,3 +140,9 @@ class BrowseLayer(object):
             timedimension_default=model.timedimension_default,
             tile_query_limit=model.tile_query_limit
         )
+
+
+def get_layer_max_cached_zoom(bl):
+    if bl.max_cached_zoom is not None:
+        return bl.max_cached_zoom
+    return bl.highest_map_level

@@ -43,7 +43,7 @@ from ngeo_browse_server.config.models import (
 )
 from ngeo_browse_server.config.browsereport import data as browsereport_data
 from ngeo_browse_server.config.browsereport.serialization import serialize_browse_report
-from ngeo_browse_server.config.browselayer import data as browselayer_data
+from ngeo_browse_server.config.browselayer.data import get_layer_max_cached_zoom, BrowseLayer as BL
 from ngeo_browse_server.config.browselayer.serialization import serialize_browse_layers
 from ngeo_browse_server.control.migration import package
 from ngeo_browse_server.mapcache import tileset
@@ -159,7 +159,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
                     raise CommandError("Browse layer with browse type '%s' does "
                                        "not exist" % browse_type)
             
-            browse_layer = browselayer_data.BrowseLayer.from_model(browse_layer_model)
+            browse_layer = BL.from_model(browse_layer_model)
             p.set_browse_layer(
                 serialize_browse_layers((browse_layer,), pretty_print=True)
             )
@@ -205,7 +205,6 @@ class Command(LogToConsoleMixIn, BaseCommand):
                     # set the 
                     base_filename = browse_model.coverage_id
                     data_filename = base_filename + ".tif"
-                    md_filename = base_filename + ".xml"
                     footprint_filename = base_filename + ".wkb"
                     
                     browse._file_name = data_filename
@@ -250,10 +249,10 @@ class Command(LogToConsoleMixIn, BaseCommand):
                         )
                         
                         for tile_desc in ts.get_tiles(
-                            browse_layer.id, 
+                            browse_layer.id,
                             URN_TO_GRID[browse_layer.grid], dim=dim,
                             minzoom=browse_layer.lowest_map_level,
-                            maxzoom=browse_layer.max_cached_zoom
+                            maxzoom=get_layer_max_cached_zoom(browse_layer),
                         ):
                             p.add_cache_file(*tile_desc)
                             

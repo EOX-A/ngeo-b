@@ -40,6 +40,8 @@ from django.core.urlresolvers import reverse
 from ngeo_browse_server.config import (
     get_ngeo_config, get_project_relative_path, safe_get
 )
+from ngeo_browse_server.config.browselayer.data import get_layer_max_cached_zoom
+
 from ngeo_browse_server.lock import (FileLock, LockException)
 from ngeo_browse_server.mapcache.exceptions import (
     SeedException, LayerException
@@ -261,7 +263,7 @@ def add_mapcache_layer_xml(browse_layer, config=None):
             E("cache", name),
             E("grid",
                 URN_TO_GRID[browse_layer.grid], **{
-                    "max-cached-zoom": str(browse_layer.max_cached_zoom),
+                    "max-cached-zoom": str(get_layer_max_cached_zoom(browse_layer)),
                     "out-of-zoom-strategy": "reassemble"
                 }
             ),

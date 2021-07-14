@@ -46,6 +46,7 @@ from eoxserver.core.util.timetools import isotime
 from ngeo_browse_server.config import (
     models, get_ngeo_config, get_project_relative_path
 )
+from ngeo_browse_server.config.browselayer.data import get_layer_max_cached_zoom
 from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.mapcache.tasks import (
     seed_mapcache, add_mapcache_layer_xml, remove_mapcache_layer_xml
@@ -240,7 +241,7 @@ def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
                           minx=time_model.minx, miny=time_model.miny,
                           maxx=time_model.maxx, maxy=time_model.maxy,
                           minzoom=browse_layer_model.lowest_map_level,
-                          maxzoom=browse_layer_model.max_cached_zoom,
+                          maxzoom=get_layer_max_cached_zoom(browse_layer_model),
                           start_time=time_model.start_time,
                           end_time=time_model.end_time,
                           delete=True,
@@ -344,7 +345,7 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
                           minx=time_model.minx, miny=time_model.miny,
                           maxx=time_model.maxx, maxy=time_model.maxy,
                           minzoom=browse_layer_model.lowest_map_level,
-                          maxzoom=browse_layer_model.max_cached_zoom,
+                          maxzoom=get_layer_max_cached_zoom(browse_layer_model),
                           start_time=time_model.start_time,
                           end_time=time_model.end_time,
                           delete=True,
