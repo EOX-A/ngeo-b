@@ -261,7 +261,7 @@ def add_mapcache_layer_xml(browse_layer, config=None):
             E("cache", name),
             E("grid",
                 URN_TO_GRID[browse_layer.grid], **{
-                    "max-cached-zoom": str(browse_layer.highest_map_level),
+                    "max-cached-zoom": str(browse_layer.max_cached_zoom),
                     "out-of-zoom-strategy": "reassemble"
                 }
             ),

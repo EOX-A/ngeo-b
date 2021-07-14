@@ -94,6 +94,7 @@ class BrowseLayer(models.Model):
     )
     highest_map_level = models.IntegerField(null=True, blank=True, default=None)
     lowest_map_level = models.IntegerField(null=True, blank=True, default=None)
+    max_cached_zoom = models.IntegerField(null=True, blank=True, default=None)
 
     # ingestion strategy
     strategy = models.CharField(max_length=8, default="inherit",
@@ -127,7 +128,10 @@ class BrowseLayer(models.Model):
         # custom model validation
         if self.highest_map_level < self.lowest_map_level:
             raise ValidationError("Highest map level number must be greater "
-                                  "than lowest map level number.")
+                                  "than or equal to lowest map level number.")
+        if self.max_cached_zoom < self.highest_map_level:
+            raise ValidationError("Max cached zoom number must be greater "
+                                  "than or equal to highest map level number.")
         # TODO: more checks
 
 

@@ -95,6 +95,9 @@ def decode_browse_layers(browse_layers_elem, config=None):
             or tile_query_limit_default
         )
         disableSeedingIngestion = True if (browse_layer_elem.find(ns_cfg("disableSeedingIngestion")) is not None and browse_layer_elem.find(ns_cfg("disableSeedingIngestion")).text == "true") else False
+        # if maxCachedZoom not present, set it as highestMapLevel which is mandatory
+        maxCachedZoom = browse_layer_elem.findtext(ns_cfg("maxCachedZoom"),
+            default=browse_layer_elem.findtext(ns_cfg("highestMapLevel")))
         browse_layers.append(BrowseLayer(
             browse_layer_elem.get("browseLayerId"),
             browse_layer_elem.find(ns_cfg("browseType")).text,
@@ -106,6 +109,7 @@ def decode_browse_layers(browse_layers_elem, config=None):
             disableSeedingIngestion,
             int(browse_layer_elem.find(ns_cfg("highestMapLevel")).text),
             int(browse_layer_elem.find(ns_cfg("lowestMapLevel")).text),
+            int(maxCachedZoom),
             browse_layer_elem.find(ns_cfg("hostingBrowseServerName")).text,
             related_dataset_ids,
             **opt

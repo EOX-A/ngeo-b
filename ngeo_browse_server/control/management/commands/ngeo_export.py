@@ -252,8 +252,8 @@ class Command(LogToConsoleMixIn, BaseCommand):
                         for tile_desc in ts.get_tiles(
                             browse_layer.id, 
                             URN_TO_GRID[browse_layer.grid], dim=dim,
-                            minzoom=browse_layer.highest_map_level,
-                            maxzoom=browse_layer.lowest_map_level
+                            minzoom=browse_layer.lowest_map_level,
+                            maxzoom=browse_layer.max_cached_zoom
                         ):
                             p.add_cache_file(*tile_desc)
                             

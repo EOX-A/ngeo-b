@@ -35,9 +35,9 @@
         <source>{{ layer.pk }}</source>
         <cache>{{ layer.pk }}</cache>
         {% if layer.grid == "urn:ogc:def:wkss:OGC:1.0:GoogleCRS84Quad" %}
-        <grid max-cached-zoom="{{ layer.highest_map_level }}" out-of-zoom-strategy="reassemble">WGS84</grid>
+        <grid max-cached-zoom="{{ layer.max_cached_zoom }}" out-of-zoom-strategy="reassemble">WGS84</grid>
         {% elif layer.grid == "urn:ogc:def:wkss:OGC:1.0:GoogleMapsCompatible" %}
-        <grid max-cached-zoom="{{ layer.highest_map_level }}" out-of-zoom-strategy="reassemble">GoogleMapsCompatible</grid>
+        <grid max-cached-zoom="{{ layer.max_cached_zoom }}" out-of-zoom-strategy="reassemble">GoogleMapsCompatible</grid>
         {% endif %}
         <format>mixed</format>
         <metatile>{% if layer.disable_seeding_ingestion %}1 1{% else %}8 8{% endif %}

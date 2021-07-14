@@ -35,6 +35,7 @@
 # add column disable_seeding_ingestion to table config_browselayer
 python manage.py dbshell
 ALTER TABLE "config_browselayer" ADD COLUMN "disable_seeding_ingestion" BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE "config_browselayer" ADD COLUMN "max_cached_zoom" INTEGER NULL;
 
 # restart the httpd daemon
 sudo service httpd restart

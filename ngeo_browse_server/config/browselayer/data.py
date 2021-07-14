@@ -33,7 +33,7 @@ class BrowseLayer(object):
                  browse_access_policy, contains_vertical_curtains,
                  shorten_ingested_interval, disable_seeding_ingestion,
                  highest_map_level,
-                 lowest_map_level, hosting_browse_server_name,
+                 lowest_map_level, max_cached_zoom, hosting_browse_server_name,
                  related_dataset_ids, description="", r_band=None, g_band=None,
                  b_band=None, radiometric_interval_min=None,
                  radiometric_interval_max=None, strategy=None,
@@ -58,6 +58,7 @@ class BrowseLayer(object):
         self._radiometric_interval_max = radiometric_interval_max
         self._highest_map_level = highest_map_level
         self._lowest_map_level = lowest_map_level
+        self._max_cached_zoom = max_cached_zoom
         self._strategy = strategy
         self._harvesting_source = harvesting_source or {}
         self._harvesting_configuration = harvesting_configuration or {}
@@ -82,6 +83,7 @@ class BrowseLayer(object):
     radiometric_interval_max = property(lambda self: self._radiometric_interval_max)
     highest_map_level = property(lambda self: self._highest_map_level)
     lowest_map_level = property(lambda self: self._lowest_map_level)
+    max_cached_zoom = property(lambda self: self._max_cached_zoom)
     strategy = property(lambda self: self._strategy)
     harvesting_source = property(lambda self: self._harvesting_source)
     harvesting_configuration = property(lambda self: self._harvesting_configuration)
@@ -107,6 +109,7 @@ class BrowseLayer(object):
             "radiometric_interval_max": self.radiometric_interval_max,
             "highest_map_level": self.highest_map_level,
             "lowest_map_level": self.lowest_map_level,
+            "max_cached_zoom": self.max_cached_zoom,
             "strategy": self.strategy,
             # TODO: fix the DB model
             "harvesting_source": "",
@@ -133,6 +136,7 @@ class BrowseLayer(object):
             radiometric_interval_max=model.radiometric_interval_max,
             highest_map_level=model.highest_map_level,
             lowest_map_level=model.lowest_map_level,
+            max_cached_zoom=model.max_cached_zoom,
             timedimension_default=model.timedimension_default,
             tile_query_limit=model.tile_query_limit
         )
