@@ -758,9 +758,6 @@ use_footprint = true
 [browse_reports_redis]
 host = localhost
 port = 6379
-# uncommment following line to pass BRs in multiple queues
-# requires sxcat-brb-redis >= 1.2.1
-#queue = ingest_queue
 EOF
 
         # fixing the Sx-Cat CLI aliases
