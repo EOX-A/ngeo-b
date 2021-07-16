@@ -36,3 +36,9 @@ if [ -x /usr/bin/sxcat ]
 then
     sudo -u apache /usr/bin/sxcat config --global | sed -e '/queue\s*=\s*ingest_queue/d' | sudo -u apache /usr/bin/sxcat config --import --global
 fi
+
+# fixing Sx-Cat CLI aliases
+for F in /etc/profile.d/sxcat.*
+do
+    sudo sed -i -e 's/-u sxcat /-u apache /' "$F"
+done
