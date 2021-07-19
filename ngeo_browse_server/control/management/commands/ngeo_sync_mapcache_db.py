@@ -2,9 +2,10 @@
 #
 # Project: ngEO Browse Server <http://ngeo.eox.at>
 # Authors: Stephan Meissl <stephan.meissl@eox.at>
+#          Lubomir Bucek <lubomir.bucek@eox.at>
 #
 #------------------------------------------------------------------------------
-# Copyright (C) 2018 EOX IT Services GmbH
+# Copyright (C) 2018, 2021 EOX IT Services GmbH
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +27,6 @@
 #------------------------------------------------------------------------------
 
 import logging
-from optparse import make_option
 from os.path import abspath, exists
 import traceback
 
@@ -47,17 +47,11 @@ logger = logging.getLogger(__name__)
 
 class Command(LogToConsoleMixIn, BaseCommand):
 
-    option_list = BaseCommand.option_list + (
-        make_option(
-            '--force', action="store_true",
-            dest='force', default=False,
-            help=("Optional switch to alter existing file.")
-        ),
-    )
+    args = ("<path-to-mapcache-db-file>")
+    help = ("Synchronizes the MapCache SQLite DB holding times and extents"
+            "to given file.")
 
-    help = ("Synchronizes the MapCache SQLite DB holding times and extents.")
-
-    def handle(self, **kwargs):
+    def handle(self, *filename, **kwargs):
         # parse command arguments
         self.verbosity = int(kwargs.get("verbosity", 1))
         traceback_conf = kwargs.get("traceback", False)
@@ -68,18 +62,22 @@ class Command(LogToConsoleMixIn, BaseCommand):
         logger.info("Starting synchronization of MapCache SQLite DB holding "
                     "times and extents.")
 
-        force = kwargs.get("force")
-        if force:
-            # TODO
-            logger.error("Changing existing SQLite file is not implemented.")
-            raise CommandError(
-                "Changing existing SQLite file is not implemented."
-            )
-        else:
-            db_path = abspath(settings.DATABASES["mapcache"]["NAME"])
-            if exists(db_path):
-                logger.error("MapCache SQLite exists exiting.")
-                raise CommandError("MapCache SQLite exists exiting.")
+        # check consistency
+        if not len(filename):
+            logger.error("No output MapCache SQLite filename given.")
+            raise CommandError("No output MapCache SQLite filename given.")
+        elif len(filename) > 1:
+            logger.error("One output MapCache SQLite filename expected.")
+            raise CommandError("One output MapCache SQLite filename expected.")
+
+        db_path = abspath(filename[0])
+        if exists(db_path):
+            logger.error("Output MapCache SQLite exists, exiting.")
+            raise CommandError("Output MapCache SQLite exists, exiting.")
+        logger.info("Output MapCache SQLite file to write is '%s'" % db_path)
+
+        # adjust settings to use given filename
+        settings.DATABASES["mapcache"]["NAME"] = db_path
 
         call_command("syncdb", database="mapcache", interactive=False)
 
@@ -89,7 +87,7 @@ class Command(LogToConsoleMixIn, BaseCommand):
             self.handle_browse_layer(browse_layer_model)
 
         logger.info("Finished generation of MapCache SQLite DB holding times "
-                    "and extents.")
+                    "and extents in file '%s'." % db_path)
 
     def handle_browse_layer(self, browse_layer_model):
 
@@ -178,7 +176,8 @@ class Command(LogToConsoleMixIn, BaseCommand):
                             try:
                                 time['extent']
                             except KeyError:
-                                # mishap in DB, where no extent is linked to browse, skip
+                                # mishap in DB, where no extent is linked to
+                                # browse, skip
                                 failed_browse_ids.append(time['coverage_id'])
                                 continue
                             minx_tmp, miny_tmp, maxx_tmp, maxy_tmp = (
