@@ -159,7 +159,7 @@ git tag -a release-4.1.0.rc.1 -m "Tagging release 4.1.0.rc.1."
 git push --tags
 ```
 
-RPMs are automatically build by travis and attached to the release.
+RPMs are automatically build by GitHub Actions and attached to the release.
 To build the packages manually run the following:
 
 ```bash
