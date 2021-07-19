@@ -40,6 +40,8 @@ from django.core.urlresolvers import reverse
 from ngeo_browse_server.config import (
     get_ngeo_config, get_project_relative_path, safe_get
 )
+from ngeo_browse_server.config.browselayer.data import get_layer_max_cached_zoom
+
 from ngeo_browse_server.lock import (FileLock, LockException)
 from ngeo_browse_server.mapcache.exceptions import (
     SeedException, LayerException
@@ -261,14 +263,16 @@ def add_mapcache_layer_xml(browse_layer, config=None):
             E("cache", name),
             E("grid",
                 URN_TO_GRID[browse_layer.grid], **{
-                    "max-cached-zoom": str(browse_layer.highest_map_level),
+                    "max-cached-zoom": str(get_layer_max_cached_zoom(browse_layer)),
                     "out-of-zoom-strategy": "reassemble"
                 }
             ),
             E("format", "mixed"),
-            E("metatile", "8 8"),
+            E("metatile", "1 1" if browse_layer.disable_seeding_ingestion
+                else "8 8"),
             E("expires", "3600"),
-            E("read-only", "true"),
+            E("read-only", "false" if browse_layer.disable_seeding_ingestion
+                else "true"),
             E("timedimension",
                 E("dbfile", settings.DATABASES["mapcache"]["NAME"]),
                 E("query", "select * from (select strftime('%Y-%m-%dT%H:%M:%SZ',start_time)||'/'||strftime('%Y-%m-%dT%H:%M:%SZ',end_time) as interval from time where source_id=:tileset and (start_time<datetime(:end_timestamp,'unixepoch') and (end_time>datetime(:start_timestamp,'unixepoch')) or (start_time=end_time and start_time<datetime(:end_timestamp,'unixepoch') and end_time>=datetime(:start_timestamp,'unixepoch'))) and ((maxx>=:minx and minx<=:maxx) or (maxx>"+str(bounds[2])+" and (maxx-"+str(full)+")>=:minx and (minx-"+str(full)+")<=:maxx)) and maxy>=:miny and miny<=:maxy order by end_time desc limit "+str(browse_layer.tile_query_limit)+") order by interval asc"),

@@ -32,6 +32,7 @@ from cStringIO import StringIO
 from lxml.etree import Element, SubElement, ElementTree
 
 from ngeo_browse_server.namespace import ns_cfg
+from ngeo_browse_server.config.browselayer.data import get_layer_max_cached_zoom
 
 
 def serialize_browse_layers(browse_layers, stream=None, pretty_print=False):
@@ -64,6 +65,7 @@ def serialize_browse_layers(browse_layers, stream=None, pretty_print=False):
             SubElement(rel_ds_elem, ns_cfg("datasetId")).text = rel_ds_id
         SubElement(bl_elem, ns_cfg("containsVerticalCurtains")).text = "true" if browse_layer.contains_vertical_curtains else "false"
         SubElement(bl_elem, ns_cfg("shortenIngestedInterval")).text = str(browse_layer.shorten_ingested_interval)
+        SubElement(bl_elem, ns_cfg("disableSeedingIngestion")).text = "true" if browse_layer.disable_seeding_ingestion else "false"
         if has_rgb:
             SubElement(bl_elem, ns_cfg("rgbBands")).text = ",".join(map(str, rgb))
         
@@ -74,6 +76,7 @@ def serialize_browse_layers(browse_layers, stream=None, pretty_print=False):
         
         SubElement(bl_elem, ns_cfg("highestMapLevel")).text = str(browse_layer.highest_map_level)
         SubElement(bl_elem, ns_cfg("lowestMapLevel")).text = str(browse_layer.lowest_map_level)
+        SubElement(bl_elem, ns_cfg("maxCachedZoom")).text = str(get_layer_max_cached_zoom(browse_layer))
         SubElement(bl_elem, ns_cfg("timeDimensionDefault")).text = str(browse_layer.timedimension_default)
         SubElement(bl_elem, ns_cfg("tileQueryLimit")).text = str(browse_layer.tile_query_limit)
     

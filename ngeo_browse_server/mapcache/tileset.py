@@ -123,10 +123,10 @@ class SQLiteSchemaTileSet(object):
             ]
             
             if minzoom is not None:
-                where_clauses.append("tiles.z <= %d" % minzoom)
+                where_clauses.append("tiles.z >= %d" % minzoom)
             
             if maxzoom is not None:
-                where_clauses.append("tiles.z >= %d" % maxzoom)
+                where_clauses.append("tiles.z <= %d" % maxzoom)
                 
             if dim:
                 where_clauses.append("tiles.dim = '%s'" % dim)

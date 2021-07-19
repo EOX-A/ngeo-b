@@ -2,6 +2,7 @@
 #
 # Project: ngEO Browse Server <http://ngeo.eox.at>
 # Authors: Martin Paces <martin.paces@eox.at>
+#          Lubomir Bucek <lubomir.bucek@eox.at>
 #
 #-------------------------------------------------------------------------------
 # Copyright (C) 2021 European Space Agency
@@ -30,6 +31,16 @@
 #-------------------------------------------------------------------------------
 # The steps assume a default installation and configuration as for
 # example provided via the `ngeo-install.sh` script.
+
+
+# add new columns to table config_browselayer
+python manage.py dbshell
+ALTER TABLE "config_browselayer" ADD COLUMN "disable_seeding_ingestion" BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE "config_browselayer" ADD COLUMN "max_cached_zoom" INTEGER NULL;
+
+# restart the httpd daemon
+sudo service httpd restart
+
 
 # remove forced ingestion queue configuration from the Sx-Cat configuration
 if [ -x /usr/bin/sxcat ]

@@ -21,7 +21,7 @@ Clone Browse Server:
 ```bash
 git clone git@github.com:EOX-A/ngeo-b.git
 cd ngeo-b/
-git checkout branch-4-0
+git checkout branch-4-1
 git submodule init
 git submodule update
 ```
@@ -64,7 +64,7 @@ docker run -d -it --rm --name running-browse-server -p 8080:80 \
 In case local changes are not picked up try changing the volume mount path like below. Exec into the running container to find out the right path.
 
 ```bash
-    -v "${PWD}/ngeo_browse_server/":/usr/lib/python2.6/site-packages/ngEO_Browse_Server-4.0.2.dev-py2.6.egg/ngeo_browse_server/ \
+    -v "${PWD}/ngeo_browse_server/":/usr/lib/python2.6/site-packages/ngEO_Browse_Server-4.1.0.dev-py2.6.egg/ngeo_browse_server/ \
 ```
 
 ## Test Browse Server
@@ -134,11 +134,11 @@ cd git/ngeo-b/
 git pull
 
 # If starting a new release branch:
-git checkout -b branch-4-0
+git checkout -b branch-4-1
 vi ngeo_browse_server/__init__.py
 # Adjust version to future one
 git commit ngeo_browse_server/__init__.py -m "Adjusting version."
-git push -u origin branch-4-0
+git push -u origin branch-4-1
 
 vi ngeo_browse_server/__init__.py
 # Adjust version
@@ -155,11 +155,11 @@ git commit setup.py ngeo_browse_server/__init__.py -m "Adjusting version."
 #Development Status :: 7 - Inactive
 git push
 
-git tag -a release-4.0.0.rc.1 -m "Tagging release 4.0.0.rc.1."
+git tag -a release-4.1.0.rc.1 -m "Tagging release 4.1.0.rc.1."
 git push --tags
 ```
 
-RPMs are automatically build by travis and attached to the release.
+RPMs are automatically build by GitHub Actions and attached to the release.
 To build the packages manually run the following:
 
 ```bash

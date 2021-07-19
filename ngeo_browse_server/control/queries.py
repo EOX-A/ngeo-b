@@ -46,6 +46,7 @@ from eoxserver.core.util.timetools import isotime
 from ngeo_browse_server.config import (
     models, get_ngeo_config, get_project_relative_path
 )
+from ngeo_browse_server.config.browselayer.data import get_layer_max_cached_zoom
 from ngeo_browse_server.mapcache import models as mapcache_models
 from ngeo_browse_server.mapcache.tasks import (
     seed_mapcache, add_mapcache_layer_xml, remove_mapcache_layer_xml
@@ -240,7 +241,7 @@ def create_browse(browse, browse_report_model, browse_layer_model, coverage_id,
                           minx=time_model.minx, miny=time_model.miny,
                           maxx=time_model.maxx, maxy=time_model.maxy,
                           minzoom=browse_layer_model.lowest_map_level,
-                          maxzoom=browse_layer_model.highest_map_level,
+                          maxzoom=get_layer_max_cached_zoom(browse_layer_model),
                           start_time=time_model.start_time,
                           end_time=time_model.end_time,
                           delete=True,
@@ -344,7 +345,7 @@ def remove_browse(browse_model, browse_layer_model, coverage_id,
                           minx=time_model.minx, miny=time_model.miny,
                           maxx=time_model.maxx, maxy=time_model.maxy,
                           minzoom=browse_layer_model.lowest_map_level,
-                          maxzoom=browse_layer_model.highest_map_level,
+                          maxzoom=get_layer_max_cached_zoom(browse_layer_model),
                           start_time=time_model.start_time,
                           end_time=time_model.end_time,
                           delete=True,
@@ -588,14 +589,15 @@ def update_browse_layer(browse_layer, config=None):
 
     mutable_values = [
         "title", "description", "browse_access_policy",
-        "timedimension_default", "tile_query_limit", "strategy"
+        "timedimension_default", "tile_query_limit", "strategy",
+        "disable_seeding_ingestion", "max_cached_zoom",
     ]
 
     refresh_mapcache_xml = False
     refresh_metadata = False
     for key in mutable_values:
         setattr(browse_layer_model, key, getattr(browse_layer, key))
-        if key in ("timedimension_default", "tile_query_limit"):
+        if key in ("timedimension_default", "tile_query_limit", "disable_seeding_ingestion", "max_cached_zoom"):
             refresh_mapcache_xml = True
         if key in ("title", "description"):
             refresh_metadata = True

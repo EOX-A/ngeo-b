@@ -31,8 +31,9 @@
 class BrowseLayer(object):
     def __init__(self, browse_layer_identifier, browse_type, title, grid,
                  browse_access_policy, contains_vertical_curtains,
-                 shorten_ingested_interval, highest_map_level,
-                 lowest_map_level, hosting_browse_server_name,
+                 shorten_ingested_interval, disable_seeding_ingestion,
+                 highest_map_level,
+                 lowest_map_level, max_cached_zoom, hosting_browse_server_name,
                  related_dataset_ids, description="", r_band=None, g_band=None,
                  b_band=None, radiometric_interval_min=None,
                  radiometric_interval_max=None, strategy=None,
@@ -49,6 +50,7 @@ class BrowseLayer(object):
         self._related_dataset_ids = related_dataset_ids
         self._contains_vertical_curtains = contains_vertical_curtains
         self._shorten_ingested_interval = shorten_ingested_interval
+        self._disable_seeding_ingestion = disable_seeding_ingestion
         self._r_band = r_band
         self._g_band = g_band
         self._b_band = b_band
@@ -56,6 +58,7 @@ class BrowseLayer(object):
         self._radiometric_interval_max = radiometric_interval_max
         self._highest_map_level = highest_map_level
         self._lowest_map_level = lowest_map_level
+        self._max_cached_zoom = max_cached_zoom
         self._strategy = strategy
         self._harvesting_source = harvesting_source or {}
         self._harvesting_configuration = harvesting_configuration or {}
@@ -72,6 +75,7 @@ class BrowseLayer(object):
     related_dataset_ids = property(lambda self: self._related_dataset_ids)
     contains_vertical_curtains = property(lambda self: self._contains_vertical_curtains)
     shorten_ingested_interval = property(lambda self: self._shorten_ingested_interval)
+    disable_seeding_ingestion = property(lambda self: self._disable_seeding_ingestion)
     r_band = property(lambda self: self._r_band)
     g_band = property(lambda self: self._g_band)
     b_band = property(lambda self: self._b_band)
@@ -79,6 +83,7 @@ class BrowseLayer(object):
     radiometric_interval_max = property(lambda self: self._radiometric_interval_max)
     highest_map_level = property(lambda self: self._highest_map_level)
     lowest_map_level = property(lambda self: self._lowest_map_level)
+    max_cached_zoom = property(lambda self: self._max_cached_zoom)
     strategy = property(lambda self: self._strategy)
     harvesting_source = property(lambda self: self._harvesting_source)
     harvesting_configuration = property(lambda self: self._harvesting_configuration)
@@ -96,6 +101,7 @@ class BrowseLayer(object):
             "browse_access_policy": self.browse_access_policy,
             "contains_vertical_curtains": self.contains_vertical_curtains,
             "shorten_ingested_interval": self.shorten_ingested_interval,
+            "disable_seeding_ingestion": self.disable_seeding_ingestion,
             "r_band": self.r_band,
             "g_band": self.g_band,
             "b_band": self.b_band,
@@ -103,6 +109,7 @@ class BrowseLayer(object):
             "radiometric_interval_max": self.radiometric_interval_max,
             "highest_map_level": self.highest_map_level,
             "lowest_map_level": self.lowest_map_level,
+            "max_cached_zoom": self.max_cached_zoom,
             "strategy": self.strategy,
             # TODO: fix the DB model
             "harvesting_source": "",
@@ -123,11 +130,19 @@ class BrowseLayer(object):
                                  for rel_ds in model.related_datasets.all()],
             contains_vertical_curtains=model.contains_vertical_curtains,
             shorten_ingested_interval=model.shorten_ingested_interval,
+            disable_seeding_ingestion=model.disable_seeding_ingestion,
             r_band=model.r_band, g_band=model.g_band, b_band=model.b_band,
             radiometric_interval_min=model.radiometric_interval_min,
             radiometric_interval_max=model.radiometric_interval_max,
             highest_map_level=model.highest_map_level,
             lowest_map_level=model.lowest_map_level,
+            max_cached_zoom=model.max_cached_zoom,
             timedimension_default=model.timedimension_default,
             tile_query_limit=model.tile_query_limit
         )
+
+
+def get_layer_max_cached_zoom(bl):
+    if bl.max_cached_zoom is not None:
+        return bl.max_cached_zoom
+    return bl.highest_map_level
