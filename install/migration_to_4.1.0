@@ -1,7 +1,8 @@
 #-------------------------------------------------------------------------------
 #
 # Project: ngEO Browse Server <http://ngeo.eox.at>
-# Authors: Lubomir Bucek <lubomir.bucek@eox.at>
+# Authors: Martin Paces <martin.paces@eox.at>
+#          Lubomir Bucek <lubomir.bucek@eox.at>
 #
 #-------------------------------------------------------------------------------
 # Copyright (C) 2021 European Space Agency
@@ -26,16 +27,29 @@
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
-# Steps to migrate ngEO_Browse_Server version 4.0.2 to 4.1.0
+# Steps to migrate ngEO_Browse_Server version <=4.0.2 to 4.1.0
 #-------------------------------------------------------------------------------
 # The steps assume a default installation and configuration as for
 # example provided via the `ngeo-install.sh` script.
 
 
-# add column disable_seeding_ingestion to table config_browselayer
+# add new columns to table config_browselayer
 python manage.py dbshell
 ALTER TABLE "config_browselayer" ADD COLUMN "disable_seeding_ingestion" BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE "config_browselayer" ADD COLUMN "max_cached_zoom" INTEGER NULL;
 
 # restart the httpd daemon
 sudo service httpd restart
+
+
+# remove forced ingestion queue configuration from the Sx-Cat configuration
+if [ -x /usr/bin/sxcat ]
+then
+    sudo -u apache /usr/bin/sxcat config --global | sed -e '/queue\s*=\s*ingest_queue/d' | sudo -u apache /usr/bin/sxcat config --import --global
+fi
+
+# fixing Sx-Cat CLI aliases
+for F in /etc/profile.d/sxcat.*
+do
+    sudo sed -i -e 's/-u sxcat /-u apache /' "$F"
+done
