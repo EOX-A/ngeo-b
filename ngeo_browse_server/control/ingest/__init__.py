@@ -906,7 +906,7 @@ def _unwrap_coord_list(coord_list, bounds):
     x_last = coord_list[0][0]
     for (x, y) in coord_list[1:]:
         if abs(x_last - x) > half:
-            x -= full * copysign(1, x)
+            x -= full * copysign(1, x - x_last)
         x_last = x
         unwrapped_coord_list.append((x, y))
 
