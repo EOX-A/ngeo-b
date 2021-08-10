@@ -53,3 +53,10 @@ for F in /etc/profile.d/sxcat.*
 do
     sudo sed -i -e 's/-u sxcat /-u apache /' "$F"
 done
+
+
+# update the browsewatchd and ngeo service scripts with the 4.1.0 versions from
+# https://github.com/EOX-A/ngeo-b/tree/branch-4-1/install
+sudo curl -o /etc/init.d/browsewatchd "https://raw.githubusercontent.com/EOX-A/ngeo-b/branch-4-1/install/browsewatchd"
+sudo curl -o /etc/init.d/ngeo "https://raw.githubusercontent.com/EOX-A/ngeo-b/branch-4-1/install/ngeo"
+sudo service ngeo restart
