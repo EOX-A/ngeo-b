@@ -747,11 +747,14 @@ def _georef_from_parsed(parsed_browse, clipping=None):
         gcps = [(x, y, pixel, line)
                 for (x, y), (pixel, line) in zip(coord_list, pixels)]
 
-
         # check that the last point of the footprint is the first
         if not gcps[0] == gcps[-1]:
-            raise IngestionException("The last value of the footprint is not "
-                                     "equal to the first.")
+            # check if they are equal modulo 360 and within 1e-05
+            eps = 1e-05
+            if ((not abs(gcps[0][1] - gcps[-1][1]) <= eps) or
+               (not abs(gcps[0][0] % 360 - gcps[-1][0] % 360.0) <= eps)):
+                raise IngestionException("The last value of the footprint is "
+                                         "not equal to the first.")
         gcps.pop()
 
         return GCPList(gcps, srid)
