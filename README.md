@@ -173,10 +173,6 @@ docker run -it --rm --name build-browse-server \
 Finalize and clean up:
 
 ```bash
-# Upload packages to yum repository
-scp dist/*rpm packages@packages.eox.at:
-# ...
-
 vi ngeo_browse_server/__init__.py
 # Adjust version to dev
 vi setup.py
