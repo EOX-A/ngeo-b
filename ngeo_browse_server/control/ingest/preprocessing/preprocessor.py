@@ -319,7 +319,7 @@ class NGEOPreProcessor(WMSPreProcessor):
 
             outer = non_normalized_space.intersection(footprint)
 
-            if len(outer):
+            if len(outer) and isinstance(outer, Polygon):
                 footprint = MultiPolygon(
                     *map(lambda p:
                         Polygon(*map(lambda ls:
