@@ -28,11 +28,11 @@
 #-------------------------------------------------------------------------------
 
 
-#VERSION = (4, 1, 2, 'dev', 0)
+VERSION = (4, 1, 2, 'dev', 0)
 #VERSION = (4, 1, 1, 'alpha', 1)
 #VERSION = (4, 1, 1, 'beta', 1)
 #VERSION = (4, 1, 1, 'rc', 1)
-VERSION = (4, 1, 1, 'final', 0)
+#VERSION = (4, 1, 1, 'final', 0)
 
 
 def get_version():
