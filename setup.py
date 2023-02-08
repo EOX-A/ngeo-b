@@ -69,6 +69,7 @@ setup(
         "tools/download-ers.sh",
         "tools/browsewatchd2.py",
         "tools/browsewatch_monitor.py",
+        "tools/stac_export.py"
     ],
 
     install_requires=[
