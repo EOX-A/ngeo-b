@@ -34,7 +34,7 @@ parser.add_option("-c", "--collection", dest="collection",
 
 LOG_FILE = options.log_file
 REMOVE_PATH = options.remove_path
-PREPEND_PATH = options.preprend_path
+PREPEND_PATH = options.prepend_path
 EXPORT_PATH = options.export_path
 LIMIT = int(options.limit)
 SYS_PATH = options.sys_path
