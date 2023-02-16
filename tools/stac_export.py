@@ -7,14 +7,15 @@ import json
 import logging
 import logging.handlers
 import optparse
+import datetime
 
 parser = optparse.OptionParser(usage="usage: ./stac_export.py [OPTIONS]",
                                description="Exports browses to STAC items for import to VS. Contains default options which can be overwritten")
 parser.add_option("-r", "--remove-path", dest="remove_path",
-                  help="Part of path for data to remove. Defaults to: /var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance",
-                  default="/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance")
-parser.add_option("-p", "--prepend-path", dest="prepend_path", default="",
-                  help="Path to prepend to data paths. Defaults to: ''")
+                  help="Part of path for data to remove. Defaults to: /var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/data/optimized",
+                  default="/var/www/ngeo/ngeo_browse_server_instance/ngeo_browse_server_instance/data/optimized")
+parser.add_option("-p", "--prepend-path", dest="prepend_path", default="/data",
+                  help="Path to prepend to data paths. Defaults to: '/data'")
 parser.add_option("-e", "--export-path", dest="export_path", default=os.getcwd(),
                   help="Export destination path. Defaults to current directory")
 parser.add_option("-l", "--log-file", dest="log_file", default="",
@@ -47,7 +48,9 @@ os.environ['DJANGO_SETTINGS_MODULE'] = DJANGO_SETTINGS_MODULE
 from ngeo_browse_server.config.models import BrowseLayer, FootprintBrowse, Browse
 from eoxserver.resources.coverages.models import LocalDataPackage, RectifiedDatasetRecord
 from eoxserver.backends.models import LocalPath
+from eoxserver.core.system import System
 
+System.init()
 LOGGER = logging.getLogger("stac_export")
 FORMATTER = logging.Formatter("[%(asctime)s](%(name)s) - %(message)s")
 LOGGER.setLevel(logging.DEBUG)
@@ -61,41 +64,134 @@ if LOG_FILE:
     LOGGER.addHandler(file_handler)
 
 
-STAC_ITEM_MODEL = {
+ITEM_MODEL = {
     "id": "",
     "type": "Feature",
     "stac_version": "1.0.0",
+    "links": [],
+    "stac_extensions": [],
     "geometry": {},
     "bbox": [],
     "properties": {},
     "assets": {},
-    "collection": "",
+    "collection": ""
 }
+
+COLLECTION_MODEL = {
+    "id": "",
+    "type": "Collection",
+    "stac_version": "1.0.0",
+    "description": "",
+    "links": [],
+    "stac_extensions": [],
+    "extent": {},
+    "license": "proprietary"
+}
+COMMON_COLLECTION_LINKS = [
+    {
+        "rel": "root",
+        "href": "./catalog.json",
+        "type": "application/json"
+    },
+    {
+        "rel": "parent",
+        "href": "./catalog.json",
+        "type": "application/json"
+    }
+]
+
+CATALOG_MODEL = {
+        "id": "vs-catalog",
+        "type": "Catalog",
+        "stac_version": "1.0.0",
+        "description": "A Browse server exported catalog",
+        "links": [],
+        "stac_extensions": [],
+    }
+COMMON_CATALOG_LINKS = [
+    {
+        "rel": "root",
+        "href": "./catalog.json",
+        "type": "application/json"
+    },
+]
+DEFAULT_BEGIN = datetime.datetime(1990, 1, 1) 
+DEFAULT_END = datetime.datetime(2030, 12, 31)
+DEFAULT_BBOX = (-180, -85, 180, 85)   
 
 
 def main():
+    catalog = dict(CATALOG_MODEL)
+    catalog_links = list(COMMON_CATALOG_LINKS)
+
     LOGGER.info("Starting export...")
     if COLLECTION:
-        collection = BrowseLayer.objects.get(id = COLLECTION)
-        collections = [collection]
+        browse_layer = BrowseLayer.objects.get(id = COLLECTION)
+        collections = [browse_layer]
         collection_count = 1
     else:
         collections = BrowseLayer.objects.all()
         collection_count = collections.count()
 
-    for i, collection in enumerate(collections, start=1):
-        collection_name = str(collection.browse_type)
-        LOGGER.info('(%s/%s) Processing collection %s ' % (i, collection_count, collection_name))
+    for i, browse_layer in enumerate(collections, start=1):
 
-        browses = Browse.objects.filter(browse_layer = collection)
+        # create collection
+        collection = dict(COLLECTION_MODEL)
+        collection_name = str(browse_layer.browse_type)
+        LOGGER.info('(%s/%s) Processing browse layer %s ' % (i, collection_count, collection_name))
+        collection['id'] = collection_name
+        collection['description'] = "%s collection" % collection_name
+        eo_obj = System.getRegistry().getFromFactory(
+            "resources.coverages.wrappers.DatasetSeriesFactory",
+            {"obj_id": collection_name}
+        ) or System.getRegistry().getFromFactory(
+            "resources.coverages.wrappers.EOCoverageFactory",
+            {"obj_id": collection_name}
+        )
+        if eo_obj:
+            bl_begin = eo_obj.getBeginTime()
+            bl_end = eo_obj.getEndTime()
+            bl_bbox = eo_obj.getFootprint().extent
+        else:
+            bl_begin = DEFAULT_BEGIN
+            bl_end = DEFAULT_END
+            bl_bbox = DEFAULT_BBOX
+                     
+        
+        collection_extent = {
+            "spatial": {
+                "bbox": [
+                    list(bl_bbox)
+                ]
+            },
+            "temporal": {
+                "interval": [
+                    [   
+                        bl_begin.strftime("%Y-%m-%dT%H:%M:%SZ"), 
+                        bl_end.strftime("%Y-%m-%dT%H:%M:%SZ")
+                     ]
+                ]
+            }
+        }
+        collection['extent'] = collection_extent
+        collection_links = list(COMMON_COLLECTION_LINKS)
+        catalog_links.append(
+            {
+                "rel": "child",
+                "href": "./%s.json" % collection_name,
+                "type": "application/json"
+            }
+        )
+
+        browses = Browse.objects.filter(browse_layer = browse_layer)
         browses_count = LIMIT or browses.count()
 
         output_path = os.path.join(EXPORT_PATH, collection_name)
         if not os.path.exists(output_path):
             os.mkdir(output_path)
 
-
         for j, browse in enumerate(browses, start=1):
+            # get browse
             rectified_record = RectifiedDatasetRecord.objects.get(eo_id = browse.coverage_id)
             id = str(browse.coverage_id)
             LOGGER.info('(%s/%s) Processing browse %s' % (j, browses_count, id))
@@ -109,11 +205,6 @@ def main():
                 extent_record.maxy
             ]
 
-            # prepare data path
-            local_data_package = LocalDataPackage.objects.get(id = rectified_record.data_package_id)
-            local_data_package_id = local_data_package.data_location_id
-            path = LocalPath.objects.get(id = local_data_package_id).path
-            data_path = str(path).replace(REMOVE_PATH, PREPEND_PATH)
 
             # prepare footprint
             footprint = FootprintBrowse.objects.get(browse_ptr = browse)
@@ -131,8 +222,14 @@ def main():
                 datetime = {
                     "start_datetime": start.isoformat(), "end_datetime": end.isoformat()}        
 
+            # prepare data path
+            local_data_package = LocalDataPackage.objects.get(id = rectified_record.data_package_id)
+            local_data_package_id = local_data_package.data_location_id
+            path = LocalPath.objects.get(id = local_data_package_id).path
+            data_path = str(path).replace(REMOVE_PATH, PREPEND_PATH)
+
             # create item
-            item = dict(STAC_ITEM_MODEL)
+            item = dict(ITEM_MODEL)
             item['id'] = id
             item['bbox'] = bbox
             item['geometry'] = {
@@ -142,15 +239,51 @@ def main():
             item['collection'] = collection_name
             item['properties'] = datetime
             item['assets']['data'] = {
-                "href": data_path, "type": "image/tiff; application=geotiff"}
+                "href": data_path, 
+                "type": "image/tiff; application=geotiff"
+            }
+
+            # process links
+            item_path = os.path.join(output_path, "%s.json" % id)
+            collection_links.append(
+                {
+                    "rel": "item",
+                    "href": os.path.relpath(item_path, EXPORT_PATH),
+                    "type": "application/json"
+                }
+            )
+            item_links = [
+                {
+                    "rel": "collection",
+                    "href": "../%s.json" % collection_name,
+                    "type": "application/json"
+                },
+                {
+                    "rel": "parent",
+                    "href": "../%s.json" % collection_name,
+                    "type": "application/json"
+                }
+            ]         
+            item['links'] = item_links
 
             # save item
-            json_path = os.path.join(output_path, "%s.json" % id)
-            with open(json_path, 'w') as out_file:
+            with open(item_path, 'w') as out_file:
                 json.dump(item, out_file)
 
             if LIMIT and j == LIMIT:
                 break
+
+        # save collection
+        collection['links'] = collection_links
+        collection_path = os.path.join(EXPORT_PATH, "%s.json" % collection_name)
+        with open(collection_path, 'w') as out_file:
+            json.dump(collection, out_file)
+
+    # save catalog
+    catalog['links'] = catalog_links
+    catalog_path = os.path.join(EXPORT_PATH, "catalog.json")
+    with open(catalog_path, 'w') as out_file:
+        json.dump(catalog, out_file)
 
 
 if __name__ == "__main__":
