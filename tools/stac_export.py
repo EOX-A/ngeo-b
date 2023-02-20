@@ -209,8 +209,8 @@ def main():
             # prepare footprint
             footprint = FootprintBrowse.objects.get(browse_ptr = browse)
             coords = footprint.coord_list
-            x_coords = coords.split(" ")[::2]
-            y_coords = coords.split(" ")[1::2]
+            x_coords = coords.split(" ")[1::2]
+            y_coords = coords.split(" ")[::2]
             coords = [[float(x), float(y)] for x, y in zip(x_coords, y_coords)]
 
             # prepare datetime
@@ -237,7 +237,7 @@ def main():
                 "coordinates": [coords]
             }
             item['collection'] = collection_name
-            item['properties'] = datetime
+            item['properties'] = {"collection": collection_name}.update(datetime)
             item['assets']['data'] = {
                 "href": data_path, 
                 "type": "image/tiff; application=geotiff",
