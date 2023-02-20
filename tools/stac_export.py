@@ -240,7 +240,8 @@ def main():
             item['properties'] = datetime
             item['assets']['data'] = {
                 "href": data_path, 
-                "type": "image/tiff; application=geotiff"
+                "type": "image/tiff; application=geotiff",
+                "roles": ["data"]
             }
 
             # process links
