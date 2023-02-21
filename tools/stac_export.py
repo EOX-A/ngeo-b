@@ -228,6 +228,10 @@ def main():
             path = LocalPath.objects.get(id = local_data_package_id).path
             data_path = str(path).replace(REMOVE_PATH, PREPEND_PATH)
 
+            # prepare properties
+            properties = {"collection": collection_name}
+            properties.update(datetime)
+
             # create item
             item = dict(ITEM_MODEL)
             item['id'] = id
@@ -237,7 +241,7 @@ def main():
                 "coordinates": [coords]
             }
             item['collection'] = collection_name
-            item['properties'] = {"collection": collection_name}.update(datetime)
+            item['properties'] = properties
             item['assets']['data'] = {
                 "href": data_path, 
                 "type": "image/tiff; application=geotiff",
