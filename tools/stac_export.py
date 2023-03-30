@@ -22,13 +22,13 @@ parser.add_option("-l", "--log-file", dest="log_file", default="",
                   help="Path to save stac export log to. Defaults to: ''")
 parser.add_option("-L", "--limit", dest="limit", default=0,
                   help="Limits the queried browses to number specified. Defaults to 0 for no limit")
-parser.add_option("-s", "--sys-path", dest="sys_path", 
+parser.add_option("-s", "--sys-path", dest="sys_path",
                   default='/var/www/ngeo/ngeo_browse_server_instance',
                   help="Path to browse server instance. Defaults to: /var/www/ngeo/ngeo_browse_server_instance")
-parser.add_option("-d", "--django-settings-module", dest="django_settings_module", 
+parser.add_option("-d", "--django-settings-module", dest="django_settings_module",
                   default='ngeo_browse_server_instance.settings',
                   help="Path to django settings module. Defaults to: ngeo_browse_server_instance.settings")
-parser.add_option("-c", "--collection", dest="collection", 
+parser.add_option("-c", "--collection", dest="collection",
                   default='',
                   help="Collection to export. Defaults to '' for exporting all collections")
 (options, _) = parser.parse_args()
@@ -45,7 +45,7 @@ COLLECTION = options.collection
 sys.path.append(SYS_PATH)
 os.environ['DJANGO_SETTINGS_MODULE'] = DJANGO_SETTINGS_MODULE
 
-from ngeo_browse_server.config.models import BrowseLayer, FootprintBrowse, Browse
+from ngeo_browse_server.config.models import BrowseLayer, Browse
 from eoxserver.resources.coverages.models import LocalDataPackage, RectifiedDatasetRecord
 from eoxserver.backends.models import LocalPath
 from eoxserver.core.system import System
@@ -115,9 +115,9 @@ COMMON_CATALOG_LINKS = [
         "type": "application/json"
     },
 ]
-DEFAULT_BEGIN = datetime.datetime(1990, 1, 1) 
+DEFAULT_BEGIN = datetime.datetime(1990, 1, 1)
 DEFAULT_END = datetime.datetime(2030, 12, 31)
-DEFAULT_BBOX = (-180, -85, 180, 85)   
+DEFAULT_BBOX = (-180, -85, 180, 85)
 
 
 def main():
@@ -126,7 +126,7 @@ def main():
 
     LOGGER.info("Starting export...")
     if COLLECTION:
-        browse_layer = BrowseLayer.objects.get(id = COLLECTION)
+        browse_layer = BrowseLayer.objects.get(id=COLLECTION)
         collections = [browse_layer]
         collection_count = 1
     else:
@@ -137,7 +137,7 @@ def main():
 
         # create collection
         collection = dict(COLLECTION_MODEL)
-        collection_name = str(browse_layer.browse_type)
+        collection_name = str(browse_layer.id)
         LOGGER.info('(%s/%s) Processing browse layer %s ' % (i, collection_count, collection_name))
         collection['id'] = collection_name
         collection['description'] = "%s collection" % collection_name
@@ -156,8 +156,7 @@ def main():
             bl_begin = DEFAULT_BEGIN
             bl_end = DEFAULT_END
             bl_bbox = DEFAULT_BBOX
-                     
-        
+
         collection_extent = {
             "spatial": {
                 "bbox": [
@@ -166,8 +165,8 @@ def main():
             },
             "temporal": {
                 "interval": [
-                    [   
-                        bl_begin.strftime("%Y-%m-%dT%H:%M:%SZ"), 
+                    [
+                        bl_begin.strftime("%Y-%m-%dT%H:%M:%SZ"),
                         bl_end.strftime("%Y-%m-%dT%H:%M:%SZ")
                      ]
                 ]
@@ -183,7 +182,7 @@ def main():
             }
         )
 
-        browses = Browse.objects.filter(browse_layer = browse_layer)
+        browses = Browse.objects.filter(browse_layer=browse_layer)
         browses_count = LIMIT or browses.count()
 
         output_path = os.path.join(EXPORT_PATH, collection_name)
@@ -192,26 +191,21 @@ def main():
 
         for j, browse in enumerate(browses, start=1):
             # get browse
-            rectified_record = RectifiedDatasetRecord.objects.get(eo_id = browse.coverage_id)
+            rectified_record = RectifiedDatasetRecord.objects.get(eo_id=browse.coverage_id)
             id = str(browse.coverage_id)
             LOGGER.info('(%s/%s) Processing browse %s' % (j, browses_count, id))
-            
+
             # prepare bbox
             extent_record = rectified_record.extent
             bbox = [
-                extent_record.minx, 
-                extent_record.miny, 
-                extent_record.maxx, 
+                extent_record.minx,
+                extent_record.miny,
+                extent_record.maxx,
                 extent_record.maxy
             ]
 
-
-            # prepare footprint
-            footprint = FootprintBrowse.objects.get(browse_ptr = browse)
-            coords = footprint.coord_list
-            x_coords = coords.split(" ")[1::2]
-            y_coords = coords.split(" ")[::2]
-            coords = [[float(x), float(y)] for x, y in zip(x_coords, y_coords)]
+            # get footprint
+            footprint = rectified_record.eo_metadata.footprint.geojson
 
             # prepare datetime
             start = browse.start_time
@@ -220,12 +214,12 @@ def main():
                 datetime = {"datetime": start.isoformat()}
             else:
                 datetime = {
-                    "start_datetime": start.isoformat(), "end_datetime": end.isoformat()}        
+                    "start_datetime": start.isoformat(), "end_datetime": end.isoformat()}
 
             # prepare data path
             local_data_package = LocalDataPackage.objects.get(id = rectified_record.data_package_id)
             local_data_package_id = local_data_package.data_location_id
-            path = LocalPath.objects.get(id = local_data_package_id).path
+            path = LocalPath.objects.get(id=local_data_package_id).path
             data_path = str(path).replace(REMOVE_PATH, PREPEND_PATH)
 
             # prepare properties
@@ -236,14 +230,11 @@ def main():
             item = dict(ITEM_MODEL)
             item['id'] = id
             item['bbox'] = bbox
-            item['geometry'] = {
-                "type": "Polygon",
-                "coordinates": [coords]
-            }
+            item['geometry'] = json.loads(footprint)
             item['collection'] = collection_name
             item['properties'] = properties
             item['assets']['data'] = {
-                "href": data_path, 
+                "href": data_path,
                 "type": "image/tiff; application=geotiff",
                 "roles": ["data"]
             }
@@ -268,7 +259,7 @@ def main():
                     "href": "../%s.json" % collection_name,
                     "type": "application/json"
                 }
-            ]         
+            ]
             item['links'] = item_links
 
             # save item
